@@ -1,0 +1,19 @@
+라이츠 아웃 3D - 사용한 라이브러리·글꼴·데이터 (Credits)
+
+라이브러리
+- three.js r128 - MIT License (LICENSE-three.js-MIT.txt) - https://threejs.org
+
+글꼴
+- Saira, Saira Condensed - SIL Open Font License 1.1 (LICENSE-Saira-OFL-1.1.txt, LICENSE-Saira-Condensed-OFL-1.1.txt)
+
+실제 서킷 데이터 (가공해서 사용)
+- 서킷 형상: (c) OpenStreetMap contributors - Open Database License (ODbL) 1.0
+  https://www.openstreetmap.org/copyright
+  (mvoof/F1TrackDownloader 경유 - MIT License, LICENSE-F1TrackDownloader-MIT.txt)
+- TUMFTM/racetrack-database - LGPL-3.0 (LICENSE-TUM-racetrack-database-LGPL-3.0.txt)
+- bacinger/f1-circuits - MIT License (LICENSE-bacinger-f1-circuits-MIT.txt)
+- 높낮이·출발선·피트 레인 일부: TracingInsights 2025·2026 위치 데이터 - Apache License 2.0 (LICENSE-TracingInsights-Apache-2.0.txt)
+  높낮이는 부드럽게 다듬어 실제보다 완만한 곳이 있습니다.
+
+게임 코드, 3D 모델, 차량·팀 디자인, 아이콘은 이 게임을 위해 새로 만든 것입니다.
+실제 팀·대회·스폰서의 로고나 이름은 쓰지 않습니다.
