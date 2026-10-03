@@ -838,6 +838,9 @@ function usedWet(c){return c.used.has('I')||c.used.has('W');}
 function needsSecond(c){return !usedWet(c)&&c.used.size<2;}   // dry race: two different dry compounds unless inters/wets were used
 const ERS_MAX=4;   // MJ
 const LAPSEC=58, LOADNORM=1.0;
+// v12j: how many laps a tyre is meant to last. It used to be the race length, so a 3-lap race wore tyres three times as fast
+// as qualifying (which has always used 10) - the same lap felt completely different between the two. One number for both now.
+const TYRE_REF=10;
 function newTyres(comp,temp){return {comp,wear:[0,0,0,0],temp:[temp,temp,temp,temp],dist:0};}
 function wearF(w){return Math.max(0.45,1-0.05*w-(w>0.7?0.9*(w-0.7)*(w-0.7):0)-(w>1?0.25*(w-1):0));}   // worn out: very little grip left, never zero
 // grip against tyre temperature: full grip inside the compound's window; a cold tyre is slippery (20 degC under the window
@@ -856,7 +859,7 @@ function tyreGrip(c){
 }
 function tyreStep(race,c,dt,latA,lonA,slip){
   const ty=c.ty,C=COMP[ty.comp],v=Math.abs(c.spd),s=v/VMAX;
-  const life=Math.max(1.0,C.life*(race.tyreLaps||race.laps))*LAPSEC, base=1/life/LOADNORM;
+  const life=Math.max(1.0,C.life*(race.tyreLaps||TYRE_REF))*LAPSEC, base=1/life/LOADNORM;
   const lat=Math.min(1.6,Math.abs(latA)/40),brk=Math.max(0,-lonA)/40,trc=Math.max(0,lonA)/14,right=latA>0;
   for(let k=0;k<4;k++){
     const front=k<2,left=k%2===0,outside=(right&&left)||(!right&&!left);
@@ -3730,6 +3733,25 @@ function buildCarGeometry(){
   carbon.push(new THREE.TubeGeometry(hc,56,0.017,10,false));
   const strutC=new THREE.CatmullRomCurve3([new THREE.Vector3(-0.05,1.0,0),new THREE.Vector3(0.18,0.86,0),new THREE.Vector3(0.36,0.66,0)]),strut=new THREE.TubeGeometry(strutC,20,0.0125,10,false);carbon.push(strut);
   const strutG=new THREE.TubeGeometry(strutC,24,0.026,16,false);   // v12i: the cockpit view draws the strut as a soft, see-through band (as the driver's eyes see it, out of focus)
+  // v12j: sponsor decals on the halo - a band down each side arm and a mark across its front, the way the cars carry them.
+  // A ribbon that follows the halo curve: ax 'z' sits on the side faces, 'y' on the top face; both windings so it never drops out.
+  const band=(t0,t1,N,ax,off,hw,ws,uR,U0,V0,U1,V1)=>{
+    const pos=new Float32Array((N+1)*6),nor=new Float32Array((N+1)*6),uv=new Float32Array((N+1)*4),idx=[];
+    for(let k=0;k<=N;k++){const s=k/N,t=t0+(t1-t0)*s,p=hc.getPoint(t),tg=hc.getTangent(t);
+      let ox=0,oy=0,oz=0,wx=0,wy=0,wz=0;
+      if(ax==='z'){oz=off;const l=Math.hypot(tg.x,tg.y)||1;wx=-tg.y/l*hw*ws;wy=tg.x/l*hw*ws;}
+      else{oy=off;const l=Math.hypot(tg.x,tg.z)||1;wx=-tg.z/l*hw*ws;wz=tg.x/l*hw*ws;}
+      const b=k*6,q=k*4,u=U0+(U1-U0)*(uR?1-s:s),nz=ax==='z'?Math.sign(off):0,ny=ax==='z'?0:1;
+      pos[b]=p.x+ox-wx;pos[b+1]=p.y+oy-wy;pos[b+2]=p.z+oz-wz;
+      pos[b+3]=p.x+ox+wx;pos[b+4]=p.y+oy+wy;pos[b+5]=p.z+oz+wz;
+      nor[b]=0;nor[b+1]=ny;nor[b+2]=nz;nor[b+3]=0;nor[b+4]=ny;nor[b+5]=nz;
+      uv[q]=u;uv[q+1]=V0;uv[q+2]=u;uv[q+3]=V1;
+      if(k<N){const a=k*2;idx.push(a,a+2,a+1,a+1,a+2,a+3,a,a+1,a+2,a+1,a+3,a+2);}}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('normal',new THREE.BufferAttribute(nor,3));g.setAttribute('uv',new THREE.BufferAttribute(uv,2));g.setIndex(idx);return g;};
+  const HV0=0.265625,HV1=0.4921875,TV0=0.0234375,TV1=0.2421875;   // the two halo patches in the decal atlas
+  const haloD=mergeGeos([band(0.06,0.355,22,'z',-0.0192,0.0125,1,false,0.5,HV0,0.99609,HV1),
+                         band(0.94,0.645,22,'z',0.0192,0.0125,-1,true,0.5,HV0,0.99609,HV1),
+                         band(0.425,0.575,14,'y',0.0192,0.0135,-1,true,0.5,TV0,0.83984,TV1)]);
   // mirrors on stalks at the sidepod shoulders
   for(const s of[-1,1]){carbon.push(wingRod([0.32,0.57,s*0.5],[0.3,0.685,s*0.54],0.016,0.007));
     const m=new THREE.SphereGeometry(1,16,10);m.scale(0.04,0.03,0.078);m.translate(0.29,0.705,s*0.55);paint.push(m);
@@ -3750,7 +3772,7 @@ function buildCarGeometry(){
   const dq=(w,h,x,y,z,s,u0,v0,u1,v1)=>{const g=new THREE.PlaneGeometry(w,h);if(s<0)g.rotateY(Math.PI);g.translate(x,y,z);const uv=g.attributes.uv;for(let i=0;i<uv.count;i++){const u=uv.getX(i),v=uv.getY(i);uv.setXY(i,u0+(u1-u0)*u,v0+(v1-v0)*v);}return g;};
   const rwingD=mergeGeos([-1,1].map(s=>dq(0.34,0.16,-2.25,0.77,s*0.4855,s,0,0,0.5,0.5)));
   for(const s of[-1,1])fwing['d'+(s>0?'P':'N')]=dq(0.22,0.055,2.44,0.1,s*0.8285,s,0.625,0.5,1,1);   // below the endplate fin
-  return {paint:mergeGeos(paint),podL:pods[0],podR:pods[1],pods:mergeGeos(pods),fin,tcam,carbon:mergeGeos(carbon),carbonP:mergeGeos(carbon.filter(g=>g!==strut)),strut,strutG,dark:mergeGeos(dark),second:mergeGeos(second),metal:mergeGeos(metal),fw:fwing,rwC:rwingC,rwS:rwingS,rwD:rwingD};
+  return {paint:mergeGeos(paint),podL:pods[0],podR:pods[1],pods:mergeGeos(pods),fin,tcam,carbon:mergeGeos(carbon),carbonP:mergeGeos(carbon.filter(g=>g!==strut)),strut,strutG,dark:mergeGeos(dark),second:mergeGeos(second),metal:mergeGeos(metal),fw:fwing,rwC:rwingC,rwS:rwingS,rwD:rwingD,haloD};
 }
 // ---------- fictional sponsors (invented names and marks; no real brands) ----------
 const SPONSORS=[
@@ -3761,7 +3783,7 @@ const SPONSORS=[
   {n:'TEMPORIS',s:'TIMING',bg:'#111111',fg:'#e9d9a6',ac:'#e9d9a6',em:'dial',serif:true},{n:'VOLTARA',s:'BATTERIES',bg:'#ffffff',fg:'#141414',ac:'#22b24c',em:'batt'},
   {n:'KORVANA',s:'COLA',bg:'#b0001e',fg:'#ffffff',ac:'#ffffff',em:'drop'},{n:'QUASARLINK',s:'DATA',bg:'#141414',fg:'#ffffff',ac:'#ff2fa0',em:'star'}];
 // per team: [title (engine cover, rear wing), sidepods, small (nose, endplates)]
-const TEAM_SP=[[0,2,11],[8,5,9],[1,10,6],[2,7,4],[9,3,0],[4,3,6],[5,0,7],[6,1,8],[3,11,5],[11,4,10],[7,8,2]];
+const TEAM_SP=[[0,2,11,5],[8,5,9,2],[1,10,6,0],[2,7,4,9],[9,3,0,11],[4,3,6,1],[5,0,7,10],[6,1,8,4],[3,11,5,7],[11,4,10,3],[7,8,2,6]];   // v12j: a fourth partner (halo band and the extra body decals)
 function drawEmblem(g,em,x,y,s,c){g.save();g.translate(x,y);g.scale(s,s);g.fillStyle=c;g.strokeStyle=c;g.lineJoin='round';g.lineCap='round';
   const P=(pts)=>{g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();g.fill();};
   if(em==='bolt')P([[0.58,0],[0.14,0.56],[0.46,0.56],[0.34,1],[0.86,0.38],[0.54,0.38],[0.7,0]]);
@@ -3899,7 +3921,12 @@ function liveryTex(tm,num,ti,code){
     bb(SPONSORS[sp[0]],0.765*W,V(1,0.4),215,58,'#ffffff',true,false,0.62);bb(SPONSORS[sp[0]],0.765*W,V(-1,0.4),215,58,'#ffffff',false,true,0.62);   // title sponsor on the black rear
     bb(SPONSORS[sp[2]],0.38*W,V(1,0.64),220,40,onD,true,false,0.5);bb(SPONSORS[sp[2]],0.38*W,V(-1,0.64),220,40,onD,false,true,0.5);
     const nb=L.wt==='nose'&&L.W?L.W:D;bb(SPONSORS[sp[1]],0.235*W,V(1,0.26),150,30,inkOn(nb),true,false,0.5);bb(SPONSORS[sp[1]],0.235*W,V(-1,0.26),150,30,inkOn(nb),false,true,0.5);   // small partner on the lower nose
-    bb(SPONSORS[sp[2]],0.6*W,V(1,0.2),150,28,'#ffffff',true,false,0.5);bb(SPONSORS[sp[2]],0.6*W,V(-1,0.2),150,28,'#ffffff',false,true,0.5);}   // and one on the black lower flank
+    bb(SPONSORS[sp[2]],0.6*W,V(1,0.2),150,28,'#ffffff',true,false,0.5);bb(SPONSORS[sp[2]],0.6*W,V(-1,0.2),150,28,'#ffffff',false,true,0.5);   // and one on the black lower flank
+    // v12j: three more partners, as a real car carries - high on the engine cover, far back on the flank, and up on the nose
+    const ink=(u,h)=>(h<bnd(u)||((L.cut==='fade'||L.cut==='sunset')&&u>0.62))?'#ffffff':onD;
+    bb(SPONSORS[sp[3]],0.625*W,V(1,0.9),185,34,ink(0.625,0.9),true,false,0.5);bb(SPONSORS[sp[3]],0.625*W,V(-1,0.9),185,34,ink(0.625,0.9),false,true,0.5);
+    bb(SPONSORS[sp[3]],0.885*W,V(1,0.74),130,26,'#ffffff',true,false,0.5);bb(SPONSORS[sp[3]],0.885*W,V(-1,0.74),130,26,'#ffffff',false,true,0.5);
+    bb(SPONSORS[sp[1]],0.315*W,V(1,0.93),140,26,ink(0.315,0.93),true,false,0.5);bb(SPONSORS[sp[1]],0.315*W,V(-1,0.93),140,26,ink(0.315,0.93),false,true,0.5);}
   const t=texFrom(c);if(R)t.rm=texFrom(R.c,null,true);return t;}
 function podTex(tm,ti){   // sidepods: u 0 (inlet) .. 1 (rear), v around the section; outer flanks at v 0.25 (+z) and 0.75 (-z)
   const W=512,H=256,c=mkCanvas(W,H),g=c.getContext('2d'),L=LIV[ti],D=L.D,K=L.K,A=L.A,R=matMap(L,W,H);
@@ -3934,8 +3961,11 @@ const MAT_CLASS={matte:{p:[0,0.8,0.02],c:[0,0.48,0],d:[0,0.3,0]},satin:{p:[0.35,
 function matMap(L,W,H){const M=MAT_CLASS[L.fin];if(!M||quality==='low')return null;const c=mkCanvas(W,H),g=c.getContext('2d'),col=a=>`rgb(${a.map(v=>Math.round(v*255)).join(',')})`;
   g.fillStyle=col(M.p);g.fillRect(0,0,W,H);return {c,g,carbon:col(M.c),decal:col(M.d)};}
 function decalAtlas(tm,ti){   // wing decals: [0,0,640,128] rear flap, [640,0,384,128] front endplate, [0,128,512,128] rear endplate
+  // v12j: the free quarter now carries the halo: [512,130,508,58] the band along each side arm, [512,194,348,56] the mark across its front
   const c=mkCanvas(1024,256),g=c.getContext('2d'),sp=TEAM_SP[ti],L=LIV[ti];
   drawBrand(g,SPONSORS[sp[0]],8,10,624,108,{col:inkOn(L.rflap)});drawBrand(g,SPONSORS[sp[2]],648,20,368,88,{col:inkOn(L.endp)});drawBrand(g,SPONSORS[sp[1]],10,138,492,108,{col:inkOn(L.endp)});
+  drawBrand(g,SPONSORS[sp[0]],512,130,508,58,{col:'#ffffff'});   // the halo is black, so its decals are always white
+  drawBrand(g,SPONSORS[sp[3]],512,194,348,56,{col:'#ffffff'});
   const t=texFrom(c);t.anisotropy=8;return t;
 }
 function decalTex(color,label){
@@ -4011,7 +4041,7 @@ function buildCar(kit,scene,c){
       gm.onBeforeCompile=sh=>{sh.vertexShader='varying vec3 vGN;varying vec3 vGV;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\nvGN=normalize(normalMatrix*normal);vGV=-mvPosition.xyz;');
         sh.fragmentShader='varying vec3 vGN;varying vec3 vGV;\n'+sh.fragmentShader.replace('#include <alphamap_fragment>','#include <alphamap_fragment>\n{float q=abs(dot(normalize(vGN),normalize(vGV)));diffuseColor.a*=q*q;}');};}   // dark in the middle, fading out to its edges: a blurred pillar
     strut={n:add(G.strut,kit.carbonM,body,true),g:add(G.strutG,kit.ghostM,body)};strut.g.visible=false;strut.g.renderOrder=3;}
-  else add(G.carbon,kit.carbonM,body,true);add(G.dark,kit.darkM);add(G.second,M.second,body,true);add(G.metal,kit.mirrorM);
+  else add(G.carbon,kit.carbonM,body,true);add(G.dark,kit.darkM);add(G.second,M.second,body,true);add(G.metal,kit.mirrorM);add(G.haloD,M.decal,body);   // v12j: the halo's sponsor decals
   const wheels=[],fronts=[],rings=[],uprights=[];
   for(const [x,front] of[[WHL.xf,true],[WHL.xr,false]])for(const s of[-1,1]){const zw=front?WHL.zf:WHL.zr;
     const piv=new THREE.Group();piv.position.set(x,0.36,s*zw);root.add(piv);const spin=new THREE.Group();piv.add(spin);
@@ -6359,7 +6389,13 @@ function perfGovernor(dt){if(state!=='race')return;PERF.acc+=dt;PERF.n++;if(PERF
   if(fps>=50||PERF.step>=7)return;PERF.step++;const say=m=>toast('부드럽게: '+m,'#8ecae6',2.2);
   if(PERF.step===1){if(aoPass&&aoPass.enabled){aoPass.enabled=false;say('그림자 보정(AO)을 껐어요');return;}PERF.step++;}
   if(PERF.step===2){let did=false;if(bloom&&bloom.enabled){bloom.enabled=false;did=true;}if(MIR&&MIR.cam.far>150){MIR.cam.far=150;MIR.cam.updateProjectionMatrix();}if(did){say('빛 번짐 효과를 껐어요');return;}PERF.step++;}
-  if(PERF.step===3){const sh=WORLD&&WORLD.sun&&WORLD.sun.shadow;if(renderer.shadowMap.enabled&&sh&&sh.mapSize.x>1024){sh.mapSize.set(1024,1024);if(sh.map){sh.map.dispose();sh.map=null;}say('그림자 해상도를 낮췄어요');return;}PERF.step++;}
+  // v12j: when it is already struggling, the shadow map also stops being redrawn every single frame. Done here rather than for
+  // everyone, because alternating work makes frame times uneven - the same reason the mirror is still drawn every frame.
+  if(PERF.step===3){const sh=WORLD&&WORLD.sun&&WORLD.sun.shadow;
+    if(renderer.shadowMap.enabled&&sh&&(sh.mapSize.x>1024||!PERF.shHalf)){PERF.shHalf=true;
+      if(sh.mapSize.x>1024){sh.mapSize.set(1024,1024);if(sh.map){sh.map.dispose();sh.map=null;}}
+      say('그림자를 가볍게 했어요');return;}
+    PERF.step++;}
   if(PERF.step===4||PERF.step===6){if(renderer.getPixelRatio()>0.62){renderer.setPixelRatio(Math.max(0.6,renderer.getPixelRatio()*0.85));PERF.prCap=renderer.getPixelRatio();resize2();say('해상도를 조금 낮췄어요');return;}PERF.step++;}
   if(PERF.step===5){if(renderer.shadowMap.enabled){renderer.shadowMap.enabled=false;say('그림자를 껐어요');return;}PERF.step++;}
   if(PERF.step===7&&composer){composer=null;say('후처리 효과를 껐어요');}}
@@ -6384,6 +6420,7 @@ function toggleHalo(){HALOGH=!HALOGH;saveLS('lightsout3d-halo',HALOGH?'1':'0');t
 function fpsTick(raw){if(!FPSON||!(raw>0)||raw>1)return;FPSM.a.push(raw);FPSM.t+=raw;if(FPSM.t<0.5)return;FPSM.t=0;if(FPSM.a.length>240)FPSM.a.splice(0,FPSM.a.length-240);
   const a=FPSM.a,s=a.slice().sort((x,y)=>x-y),avg=a.reduce((x,y)=>x+y,0)/a.length,p99=s[Math.min(s.length-1,Math.floor(s.length*0.99))],pr=renderer.getPixelRatio();
   $('fpsBox').textContent='FPS '+Math.round(1/avg)+' · 최저 '+Math.round(1/p99)+(pr<0.99?' · 해상도 '+Math.round(pr*100)+'%':'');}
+let SHF=0;   // v12j: frame counter, for work that does not need doing every frame
 function frame(now){
   const raw=(now-last)/1000,dt=Math.min(1/30,Math.max(0,raw));last=now;fpsTick(raw);
   if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').style.opacity=0;}
@@ -6406,7 +6443,9 @@ function frame(now){
   if(state==='menu'){orbit+=dt*(LED?0.2:0.12);const pl=race.player;const gy=roadY(pl.x,pl.z,pl.idx),od=LED?6.2:7.5;camera.position.set(pl.x+Math.cos(orbit)*od,(LED?1.9:1.6)+gy,pl.z+Math.sin(orbit)*od);
     if(LED&&camera.setViewOffset){const w=innerWidth,h=innerHeight,port=w<h;camera.setViewOffset(w,h,port?0:-Math.min(210,w*0.21),port?h*0.26:0,w,h);}camera.fov=45;camera.near=0.25;camera.lookAt(pl.x,0.5+gy,pl.z);camera.updateProjectionMatrix();meshes[race.cars.indexOf(pl)].helmet.visible=true;if(SW)SW.g.visible=false;}
   if(WORLD.waterTex){WORLD.waterTex.offset.x+=dt*0.004;WORLD.waterTex.offset.y+=dt*0.0025;}
-  particles(dt);drawHUD(dt);audioUpdate(dt);drawMini();renderer.shadowMap.needsUpdate=true;render();renderMirror();drawHudMirror();perfGovernor(dt);
+  // v12j: the whole shadow map is redrawn every frame; once the governor decides the device is struggling (PERF.shHalf) it is
+  // redrawn every other frame instead - a shadow one frame behind is not visible, and it is a large slice of work.
+  SHF++;particles(dt);drawHUD(dt);audioUpdate(dt);drawMini();renderer.shadowMap.needsUpdate=(!PERF.shHalf||(SHF&1)===0);render();renderMirror();drawHudMirror();perfGovernor(dt);
   requestAnimationFrame(frame);
 }
 function boot(){
