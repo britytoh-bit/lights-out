@@ -5367,7 +5367,9 @@ function layoutTouchHUD(){if(!isTouch)return;
     set($('flag'),{left:C(L,Rf),top:y0,maxWidth:Math.max(120,Rf-L),whiteSpace:'normal'});
     set($('pitMsg'),{left:C(L,Rm),top:y0+30,bottom:null,maxWidth:Math.max(120,Rm-L)});
     set($('toast'),{left:C(L,Rm),top:y0+30,maxWidth:Math.max(140,Rm-L)});
-    set($('pitT'),{top:y0+122});hc.mirY=92;}
+    // v12j: the mirror used to sit at a fixed 92 px. On a phone held sideways (about 390-430 px tall) that is a quarter of the way
+    // down - right in the driver's line of sight - and it ran into the pit clock at y0+122. It now tucks up under the message row.
+    set($('pitT'),{top:y0+122});hc.mirY=y0+46;}
   else{const L=sa.l+12,R2=W-sa.r-12,yB=Math.max(mr?mr.bottom:tTop+TOWER_H,hsr.bottom)+10;
     set($('flag'),{left:C(L,R2),top:sa.t+4,maxWidth:R2-L,whiteSpace:'normal'});
     set($('toast'),{left:C(L,R2),top:sa.t+4,maxWidth:R2-L});
@@ -6403,7 +6405,9 @@ function resize2(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);
 function drawHudMirror(){const fr=$('mirFrame');
   const show=!!(MIR&&MIR.on&&race&&(state==='race'||state==='done'||state==='countdown')&&!CAMLOOK&&!CAMPIT);
   if(!show){if(fr.style.display!=='none')fr.style.display='none';return;}
-  const W=innerWidth,H=innerHeight,w=Math.round(Math.min(440,W*0.3)),h=Math.round(w/4),x=Math.round((W-w)/2),y=isTouch?(hc.mirY||92):58;
+  // v12j: on a short screen (a phone held sideways) the mirror is narrower, so it covers less of the road
+  const W=innerWidth,H=innerHeight,sm=isTouch&&H<=440,
+    w=Math.round(Math.min(sm?300:440,W*(sm?0.23:0.3))),h=Math.round(w/4),x=Math.round((W-w)/2),y=isTouch?(hc.mirY||92):58;
   const key2=x+','+y+','+w+','+h;if(MIR.rect!==key2){MIR.rect=key2;Object.assign(fr.style,{left:(x-4)+'px',top:(y-4)+'px',width:(w+8)+'px',height:(h+8)+'px'});}
   if(fr.style.display!=='block')fr.style.display='block';
   const ac=renderer.autoClear;renderer.autoClear=false;renderer.setScissorTest(true);renderer.setScissor(x,H-y-h,w,h);renderer.setViewport(x,H-y-h,w,h);
