@@ -219,7 +219,7 @@ body.cine #podSkip.on{display:block}
 body.touch #podTitle h2{font-size:28px} body.touch #finBanner h2{font-size:32px} body.touch #podCap .pc{min-width:0; padding:4px 9px} body.touch #podCap .pc span{font-size:14px}
 @media (max-width:620px){#podTitle h2{font-size:26px} #finBanner h2{font-size:30px} #finBanner p{font-size:14px} #podCap{gap:5px; bottom:3%} #podCap .pc{min-width:0; padding:4px 7px} #podCap .pc span{font-size:13px} #podCap .pc b, #podCap .pc i{font-size:10px}}
 #steerZone{position:absolute; left:0; top:22%; bottom:0; width:46%; pointer-events:auto; touch-action:none}
-#steerPad{position:absolute; left:calc(18px + env(safe-area-inset-left,0px)); bottom:calc(14px + env(safe-area-inset-bottom,0px)); width:210px; height:64px; border-radius:32px; background:rgba(12,14,18,.55); border:1px solid var(--line)}
+#steerPad{position:absolute; left:calc(8px + env(safe-area-inset-left,0px)); bottom:calc(14px + env(safe-area-inset-bottom,0px)); width:268px; height:64px; border-radius:32px; background:rgba(12,14,18,.55); border:1px solid var(--line)}
 #steerKnob{position:absolute; left:50%; top:50%; width:56px; height:56px; margin:-28px 0 0 -28px; border-radius:50%; background:rgba(244,244,242,.85); box-shadow:0 2px 10px rgba(0,0,0,.5)}
 #steerPad .lbl{position:absolute; left:0; right:0; top:-22px; text-align:center; font-size:12px; color:var(--dim)}
 #tiltGauge{position:absolute; left:calc(18px + env(safe-area-inset-left,0px)); bottom:calc(14px + env(safe-area-inset-bottom,0px)); width:210px; height:20px; border-radius:10px; background:rgba(12,14,18,.55); border:1px solid var(--line); display:none}
@@ -354,7 +354,7 @@ body.touch.ph-land #hudSpeed .ers .bar{flex:1 1 100%; min-width:0; height:7px} b
 body.touch.ph-land #hudSpeed .ers>div:last-child{order:3; width:auto; display:flex}
 body.touch.ph-land #hudSpeed.dk1>#tyMini{display:none} body.touch.ph-land #hudSpeed.dk1>.ers{width:84px} body.touch.ph-land #hudSpeed.dk1 #spd, body.touch.ph-land #hudSpeed.dk1 #gear{font-size:26px}
 body.touch.ph-land #hudSpeed.dk2{gap:7px; padding:12px 9px 5px} body.touch.ph-land #hudSpeed.dk2>.ers{width:60px} body.touch.ph-land #hudSpeed.dk2 #ersT{font-size:9px}
-body.touch.ph-land.ph-narrow #steerPad{width:176px}
+body.touch.ph-land.ph-narrow #steerPad{width:228px}
 body.touch #hudSpeed .badge:not(.on):not(.arm){display:none}   /* only what is happening now: straight mode, overtake, tow */
 body.touch #hudSpeed .badge{margin:0 4px 0 0}
 body.touch.ph-land #spd{font-size:30px; min-width:2.4ch; text-align:right} body.touch.ph-land #gear{font-size:30px; padding:0 7px}
@@ -374,7 +374,7 @@ body.touch #flag.pulse{animation:flagPulse .55s ease-in-out 4}
 /* the timing tower: tap its header for all rows / fewer rows / header only */
 body.touch #tower .hd{pointer-events:auto} body.touch #tower .hd i{font-style:normal; color:#cfd6df; margin-left:4px; font-size:9px}
 /* smaller controls on short screens (a phone inside an app, small phones) */
-body.touch.ph-small #steerPad{width:176px; height:56px; border-radius:28px} body.touch.ph-small #steerKnob{width:48px; height:48px; margin:-24px 0 0 -24px}
+body.touch.ph-small #steerPad{width:214px; height:56px; border-radius:28px} body.touch.ph-small #steerKnob{width:48px; height:48px; margin:-24px 0 0 -24px}
 body.touch.ph-small .rbtn{width:62px; height:62px; font-size:22px}
 body.touch.ph-small .pedal{width:64px; height:82px; font-size:10px} body.touch.ph-small .pedal.gas{height:100px}
 body.touch.ph-small #miniBtns{grid-template-columns:repeat(2,40px); gap:7px} body.touch.ph-small #miniBtns button{width:40px; height:40px; font-size:11px}
@@ -5175,7 +5175,7 @@ $('leRand').addEventListener('click',()=>{if(!LED)return;const pick=a=>a[Math.fl
 [['wxSel',()=>weather],['incSel',()=>incidents],['dmgSel',()=>damageMode],['stSel',()=>startMode],['aeroSel',()=>aeroMode],['asSel',()=>assistMode],['sndSel',()=>sndMode],['rlSel',()=>rlMode]].forEach(([id,g])=>document.querySelectorAll('#'+id+' button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===g()?'true':'false')));
 document.querySelectorAll('#qSel button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===quality?'true':'false'));setSens(sens);
 // ===== mobile controls =====
-let steerMode=loadLS('lightsout3d-sm')||'drag',autoGas=(loadLS('lightsout3d-ag')||'auto')==='auto',tiltAxis=0,tiltRef=null,tiltLast=null,tiltOK=false,dragAxis=0,touchGas=false,touchBrake=false;
+let steerMode=loadLS('lightsout3d-sm')||'drag',autoGas=(loadLS('lightsout3d-ag')||'auto')==='auto',tiltAxis=0,tiltRef=null,tiltLast=null,tiltOK=false,dragAxis=0,touchGas=false,touchBrake=false,touchErs=false,autoErsOn=false;
 function applyMobileClasses(){$('mAero').style.display=aeroMode==='manual'?'':'none';const b=document.body.classList;b.remove('sm-tilt','sm-drag','sm-buttons');b.add('sm-'+steerMode);b.toggle('autogas',autoGas);$('mCal').style.display=steerMode==='tilt'?'':'none';}
 // v12j: the same controls sit in the pause card, so they can be changed without leaving the race. Both copies are kept in step.
 function segPick(ids,val){for(const id of ids){const el=$(id);if(!el)continue;el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===String(val)?'true':'false'));}}
@@ -5197,8 +5197,18 @@ function prepMobile(){document.body.classList.remove('inmenu');document.body.cla
   try{const el=document.documentElement;if(!document.fullscreenElement&&el.requestFullscreen)el.requestFullscreen({navigationUI:'hide'}).then(()=>{try{screen.orientation.lock('landscape').catch(()=>{});}catch(e){}}).catch(()=>{});}catch(e){}
   if(steerMode==='tilt'){tiltRef=null;enableTilt().then(ok=>{setTimeout(()=>{if(!ok||!tiltOK){steerMode='drag';applyMobileClasses();toast('기울기 센서를 쓸 수 없어 드래그 조향으로 바꿨어요','#ffb347');}},1500);});}
   if(innerHeight>innerWidth*1.05)setTimeout(()=>toast('휴대폰을 가로로 돌리면 더 넓게 보여요','#fff',3),1600);}   // v12g: a short hint instead of the full-screen panel
+// v12j: 직접 가속에서는 엄지가 가속 페달에 묶여 ERS 버튼을 같이 누를 수 없다. ERS 는 가속 중에만 들어가므로
+// (c.boost 조건에 inp.gas 가 있다) 가스를 떼고 눌러봐야 아무 일도 일어나지 않는다. 그래서 직접 가속일 때는
+// 직선에서 알아서 켠다. 버튼을 직접 누르면 그 입력이 우선한다. 켜고 끄는 기준은 AI 와 같다(0.3 에서 켜고 0.15 까지 유지).
+function autoErs(){
+  if(autoGas||state!=='race'||!race)return false;
+  const c=race.player;
+  if(!c||c.pit||c.fin!=null||c.wreck||!touchGas||Math.abs(c.spd)<12||TR.K[c.idx]>=0.002){autoErsOn=false;return false;}
+  autoErsOn=c.ers>(autoErsOn?0.15:0.3);
+  return autoErsOn;}
 function mobileInput(){if(!isTouch)return;
   key.axis=steerMode==='tilt'?tiltAxis:(steerMode==='drag'?dragAxis:0);
+  key.ers=touchErs||autoErs();
   if(state==='countdown'){key.gas=autoGas||touchGas;key.brake=true;}   // held on the grid, launches at lights out
   else if(state==='race'){key.gas=touchBrake?false:(autoGas?true:touchGas);key.brake=touchBrake;}
   if(steerMode==='tilt')$('tiltDot').style.left=(50+tiltAxis*46)+'%';}
@@ -5218,7 +5228,7 @@ function holdBtn(el,on,off){el.addEventListener('pointerdown',e=>{e.preventDefau
   const up=()=>{el.classList.remove('on');off();};['pointerup','pointercancel','lostpointercapture'].forEach(t=>el.addEventListener(t,up));}
 holdBtn(document.querySelector('.pedal.gas'),()=>touchGas=true,()=>touchGas=false);
 holdBtn(document.querySelector('.pedal.brk'),()=>touchBrake=true,()=>touchBrake=false);
-holdBtn($('mErs'),()=>key.ers=true,()=>key.ers=false);
+holdBtn($('mErs'),()=>touchErs=true,()=>touchErs=false);
 holdBtn($('mLook'),()=>{key.look=true;},()=>{key.look=false;});
 holdBtn($('mAero'),()=>{key.sm=true;if(state==='race')key.smTap=true;},()=>key.sm=false);
 document.querySelectorAll('#btnSteer button').forEach(b=>holdBtn(b,()=>key[b.dataset.k]=true,()=>key[b.dataset.k]=false));
@@ -5382,13 +5392,14 @@ function layoutTouchHUD(){if(!isTouch)return;
   // and the mirror under the panels.
   const mr=MM.radar&&mini.style.display!=='none'?R(mini):null,twr={right:sa.l+6+128},htr=R(ht),hsr=R(hs);
   const C=(a,b)=>Math.round((a+b)/2)+'px';
-  if(!port){const L=Math.max(twr.right,mr?mr.right:0)+10,Rf=tbr.left-10,Rm=Math.min(htr.left,hsr.top<htr.bottom+80?hsr.left:1e9)-10,y0=sa.t+8;
+  if(!port){const L=Math.max(twr.right,mr?mr.right:0)+10,Rf=tbr.left-10,Rm=Math.min(htr.left,hsr.top<htr.bottom+80?hsr.left:1e9)-10;
+    // v12j: 룸미러를 화면 맨 위 가운데로 올리고(실제 룸미러 자리), 메시지 줄을 그 아래로 내린다.
+    // 예전에는 미러가 메시지 아래라서 가로로 든 휴대폰에서는 앞을 보는 자리 한가운데에 걸렸다.
+    hc.mirY=sa.t+4;const y0=sa.t+4+mirSize().h+8;
     set($('flag'),{left:C(L,Rf),top:y0,maxWidth:Math.max(120,Rf-L),whiteSpace:'normal'});
     set($('pitMsg'),{left:C(L,Rm),top:y0+30,bottom:null,maxWidth:Math.max(120,Rm-L)});
     set($('toast'),{left:C(L,Rm),top:y0+30,maxWidth:Math.max(140,Rm-L)});
-    // v12j: the mirror used to sit at a fixed 92 px. On a phone held sideways (about 390-430 px tall) that is a quarter of the way
-    // down - right in the driver's line of sight - and it ran into the pit clock at y0+122. It now tucks up under the message row.
-    set($('pitT'),{top:y0+122});hc.mirY=y0+46;}
+    set($('pitT'),{top:y0+104});}
   else{const L=sa.l+12,R2=W-sa.r-12,yB=Math.max(mr?mr.bottom:tTop+TOWER_H,hsr.bottom)+10;
     set($('flag'),{left:C(L,R2),top:sa.t+4,maxWidth:R2-L,whiteSpace:'normal'});
     set($('toast'),{left:C(L,R2),top:sa.t+4,maxWidth:R2-L});
@@ -6421,12 +6432,14 @@ function perfGovernor(dt){if(state!=='race')return;PERF.acc+=dt;PERF.n++;if(PERF
   if(PERF.step===5){if(renderer.shadowMap.enabled){renderer.shadowMap.enabled=false;say('그림자를 껐어요');return;}PERF.step++;}
   if(PERF.step===7&&composer){composer=null;say('후처리 효과를 껐어요');}}
 function resize2(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);if(composer){composer.setPixelRatio?composer.setPixelRatio(renderer.getPixelRatio()):0;composer.setSize(w,h);if(fxaa){const pr=renderer.getPixelRatio();fxaa.material.uniforms.resolution.value.set(1/(w*pr),1/(h*pr));}}}
+// v12j: 미러 크기를 한 곳에서 정한다. 레이아웃(메시지를 얼마나 내릴지)과 그리기가 같은 값을 써야 한다.
+// 가로로 든 휴대폰(높이 440 이하)에서는 작게 — 앞이 가려진다는 지적이 있었다.
+function mirSize(){const W=innerWidth,H=innerHeight,sm=isTouch&&H<=440,
+  w=Math.round(Math.min(sm?230:440,W*(sm?0.17:0.3)));return {w,h:Math.round(w/4)};}
 function drawHudMirror(){const fr=$('mirFrame');
   const show=!!(MIR&&MIR.on&&race&&(state==='race'||state==='done'||state==='countdown')&&!CAMLOOK&&!CAMPIT);
   if(!show){if(fr.style.display!=='none')fr.style.display='none';return;}
-  // v12j: on a short screen (a phone held sideways) the mirror is narrower, so it covers less of the road
-  const W=innerWidth,H=innerHeight,sm=isTouch&&H<=440,
-    w=Math.round(Math.min(sm?300:440,W*(sm?0.23:0.3))),h=Math.round(w/4),x=Math.round((W-w)/2),y=isTouch?(hc.mirY||92):58;
+  const W=innerWidth,H=innerHeight,ms=mirSize(),w=ms.w,h=ms.h,x=Math.round((W-w)/2),y=isTouch?(hc.mirY??58):58;
   const key2=x+','+y+','+w+','+h;if(MIR.rect!==key2){MIR.rect=key2;Object.assign(fr.style,{left:(x-4)+'px',top:(y-4)+'px',width:(w+8)+'px',height:(h+8)+'px'});}
   if(fr.style.display!=='block')fr.style.display='block';
   const ac=renderer.autoClear;renderer.autoClear=false;renderer.setScissorTest(true);renderer.setScissor(x,H-y-h,w,h);renderer.setViewport(x,H-y-h,w,h);
