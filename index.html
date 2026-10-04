@@ -535,7 +535,11 @@ body.touch.racing #rotate{display:none !important}   /* no full-screen "turn you
       <p class="best num" id="bestMenu"></p>
     </div>
   </div>
-  <div class="overlay" id="pause" hidden><div class="card"><h1>일시정지</h1><p class="sub">레이스가 멈춰 있어요.</p><div class="row2"><button class="go" id="resumeBtn">계속 달리기</button><button id="mirBtn">룸미러 켜기/끄기</button><button id="haloBtn">헤일로 흐림 켜기/끄기</button><button id="skipBtn" hidden>건너뛰기</button><button id="quitBtn">메뉴로</button></div></div></div>
+  <div class="overlay" id="pause" hidden><div class="card"><h1>일시정지</h1><p class="sub">레이스가 멈춰 있어요. 설정을 바꿔도 레이스는 그대로 이어집니다.</p>
+    <div class="touchOnly"><p class="label">조향 방식</p><div class="seg" id="pSmSel"><button data-v="tilt">기울이기</button><button data-v="drag" aria-pressed="true">드래그</button><button data-v="buttons">버튼</button></div></div>
+    <div><p class="label">조향 감도 (1 가장 부드러움)</p><div class="seg" id="pSensSel"><button data-v="1">1</button><button data-v="2" aria-pressed="true">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button></div></div>
+    <div class="touchOnly"><p class="label">가속</p><div class="seg" id="pAgSel"><button data-v="auto" aria-pressed="true">자동 가속</button><button data-v="manual">직접 가속</button></div></div>
+    <div class="row2"><button class="go" id="resumeBtn">계속 달리기</button><button id="mirBtn">룸미러</button><button id="haloBtn">헤일로 기둥</button><button id="skipBtn" hidden>건너뛰기</button><button id="quitBtn">메뉴로</button></div></div></div>
   <div class="overlay" id="sess" hidden><div class="card"><h1 id="sessTitle">Q1</h1><p class="sub num" id="sessSub"></p><table class="num" id="sessTable"></table><div class="row2"><button class="go" id="sessGo">다음</button><button id="sessMenu">메뉴로</button></div></div></div>
   <div class="overlay" id="result" hidden><div class="card"><h1 id="resTitle">P1</h1><p class="sub num" id="resSub"></p><table class="num" id="resTable"></table><div class="row2"><button class="go" id="againBtn">다시 달리기 (Enter)</button><button id="menuBtn">메뉴로</button></div></div></div>
   <div id="loading">서킷을 준비하는 중</div>
@@ -4389,9 +4393,13 @@ const CAMS=['cockpit','tcam','chase','far'],CAMNAME={cockpit:'콕핏',tcam:'T캠
 // halo so the helmet, the wheel, the halo and both front tyres frame the lower part of the picture (car-local metres; pitch in radians)
 const TCAMP={x:-0.82,y:1.32,z:0,pitch:0.25,fov:58,fovS:5,near:0.05};let camMode=Math.max(0,CAMS.indexOf(loadLS('lightsout3d-cam')||'cockpit'));   // v12b: T-cam on the car's centre line (the offset made the halo and nose look skewed)
 const outCam=c=>c==='chase'||c==='far';
-function toggleMirror(){if(!MIR){toast('룸미러를 쓸 수 없어요','#fff');return;}MIR.on=!MIR.on;saveLS('lightsout3d-mirror',MIR.on?'1':'0');toast(MIR.on?'룸미러 켬':'룸미러 끔','#fff');}
+// v12j: the pause buttons say what is on right now, instead of just "켜기/끄기"
+function pauseLabels(){const m=$('mirBtn'),h=$('haloBtn');
+  if(m)m.textContent='룸미러: '+(MIR&&MIR.on?'켬':'끔');
+  if(h)h.textContent='헤일로 기둥 흐리게: '+(typeof HALOGH!=='undefined'&&HALOGH?'켬':'끔');}
+function toggleMirror(){if(!MIR){toast('룸미러를 쓸 수 없어요','#fff');return;}MIR.on=!MIR.on;saveLS('lightsout3d-mirror',MIR.on?'1':'0');toast(MIR.on?'룸미러 켬':'룸미러 끔','#fff');pauseLabels();}
 function cycleCam(){camMode=(camMode+1)%CAMS.length;saveLS('lightsout3d-cam',CAMS[camMode]);toast(CAMNAME[CAMS[camMode]]+' 시점 ('+(camMode+1)+'/'+CAMS.length+')','#fff');}
-function setSens(v){sens=Math.max(1,Math.min(5,v));saveLS('lightsout3d-sens',sens);if(race)race.sens=sens;document.querySelectorAll('#sensSel button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.v===sens?'true':'false'));}
+function setSens(v){sens=Math.max(1,Math.min(5,v));saveLS('lightsout3d-sens',sens);if(race)race.sens=sens;document.querySelectorAll('#sensSel button, #pSensSel button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.v===sens?'true':'false'));}   // v12j: the pause copy too
 addEventListener('keydown',e=>{
   if(LED){if(e.code==='Enter'||e.code==='Escape'){e.preventDefault();if(e.target&&e.target.blur)e.target.blur();leApply();leClose();}return;}   // the livery editor is open
   const k=MAP[e.code];if(k){key[k]=true;e.preventDefault();}
@@ -5101,7 +5109,7 @@ function showSess(){const S=race.sess,p=race.player;if(!S)return;state='sessRes'
   else{const g=qualiGrid(race),gp=g.indexOf('YOU')+1;go.textContent='레이스 시작 · 그리드 P'+gp+' (Enter)';go.onclick=()=>startRace({mode:'race',gridOrder:g,skills:skillMap(race)});}
   $('sess').hidden=false;$('sess').querySelector('.card').scrollTop=0;go.focus({preventScroll:true});}
 function setPause(on){if(on){if(state==='paused')return;pausedFrom=state;state='paused';$('pause').hidden=false;
-    const sk=$('skipBtn');sk.hidden=!canSkip();sk.textContent=race&&race.sess?'이 세션 건너뛰기':'건너뛰기 (빠르게 진행)';$('resumeBtn').focus();if(AC)AC.suspend();}
+    const sk=$('skipBtn');sk.hidden=!canSkip();sk.textContent=race&&race.sess?'이 세션 건너뛰기':'건너뛰기 (빠르게 진행)';pauseLabels();$('resumeBtn').focus();if(AC)AC.suspend();}
   else{state=pausedFrom||'race';$('pause').hidden=true;if(AC)AC.resume();}}
 function toMenu(){document.body.classList.add('inmenu');document.body.classList.remove('racing');state='menu';FF=false;setupRace();['pause','result','sess'].forEach(id=>$(id).hidden=true);$('menu').hidden=false;$('lights').style.opacity=0;updateMenuBest();}
 function updateMenuBest(){$('bestMenu').innerHTML=TRK.name+' · '+(bestLap?'내 베스트 랩 <b>'+fmt(bestLap)+'</b>':'첫 랩 기록을 남겨보세요');}
@@ -5169,10 +5177,14 @@ document.querySelectorAll('#qSel button').forEach(b=>b.setAttribute('aria-presse
 // ===== mobile controls =====
 let steerMode=loadLS('lightsout3d-sm')||'drag',autoGas=(loadLS('lightsout3d-ag')||'auto')==='auto',tiltAxis=0,tiltRef=null,tiltLast=null,tiltOK=false,dragAxis=0,touchGas=false,touchBrake=false;
 function applyMobileClasses(){$('mAero').style.display=aeroMode==='manual'?'':'none';const b=document.body.classList;b.remove('sm-tilt','sm-drag','sm-buttons');b.add('sm-'+steerMode);b.toggle('autogas',autoGas);$('mCal').style.display=steerMode==='tilt'?'':'none';}
-document.querySelectorAll('#smSel button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===steerMode?'true':'false'));
-document.querySelectorAll('#agSel button').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.v==='auto')===autoGas?'true':'false'));
-seg('smSel',v=>{steerMode=v;saveLS('lightsout3d-sm',v);applyMobileClasses();});
-seg('agSel',v=>{autoGas=v==='auto';saveLS('lightsout3d-ag',v);applyMobileClasses();});
+// v12j: the same controls sit in the pause card, so they can be changed without leaving the race. Both copies are kept in step.
+function segPick(ids,val){for(const id of ids){const el=$(id);if(!el)continue;el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===String(val)?'true':'false'));}}
+function setSteerMode(v){steerMode=v;saveLS('lightsout3d-sm',v);applyMobileClasses();segPick(['smSel','pSmSel'],v);}
+function setAutoGas(v){autoGas=v==='auto';saveLS('lightsout3d-ag',v);applyMobileClasses();segPick(['agSel','pAgSel'],v);}
+segPick(['smSel','pSmSel'],steerMode);segPick(['agSel','pAgSel'],autoGas?'auto':'manual');
+seg('smSel',setSteerMode);seg('pSmSel',setSteerMode);
+seg('agSel',setAutoGas);seg('pAgSel',setAutoGas);
+seg('pSensSel',v=>setSens(+v));
 applyMobileClasses();
 function onMotion(e){const g=e.accelerationIncludingGravity;if(!g||g.x==null)return;const ax=g.x,ay=g.y,inPlane=Math.hypot(ax,ay);if(inPlane<3)return;
   const ang=Math.atan2(ax,ay);tiltLast=ang;tiltOK=true;if(tiltRef==null)tiltRef=ang;let d=ang-tiltRef;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;
@@ -6427,7 +6439,7 @@ function render(){if(WORLD&&WORLD.sky)WORLD.sky.position.copy(camera.position);i
 let FPSON=loadLS('lightsout3d-fps')==='1';const FPSM={a:[],t:0};
 // v12i: the halo's central strut, soft in the cockpit view (on by default)
 let HALOGH=loadLS('lightsout3d-halo')!=='0';
-function toggleHalo(){HALOGH=!HALOGH;saveLS('lightsout3d-halo',HALOGH?'1':'0');toast(HALOGH?'헤일로 가운데 기둥 흐리게 (콕핏 시점)':'헤일로 가운데 기둥 원래대로','#fff');}
+function toggleHalo(){HALOGH=!HALOGH;saveLS('lightsout3d-halo',HALOGH?'1':'0');toast(HALOGH?'헤일로 가운데 기둥 흐리게 (콕핏 시점)':'헤일로 가운데 기둥 원래대로','#fff');pauseLabels();}
 function fpsTick(raw){if(!FPSON||!(raw>0)||raw>1)return;FPSM.a.push(raw);FPSM.t+=raw;if(FPSM.t<0.5)return;FPSM.t=0;if(FPSM.a.length>240)FPSM.a.splice(0,FPSM.a.length-240);
   const a=FPSM.a,s=a.slice().sort((x,y)=>x-y),avg=a.reduce((x,y)=>x+y,0)/a.length,p99=s[Math.min(s.length-1,Math.floor(s.length*0.99))],pr=renderer.getPixelRatio();
   $('fpsBox').textContent='FPS '+Math.round(1/avg)+' · 최저 '+Math.round(1/p99)+(pr<0.99?' · 해상도 '+Math.round(pr*100)+'%':'');}
