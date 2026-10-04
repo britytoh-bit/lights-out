@@ -5190,10 +5190,17 @@ function mobileInput(){if(!isTouch)return;
   if(state==='countdown'){key.gas=autoGas||touchGas;key.brake=true;}   // held on the grid, launches at lights out
   else if(state==='race'){key.gas=touchBrake?false:(autoGas?true:touchGas);key.brake=touchBrake;}
   if(steerMode==='tilt')$('tiltDot').style.left=(50+tiltAxis*46)+'%';}
+// 0 = 손가락 이동이 그대로 조향 (예전), 1 = 중앙이 가장 둔함. 미세 조정이 어려우면 올리고, 둔하면 내린다.
+const STEER_EXPO=0.4;
+const steerCurve=a=>{const s=a<0?-1:1,x=Math.abs(a);return s*((1-STEER_EXPO)*x+STEER_EXPO*x*x*x);};
 {let pid=null,x0=0;const z=$('steerZone'),knob=$('steerKnob'),pad=$('steerPad');
  const setK=a=>{knob.style.transform='translateX('+(a*TOUCH_KT).toFixed(1)+'px)';};   // (v12g: the pad is narrower on small screens)
  z.addEventListener('pointerdown',e=>{if(pid!=null)return;pid=e.pointerId;x0=e.clientX;z.setPointerCapture(pid);e.preventDefault();});
- z.addEventListener('pointermove',e=>{if(e.pointerId!==pid)return;const w=Math.min(130,innerWidth*0.14);dragAxis=Math.max(-1,Math.min(1,(e.clientX-x0)/w));setK(dragAxis);});
+ // v12j: the finger used to map straight onto lock, so even a small nudge was a big steering input and holding a light
+ // correction at speed was hard. The first part of the travel is gentler now; the far end is untouched, so full lock is
+ // still full lock at the same distance. The knob keeps following the finger 1:1 so it does not feel disconnected.
+ z.addEventListener('pointermove',e=>{if(e.pointerId!==pid)return;const w=Math.min(130,innerWidth*0.14);
+   const raw=Math.max(-1,Math.min(1,(e.clientX-x0)/w));dragAxis=steerCurve(raw);setK(raw);});
  const end=e=>{if(e.pointerId!==pid)return;pid=null;dragAxis=0;setK(0);};['pointerup','pointercancel','lostpointercapture'].forEach(t=>z.addEventListener(t,end));}
 function holdBtn(el,on,off){el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);el.classList.add('on');on();});
   const up=()=>{el.classList.remove('on');off();};['pointerup','pointercancel','lostpointercapture'].forEach(t=>el.addEventListener(t,up));}
