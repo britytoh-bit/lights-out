@@ -325,7 +325,7 @@ body.touch #hudSpeed>div:nth-of-type(3){order:2} body.touch #hudSpeed>div:nth-of
 body.touch #spd{font-size:30px; min-width:2.6ch} body.touch #gear{font-size:34px; padding:0 8px; border-bottom-width:3px}
 body.touch #hudSpeed .ers{order:4; width:100%; display:flex; align-items:center; gap:6px; flex-wrap:wrap}
 body.touch #hudSpeed .ers .bar{flex:1; min-width:60px} body.touch #ersT{order:2; font-size:10px} body.touch #hudSpeed .ers>div:last-child{order:3; width:100%}
-body.touch #tyMini{display:flex; order:3; flex-direction:column; align-items:center; gap:1px} body.touch #tyMini i{width:24px; height:24px; border-radius:50%; border:4px solid #ccc; font-style:normal; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; color:#fff; background:rgba(0,0,0,.35)} body.touch #tyMini b{font-size:10px; color:#cfd6df}
+body.touch #tyMini{display:flex; order:3; flex-direction:column; align-items:center; gap:1px} body.touch #tyMini i{width:24px; height:24px; border-radius:50%; border:4px solid #ccc; font-style:normal; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; color:#fff; background:rgba(0,0,0,.35)} body.touch #tyMini b{font-size:10px; color:#cfd6df; white-space:nowrap} body.touch #tyMT{margin-right:3px}
 body.touch #tyres{display:none}
 body.touch #pitInfo{display:none}
 body.touch #pitMsg{position:absolute; left:50%; transform:translateX(-50%); top:calc(48px + env(safe-area-inset-top,0px)); max-width:44%; padding:4px 10px; border-radius:6px; background:rgba(9,11,15,.72); font-size:11px; line-height:1.35; text-align:center; pointer-events:none; z-index:3}
@@ -352,7 +352,7 @@ body.touch.ph-land #hudSpeed>#tyMini{order:1} body.touch.ph-land #hudSpeed>div:n
 body.touch.ph-land #hudSpeed>.ers{order:4; width:112px; display:flex; flex-wrap:wrap; align-items:center; gap:2px 6px}
 body.touch.ph-land #hudSpeed .ers .bar{flex:1 1 100%; min-width:0; height:7px} body.touch.ph-land #ersT{order:2; font-size:10px; white-space:nowrap}
 body.touch.ph-land #hudSpeed .ers>div:last-child{order:3; width:auto; display:flex}
-body.touch.ph-land #hudSpeed.dk1>#tyMini{display:none} body.touch.ph-land #hudSpeed.dk1>.ers{width:84px} body.touch.ph-land #hudSpeed.dk1 #spd, body.touch.ph-land #hudSpeed.dk1 #gear{font-size:26px}
+body.touch.ph-land #hudSpeed.dk1>#tyMini i{width:18px; height:18px; border-width:3px; font-size:9px} body.touch.ph-land #hudSpeed.dk1 #tyMT{display:none} body.touch.ph-land #hudSpeed.dk1>.ers{width:84px} body.touch.ph-land #hudSpeed.dk1 #spd, body.touch.ph-land #hudSpeed.dk1 #gear{font-size:26px}
 body.touch.ph-land #hudSpeed.dk2{gap:7px; padding:12px 9px 5px} body.touch.ph-land #hudSpeed.dk2>.ers{width:60px} body.touch.ph-land #hudSpeed.dk2 #ersT{font-size:9px}
 body.touch.ph-land.ph-narrow #steerPad{width:228px}
 body.touch #hudSpeed .badge:not(.on):not(.arm){display:none}   /* only what is happening now: straight mode, overtake, tow */
@@ -424,7 +424,7 @@ body.touch.racing #rotate{display:none !important}   /* no full-screen "turn you
   <div class="hud num" id="hudSpeed"><div id="rev" aria-hidden="true"></div><canvas id="gMeter" width="112" height="112" aria-hidden="true"></canvas>
     <div class="ers" id="ersBox"><div class="unit" id="ersT">배터리 4.0MJ</div><div class="bar"><div class="fill" id="ers"></div></div><div><span class="badge" id="bSM">직선 모드</span><span class="badge ovt" id="bOVT">오버테이크</span><span class="badge air" id="bAir"></span></div></div>
     <div><div id="gear">N</div><div class="unit" style="text-align:center">기어</div></div>
-    <div id="tyMini" aria-hidden="true"><i id="tyMC">M</i><b id="tyMT">-</b></div>
+    <div id="tyMini" aria-hidden="true"><i id="tyMC">M</i><b><span id="tyMT"></span><span id="tyMW">-</span></b></div>
     <div><div id="spd">0</div><div class="unit" style="text-align:right">km/h</div></div>
   </div>
   <div class="hud num" id="tyres">
@@ -5500,7 +5500,9 @@ function drawHUD(dt){
    if(el._c!==cls){el._c=cls;el.className=cls;}if(cls){setT('pitTl',lbl);setT('pitTv',v.toFixed(1)+'초');}}
   tyreT-=dt;if(tyreT<=0){tyreT=0.15;const ty=pl.ty,C=COMP[ty.comp];
     $('tyC').textContent=ty.comp;$('tyC').style.borderColor=C.col;setT('tyName',C.name);setT('tyLaps',(ty.dist/(N*STEP)).toFixed(1)+'랩 사용');
-    if(isTouch){$('tyMC').textContent=ty.comp;$('tyMC').style.borderColor=C.col;setT('tyMT',Math.round((ty.temp[0]+ty.temp[1]+ty.temp[2]+ty.temp[3])/4)+'° '+Math.round(Math.max(0,100-Math.max(ty.wear[0],ty.wear[1],ty.wear[2],ty.wear[3])*100))+'%');}   // v12f: phones - compound, mean temperature, the most worn tyre
+    if(isTouch){$('tyMC').textContent=ty.comp;$('tyMC').style.borderColor=C.col;
+      setT('tyMT',Math.round((ty.temp[0]+ty.temp[1]+ty.temp[2]+ty.temp[3])/4)+'°');
+      setT('tyMW',Math.round(Math.max(0,100-Math.max(ty.wear[0],ty.wear[1],ty.wear[2],ty.wear[3])*100))+'%');}   // v12f: phones - compound, mean temperature, the most worn tyre (v12k: split, so a narrow landscape can drop the temperature and keep the wear)
     const fxv=pl.pit&&pl.pit.state==='stop'?meshes[race.cars.indexOf(pl)].fixV:null;
     for(let k=0;k<4;k++){const w=ty.wear[k],Tt=ty.temp[k],el=$('ty'+k),flat=pl.dmg.pk[k]>0.05&&!(fxv&&fxv.pk[k]);el.firstChild.textContent=flat?'펑처':Math.round(Math.max(0,100-w*100))+'%';el.lastChild.textContent=Math.round(Tt)+'°';
       const col=Tt<C.win[0]-10?'#2f5fd0':Tt<C.win[0]?'#2f8fb0':Tt<=C.win[1]?'#2b8a4a':Tt<=C.win[1]+8?'#c28a12':'#c0392b';el.style.background=flat?(performance.now()%600<300?'#c0392b':'#5a0d0d'):col;el.style.opacity=!flat&&w>0.7?(0.75+0.25*Math.sin(performance.now()/150)):1;}
