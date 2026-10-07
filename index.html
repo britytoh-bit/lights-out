@@ -4290,7 +4290,7 @@ let sens=parseInt(loadLS('lightsout3d-sens'),10)||2;
 const LODD=(quality==='low'?[26,60,120]:[30,70,140]).map(d=>d*d);   // v12h: car detail steps (m); a little closer at the lowest setting
 // v13a: how many of the nearest cars may hold each detail step. Distance alone is not enough - in a
 // pack they are all near. Below these counts nothing changes, so a lone car on track looks as before.
-const LODN=quality==='low'?[3,6,10]:quality==='medium'?[5,9,14]:[8,13,18];
+let LODN=quality==='low'?[3,6,10]:quality==='medium'?[5,9,14]:[8,13,18];
 
 let renderer;
 // v12h: no multisampling on PCs at the lowest setting (on integrated graphics it is one of the bigger costs per frame); phones keep it
@@ -5876,6 +5876,8 @@ function sync(dt){
    for(let i=0;i<n;i++){const q=_lodD[i];if(q===Infinity)continue;
      let r=0;for(let j=0;j<n;j++)if(_lodD[j]<q)r++;_lodR[i]=r;}}
   race.cars.forEach((c,i)=>{const m=meshes[i];
+    // v13d: a car that is not on screen gets nothing done to it at all
+    if(c.gone||c.inGarage||(CINE&&CINE.ph==='pod')){if(m.root.visible)m.root.visible=false;return;}
     if(!c.isP&&m.lod1){const dx=c.x-camera.position.x,dz=c.z-camera.position.z,d2=dx*dx+dz*dz,
         dLv=d2>LODD[2]?3:d2>LODD[1]?2:d2>LODD[0]?1:0,r=_lodR[i],
         rLv=r>=LODN[2]?3:r>=LODN[1]?2:r>=LODN[0]?1:0,lv=dLv>rLv?dLv:rLv;   // v12c: tighter steps (a pack of cars cost ~45 draw calls each)
@@ -5888,6 +5890,12 @@ function sync(dt){
      if(m.ox||m.oz){const w=22,e=Math.exp(-w*dt),bx=(m.ovx||0)+w*m.ox,bz=(m.ovz||0)+w*m.oz;m.ox=(m.ox+bx*dt)*e;m.oz=(m.oz+bz*dt)*e;m.ovx=((m.ovx||0)-w*bx*dt)*e;m.ovz=((m.ovz||0)-w*bz*dt)*e;
        if(Math.abs(m.ox)+Math.abs(m.oz)<0.0005||Math.abs(m.ox)+Math.abs(m.oz)>1.5||c.gone)m.ox=m.oz=m.ovx=m.ovz=0;}}
     carPose(c,m);m.root.position.set(c.x+(m.ox||0),(m.jack||0)+m.py,c.z+(m.oz||0));m.root.rotation.order='YZX';m.root.rotation.set(m.pr,-c.a,(m.jackP||0)+m.pp);
+    // v13d: past the last detail step only a silhouette is left, so the body attitude, the four wheels,
+    // the steering angle, the wing flaps and the tyre bands are not worth a frame's work. In a pack this
+    // is half the field. Position, rotation and the lights still run, because those do read at distance.
+    m.root.visible=true;
+    const farLod=!c.isP&&m.lodLv>=3;
+    if(!farLod){
     // body: dives under braking, squats on power, rolls in corners, sits lower at speed (downforce)
     {const k=Math.min(1,dt*7),lon=Math.max(-60,Math.min(20,c.lonG||0)),lat=Math.max(-60,Math.min(60,c.latG||0)),vv=Math.abs(c.spd)/VMAX;
      m.pitch+=(lon*0.00042-m.pitch)*k;m.roll+=(-lat*0.00022-m.roll)*k;dmgVis(m,c);m.body.rotation.z=m.pitch+m.dmgPitch;m.body.rotation.x=m.roll+m.dmgRoll;
@@ -5902,7 +5910,6 @@ function sync(dt){
     {let d;if(c.isP&&!c.pit&&c.delta!=null)d=c.delta;else{const v=Math.abs(c.spd),om=v>0.5?(c.latG||0)/v:0;d=Math.atan(PH.L*om/Math.max(v,4))+0.03*Math.max(-1,Math.min(1,c.st||0));}
      d=Math.max(-0.36,Math.min(0.36,d));m.steer=(m.steer||0)+(d-(m.steer||0))*Math.min(1,dt*14);
      m.fronts.forEach((f,j)=>f.rotation.y=-m.steer+m.toe[j]);m.uprights.forEach((f,j)=>f.rotation.y=-m.steer+m.toe[j]);}
-    m.root.visible=!c.gone&&!c.inGarage&&!(CINE&&CINE.ph==='pod');
     {const ao=c.aeroOpen||0,k=Math.min(1,dt*9);   // straight mode flattens the flaps (rear half-open when wet), corner mode restores them
      for(const pv of m.drs.children){const u=pv.userData,t=ao===2?u.o:ao===1?(u.o+u.c)/2:u.c;pv.rotation.z+=(t-pv.rotation.z)*k;}
      for(const pv of m.ffp){const u=pv.userData,t=ao>=1?u.o:u.c;pv.rotation.z+=(t-pv.rotation.z)*k;}}
@@ -5911,6 +5918,7 @@ function sync(dt){
       const cl=m.sw.col,wsc=cl.scale.x,wp=cl.position,tc=Math.cos(cl.rotation.z),ts=Math.sin(cl.rotation.z);m.sw.arms.forEach(a=>{const sd=a.userData.s,hx=-0.1,hy=-0.01,hz=sd*0.17,y1=hy*co-hz*si,z1=hy*si+hz*co,wx=wp.x+(hx*tc-y1*ts)*wsc,wy=wp.y+(hx*ts+y1*tc)*wsc,wz=z1*wsc;
         _v.set(wx,wy,wz);const sh=_armS.set(-0.3,0.3,sd*0.36),dir=_armD.copy(_v).sub(sh),L=dir.length();a.position.copy(sh);a.quaternion.setFromUnitVectors(_up,dir.normalize());a.scale.set(1,L,1);a.visible=m.sw.g.visible;});}
     {const fast=Math.abs(c.spd)>14;if(m.comp!==c.ty.comp||m.fast!==fast){m.comp=c.ty.comp;m.fast=fast;m.rings.forEach(r=>r.material=(fast?KIT.decalBlur:KIT.decal)[c.ty.comp]);}}
+    }   // ← v13d farLod
     // v12h: 2026 rules - the rear light (and the endplate strips) flash in every reduced-speed situation: SC, VSC, red flag, a double-waved
     // yellow, the pit limiter on, and as the rain light on inters / wets (also a car with a failure); three quick flashes at a time when the
     // MGU-K recharges with the engine still flat out (super clipping at the end of a long straight). Amber lateral lights: a car stopped or
@@ -6488,7 +6496,13 @@ function renderMirror(){
 // performance governor: if the frame rate stays low while racing, drop the costliest effects one step at a time
 const PERF={acc:0,n:0,step:0};
 function perfGovernor(dt){if(state!=='race')return;PERF.acc+=dt;PERF.n++;if(PERF.acc<2.5)return;const fps=PERF.n/PERF.acc;PERF.acc=0;PERF.n=0;
-  if(fps>=50||PERF.step>=7)return;PERF.step++;const say=m=>toast('부드럽게: '+m,'#8ecae6',2.2);
+  if(fps>=50||PERF.step>=7)return;const say=m=>toast('부드럽게: '+m,'#8ecae6',2.2);
+ // v13d: when it only gets heavy in the race it is the pack, not the scenery. Tighten the car detail
+ // budget before switching anything else off - on the lowest setting the steps below have nothing left
+ // to turn off anyway (AO, bloom, shadows and the post chain are already gone), so this ran out of
+ // moves and only dropped resolution.
+ if(!PERF.lodCut&&LODN[0]>2){PERF.lodCut=true;LODN=[2,4,7];say('멀리 있는 차를 간단히 그려요');return;}
+ PERF.step++;
   if(PERF.step===1){if(aoPass&&aoPass.enabled){aoPass.enabled=false;say('그림자 보정(AO)을 껐어요');return;}PERF.step++;}
   if(PERF.step===2){let did=false;if(bloom&&bloom.enabled){bloom.enabled=false;did=true;}if(MIR&&MIR.cam.far>150){MIR.cam.far=150;MIR.cam.updateProjectionMatrix();}if(did){say('빛 번짐 효과를 껐어요');return;}PERF.step++;}
   // v12j: when it is already struggling, the shadow map also stops being redrawn every single frame. Done here rather than for
