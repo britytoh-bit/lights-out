@@ -4288,6 +4288,9 @@ if(isTouch)document.body.classList.add('touch');
 let quality=loadLS('lightsout3d-q2')||(isTouch?'low':'medium');if(!['high','medium','low'].includes(quality))quality='medium';document.body.classList.add('q-'+quality);let tod=loadLS('lightsout3d-tod')||'day';
 let sens=parseInt(loadLS('lightsout3d-sens'),10)||2;
 const LODD=(quality==='low'?[26,60,120]:[30,70,140]).map(d=>d*d);   // v12h: car detail steps (m); a little closer at the lowest setting
+// v13a: how many of the nearest cars may hold each detail step. Distance alone is not enough - in a
+// pack they are all near. Below these counts nothing changes, so a lone car on track looks as before.
+const LODN=quality==='low'?[3,6,10]:quality==='medium'?[5,9,14]:[8,13,18];
 
 let renderer;
 // v12h: no multisampling on PCs at the lowest setting (on integrated graphics it is one of the bigger costs per frame); phones keep it
@@ -5834,11 +5837,24 @@ function handleEvents(){
 }
 // ---- sync & camera ----
 const V3=THREE.Vector3,eye=new V3(),look=new V3(),chasePos=new V3(),SHS={u:new V3(),v:new V3(),p:new V3()};let chaseInit=false,shakeT=0,camYaw=0,headLat=0,headLon=0;
+let _lodR=new Int32Array(32);const _lodD=[];   // v13a: per-car distance rank, reused every frame
 function angDiff(a,b){let d=a-b;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return d;}
 function sync(dt){
   const pInfo=pitFx(dt);
+  // v13a: detail by rank, not only by distance. In a pack every car is inside the nearest LOD step at
+  // once, and at ~45 draw calls each that is what drops the frame rate - lowering the graphics setting
+  // cannot help, because the setting never looks at how many cars are on screen. Only the nearest few
+  // keep full detail; with a handful of cars around nothing changes.
+  {const n=race.cars.length;if(_lodR.length<n)_lodR=new Int32Array(n);_lodD.length=0;
+   for(let i=0;i<n;i++){const c=race.cars[i];if(c.isP||c.gone||c.inGarage)continue;
+     const dx=c.x-camera.position.x,dz=c.z-camera.position.z;_lodD.push(dx*dx+dz*dz,i);}
+   const pairs=[];for(let k=0;k<_lodD.length;k+=2)pairs.push(k);
+   pairs.sort((a,b)=>_lodD[a]-_lodD[b]);
+   for(let r=0;r<pairs.length;r++)_lodR[_lodD[pairs[r]+1]]=r;}
   race.cars.forEach((c,i)=>{const m=meshes[i];
-    if(!c.isP&&m.lod1){const dx=c.x-camera.position.x,dz=c.z-camera.position.z,d2=dx*dx+dz*dz,lv=d2>LODD[2]?3:d2>LODD[1]?2:d2>LODD[0]?1:0;   // v12c: tighter steps (a pack of cars cost ~45 draw calls each)
+    if(!c.isP&&m.lod1){const dx=c.x-camera.position.x,dz=c.z-camera.position.z,d2=dx*dx+dz*dz,
+        dLv=d2>LODD[2]?3:d2>LODD[1]?2:d2>LODD[0]?1:0,r=_lodR[i],
+        rLv=r>=LODN[2]?3:r>=LODN[1]?2:r>=LODN[0]?1:0,lv=dLv>rLv?dLv:rLv;   // v12c: tighter steps (a pack of cars cost ~45 draw calls each)
       if(lv!==m.lodLv){m.lodLv=lv;for(const o of m.lod1)o.visible=lv<1;for(const o of m.lod2)o.visible=lv<2;if(m.lod3)for(const o of m.lod3)o.visible=lv<3;
         if(m.px){const far=lv>=1;m.px.pc.visible=far&&lv<3;m.px.pt.visible=far;for(const o of m.pxHide)o.visible=!far;}
         if(m.casters){const sh=lv<1;for(const o of m.casters)o.castShadow=sh;}}}   // only cars within 30 m cast real shadows (the rest keep the soft blob under them)
