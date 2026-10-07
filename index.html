@@ -5185,6 +5185,7 @@ $('leRand').addEventListener('click',()=>{if(!LED)return;const pick=a=>a[Math.fl
 document.querySelectorAll('#qSel button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===quality?'true':'false'));setSens(sens);
 // ===== mobile controls =====
 let steerMode=loadLS('lightsout3d-sm')||'drag',autoGas=(loadLS('lightsout3d-ag')||'auto')==='auto',tiltAxis=0,tiltRef=null,tiltLast=null,tiltOK=false,dragAxis=0,touchGas=false,touchBrake=false,touchErs=false,autoErsOn=false;
+let tiltDeg=0;const TF={x:0,dx:0,b:0,on:false};   // v13b-c: tilt angle, One Euro filter state, drifting neutral
 function applyMobileClasses(){$('mAero').style.display=aeroMode==='manual'?'':'none';const b=document.body.classList;b.remove('sm-tilt','sm-drag','sm-buttons');b.add('sm-'+steerMode);b.toggle('autogas',autoGas);$('mCal').style.display=steerMode==='tilt'?'':'none';}
 // v12j: the same controls sit in the pause card, so they can be changed without leaving the race. Both copies are kept in step.
 function segPick(ids,val){for(const id of ids){const el=$(id);if(!el)continue;el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===String(val)?'true':'false'));}}
@@ -5195,22 +5196,41 @@ seg('smSel',setSteerMode);seg('pSmSel',setSteerMode);
 seg('agSel',setAutoGas);seg('pAgSel',setAutoGas);
 seg('pSensSel',v=>setSens(+v));
 applyMobileClasses();
+// v13b: the sensor event only records the angle now. Turning that angle into steering happens in the
+// frame loop, because the old code did both here and that was the real problem:
+//  · it smoothed by a fixed share per event (tiltAxis += (want-tiltAxis)*SM), with no dt. Sensor events
+//    arrive at whatever rate the phone manages, so when the frame rate dipped the steering went heavy
+//    with it - worst exactly in corners, where the load is highest and the input is largest.
+//  · one plain low-pass cannot separate hand shake from a real turn, so it delayed both. Drag steering
+//    feels better simply because a finger does not shake, so it needs no filter at all.
 function onMotion(e){const g=e.accelerationIncludingGravity;if(!g||g.x==null)return;const ax=g.x,ay=g.y,inPlane=Math.hypot(ax,ay);if(inPlane<3)return;
   const ang=Math.atan2(ax,ay);tiltLast=ang;tiltOK=true;if(tiltRef==null)tiltRef=ang;let d=ang-tiltRef;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;
-  // v12k: 감도가 기울기에도 먹게 한다. 전에는 1이든 5든 풀 조향에 26도가 필요해서 5로 놔도 뻑뻑했다.
-  // 감도 2(기본)는 전과 같은 26도를 유지하고, 5로 올리면 16도까지 가벼워진다.
-  // v12k-2: 감도 1~5가 실제로 다르게 느껴지게 한다.
-  //  · FULL = 풀 조향까지 필요한 기울기(도). 5에서는 12도면 끝까지 꺾인다.
-  //  · EXPO = 가운데를 무르게 하는 정도. 5는 거의 직선이라 즉각 반응하고, 1은 곡선이 세서 부드럽다.
-  //  · SM   = 가속도계 노이즈 필터. 높은 감도일수록 약하게 걸어 지연을 없앤다.
-  //  기울기를 크게 안 해도 꺾이므로, 코너에서 폰을 눕혀 OS가 화면을 세로로 돌려버리는 일도 줄어든다.
+  tiltDeg=-d*180/Math.PI;}
+// One Euro filter: the cutoff follows how fast the phone is turning. Held still it filters hard and the
+// shake disappears; thrown into a corner it lets the movement through almost untouched.
+//  · FULL = tilt (deg) for full lock. 5 reaches it at 12 deg.
+//  · EXPO = how soft the centre is, for small corrections at speed.
+//  · MINC / BETA = the filter. Higher sensitivity filters less and answers sooner.
+function tiltStep(dt){
+  if(!tiltOK){tiltAxis=0;return;}
   const si=Math.max(0,Math.min(4,(sens||2)-1));
-  const FULL=[34,26,20,16,12][si],dz=[3.0,2.2,1.6,1.2,0.9][si],EXPO=[.55,.40,.28,.18,.10][si],SM=[.35,.45,.55,.65,.75][si];
-  const deg=-d*180/Math.PI;
-  const raw=Math.abs(deg)<dz?0:Math.max(-1,Math.min(1,(deg-Math.sign(deg)*dz)/(FULL-dz)));
-  const sgn=raw<0?-1:1,mag=Math.abs(raw);
-  const want=sgn*((1-EXPO)*mag+EXPO*mag*mag*mag);
-  tiltAxis=tiltAxis*(1-SM)+want*SM;}
+  const FULL=[34,26,20,16,12][si],dz=[3.0,2.2,1.6,1.2,0.9][si],EXPO=[.55,.40,.28,.18,.10][si],
+        MINC=[0.8,1.0,1.3,1.7,2.2][si],BETA=[.015,.022,.030,.040,.055][si];
+  const al=c=>{const r=2*Math.PI*c*dt;return r/(r+1);};
+  if(!TF.on){TF.x=tiltDeg;TF.dx=0;TF.b=0;TF.on=true;}
+  const v=(tiltDeg-TF.x)/Math.max(dt,1e-4);
+  TF.dx+=al(1.4)*(v-TF.dx);
+  TF.x+=al(MINC+BETA*Math.abs(TF.dx))*(tiltDeg-TF.x);
+  // v13c: the neutral follows how the phone is actually being held. Drag steering gets this for free -
+  // wherever the finger lands is centre, and letting go is centre again - while tilt had one fixed zero
+  // from the calibration tap. Leave a corner without putting the phone back at exactly that angle and the
+  // car kept turning. Only drifts while barely steering, and slowly (6 s), so a long sweeping corner is
+  // not quietly unwound.
+  const dev=TF.x-TF.b;
+  if(Math.abs(dev)<FULL*0.3)TF.b+=dev*(1-Math.exp(-dt/6));
+  const deg=TF.x-TF.b,raw=Math.abs(deg)<dz?0:Math.max(-1,Math.min(1,(deg-Math.sign(deg)*dz)/(FULL-dz))),
+        sgn=raw<0?-1:1,mag=Math.abs(raw);
+  tiltAxis=sgn*((1-EXPO)*mag+EXPO*mag*mag*mag);}
 function lockLandscape(tries){tries=tries||0;
   try{const el=document.documentElement;
     if(!document.fullscreenElement&&el.requestFullscreen)el.requestFullscreen({navigationUI:'hide'}).catch(()=>{});
@@ -5223,10 +5243,10 @@ function lockLandscape(tries){tries=tries||0;
 let motionOn=false;
 async function enableTilt(){if(motionOn)return true;try{if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){const r=await DeviceMotionEvent.requestPermission();if(r!=='granted')return false;}
   window.addEventListener('devicemotion',onMotion);motionOn=true;return true;}catch(e){return false;}}
-function calibrateTilt(){if(tiltLast!=null){tiltRef=tiltLast;toast('기울기 영점 맞춤','#fff');}}
+function calibrateTilt(){if(tiltLast!=null){tiltRef=tiltLast;tiltDeg=0;TF.on=false;TF.b=0;tiltAxis=0;toast('기울기 영점 맞춤','#fff');}}
 function prepMobile(){document.body.classList.remove('inmenu');document.body.classList.add('racing');
   lockLandscape();
-  if(steerMode==='tilt'){tiltRef=null;enableTilt().then(ok=>{setTimeout(()=>{if(!ok||!tiltOK){steerMode='drag';applyMobileClasses();toast('기울기 센서를 쓸 수 없어 드래그 조향으로 바꿨어요','#ffb347');}},1500);});}
+  if(steerMode==='tilt'){tiltRef=null;TF.on=false;tiltAxis=0;enableTilt().then(ok=>{setTimeout(()=>{if(!ok||!tiltOK){steerMode='drag';applyMobileClasses();toast('기울기 센서를 쓸 수 없어 드래그 조향으로 바꿨어요','#ffb347');}},1500);});}
   if(innerHeight>innerWidth*1.05)setTimeout(()=>toast('휴대폰을 가로로 돌리면 더 넓게 보여요','#fff',3),1600);}   // v12g: a short hint instead of the full-screen panel
 // v12j: 직접 가속에서는 엄지가 가속 페달에 묶여 ERS 버튼을 같이 누를 수 없다. ERS 는 가속 중에만 들어가므로
 // (c.boost 조건에 inp.gas 가 있다) 가스를 떼고 눌러봐야 아무 일도 일어나지 않는다. 그래서 직접 가속일 때는
@@ -5237,7 +5257,8 @@ function autoErs(){
   if(!c||c.pit||c.fin!=null||c.wreck||!touchGas||Math.abs(c.spd)<12||TR.K[c.idx]>=0.002){autoErsOn=false;return false;}
   autoErsOn=c.ers>(autoErsOn?0.15:0.3);
   return autoErsOn;}
-function mobileInput(){if(!isTouch)return;
+function mobileInput(dt){if(!isTouch)return;
+  if(steerMode==='tilt')tiltStep(dt);   // v13b: steering is built here, at the frame's dt, not in the sensor event
   key.axis=steerMode==='tilt'?tiltAxis:(steerMode==='drag'?dragAxis:0);
   key.ers=touchErs||autoErs();
   if(state==='countdown'){key.gas=autoGas||touchGas;key.brake=true;}   // held on the grid, launches at lights out
@@ -5837,7 +5858,7 @@ function handleEvents(){
 }
 // ---- sync & camera ----
 const V3=THREE.Vector3,eye=new V3(),look=new V3(),chasePos=new V3(),SHS={u:new V3(),v:new V3(),p:new V3()};let chaseInit=false,shakeT=0,camYaw=0,headLat=0,headLon=0;
-let _lodR=new Int32Array(32);const _lodD=[];   // v13a: per-car distance rank, reused every frame
+let _lodR=new Int32Array(32),_lodD=new Float64Array(32);   // v13a: per-car distance + rank, reused every frame
 function angDiff(a,b){let d=a-b;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return d;}
 function sync(dt){
   const pInfo=pitFx(dt);
@@ -5845,12 +5866,15 @@ function sync(dt){
   // once, and at ~45 draw calls each that is what drops the frame rate - lowering the graphics setting
   // cannot help, because the setting never looks at how many cars are on screen. Only the nearest few
   // keep full detail; with a handful of cars around nothing changes.
-  {const n=race.cars.length;if(_lodR.length<n)_lodR=new Int32Array(n);_lodD.length=0;
-   for(let i=0;i<n;i++){const c=race.cars[i];if(c.isP||c.gone||c.inGarage)continue;
-     const dx=c.x-camera.position.x,dz=c.z-camera.position.z;_lodD.push(dx*dx+dz*dz,i);}
-   const pairs=[];for(let k=0;k<_lodD.length;k+=2)pairs.push(k);
-   pairs.sort((a,b)=>_lodD[a]-_lodD[b]);
-   for(let r=0;r<pairs.length;r++)_lodR[_lodD[pairs[r]+1]]=r;}
+  // No sorting and no allocation: with twenty cars, counting how many are nearer is cheaper than a
+  // sort, and it leaves nothing for the garbage collector to pick up mid-race.
+  {const n=race.cars.length;if(_lodR.length<n){_lodR=new Int32Array(n);_lodD=new Float64Array(n);}
+   const cx=camera.position.x,cz=camera.position.z;
+   for(let i=0;i<n;i++){const c=race.cars[i];
+     if(c.isP||c.gone||c.inGarage){_lodD[i]=Infinity;continue;}
+     const dx=c.x-cx,dz=c.z-cz;_lodD[i]=dx*dx+dz*dz;}
+   for(let i=0;i<n;i++){const q=_lodD[i];if(q===Infinity)continue;
+     let r=0;for(let j=0;j<n;j++)if(_lodD[j]<q)r++;_lodR[i]=r;}}
   race.cars.forEach((c,i)=>{const m=meshes[i];
     if(!c.isP&&m.lod1){const dx=c.x-camera.position.x,dz=c.z-camera.position.z,d2=dx*dx+dz*dz,
         dLv=d2>LODD[2]?3:d2>LODD[1]?2:d2>LODD[0]?1:0,r=_lodR[i],
@@ -6508,11 +6532,11 @@ function frame(now){
   if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').style.opacity=0;}
   if(flagPulse>0)flagPulse-=dt;
   if(state==='countdown'){cdT+=dt;setLights(Math.min(5,Math.floor(cdT/0.8)));
-    mobileInput();if(!isTouch&&startMode==='manual')gridStep(race,dt,key);else race.player.spd=0;
+    mobileInput(dt);if(!isTouch&&startMode==='manual')gridStep(race,dt,key);else race.player.spd=0;
     handleEvents();
     if(cdT>=4+cdHold){setLights(0);state='race';if(race.restart)race.restart=false;else race.t=0;race.startT=race.t;toast('라이츠 아웃!','#3ddc84');setTimeout(()=>{$('lights').style.opacity=0;},800);}}
   else if(state==='race'||state==='done'){
-    mobileInput();
+    mobileInput(dt);
     if(FF)ffStep();
     else for(let s=0;s<2;s++){if(race.form){formStep(race,dt/2,key);if(race.form.done)break;}else if(!(race.sess&&race.sess.over))stepRace(race,dt/2,key);}
     handleEvents();
