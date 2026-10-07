@@ -5196,20 +5196,33 @@ function onMotion(e){const g=e.accelerationIncludingGravity;if(!g||g.x==null)ret
   const ang=Math.atan2(ax,ay);tiltLast=ang;tiltOK=true;if(tiltRef==null)tiltRef=ang;let d=ang-tiltRef;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;
   // v12k: 감도가 기울기에도 먹게 한다. 전에는 1이든 5든 풀 조향에 26도가 필요해서 5로 놔도 뻑뻑했다.
   // 감도 2(기본)는 전과 같은 26도를 유지하고, 5로 올리면 16도까지 가벼워진다.
-  const si=Math.max(0,Math.min(4,(sens||2)-1)),FULL=[32,26,22,19,16][si],dz=[2.6,2.2,1.9,1.7,1.5][si];
+  // v12k-2: 감도 1~5가 실제로 다르게 느껴지게 한다.
+  //  · FULL = 풀 조향까지 필요한 기울기(도). 5에서는 12도면 끝까지 꺾인다.
+  //  · EXPO = 가운데를 무르게 하는 정도. 5는 거의 직선이라 즉각 반응하고, 1은 곡선이 세서 부드럽다.
+  //  · SM   = 가속도계 노이즈 필터. 높은 감도일수록 약하게 걸어 지연을 없앤다.
+  //  기울기를 크게 안 해도 꺾이므로, 코너에서 폰을 눕혀 OS가 화면을 세로로 돌려버리는 일도 줄어든다.
+  const si=Math.max(0,Math.min(4,(sens||2)-1));
+  const FULL=[34,26,20,16,12][si],dz=[3.0,2.2,1.6,1.2,0.9][si],EXPO=[.55,.40,.28,.18,.10][si],SM=[.35,.45,.55,.65,.75][si];
   const deg=-d*180/Math.PI;
   const raw=Math.abs(deg)<dz?0:Math.max(-1,Math.min(1,(deg-Math.sign(deg)*dz)/(FULL-dz)));
-  // 드래그 조향과 같은 곡선을 태운다. 가운데는 부드럽고 끝까지 꺾으면 풀 조향은 그대로 나온다.
-  // 곡선 없이 범위만 좁히면 손떨림이 그대로 조향에 실려 차가 흔들린다.
-  const want=steerCurve(raw);
-  // 가속도계는 노이즈가 많다. 살짝 눌러준다 — 체감되는 지연은 없다.
-  tiltAxis=tiltAxis*0.55+want*0.45;}
+  const sgn=raw<0?-1:1,mag=Math.abs(raw);
+  const want=sgn*((1-EXPO)*mag+EXPO*mag*mag*mag);
+  tiltAxis=tiltAxis*(1-SM)+want*SM;}
+function lockLandscape(tries){tries=tries||0;
+  try{const el=document.documentElement;
+    if(!document.fullscreenElement&&el.requestFullscreen)el.requestFullscreen({navigationUI:'hide'}).catch(()=>{});
+  }catch(e){}
+  // 전체화면이 붙은 뒤에야 잠금이 먹는 기기가 있어 조금 기다렸다 건다. 몇 번 더 시도한다.
+  setTimeout(()=>{try{
+    if(screen.orientation&&screen.orientation.lock)
+      screen.orientation.lock('landscape').catch(()=>{if(tries<3)lockLandscape(tries+1);});
+  }catch(e){}},tries?600:250);}
 let motionOn=false;
 async function enableTilt(){if(motionOn)return true;try{if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){const r=await DeviceMotionEvent.requestPermission();if(r!=='granted')return false;}
   window.addEventListener('devicemotion',onMotion);motionOn=true;return true;}catch(e){return false;}}
 function calibrateTilt(){if(tiltLast!=null){tiltRef=tiltLast;toast('기울기 영점 맞춤','#fff');}}
 function prepMobile(){document.body.classList.remove('inmenu');document.body.classList.add('racing');
-  try{const el=document.documentElement;if(!document.fullscreenElement&&el.requestFullscreen)el.requestFullscreen({navigationUI:'hide'}).then(()=>{try{screen.orientation.lock('landscape').catch(()=>{});}catch(e){}}).catch(()=>{});}catch(e){}
+  lockLandscape();
   if(steerMode==='tilt'){tiltRef=null;enableTilt().then(ok=>{setTimeout(()=>{if(!ok||!tiltOK){steerMode='drag';applyMobileClasses();toast('기울기 센서를 쓸 수 없어 드래그 조향으로 바꿨어요','#ffb347');}},1500);});}
   if(innerHeight>innerWidth*1.05)setTimeout(()=>toast('휴대폰을 가로로 돌리면 더 넓게 보여요','#fff',3),1600);}   // v12g: a short hint instead of the full-screen panel
 // v12j: 직접 가속에서는 엄지가 가속 페달에 묶여 ERS 버튼을 같이 누를 수 없다. ERS 는 가속 중에만 들어가므로
