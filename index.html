@@ -3256,6 +3256,56 @@ const wm=new THREE.MeshStandardMaterial({color:0xe9edf0,metalness:0.55,roughness
     const sh=new THREE.Mesh(new THREE.CylinderGeometry(4.2,5.5,52,6),sm);sh.position.y=26;g.add(sh);const lv=new THREE.Mesh(new THREE.CylinderGeometry(9,6,7,6),gm);lv.position.y=55;g.add(lv);
     const rf=new THREE.Mesh(new THREE.CylinderGeometry(13,9.5,1.4,6),sm);rf.position.y=59.2;g.add(rf);const sp=new THREE.Mesh(new THREE.ConeGeometry(0.6,9,6),sm);sp.position.y=64;g.add(sp);
     const base=new THREE.Mesh(new THREE.CylinderGeometry(14,16,6,6),sm);base.position.y=3;g.add(base);g.traverse(o=>{o.userData.noBake=true;if(o.isMesh)o.castShadow=true;});occMark(x,z,0,34,34);(W.lm=W.lm||[]).push(['dtower',x,z,40]);};
+  // -- v13e an octagonal cast-iron market hall with a clock spire, food stalls round it (Singapore: the old market by the bay) --
+  const marketHall=(x,z,R)=>{const g=new THREE.Group(),y0=hXZ(x,z);g.position.set(x,y0,z);scene.add(g);
+    const im=new THREE.MeshStandardMaterial({color:0xf4f1e8,roughness:0.55,metalness:0.25}),   // cast iron, painted off-white
+          rm2=new THREE.MeshStandardMaterial({color:0x9aa7ae,roughness:0.42,metalness:0.45}),  // zinc roof
+          gm2=new THREE.MeshStandardMaterial({color:0x2e3a42,roughness:0.3,metalness:0.5});
+    const WALL=4.2;   // open sides: only columns, no walls - you can see the stalls through it
+    const cg=[];for(let k=0;k<8;k++){const a=k/8*Math.PI*2+Math.PI/8;for(const rr of[R,R*0.52]){const c=new THREE.CylinderGeometry(0.34,0.42,WALL,8);c.translate(Math.cos(a)*rr,WALL/2,Math.sin(a)*rr);cg.push(c);}}
+    g.add(new THREE.Mesh(mergeGeos(cg),im));
+    const band=new THREE.Mesh(new THREE.CylinderGeometry(R+0.5,R+0.5,0.5,8),im);band.position.y=WALL;g.add(band);   // the ring beam the arches sit on
+    const ag=[];for(let k=0;k<8;k++){const a=k/8*Math.PI*2+Math.PI/8,t=new THREE.TorusGeometry(R*0.36,0.16,5,10,Math.PI);   // a shallow arch between each pair of columns
+      t.rotateX(Math.PI/2);t.rotateY(-a+Math.PI/2);t.translate(Math.cos(a+Math.PI/8)*R*0.95,WALL-0.3,Math.sin(a+Math.PI/8)*R*0.95);ag.push(t);}
+    g.add(new THREE.Mesh(mergeGeos(ag),im));
+    const eave=new THREE.Mesh(new THREE.CylinderGeometry(R*1.18,R*1.18,0.35,8),rm2);eave.position.y=WALL+0.6;g.add(eave);   // the overhanging eaves
+    const roof=new THREE.Mesh(new THREE.ConeGeometry(R*1.2,R*0.52,8),rm2);roof.position.y=WALL+0.8+R*0.26;g.add(roof);     // the main octagonal roof
+    const lant=new THREE.Mesh(new THREE.CylinderGeometry(R*0.3,R*0.34,2.2,8),im);lant.position.y=WALL+1.1+R*0.52;g.add(lant);   // the lantern that lets the heat out
+    const roof2=new THREE.Mesh(new THREE.ConeGeometry(R*0.38,R*0.3,8),rm2);roof2.position.y=WALL+2.4+R*0.52+R*0.15;g.add(roof2);
+    const spire=new THREE.Mesh(new THREE.CylinderGeometry(0.9,1.3,6,8),im);spire.position.y=WALL+3.2+R*0.67+3;g.add(spire);  // the clock spire
+    for(const sx of[[1,0],[0,1],[-1,0],[0,-1]]){const f=new THREE.Mesh(new THREE.CircleGeometry(0.85,14),gm2);f.position.set(sx[0]*0.95,WALL+3.2+R*0.67+3.6,sx[1]*0.95);f.lookAt(f.position.x*9,f.position.y,f.position.z*9);g.add(f);}
+    const tip=new THREE.Mesh(new THREE.ConeGeometry(1.4,4.2,8),rm2);tip.position.y=WALL+3.2+R*0.67+8.2;g.add(tip);
+    // the satay stalls: a row of awnings along one side, the way the street is closed off in the evening
+    const pal=[0xe2524a,0xf0b429,0x3f8f6e,0xdfe3e6];
+    for(let k=0;k<10;k++){const a=(k/10)*Math.PI*0.9-Math.PI*0.45,rr=R*1.55+(k%2)*1.6,bx=Math.cos(a)*rr,bz=Math.sin(a)*rr;
+      const aw=new THREE.Mesh(new THREE.BoxGeometry(3.2,0.18,2.4),new THREE.MeshStandardMaterial({color:pal[k%pal.length],roughness:0.8}));aw.position.set(bx,2.5,bz);aw.rotation.y=-a;g.add(aw);
+      const tb=new THREE.Mesh(new THREE.BoxGeometry(3,0.9,1.4),new THREE.MeshStandardMaterial({color:0x7a6a56,roughness:0.85}));tb.position.set(bx,0.45,bz);tb.rotation.y=-a;g.add(tb);
+      for(const sx2 of[-1.4,1.4]){const lg=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,2.5,5),gm2);lg.position.set(bx+Math.cos(-a)*sx2,1.25,bz+Math.sin(-a)*sx2);g.add(lg);}}
+    g.traverse(o=>{o.userData.noBake=true;if(o.isMesh)o.castShadow=true;});occMark(x,z,0,R*3.4,R*3.4);(W.lm=W.lm||[]).push(['market',x,z,WALL+R*0.67+10]);return g;};
+  // -- v13e a ball-park grandstand wrapped round a bowl, the track running past the open end (Mexico City) --
+  const ballPark=(x,z,rot,R)=>{const g=new THREE.Group(),y0=hXZ(x,z);g.position.set(x,y0,z);g.rotation.y=rot;scene.add(g);
+    const cm=new THREE.MeshStandardMaterial({color:0xc8ccd2,roughness:0.85}),sm2=new THREE.MeshStandardMaterial({color:0x1d4ed8,roughness:0.75}),
+          rm3=new THREE.MeshStandardMaterial({color:0x8d949c,roughness:0.5,metalness:0.4});
+    const A0=-Math.PI*0.72,A1=Math.PI*0.72;   // open towards the track
+    const tiers=[[R,0,7],[R*1.13,7,13],[R*1.26,13,20]];
+    for(const [rr,h0,h1] of tiers){const w=new THREE.Mesh(new THREE.CylinderGeometry(rr,rr,h1-h0,40,1,true,A0,A1-A0),cm);w.position.y=(h0+h1)/2;g.add(w);
+      const seat=new THREE.Mesh(new THREE.CylinderGeometry(rr-2.6,rr-1.2,h1-h0,40,1,true,A0,A1-A0),sm2);seat.position.y=(h0+h1)/2;g.add(seat);}
+    const roof=new THREE.Mesh(new THREE.CylinderGeometry(R*1.34,R*1.3,1.1,40,1,true,A0,A1-A0),rm3);roof.position.y=20.6;g.add(roof);
+    const mg=[];for(let k=0;k<14;k++){const a=A0+(k/13)*(A1-A0),c=new THREE.CylinderGeometry(0.5,0.7,21,6);c.translate(Math.cos(a)*R*1.3,10.5,Math.sin(a)*R*1.3);mg.push(c);}g.add(new THREE.Mesh(mergeGeos(mg),rm3));
+    const field=new THREE.Mesh(new THREE.CircleGeometry(R-3,40,A0,A1-A0),new THREE.MeshStandardMaterial({color:0x4f7a3a,roughness:0.95}));field.rotation.x=-Math.PI/2;field.position.y=0.12;g.add(field);
+    for(const a of[A0+0.25,A1-0.25]){for(let k=0;k<3;k++){const m=new THREE.Mesh(new THREE.BoxGeometry(5,0.9,1.1),new THREE.MeshStandardMaterial({color:0xfff6da,emissive:0xfff0c4,emissiveIntensity:NT?2.6:0.1,roughness:0.5}));
+      m.position.set(Math.cos(a)*R*1.26,22.5+k*1.3,Math.sin(a)*R*1.26);m.rotation.y=-a;g.add(m);}}
+    g.traverse(o=>{o.userData.noBake=true;if(o.isMesh)o.castShadow=true;});occMark(x,z,rot,R*2.8,R*2.8);(W.lm=W.lm||[]).push(['park',x,z,22]);return g;};
+  // -- v13e a geodesic sphere on the island across from the paddock (Montreal) --
+  const geoDome=(x,z,R)=>{const g=new THREE.Group(),y0=hXZ(x,z);g.position.set(x,y0,z);scene.add(g);
+    const fm=new THREE.MeshStandardMaterial({color:0xdfe6ea,roughness:0.35,metalness:0.55}),
+          gl=new THREE.MeshStandardMaterial({color:0x9fd4e8,roughness:0.1,metalness:0.2,transparent:true,opacity:0.3,side:THREE.DoubleSide});
+    const skin=new THREE.Mesh(new THREE.SphereGeometry(R,20,14,0,Math.PI*2,0,Math.PI*0.62),gl);skin.position.y=R*0.1;g.add(skin);
+    const frame=new THREE.Mesh(new THREE.IcosahedronGeometry(R*1.004,2),fm);frame.position.y=R*0.1;
+    const wire=new THREE.Mesh(new THREE.IcosahedronGeometry(R*1.01,2),new THREE.MeshStandardMaterial({color:0xcfd8dd,wireframe:true,metalness:0.6,roughness:0.3}));
+    wire.position.y=R*0.1;g.add(wire);frame.visible=false;
+    const base=new THREE.Mesh(new THREE.CylinderGeometry(R*0.98,R*1.04,2.4,24),new THREE.MeshStandardMaterial({color:0xb9c0c6,roughness:0.9}));base.position.y=1.2;g.add(base);
+    g.traverse(o=>{o.userData.noBake=true;if(o.isMesh)o.castShadow=true;});occMark(x,z,0,R*2.3,R*2.3);(W.lm=W.lm||[]).push(['dome',x,z,R]);return g;};
   // -- a hotel astride the track: a block on each side, a bridge over the road, and a lattice canopy over it all (Yas) --
   const bridgeHotel=()=>{let best=-1,bs=-1;for(let i=0;i<N;i+=4){if(zoneR(i)>=0||wrap(i)<60||wrap(N-i)<60)continue;let ok=true;for(let k=-30;k<=30&&ok;k+=3){const j=wrap(i+k);if(TR.K[j]>0.004||zoneR(j)>=0)ok=false;}if(!ok)continue;
       const L=frameAt(i,TR.LP[i]+22),R=frameAt(i,-(TR.LN[i]+22));const sc=(fpClear(L.x,L.z,L.rot,60,34,4)?1:0)+(fpClear(R.x,R.z,R.rot,60,34,4)?1:0);if(sc>bs){bs=sc;best=i;}if(sc===2)break;}
@@ -3423,7 +3473,8 @@ const wm=new THREE.MeshStandardMaterial({color:0xe9edf0,metalness:0.55,roughness
   try{if(TH==='city'&&!ML){   // Singapore, Harbor City: blocks line both sides of every street (a 6 m pavement), towers behind
     if(RID==='singapore'){   // the wheel stands in open ground beside the start straight, where the whole lap can see it
       let s=null;for(const off of[95,120,150,185])for(const sd of[PIT.side,-PIT.side])for(let k=-30;k<=150&&!s;k+=6){const i=wrap(N+k),f=frameAt(i,sd*((sd>0?TR.LP[i]:TR.LN[i])+off));if(siteOK(f.x,f.z,f.rot,172,18,14))s=f;}
-      if(!s)s=findSpot((bx0+bx1)/2,bz1+60,0,420,172,18,14,900);if(s){bigWheel(s.x,s.z,78,'pod');CLR.push([s.x,s.z,118]);}}   // about 165 m tall, like the real one
+      if(!s)s=findSpot((bx0+bx1)/2,bz1+60,0,420,172,18,14,900);if(s){bigWheel(s.x,s.z,78,'pod');CLR.push([s.x,s.z,118]);}
+      {const m=findSpot(P0[0],P0[1],120,520,62,62,10,700);if(m)marketHall(m.x,m.z,17);}}   // about 165 m tall, like the real one; and the old market hall off the bay
     const LOWC=['jeddah','miami','madring'].includes(RID);   // v12j: street circuits among low buildings, car parks and open lots (seafront, stadium, exhibition centre)
     for(const side of[1,-1]){const lim=j=>side>0?TR.LP[j]:TR.LN[j],skip=j=>PZ(j,side)||(!!W.sphereOpen&&W.sphereOpen(j,side));
       for(let i=0;i<N;){if(skip(i)){i+=2;continue;}const n0=Math.max(8,Math.round((22+rnd()*26)/STEP));let done=0;
@@ -3444,6 +3495,8 @@ const wm=new THREE.MeshStandardMaterial({color:0xe9edf0,metalness:0.55,roughness
     else if(RID==='austin'){const s=findSpot(oppo.x,oppo.z,60,260,52,52,8);if(s)obsTower(s.x,s.z,76);}
     else if(RID==='sakhir'){const s=findSpot(frameAt(0,PIT.side*(PIT.OFF+60)).x,frameAt(0,PIT.side*(PIT.OFF+60)).z,0,160,34,34,8);if(s)desertTower(s.x,s.z);floods(46);}
     else if(RID==='yas'){W.bridgeHotel=bridgeHotel();const hb=(W.lm||[]).find(l=>l[0]==='hotel');W.marina=marina(hb?hb[1]:P0[0],hb?hb[2]:P0[1]);floods(46);}
+    else if(RID==='mexico'){const s=findSpot(oppo.x,oppo.z,70,300,150,150,12,700);if(s)ballPark(s.x,s.z,s.rot,54);}
+    else if(RID==='montreal'){const s=findSpot(oppo.x,oppo.z,80,320,70,70,10,700);if(s)geoDome(s.x,s.z,30);}
     else if(RID==='monza'){   // the old high-speed banking in the park: a steep concrete bowl section on piers
       let done=false;for(let k=0;k<700&&!done;k++){   // an arc beside the lap, its banked face turned towards the track (the lap runs inside the old bowl)
         const i=Math.floor(rnd()*N),sd=rnd()<0.5?1:-1,Rb=230,span=1.2,off=(sd>0?TR.LP[i]:TR.LN[i])+(k<450?45+rnd()*90:60+rnd()*260),nx=-T[i][1]*sd,nz=T[i][0]*sd,m=frameAt(i,sd*off);
@@ -4916,8 +4969,19 @@ function sfxBurst(o){ // one-shot filtered noise burst
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(o.amp,t+(o.att||0.005));g.gain.setValueAtTime(o.amp,t+Math.max(o.att||0.005,o.hold||0));g.gain.exponentialRampToValueAtTime(0.0008,t+o.dur);
   s.start(t,Math.random()*1.5);s.stop(t+o.dur+0.05);
 }
+function sfxTone(o){ // v13e: one-shot pure tone - the start-light beeps
+  if(!AC||muted)return;const t=AC.currentTime+(o.delay||0);
+  const osc=AC.createOscillator(),sub=AC.createOscillator(),g=SND.G(0),lp=SND.F('lowpass',o.f*3.2,0.8);
+  osc.type='square';osc.frequency.value=o.f;sub.type='sine';sub.frequency.value=o.f;   // square + sine: a hard edge that still reads as a tone
+  const sg=SND.G(0.55);osc.connect(lp);sub.connect(sg);sg.connect(lp);lp.connect(g);g.connect(SND.master);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(o.amp,t+0.004);
+  g.gain.setValueAtTime(o.amp,t+o.dur*0.65);g.gain.exponentialRampToValueAtTime(0.0008,t+o.dur);
+  osc.start(t);sub.start(t);osc.stop(t+o.dur+0.02);sub.stop(t+o.dur+0.02);
+}
 function sfx(type){
   if(!AC)return;
+  if(type==='startBeep'){sfxTone({f:1000,amp:0.30,dur:0.13});return;}   // v13e: one light comes on
+  if(type==='lightsOut'){sfxTone({f:1500,amp:0.34,dur:0.5});return;}     // v13e: all five go out - go
   if(type==='aeroOpen'){sfxBurst({type:'bandpass',f:2600,q:1.4,amp:0.1,dur:0.07});sfxBurst({type:'highpass',f:3200,q:0.5,amp:0.045,att:0.02,dur:0.28});return;}
   if(type==='aeroClose'){sfxBurst({type:'bandpass',f:1500,q:1.6,amp:0.12,dur:0.08});return;}
   if(type==='wall'){sfxBurst({type:'lowpass',f:260,q:0.7,amp:0.9,dur:0.45});sfxBurst({type:'bandpass',f:1800,q:1,amp:0.25,dur:0.25});}
@@ -5044,7 +5108,7 @@ let rlMode=loadLS('lightsout3d-rl')||'corners';if(!['corners','full','off'].incl
 function applyRL(){if(!WORLD||!WORLD.rlFull)return;WORLD.rlFull.visible=rlMode==='full';WORLD.rlCorn.visible=rlMode==='corners';}
 let damageMode=['off','normal','sim'].includes(loadLS('lightsout3d-dmg'))?loadLS('lightsout3d-dmg'):'normal';
 let weather=loadLS('lightsout3d-wx')||'dry',incidents=loadLS('lightsout3d-inc')||'often',startMode=loadLS('lightsout3d-st')||'manual',SCM=null,EXPO=0.72;
-let startComp='M',state='loading',race=null,meshes=[],SW=null,teamSel=9,laps=3,diff='normal',cdT=0,cdHold=1,doneT=0,toastT=0,towerT=0,sessionBest=null;
+let startComp='M',state='loading',race=null,meshes=[],SW=null,teamSel=9,laps=3,diff='normal',cdT=0,cdLit=0,cdHold=1,doneT=0,toastT=0,towerT=0,sessionBest=null;
 let gameMode=['race','quali','practice'].includes(loadLS('lightsout3d-mode'))?loadLS('lightsout3d-mode'):'race',formOn=(loadLS('lightsout3d-fml')||'on')==='on',FF=false,pausedFrom='race',lastStart=null;
 const lightCols=(()=>{let h='';for(let i=0;i<5;i++)h+='<div class="col"><div class="bulb"></div><div class="bulb"></div></div>';$('lights').innerHTML=h;return [...document.querySelectorAll('#lights .col')];})();
 function setLights(n){lightCols.forEach((c,i)=>c.querySelectorAll('.bulb').forEach(b=>b.classList.toggle('on',i<n)));if(WORLD)WORLD.gantry.forEach((m,i)=>m.color.set(i<n?0xff2a1a:0x2a0505));}
@@ -5086,7 +5150,7 @@ function startRace(o){o=o||{mode:gameMode};const mode=o.mode||gameMode;lastStart
   if(formOn){formSetup(race,'start',race.cars.slice().sort((a,b)=>a.grid-b.grid));if(isTouch&&autoGas)race.form.autoP=true;state='race';$('lights').style.opacity=0;
     toast(race.form.autoP?'포메이션 랩 · 자동 주행':'포메이션 랩 · 순서 유지, 추월 금지 · 좌우로 흔들어 타이어 데우기','#fff',3.6,1800);return;}
   beginCountdown();}
-function beginCountdown(){state='countdown';cdT=0;cdHold=0.4+Math.random()*1.4;$('lights').style.opacity=1;setLights(0);
+function beginCountdown(){state='countdown';cdT=0;cdLit=0;cdHold=0.4+Math.random()*1.4;$('lights').style.opacity=1;setLights(0);
   if(!isTouch&&startMode==='manual')setTimeout(()=>{if(state==='countdown')toast('스페이스+↑ 로 대기 → 불 꺼지면 스페이스 떼기','#fff',3.2);},250);}
 function endForm(){formEnd(race);if(state==='done'){race.startT=race.t;race.restart=false;return;}beginCountdown();}
 // fast-forward through the formation lap or a red-flag stoppage (a few simulated seconds per frame)
@@ -6545,10 +6609,11 @@ function frame(now){
   const raw=(now-last)/1000,dt=Math.min(1/30,Math.max(0,raw));last=now;fpsTick(raw);
   if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').style.opacity=0;}
   if(flagPulse>0)flagPulse-=dt;
-  if(state==='countdown'){cdT+=dt;setLights(Math.min(5,Math.floor(cdT/0.8)));
+  if(state==='countdown'){cdT+=dt;
+    {const n=Math.min(5,Math.floor(cdT/0.8));if(n>cdLit){cdLit=n;sfx('startBeep');}setLights(n);}
     mobileInput(dt);if(!isTouch&&startMode==='manual')gridStep(race,dt,key);else race.player.spd=0;
     handleEvents();
-    if(cdT>=4+cdHold){setLights(0);state='race';if(race.restart)race.restart=false;else race.t=0;race.startT=race.t;toast('라이츠 아웃!','#3ddc84');setTimeout(()=>{$('lights').style.opacity=0;},800);}}
+    if(cdT>=4+cdHold){setLights(0);sfx('lightsOut');state='race';if(race.restart)race.restart=false;else race.t=0;race.startT=race.t;toast('라이츠 아웃!','#3ddc84');setTimeout(()=>{$('lights').style.opacity=0;},800);}}
   else if(state==='race'||state==='done'){
     mobileInput(dt);
     if(FF)ffStep();
