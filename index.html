@@ -870,12 +870,16 @@ function tyreGrip(c){
 function tyreStep(race,c,dt,latA,lonA,slip){
   const ty=c.ty,C=COMP[ty.comp],v=Math.abs(c.spd),s=v/VMAX;
   const life=Math.max(1.0,C.life*(race.tyreLaps||TYRE_REF))*LAPSEC, base=1/life/LOADNORM;
+  // v13f: the formation lap is a warm-up at safety-car speed - the tyres barely wear in reality,
+  // but weaving to heat them was eating a chunk of life before the race even started.
+  // Wear only; the heat below is untouched, so warming the tyres still works. Same for every car.
+  const FORMW=(race.form&&!race.form.done)?0.08:1;
   const lat=Math.min(1.6,Math.abs(latA)/40),brk=Math.max(0,-lonA)/40,trc=Math.max(0,lonA)/14,right=latA>0;
   for(let k=0;k<4;k++){
     const front=k<2,left=k%2===0,outside=(right&&left)||(!right&&!left);
     const load=0.25+lat*(outside?1.2:0.6)+(front?brk*0.6:trc*0.35+brk*0.2)+slip*2.5+(c.surf?c.surf.wr*(0.4+0.6*s):(c.off?0.4:0));
     const T=ty.temp[k],hot=Math.max(0,T-C.win[1]),cold=Math.max(0,C.win[0]-T);   // too hot: blistering, too cold: graining
-    if(v>1)ty.wear[k]+=base*load*(1+hot/12+cold/45)*(0.35+0.65*s)*dt*1.25*(C.wet?1+1.5*(1-WET):1);
+    if(v>1)ty.wear[k]+=base*load*(1+hot/12+cold/45)*(0.35+0.65*s)*dt*1.25*(C.wet?1+1.5*(1-WET):1)*FORMW;
     const heat=(5.2+3.2*load)*(0.3+s),cool=(T-28)*(0.075*(0.3+s)+0.02)+WET*(T-12)*0.06;
     ty.temp[k]+=(heat-cool)*dt*0.45;   // a tyre takes a good part of a lap to come up to temperature
   }
@@ -2678,7 +2682,12 @@ mk(ring(2048,256,23,0.08,0.2,[110,125,140],[150,160,170],1),2450,240,80);}
    let [o1,o2]=sg(i=>pl(i)-3.2,i=>pl(i)+ext(i));
    const plM=wetReg(std({map:asphalt,roughnessMap:asphRough,roughness:1,color:0xd8d8d8,polygonOffset:true,polygonOffsetFactor:-1}),0.55,0.16);add(ribbon(o1,o2,0.028,both,null,true),plM,true);
    useTex(plM,'map','asphalt_c.jpg',{srgb:true,rep:R2});useTex(plM,'roughnessMap','asphalt_r.jpg',{rep:R2});useTex(plM,'normalMap','asphalt_n.jpg',{rep:R2,after:()=>plM.normalScale.set(0.3,0.3)});W.pitLaneM=plM;
-   [o1,o2]=sg(i=>pl(i)-3.05,i=>pl(i)-2.85);add(ribbon(o1,o2,0.045,both),lineM,true);
+   // v13f: the lane's inner line must not cross onto the track. pitLatR() pulls the lane
+   // centre inside the track edge at the exit, so pl-3.05 ended up in the middle of the road,
+   // fighting the kerb at the same height. Clamp it to just outside the edge (past the kerb
+   // where there is one). The lane centre is untouched, so the cars still drive the same line.
+   {const edge=i=>HALF+(TR.K[i]>0.011?1.45:0.12);
+    [o1,o2]=sg(i=>Math.max(pl(i)-3.05,edge(i)),i=>Math.max(pl(i)-2.85,edge(i)+0.2));add(ribbon(o1,o2,0.045,both),lineM,true);}
    [o1,o2]=sg(i=>pl(i)+2.9,i=>pl(i)+3.1);add(ribbon(o1,o2,0.045,k=>both(k)&&mid(k)&&(k%4<2)),lineM,true);
    // pit wall with fence
    const pwM=std({color:0xcdd0d3,roughness:0.7}),pw=k=>inZ(k)&&inZ(wrap(k+1))&&mid(k)&&mid(wrap(k+1))&&wA(k);
