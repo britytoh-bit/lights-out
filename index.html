@@ -2375,7 +2375,17 @@ function buildWorld(scene,renderer,opt){
   useTex(roadM,'map','asphalt_c.jpg',{srgb:true,rep:R2});useTex(roadM,'normalMap','asphalt_n.jpg',{rep:R2});useTex(roadM,'roughnessMap','asphalt_r.jpg',{rep:R2});
   W.roadMesh=add(roadGeo(),roadM,true);
   const lineM=wetReg(std({color:0xe8e8e4,roughness:0.6,polygonOffset:true,polygonOffsetFactor:-3}),0.85,0.18);
-  add(ribbon(i=>HWv(i)-0.42,i=>HWv(i)-0.12,0.056),lineM,true);add(ribbon(i=>-HWv(i)+0.12,i=>-HWv(i)+0.42,0.056),lineM,true);   // painted layers 1-2 cm apart, so they do not flicker at a distance
+  // v13f: a street circuit is a road that was closed for the weekend. Racing edge lines make it
+  // read as a purpose-built track, so on street themes we drop them and paint the road's own
+  // lane markings instead - the kerbs and fences are what mark the limit there.
+  if(TH==='city'){
+    const dash=k=>(k%7)<4;                                    // ~8 m painted, ~6 m gap
+    add(ribbon(i=>-0.1,i=>0.1,0.05,dash),lineM,true);          // centre line
+    add(ribbon(i=>HWv(i)*0.5-0.09,i=>HWv(i)*0.5+0.09,0.05,dash),lineM,true);   // lane divider, right
+    add(ribbon(i=>-HWv(i)*0.5-0.09,i=>-HWv(i)*0.5+0.09,0.05,dash),lineM,true); // lane divider, left
+  }else{
+    add(ribbon(i=>HWv(i)-0.42,i=>HWv(i)-0.12,0.056),lineM,true);add(ribbon(i=>-HWv(i)+0.12,i=>-HWv(i)+0.42,0.056),lineM,true);
+  }   // painted layers 1-2 cm apart, so they do not flicker at a distance
   const kf=k=>TR.K[k]>0.011;
   const kerbM=wetReg(std({map:kerb,roughness:0.55,polygonOffset:true,polygonOffsetFactor:-4}),0.8,0.16);
   useTex(kerbM,'map','kerb_c.jpg',{srgb:true,rep:[1,1/2.4]});useTex(kerbM,'normalMap','kerb_n.jpg',{rep:[1,1/2.4]});
@@ -3568,6 +3578,32 @@ const wm=new THREE.MeshStandardMaterial({color:0xe9edf0,metalness:0.55,roughness
       if(s2!==st){st=s2;if(s2<6)draw(Math.min(5,s2),false,0);else if(s2<99)draw(5,true,s2);else draw(0,false,1);}});
     return {R,y:y0};};
   if(SPH)try{W.sphere=ledSphere(SPH);}catch(e){console.error('sphere',e);}
+  // v13f: street circuits keep the road they are built on - crossings and manholes.
+  if(TH==='city')try{
+    const CW=[],MH=[];
+    const dirOK=(i)=>{const a=T[i],b=T[wrap(i+14)];return a[0]*b[0]+a[1]*b[1]>0.995;};
+    let last=-1e9;
+    for(let i=0;i<N;i+=2){
+      if(zoneR(i)>=0||inTun(i))continue;
+      const sAlong=i*STEP;
+      if(sAlong-last>230+rnd()*170&&dirOK(i)&&TR.K[i]<0.006){
+        last=sAlong;const hw=TR.HW[i]+0.5,bw=hw*2/9;
+        for(let b=0;b<9;b++){const f=frameAt(i,-hw+(b+0.5)*bw);
+          const g2=new THREE.PlaneGeometry(7.2,bw*0.62);
+          g2.rotateX(-Math.PI/2);g2.rotateY(f.rot);g2.translate(f.x,TR.H[i]+0.03,f.z);CW.push(g2);}
+      }
+      if(rnd()<0.07){
+        const sd=rnd()<0.5?1:-1,o=sd*(TR.HW[i]*(0.45+rnd()*0.4)),f=frameAt(i,o);
+        const g2=new THREE.CircleGeometry(0.46+rnd()*0.16,10);g2.rotateX(-Math.PI/2);
+        g2.translate(f.x,TR.H[i]+0.028,f.z);MH.push(g2);}
+    }
+    const put=(arr,mat,tag)=>{if(!arr.length)return null;const g=mergeGeos(arr);
+      const m=new THREE.Mesh(g,mat);m.receiveShadow=true;m.castShadow=false;
+      m.userData.noBake=true;m.frustumCulled=false;scene.add(m);
+      (window.__ST=window.__ST||{})[tag]=m;return m;};
+    put(CW,new THREE.MeshStandardMaterial({color:0xe4e2dc,roughness:0.8,side:THREE.DoubleSide,transparent:true,opacity:0.72,polygonOffset:true,polygonOffsetFactor:-2}),'cw');   // DoubleSide: rotateX(-90) leaves the normal pointing down
+    put(MH,new THREE.MeshStandardMaterial({color:0x4a4a4c,roughness:0.55,metalness:0.45,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2}),'mh');
+  }catch(e){console.error('street marks',e);}
   try{if(TH==='city'&&!ML){   // Singapore, Harbor City: blocks line both sides of every street (a 6 m pavement), towers behind
     if(RID==='singapore'){   // the wheel stands in open ground beside the start straight, where the whole lap can see it
       let s=null;for(const off of[95,120,150,185])for(const sd of[PIT.side,-PIT.side])for(let k=-30;k<=150&&!s;k+=6){const i=wrap(N+k),f=frameAt(i,sd*((sd>0?TR.LP[i]:TR.LN[i])+off));if(siteOK(f.x,f.z,f.rot,172,18,14))s=f;}
