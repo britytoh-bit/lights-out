@@ -3959,10 +3959,22 @@ function buildCarGeometry(){
       uv[q]=u;uv[q+1]=V0;uv[q+2]=u;uv[q+3]=V1;
       if(k<N){const a=k*2;idx.push(a,a+2,a+1,a+1,a+2,a+3,a,a+1,a+2,a+1,a+3,a+2);}}
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('normal',new THREE.BufferAttribute(nor,3));g.setAttribute('uv',new THREE.BufferAttribute(uv,2));g.setIndex(idx);return g;};
-  const HV0=0.265625,HV1=0.4921875,TV0=0.0234375,TV1=0.2421875;   // the two halo patches in the decal atlas
-  const haloD=mergeGeos([band(0.06,0.355,22,'z',-0.0192,0.0125,1,false,0.5,HV0,0.99609,HV1),
-                         band(0.94,0.645,22,'z',0.0192,0.0125,-1,true,0.5,HV0,0.99609,HV1),
-                         band(0.425,0.575,14,'y',0.0192,0.0135,-1,true,0.5,TV0,0.83984,TV1)]);
+  // v13h: these span the type inside each halo patch, not the whole patch. drawBrand centres the
+  // mark at about 66 % of the patch height, so mapping the full patch spent a third of the band
+  // on blank margin and shrank the lettering to a few pixels on screen.
+  const HV0=0.3046875,HV1=0.453125,TV0=0.05859375,TV1=0.20703125;   // the type inside the two halo patches of the decal atlas
+  // v13h: the side arms carried a decal on the outer face only, so from above - and from the T-cam,
+  // which looks straight down at them - the halo was a bare black hoop. Real cars wrap the arms.
+  // Same atlas patch on the top face of each arm; no atlas change, so nothing else moves.
+  // v13h: the bands were 2.5 cm wide over 60 cm of curve - 24:1 - so an 8.8:1 logo was stretched
+  // three times wide and came out a few pixels tall. Wide as the tube and over a shorter run
+  // instead, which puts the mark on at close to its own proportions, and on the top face as well:
+  // from the T-cam and every outside view you look down at the arms, not at their outer sides.
+  const haloD=mergeGeos([band(0.105,0.30,16,'z',-0.0186,0.0166,1,false,0.5,HV0,0.99609,HV1),
+                         band(0.895,0.70,16,'z',0.0186,0.0166,-1,true,0.5,HV0,0.99609,HV1),
+                         band(0.105,0.30,16,'y',0.0186,0.0166,1,false,0.5,HV0,0.99609,HV1),
+                         band(0.895,0.70,16,'y',0.0186,0.0166,-1,true,0.5,HV0,0.99609,HV1),
+                         band(0.44,0.56,12,'y',0.0186,0.0166,-1,true,0.5,TV0,0.83984,TV1)]);
   // mirrors on stalks at the sidepod shoulders
   for(const s of[-1,1]){carbon.push(wingRod([0.32,0.57,s*0.5],[0.3,0.685,s*0.54],0.016,0.007));
     const m=new THREE.SphereGeometry(1,16,10);m.scale(0.04,0.03,0.078);m.translate(0.29,0.705,s*0.55);paint.push(m);
@@ -4142,11 +4154,18 @@ function liveryTex(tm,num,ti,code){
     // gaps the number, the maker's name and the decals above leave - small, so they read as minor
     // partners rather than competing with the title sponsor.
     const bb2=(q,u,h,w,hh)=>{bb(SPONSORS[q],u*W,V(1,h),w,hh,ink(u,h),true,false,0.5);bb(SPONSORS[q],u*W,V(-1,h),w,hh,ink(u,h),false,true,0.5);};
-    bb2(sp[4],0.505,0.30,124,24);   // low on the sidepod, ahead of the cooling exit
-    bb2(sp[5],0.715,0.62,132,26);   // mid flank, behind the cockpit
-    bb2(sp[4],0.875,0.47,108,22);   // far back, under the rear suspension
-    bb2(sp[5],0.445,0.21,118,22);   // along the floor edge
-    bb2(sp[2],0.175,0.86,96,20);}   // up on the nose, ahead of the number
+    bb2(sp[4],0.505,0.295,176,34);  // low on the sidepod, ahead of the cooling exit
+    bb2(sp[5],0.715,0.62,180,36);   // mid flank, behind the cockpit
+    bb2(sp[4],0.878,0.47,150,30);   // far back, under the rear suspension
+    bb2(sp[5],0.442,0.205,160,30);  // along the floor edge
+    bb2(sp[2],0.172,0.865,132,26);  // up on the nose, ahead of the number
+    bb2(sp[3],0.600,0.455,152,30);  // between the cockpit and the cooling exit
+    bb2(sp[1],0.822,0.905,150,30);  // high on the engine cover, near the fin
+    bb2(sp[2],0.955,0.275,118,24);
+    // v13h: the top of the car. V(s,1) lands on the centre line along the spine, so these are drawn
+    // once rather than mirrored per flank - it is the one surface the T-cam looks straight down on.
+    bb(SPONSORS[sp[0]],0.705*W,0.5*H,224,42,'#ffffff',false,false,0.5);
+    bb(SPONSORS[sp[3]],0.893*W,0.5*H,150,28,'#ffffff',false,false,0.5);}
   const t=texFrom(c);if(R)t.rm=texFrom(R.c,null,true);return t;}
 function podTex(tm,ti){   // sidepods: u 0 (inlet) .. 1 (rear), v around the section; outer flanks at v 0.25 (+z) and 0.75 (-z)
   const W=512,H=256,c=mkCanvas(W,H),g=c.getContext('2d'),L=LIV[ti],D=L.D,K=L.K,A=L.A,R=matMap(L,W,H);
@@ -4162,6 +4181,9 @@ function podTex(tm,ti){   // sidepods: u 0 (inlet) .. 1 (rear), v around the sec
   g.fillStyle='#121316';g.fillRect(0,(1-0.06)*H,W,0.06*H+1);g.fillRect(0,0,W,0.06*H);if(R){R.g.fillStyle=R.carbon;R.g.fillRect(0,(1-0.06)*H,W,0.06*H+1);R.g.fillRect(0,0,W,0.06*H);}   // carbon undercut edge
   const sp=SPONSORS[TEAM_SP[ti][1]],mono=inkOn(D);
   brandBlit(g,sp,W*0.42,V(1,0.66),200,46,mono,true,false);brandBlit(g,sp,W*0.42,V(-1,0.66),200,46,mono,false,true);if(R){brandBlit(R.g,sp,W*0.42,V(1,0.66),200,46,R.decal,true,false);brandBlit(R.g,sp,W*0.42,V(-1,0.66),200,46,R.decal,false,true);}
+  // v13h: a second, smaller partner further back on the pod - the big flat panel was carrying one mark
+  {const sp2=SPONSORS[TEAM_SP[ti][4]];for(const [q,cl] of R?[[g,mono],[R.g,R.decal]]:[[g,mono]]){
+    brandBlit(q,sp2,W*0.78,V(1,0.42),130,30,cl,true,false);brandBlit(q,sp2,W*0.78,V(-1,0.42),130,30,cl,false,true);}}
   const t=texFrom(c);if(R)t.rm=texFrom(R.c,null,true);return t;}
 // engine-cover fin: black (the car darkens towards the back) with the race number where the fin is tallest and the team name
 // further forward; mapped so it reads the right way round on both faces (u 0 = back of the fin, v 0 = its foot)
@@ -5802,7 +5824,11 @@ function drawHUD(dt){
     if(pl.pen&&pl.fin==null)pi+=`<br><span class="warn">미소화 페널티 ${pl.pen}초 · 피트 정차 때 소화</span>`;
     if(pi!==hc.pitInfo){hc.pitInfo=pi;$('pitInfo').innerHTML=pi;const pm=pi.startsWith('전략:')?'':pi;$('pitMsg').innerHTML=pm;hc.pmT=pm?6:0;}}
   if(isTouch){if($('hudTime').offsetHeight!==hc.htH)layoutTouchHUD();
-    {const ln=Math.floor(pl.prog/N);if(ln!==hc.pmLap){if(hc.pmLap!=null&&$('pitMsg').innerHTML)hc.pmT=Math.max(hc.pmT||0,4);hc.pmLap=ln;}   // v12g: the pit / strategy pill shows for 6 s when it changes and 4 s at each new lap
+    // v13h: the pill used to come back for 4 s on every new lap as well. On a phone it sits over
+    // the road ahead, so with the pit window open the same 'new tyres' line blocked the view once
+    // a lap, all race. It now shows only when what it says changes (6 s, set where pi is built),
+    // and it still stays up the whole time in the pit lane and under a red flag.
+    {
      const tk=toastT>0&&!document.body.classList.contains('ph-port');   // v12j: landscape - a short note takes the pit line's row for a moment (the pit line waits, its time paused)
      if(!tk)hc.pmT=Math.max(0,(hc.pmT||0)-dt);const sh=!tk&&(hc.pmT>0||!!pl.pit||race.rc.flag==='red');if(sh!==hc.pmS){hc.pmS=sh;$('pitMsg').classList.toggle('show',sh);}}towerT-=dt;if(towerT<=0){towerT=0.3;const th=towerTouch(r,pp);if(th!==hc.tw){hc.tw=th;$('tower').innerHTML=th;}}}
   else{towerT-=dt;if(towerT<=0&&S){towerT=0.3;let h='';
