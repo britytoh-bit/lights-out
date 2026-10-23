@@ -648,7 +648,9 @@ function buildTrack(){
   // the start line) and the slope along the track (+ = uphill in the direction of travel)
   const H=new Float32Array(N),G=new Float32Array(N);
   if(TRK.elev){const e=TRK.elev,m=e.length,f1=(a,b,c,d,t)=>0.5*(2*b+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t);
-    for(let i=0;i<N;i++){let k=Math.floor(i/10),t=i/10-k;if(k>=m-1){k=m-1;t=(i-10*(m-1))/Math.max(1,N-10*(m-1));}H[i]=f1(e[(k-1+m)%m],e[k%m],e[(k+1)%m],e[(k+2)%m],t);}   // the last stretch before the line is shorter than 20 m: squeeze it, so the road has no step at the line
+    // v13j: the samples rarely fill the lap exactly (Austin 2 m short, Melbourne 6 m over). Squeezing only the last sample into
+    // the leftover made Austin a 0.8 m step in 2 m at the line (a 40 % speed bump). The last 5 samples now share the leftover.
+    const i0=10*(m-5);for(let i=0;i<N;i++){const u=i<i0?i/10:m-5+5*(i-i0)/(N-i0),k=Math.floor(u),t=u-k;H[i]=f1(e[(k-1+m)%m],e[k%m],e[(k+1)%m],e[(k+2)%m],t);}
     // where the lap crosses over itself (Suzuka), the smoothed position data blurs the bridge: bridge the upper road
     // smoothly across the crossing and keep at least 7 m between the two roads
     for(let i=0;i<N;i++)for(let j=i+60;j<N;j++){if(N-(j-i)<60)continue;const a=P[i],b=P[(i+1)%N],c=P[j],d=P[(j+1)%N],rx=b[0]-a[0],rz=b[1]-a[1],sx=d[0]-c[0],sz=d[1]-c[1],den=rx*sz-rz*sx;
@@ -1587,13 +1589,14 @@ function stepAI(race,c,dt){
    if(c.jamT>2)c.unjamT=race.t+5;c.unjam=c.unjamT!=null&&race.t<c.unjamT&&!c.fail&&!c.pit;                                                 // 2 s at a standstill, held 5 s (a creep past; it flickered off)
    if(c.jamT>4&&!(c.creepT>race.t)){c.creepT=race.t+6;c.obstP=obst;}if(!(c.creepT>race.t))c.obstP=null;}
 }
-const onRamp=c=>!!c.pit&&c.pit.state==='in'&&zoneR(c.idx)<Math.min(PIT.RAMP,40)&&Math.abs(c.lat)<HALF+2.5;
+const onRamp=c=>!!c.pit&&(c.pit.state==='join'||c.pit.state==='in'&&zoneR(c.idx)<Math.min(PIT.RAMP,40)&&Math.abs(c.lat)<HALF+2.5);   // v13j: 'join' is back on the track while c.pit is still set - it drove through the field
 function collide(race){
   const cs=race.cars;
   for(let i=0;i<cs.length;i++)for(let j=i+1;j<cs.length;j++){
     const a=cs[i],b=cs[j];if(a.gone||b.gone||a.inGarage||b.inGarage)continue;if(!!a.pit!==!!b.pit&&!onRamp(a)&&!onRamp(b))continue;if(Math.abs(a.x-b.x)>7||Math.abs(a.z-b.z)>7)continue;{const di=Math.abs(a.idx-b.idx);if(Math.min(di,N-di)>60&&!a.pit&&!b.pit)continue;}
     if(a.pit&&b.pit&&(a.pit.state==='stop'||b.pit.state==='stop'||a.pit.state==='garage'||b.pit.state==='garage'))continue;let done=false;
-    for(const sa of[-1.6,1.6]){if(done)break;for(const sb of[-1.6,1.6]){
+    // v13j: a middle disc too - with two at +-1.6 the sidepods were hollow and cars side by side slid through each other
+    for(const sa of[-1.6,0,1.6]){if(done)break;for(const sb of[-1.6,0,1.6]){
       const ax=a.x+Math.cos(a.a)*sa,az=a.z+Math.sin(a.a)*sa,bx=b.x+Math.cos(b.a)*sb,bz=b.z+Math.sin(b.a)*sb,dx=bx-ax,dz=bz-az,d=Math.hypot(dx,dz);
       if(d>0.001&&d<2.1){const nx=dx/d,nz=dz/d,ov=(2.1-d)/2;a.x-=nx*ov;a.z-=nz*ov;b.x+=nx*ov;b.z+=nz*ov;a.jx=(a.jx||0)-nx*ov;a.jz=(a.jz||0)-nz*ov;b.jx=(b.jx||0)+nx*ov;b.jz=(b.jz||0)+nz*ov;a.px-=nx*2.5;a.pz-=nz*2.5;b.px+=nx*2.5;b.pz+=nz*2.5;
         const rel=Math.abs(a.spd-b.spd),back=gapTo(a,b)>0?a:b,front=back===a?b:a;back.spd=Math.min(back.spd,front.spd*0.97);a.spd*=0.99;b.spd*=0.99;
@@ -2714,7 +2717,12 @@ mk(ring(2048,256,23,0.08,0.2,[110,125,140],[150,160,170],1),2450,240,80);}
    // v13f pushed it outside the kerb instead, which put it on the far side of the lane and left
    // the exit with no boundary at all. The kerb below now steps aside for the pit road, so there
    // is nothing left to fight at the same height. The lane centre is untouched: cars drive as before.
-   [o1,o2]=sg(i=>pl(i)-3.05,i=>pl(i)-2.85);add(ribbon(o1,o2,0.062,both),lineM,true);
+   // v13j: but never further in than the track's own edge line - where the lane merges it crossed that line in an X and ran
+   // on into the racing lane. It now runs along the edge line to the merge. The gap between the lane and the road (grass
+   // slivers between two white lines - it looked like broken road) is paved with the lane's asphalt where it is narrow.
+   const plIn=i=>Math.max(pl(i)-3.05,HWv(i)-0.42);[o1,o2]=sg(plIn,i=>plIn(i)+0.2);add(ribbon(o1,o2,0.062,both),lineM,true);
+   {const g0=i=>HWv(i),gap=k=>{const w=pl(k)-3.2-g0(k);return w>0.05&&w<4;};   // a kerb, where there is one, sits higher and stays on top
+    [o1,o2]=sg(g0,i=>Math.max(g0(i),pl(i)-3.1));add(ribbon(o1,o2,0.028,k=>both(k)&&(gap(k)||gap(wrap(k+1)))),plM,true);}
    [o1,o2]=sg(i=>pl(i)+2.9,i=>pl(i)+3.1);add(ribbon(o1,o2,0.045,k=>both(k)&&mid(k)&&(k%4<2)),lineM,true);
    // pit wall with fence
    const pwM=std({color:0xcdd0d3,roughness:0.7}),pw=k=>inZ(k)&&inZ(wrap(k+1))&&mid(k)&&mid(wrap(k+1))&&wA(k);
@@ -4606,7 +4614,8 @@ function setupComposer(){
     composer=new THREE.EffectComposer(renderer,rt);composer.addPass(new THREE.RenderPass(scene,camera));
     // AO was 'high' only, so the default setting ('medium' on a PC) never showed it. It draws at half resolution,
     // and perfDown() turns it off first when the frame rate drops, so 'medium' can afford it.
-    aoPass=null;if(quality!=='low'&&isGL2){try{aoPass=makeAOPass(w*renderer.getPixelRatio(),h*renderer.getPixelRatio());if(aoPass)composer.addPass(aoPass);}catch(e){aoPass=null;}}
+    // v13j: not on a phone's 'medium' - it draws the whole scene a second time every frame, and that is where it stuttered
+    aoPass=null;if((quality==='high'||quality==='medium'&&!isTouch)&&isGL2){try{aoPass=makeAOPass(w*renderer.getPixelRatio(),h*renderer.getPixelRatio());if(aoPass)composer.addPass(aoPass);}catch(e){aoPass=null;}}
     if(quality==='high'){bloom=new THREE.UnrealBloomPass(new THREE.Vector2(w,h),0.22,0.5,0.9);composer.addPass(bloom);}
     composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));
     grade=new THREE.ShaderPass({defines:{TAPS:quality==='high'?8:1},uniforms:{tDiffuse:{value:null},blur:{value:0},vig:{value:0.22}},
@@ -5340,6 +5349,7 @@ function warmUp(){if(!renderer||!scene)return;const prev=renderer.getRenderTarge
     const e0=scene.environment;for(const e of envs){scene.environment=e;renderer.compile(scene,camera);}scene.environment=e0;}catch(e){}
   try{renderer.setRenderTarget(null);if(MIR&&MIR.hs)renderer.compile(MIR.hs,MIR.hc);}catch(e){}
   renderer.setRenderTarget(prev);
+  try{if(KIT&&KIT.decalBlur)for(const k in KIT.decalBlur)renderer.initTexture(KIT.decalBlur[k].map);}catch(e){}   // v13j: else they upload as the cars pull away from the grid
   try{const seen=new Set();scene.traverse(o=>{const ms=o.material?(Array.isArray(o.material)?o.material:[o.material]):[];
     for(const mt of ms)for(const k in mt){const t=mt[k];if(t&&t.isTexture&&!seen.has(t)&&t.image){seen.add(t);renderer.initTexture(t);}}});}catch(e){}}
 function fmtClock(t){t=Math.max(0,Math.ceil(t));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');}
@@ -5843,7 +5853,7 @@ function drawHUD(dt){
     else pi='전략: '+pl.stints.join(' → ')+(usedWet(pl)?' · 우천 타이어 사용(2컴파운드 의무 면제)':'');
     if(pl.pen&&pl.fin==null)pi+=`<br><span class="warn">미소화 페널티 ${pl.pen}초 · 피트 정차 때 소화</span>`;
     if(pi!==hc.pitInfo){hc.pitInfo=pi;$('pitInfo').innerHTML=pi;const pm=pi.startsWith('전략:')?'':pi;$('pitMsg').innerHTML=pm;hc.pmT=pm?6:0;}}
-  if(isTouch){if($('hudTime').offsetHeight!==hc.htH)layoutTouchHUD();
+  if(isTouch){if((hc.htN=(hc.htN||0)+1)%30===0&&$('hudTime').offsetHeight!==hc.htH)layoutTouchHUD();   // v13j: not every frame - reading it forces a layout
     // v13h: the pill used to come back for 4 s on every new lap as well. On a phone it sits over
     // the road ahead, so with the pit window open the same 'new tyres' line blocked the view once
     // a lap, all race. It now shows only when what it says changes (6 s, set where pi is built),
@@ -6790,8 +6800,9 @@ function perfGovernor(dt){if(state!=='race')return;PERF.acc+=dt;PERF.n++;if(PERF
       say('그림자를 가볍게 했어요');return;}
     PERF.step++;}
   if(PERF.step===4||PERF.step===6){if(renderer.getPixelRatio()>0.62){renderer.setPixelRatio(Math.max(0.6,renderer.getPixelRatio()*0.85));PERF.prCap=renderer.getPixelRatio();resize2();say('해상도를 조금 낮췄어요');return;}PERF.step++;}
-  if(PERF.step===5){if(renderer.shadowMap.enabled){renderer.shadowMap.enabled=false;say('그림자를 껐어요');return;}PERF.step++;}
-  if(PERF.step===7&&composer){composer=null;say('후처리 효과를 껐어요');}}
+  // v13j: switching the shadows or the post chain off changes every shader's program key - a full recompile, a freeze of its
+  // own in the middle of the race. Shrink the shadow map instead; the post chain stays.
+  if(PERF.step===5){const sh=WORLD&&WORLD.sun&&WORLD.sun.shadow;if(renderer.shadowMap.enabled&&sh&&sh.mapSize.x>512){sh.mapSize.set(512,512);if(sh.map){sh.map.dispose();sh.map=null;}say('그림자를 더 가볍게 했어요');return;}PERF.step++;}}
 function resize2(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);if(composer){composer.setPixelRatio?composer.setPixelRatio(renderer.getPixelRatio()):0;composer.setSize(w,h);if(fxaa){const pr=renderer.getPixelRatio();fxaa.material.uniforms.resolution.value.set(1/(w*pr),1/(h*pr));}}}
 // v12j: 미러 크기를 한 곳에서 정한다. 레이아웃(메시지를 얼마나 내릴지)과 그리기가 같은 값을 써야 한다.
 // 가로로 든 휴대폰(높이 440 이하)에서는 작게 — 앞이 가려진다는 지적이 있었다.
