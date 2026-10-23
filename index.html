@@ -1764,8 +1764,9 @@ function raceControl(race,dt){
         (p.passPen=p.passPen||{})[o.id]=race.t;addPen(race,p,5,'illegalPass',{code:o.code,why:rc.flag!=='green'?rc.flag:(yz?'yellow':'restart')});}
       else if(rc.flag==='green'&&!race.sess&&p.relPrev[o.id]===1&&st===-1&&Math.abs(rel)<20&&!o.pit&&!o.fail&&!o.dnf&&o.fin==null&&race.t-(p.offT??-99)<2&&!p.giveBack){   // v12h: the player passed with the wheels off the track
         p.giveBack={ix:race.cars.indexOf(o),code:o.code,until:race.t+15,lap1:p.prog<N};p.gbT=race.t;if(p.ex)p.ex.passed=true;race.EV.push({type:'giveBack',code:o.code,name:o.name});}
-      if(rc.flag==='green'&&!race.sess&&!o.isP&&p.relPrev[o.id]===-1&&st===1&&Math.abs(rel)<20&&!o.pit&&!o.fail&&race.t-(o.offT??-99)<2&&!o.giveBack){   // an AI car passed the player off the track: it gives the place back
-        o.giveBack={ix:race.cars.indexOf(p),until:race.t+12};race.EV.push({type:'aiGiveBack',code:o.code,name:o.name});}
+      if(!race.sess&&!o.isP&&p.relPrev[o.id]===-1&&st===1&&Math.abs(rel)<20&&!o.pit&&!o.fail&&!o.dnf&&o.fin==null&&!o.giveBack
+         &&(restricted||(rc.flag==='green'&&race.t-(o.offT??-99)<2))){   // an AI car passed the player off the track, or under SC / VSC / yellows: it gives the place back
+        o.giveBack={ix:race.cars.indexOf(p),until:race.t+12};race.EV.push({type:'aiGiveBack',code:o.code,name:o.name,why:restricted?(rc.flag!=='green'?rc.flag:(yz?'yellow':'restart')):'off'});}
       p.relPrev[o.id]=st;}}
   // blue flags for cars about to be lapped
   for(const c of race.cars){c.blue=null;if(rc.flag!=='green'||c.fin!=null||c.pit||c.dnf||c.gone||c.fail)continue;
@@ -4546,7 +4547,7 @@ let composer=null,bloom=null,fxaa=null,grade=null;
 // ---- screen-space ambient occlusion (high quality): half-res normals+depth pass, hemisphere sampling in view space,
 // blurred, multiplied onto the multisampled beauty pass (so MSAA is kept) ----
 function makeAOPass(w,h){
-  const KS=14,P0=THREE.Pass;if(!P0||!THREE.FullScreenQuad)return null;
+  const KS=quality==='high'?14:8,P0=THREE.Pass;if(!P0||!THREE.FullScreenQuad)return null;   // half the samples at 'medium' -- the blur hides most of the difference
   const dt=new THREE.DepthTexture();dt.type=THREE.UnsignedIntType;
   const nRT=new THREE.WebGLRenderTarget(w,h,{minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter,format:THREE.RGBAFormat,depthTexture:dt});
   const aoRT=new THREE.WebGLRenderTarget(w,h,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat}),blurRT=aoRT.clone();
@@ -4579,9 +4580,14 @@ function makeAOPass(w,h){
     scene.traverseVisible(o=>{const m=o.material;if(o.isPoints||o.isLine||o.isSprite||(m&&!Array.isArray(m)&&(m.transparent||m.alphaTest>0||m.alphaToCoverage))){hidden.push(o);}});
     hidden.forEach(o=>o.visible=false);
     renderer.getClearColor(cc);const ca=renderer.getClearAlpha();renderer.setClearColor(0x7777ff,1);
+    // The occlusion is gone by fadeEnd, so this pass only needs to see that far. Frustum culling then drops the rest
+    // of the track, the crowd and the trees instead of drawing them to be thrown away, and near 0.05 / far 70 beats
+    // far 5000 for depth precision by a wide margin -- the sample comparisons get sharper as well as cheaper.
+    const farWas=camera.far;camera.far=Math.min(farWas,aoMat.uniforms.fadeEnd.value);camera.updateProjectionMatrix();
     scene.overrideMaterial=nMat;renderer.setRenderTarget(nRT);renderer.clear();renderer.render(scene,camera);scene.overrideMaterial=null;
     hidden.forEach(o=>o.visible=true);hidden.length=0;renderer.setClearColor(cc,ca);
     const u=aoMat.uniforms;u.cameraNear.value=camera.near;u.cameraFar.value=camera.far;u.P.value.copy(camera.projectionMatrix);u.Pinv.value.copy(camera.projectionMatrixInverse);
+    camera.far=farWas;camera.updateProjectionMatrix();
     fsq.material=aoMat;renderer.setRenderTarget(aoRT);fsq.render(renderer);
     fsq.material=blurMat;renderer.setRenderTarget(blurRT);fsq.render(renderer);
     compMat.uniforms.tDiffuse.value=readBuffer.texture;fsq.material=compMat;renderer.setRenderTarget(pass.renderToScreen?null:writeBuffer);fsq.render(renderer);};
@@ -4594,7 +4600,9 @@ function setupComposer(){
     const w=innerWidth,h=innerHeight,isGL2=renderer.capabilities.isWebGL2;
     const rt=isGL2&&THREE.WebGLMultisampleRenderTarget?new THREE.WebGLMultisampleRenderTarget(w,h,{format:THREE.RGBAFormat,stencilBuffer:true}):new THREE.WebGLRenderTarget(w,h,{format:THREE.RGBAFormat,stencilBuffer:true});
     composer=new THREE.EffectComposer(renderer,rt);composer.addPass(new THREE.RenderPass(scene,camera));
-    aoPass=null;if(quality==='high'&&isGL2){try{aoPass=makeAOPass(w*renderer.getPixelRatio(),h*renderer.getPixelRatio());if(aoPass)composer.addPass(aoPass);}catch(e){aoPass=null;}}
+    // AO was 'high' only, so the default setting ('medium' on a PC) never showed it. It draws at half resolution,
+    // and perfDown() turns it off first when the frame rate drops, so 'medium' can afford it.
+    aoPass=null;if(quality!=='low'&&isGL2){try{aoPass=makeAOPass(w*renderer.getPixelRatio(),h*renderer.getPixelRatio());if(aoPass)composer.addPass(aoPass);}catch(e){aoPass=null;}}
     if(quality==='high'){bloom=new THREE.UnrealBloomPass(new THREE.Vector2(w,h),0.22,0.5,0.9);composer.addPass(bloom);}
     composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));
     grade=new THREE.ShaderPass({defines:{TAPS:quality==='high'?8:1},uniforms:{tDiffuse:{value:null},blur:{value:0},vig:{value:0.22}},
@@ -6093,7 +6101,7 @@ const MSG={wall:()=>[race.dmg==='off'?'월 히트! 타이어 손상':'월 히트
   chq:()=>['체커기 · 진행 중인 랩까지만 인정','#fff'],sessDoneP:()=>['세션 종료 · 다른 차들의 마지막 랩 집계 중','#fff'],garageOut:()=>['개러지 출발 · 새 타이어는 차가워요','#8ecae6'],green:e=>[e.restart?'그린 플래그 · 레이스 재개':'그린 플래그','#3ddc84'],
   vscPen:e=>['VSC 속도 위반 · +'+e.s+'초','#ff5a4f'],scPass:e=>['세이프티카 추월 · +'+e.s+'초','#ff5a4f'],
   giveBack:e=>['코스 밖에서 추월 · '+e.name+'에게 자리를 돌려주세요 (15초 안에, 안 하면 페널티)','#ffb347'],givenBack:()=>['자리 반납 완료 · 페널티 없음','#3ddc84'],
-  giveBackPen:e=>['코스 밖 추월 후 자리 미반납 · +'+e.s+'초','#ff5a4f'],aiGiveBack:e=>[e.name+' · 코스 밖 추월이라 자리를 돌려줍니다','#8ecae6'],
+  giveBackPen:e=>['코스 밖 추월 후 자리 미반납 · +'+e.s+'초','#ff5a4f'],aiGiveBack:e=>[e.name+' · '+({sc:'세이프티카 중',vsc:'VSC 중',yellow:'옐로 구간',restart:'재시작 전',red:'레드 플래그 중'}[e.why]||'코스 밖')+' 추월이라 자리를 돌려줍니다','#8ecae6'],
   flatSpot:e=>['플랫 스팟 · '+['왼쪽 앞','오른쪽 앞','왼쪽 뒤','오른쪽 뒤'][e.k]+' 타이어 (타이어를 바꿀 때까지 진동)','#ffb347'],
   illegalPass:e=>[({sc:'세이프티카 중',vsc:'VSC 중',yellow:'옐로 구간',restart:'재시작 전',red:'레드 플래그 중'}[e.why]||'규정 위반')+' 추월 · +'+e.s+'초','#ff5a4f'],
   blue:()=>['블루 플래그 · 뒤차에게 길을 비켜주세요','#6aa7ff'],bluePen:e=>['블루 플래그 무시 · +'+e.s+'초','#ff5a4f'],finish:()=>['체커기!','#fff'],contact:()=>['접촉!','#ffb347']};
