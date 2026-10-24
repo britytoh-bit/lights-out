@@ -2307,6 +2307,8 @@ function buildWorld(scene,renderer,opt){
   const hemi=new THREE.HemisphereLight(SS?0xffd2a8:NT?0x3c4c7a:0xcfe3ff,SS?0x3f3a2c:NT?0x17171b:0x56663f,SS?0.46:NT?0.34:0.44);scene.add(hemi);W.hemi=hemi;W.hemiI=hemi.intensity;W.hemiC=hemi.color.clone();W.hemiG=hemi.groundColor.clone();
   const sun=new THREE.DirectionalLight(SS?0xffa45c:NT?0xe8eeff:0xffedd2,NT?1.8:2.9);sun.castShadow=opt.shadows;   // (night: the floodlights - cool white, from high up)
   if(opt.shadows){const ms=opt.q==='high'?4096:1536;sun.shadow.mapSize.set(ms,ms);const sc=sun.shadow.camera;sc.left=-70;sc.right=70;sc.top=70;sc.bottom=-70;sc.near=1;sc.far=500;sun.shadow.bias=-0.0004;sun.shadow.normalBias=0.03;}
+  // v13k: floodlights come from many towers, so a shadow under one is only partly dark - part of the light casts no shadow (was all of it: the shadows went near-black)
+  if(NT){const fl=new THREE.DirectionalLight(0xe8eeff,0.8);fl.position.copy(sunDir);scene.add(fl);W.fill=fl;W.fillI=fl.intensity;sun.intensity=1.0;}
   scene.add(sun);scene.add(sun.target);W.sun=sun;W.sunI=sun.intensity;
 
   // ---- textures ----
@@ -6289,7 +6291,7 @@ function syncRaceControl(dt){
   // weather look: overcast sky, rain, wet asphalt
   const rain=race.wx.rain,wet=WET;
   for(const e of W.wet){e.m.color.copy(e.c0).multiplyScalar(1-(1-e.dk)*wet);e.m.roughness=e.r0+(e.r-e.r0)*wet;e.m.envMapIntensity=1-0.45*wet;}
-  W.sun.intensity=W.sunI*(1-(W.NT?0.25:0.8)*rain);W.hemi.intensity=W.hemiI*(1-0.1*rain);W.hemi.color.copy(W.hemiC).lerp(RAINSKY,rain);W.hemi.groundColor.copy(W.hemiG).lerp(RAINGND,rain);
+  W.sun.intensity=W.sunI*(1-(W.NT?0.25:0.8)*rain);if(W.fill)W.fill.intensity=W.fillI*(1-0.25*rain);W.hemi.intensity=W.hemiI*(1-0.1*rain);W.hemi.color.copy(W.hemiC).lerp(RAINSKY,rain);W.hemi.groundColor.copy(W.hemiG).lerp(RAINGND,rain);
   scene.fog.color.copy(W.fogC).lerp(RAINFOG,rain);scene.fog.near=W.fogN*(1-0.7*rain);scene.fog.far=W.fogF*(1-0.72*rain);
   if(W.sky){const u=W.sky.material.uniforms;u.turbidity.value=W.skyT+(18-W.skyT)*rain;u.rayleigh.value=W.skyR+(0.25-W.skyR)*rain;u.mieCoefficient.value=W.skyM+(0.03-W.skyM)*rain;if(u.skyGain)u.skyGain.value=W.skyG+(0.45-W.skyG)*rain;}
   if(W.clouds){const u=W.clouds.uniforms;u.time.value+=dt;u.cover.value=W.cover0+(0.98-W.cover0)*Math.min(1,rain*1.5);u.dark.value=Math.min(1,rain*1.25);}
@@ -6340,7 +6342,7 @@ function tunnelFx(dt,W){const tn=W.tunnel;let f=0;
       if(bi>=0){const t=T[bi],dx=c.x-P[bi][0],dz=c.z-P[bi][1],lat=-t[1]*dx+t[0]*dz;
         if(lat<TR.LP[bi]+0.3&&-lat<TR.LN[bi]+0.3&&c.y<TR.H[bi]+tn.TH-0.1)f=smooth(Math.min(wrap(bi-tn.i0),wrap(tn.i1-bi))/7);}}}
   TUNF=f;
-  if(f>0){W.hemi.intensity*=1-0.8*f;if(!(W.sun.castShadow&&renderer.shadowMap.enabled))W.sun.intensity*=1-0.92*f;if(RAIN&&f>0.3)RAIN.L.visible=false;
+  if(f>0){W.hemi.intensity*=1-0.8*f;if(!(W.sun.castShadow&&renderer.shadowMap.enabled))W.sun.intensity*=1-0.92*f;if(W.fill)W.fill.intensity*=1-0.92*f;if(RAIN&&f>0.3)RAIN.L.visible=false;
     if(f>0.5){const enc=W.envClear?W.envClear.encoding:null;if(W.envTun===undefined||W.envTunEnc!==enc){W.envTun=mkTunEnv(enc);W.envTunEnc=enc;}if(W.envTun)scene.environment=W.envTun;}}
   const tgt=1+0.85*f;EYE+=(tgt-EYE)*Math.min(1,dt*(tgt>EYE?1.3:2.4));renderer.toneMappingExposure*=EYE;}
 let RAIN=null;
