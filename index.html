@@ -346,6 +346,7 @@ body.touch.ph-small.sm-tilt .pedal{width:88px; height:104px; font-size:11px}
 body.touch.ph-small.sm-tilt .pedal.gas{height:118px}
 @media (max-height:420px){ body.sm-tilt .pedal{width:92px; height:100px} body.sm-tilt .pedal.gas{height:112px} }
 body.sm-tilt #pedals .pedal.brk{order:-1} body.sm-tilt.autogas #pedals{justify-content:flex-start}
+body.ped-split #pedals .pedal.brk{position:fixed; left:var(--brkL,300px); bottom:calc(14px + env(safe-area-inset-bottom,0px))}   /* v13e: drag / buttons steering, pedals on both sides */
 body.sm-tilt #pedals{pointer-events:none} body.sm-tilt #pedals .pedal{pointer-events:auto}   /* the row spans the screen: only the two pedals take touches */
 body.sm-tilt #tiltGauge{left:50%; transform:translateX(-50%); width:180px; height:12px; bottom:calc(8px + env(safe-area-inset-bottom,0px))}
 @media (max-height:420px){ body.touch .pedal{height:90px; width:70px} body.touch .pedal.gas{height:108px} body.touch #hudTime .row:not(.cur):not(.fast):not(.dlt){display:none} body.touch #hudTime .row.fast{display:flex} }
@@ -504,6 +505,7 @@ body.touch.racing #rotate{display:none !important}   /* no full-screen "turn you
         <div><p class="label">스타트 타이어</p><div class="seg" id="scSel"><button data-v="S" aria-pressed="false" style="color:#ff5a4f">소프트</button><button data-v="M" aria-pressed="true" style="color:#f5c518">미디엄</button><button data-v="H" aria-pressed="false">하드</button><button data-v="I" aria-pressed="false" style="color:#3ddc84">인터</button><button data-v="W" aria-pressed="false" style="color:#5b9bff">웻</button></div></div>
         <div><p class="label">시간대</p><div class="seg" id="todSel"><button data-v="day" aria-pressed="true">한낮</button><button data-v="sunset" aria-pressed="false">석양</button><button data-v="night" aria-pressed="false">야간</button></div></div>
         <div class="touchOnly"><p class="label">조향 방식</p><div class="seg" id="smSel"><button data-v="tilt" aria-pressed="false">기울이기</button><button data-v="drag" aria-pressed="true">드래그</button><button data-v="buttons" aria-pressed="false">버튼</button></div></div>
+        <div class="touchOnly"><p class="label">페달 위치</p><div class="seg" id="pedSel"><button data-v="split" aria-pressed="true">양쪽 (브레이크 왼쪽)</button><button data-v="right" aria-pressed="false">오른쪽에 모아서</button></div></div>
         <div class="touchOnly"><p class="label">가속</p><div class="seg" id="agSel"><button data-v="auto" aria-pressed="true">자동 가속</button><button data-v="manual" aria-pressed="false">직접 가속</button></div></div>
         <div><p class="label">날씨</p><div class="seg" id="wxSel"><button data-v="dry" aria-pressed="true">맑음</button><button data-v="mixed" aria-pressed="false">변덕 (도중에 비)</button><button data-v="rain" aria-pressed="false">비</button></div></div>
         <div><p class="label">차량 손상 (벽·접촉·펑처)</p><div class="seg" id="dmgSel"><button data-v="off" aria-pressed="false">끔</button><button data-v="normal" aria-pressed="true">보통</button><button data-v="sim" aria-pressed="false">리얼 (리타이어 가능)</button></div></div>
@@ -543,6 +545,7 @@ body.touch.racing #rotate{display:none !important}   /* no full-screen "turn you
   </div>
   <div class="overlay" id="pause" hidden><div class="card"><h1>일시정지</h1><p class="sub">레이스가 멈춰 있어요. 설정을 바꿔도 레이스는 그대로 이어집니다.</p>
     <div class="touchOnly"><p class="label">조향 방식</p><div class="seg" id="pSmSel"><button data-v="tilt">기울이기</button><button data-v="drag" aria-pressed="true">드래그</button><button data-v="buttons">버튼</button></div></div>
+    <div class="touchOnly"><p class="label">페달 위치</p><div class="seg" id="pPedSel"><button data-v="split" aria-pressed="true">양쪽 (브레이크 왼쪽)</button><button data-v="right">오른쪽에 모아서</button></div></div>
     <div><p class="label">조향 감도 (1 가장 부드러움)</p><div class="seg" id="pSensSel"><button data-v="1">1</button><button data-v="2" aria-pressed="true">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button></div></div>
     <div class="touchOnly"><p class="label">가속</p><div class="seg" id="pAgSel"><button data-v="auto" aria-pressed="true">자동 가속</button><button data-v="manual">직접 가속</button></div></div>
     <div class="row2"><button class="go" id="resumeBtn">계속 달리기</button><button id="mirBtn">룸미러</button><button id="haloBtn">헤일로 기둥</button><button id="skipBtn" hidden>건너뛰기</button><button id="quitBtn">메뉴로</button></div></div></div>
@@ -5481,15 +5484,17 @@ $('leRand').addEventListener('click',()=>{if(!LED)return;const pick=a=>a[Math.fl
 [['wxSel',()=>weather],['incSel',()=>incidents],['dmgSel',()=>damageMode],['stSel',()=>startMode],['aeroSel',()=>aeroMode],['asSel',()=>assistMode],['sndSel',()=>sndMode],['rlSel',()=>rlMode]].forEach(([id,g])=>document.querySelectorAll('#'+id+' button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===g()?'true':'false')));
 document.querySelectorAll('#qSel button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===quality?'true':'false'));setSens(sens);
 // ===== mobile controls =====
-let steerMode=loadLS('lightsout3d-sm')||'drag',autoGas=(loadLS('lightsout3d-ag')||'auto')==='auto',tiltAxis=0,tiltRef=null,tiltLast=null,tiltOK=false,dragAxis=0,touchGas=false,touchBrake=false,touchErs=false,autoErsOn=false;
+let pedPos=loadLS('lightsout3d-ped')||'split',steerMode=loadLS('lightsout3d-sm')||'drag',autoGas=(loadLS('lightsout3d-ag')||'auto')==='auto',tiltAxis=0,tiltRef=null,tiltLast=null,tiltOK=false,dragAxis=0,touchGas=false,touchBrake=false,touchErs=false,autoErsOn=false;
 let tiltDeg=0;const TF={x:0,dx:0,b:0,on:false};   // v13b-c: tilt angle, One Euro filter state, drifting neutral
 function applyMobileClasses(){$('mAero').style.display=aeroMode==='manual'?'':'none';const b=document.body.classList;b.remove('sm-tilt','sm-drag','sm-buttons');b.add('sm-'+steerMode);b.toggle('autogas',autoGas);$('mCal').style.display=steerMode==='tilt'?'':'none';}
 // v12j: the same controls sit in the pause card, so they can be changed without leaving the race. Both copies are kept in step.
 function segPick(ids,val){for(const id of ids){const el=$(id);if(!el)continue;el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===String(val)?'true':'false'));}}
-function setSteerMode(v){steerMode=v;saveLS('lightsout3d-sm',v);applyMobileClasses();segPick(['smSel','pSmSel'],v);}
+function setSteerMode(v){steerMode=v;saveLS('lightsout3d-sm',v);applyMobileClasses();segPick(['smSel','pSmSel'],v);if(isTouch)layoutTouchHUD();}
 function setAutoGas(v){autoGas=v==='auto';saveLS('lightsout3d-ag',v);applyMobileClasses();segPick(['agSel','pAgSel'],v);}
 segPick(['smSel','pSmSel'],steerMode);segPick(['agSel','pAgSel'],autoGas?'auto':'manual');
 seg('smSel',setSteerMode);seg('pSmSel',setSteerMode);
+function setPedPos(v){pedPos=v;saveLS('lightsout3d-ped',v);segPick(['pedSel','pPedSel'],v);layoutTouchHUD();}
+segPick(['pedSel','pPedSel'],pedPos);seg('pedSel',setPedPos);seg('pPedSel',setPedPos);
 seg('agSel',setAutoGas);seg('pAgSel',setAutoGas);
 seg('pSensSel',v=>setSens(+v));
 applyMobileClasses();
@@ -5717,9 +5722,12 @@ function layoutTouchHUD(){if(!isTouch)return;
   set(tb,{left:null,right:sa.r+8,top:sa.t+6+MSGL,transform:'none'});const tbr=R(tb);
   set(ht,{left:null,right:sa.r+8,top:tbr.bottom+6,bottom:null});
   // bottom: the steering control (left, by CSS), the pedals (right / both corners, by CSS), the round buttons beside the right-hand pedals
+  // v13e: pedals on both sides with drag / button steering - the brake sits just right of the steering control (tilt: both corners, by CSS)
+  {const sp=pedPos==='split'&&steerMode!=='tilt';if(BC.contains('ped-split')!==sp)BC.toggle('ped-split',sp);
+   if(sp){let sc=null;for(const id of['steerPad','btnSteer']){const e=$(id);if(vis(e)){sc=R(e);break;}}document.body.style.setProperty('--brkL',Math.round((sc?sc.right:sa.l+8)+12)+'px');}}
   const peds=[...document.querySelectorAll('#pedals .pedal')].filter(vis).map(R),rP=peds.filter(b=>b.left+b.width/2>W/2),lP=peds.filter(b=>b.left+b.width/2<=W/2);
   let lc=null;for(const id of['steerPad','btnSteer']){const e=$(id);if(vis(e)){lc=R(e);break;}}if(!lc&&lP.length)lc=lP[0];
-  const lcR=lc?lc.right:sa.l+8,lcT=lc?lc.top:H-sa.b-8,rpL=rP.length?Math.min(...rP.map(b=>b.left)):null,rpH=rP.length?Math.max(...rP.map(b=>b.height)):0;
+  const lcR=Math.max(lc?lc.right:sa.l+8,...lP.map(b=>b.right)),lcT=lc?lc.top:H-sa.b-8,rpL=rP.length?Math.min(...rP.map(b=>b.left)):null,rpH=rP.length?Math.max(...rP.map(b=>b.height)):0;
   const mbRt=port?sa.r+14:rpL!=null?W-rpL+10:sa.r+14,mbW=mb.offsetWidth||96,mbH=mb.offsetHeight||96;
   set(mb,{left:null,top:null,right:mbRt,bottom:port?sa.b+12+rpH+10:sa.b+12});
   const mbr=R(mb);
