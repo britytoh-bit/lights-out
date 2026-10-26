@@ -876,8 +876,10 @@ function tyreGrip(c){
   const fr=(f[0]+f[1])/2,rr=(f[2]+f[3])/2;
   const vv=Math.abs(c.spd)/VMAX,aq=C.wet?1-0.1*WET*WET*vv*vv:1-0.38*WET*vv*vv,wg=wetGrip(ty.comp,WET),G=wg*aq;   // aq: aquaplaning at speed
   // slicks in the rain: they still pull on a straight (only 40 % of the wet loss, no aquaplaning on the drive), but corners and braking stay slippery
-  const Gt=C.wet?G:1-(1-wg)*0.4,kT=Gt/Math.max(0.05,G);
-  return {lat:G*(0.5*fr+0.5*rr),brk:G*(0.6*fr+0.4*rr),trc:Gt*rr,f:G*fr,r:G*rr,kT};
+  // the same for the drive off the line: slicks go cold fast in the rain, and that cost only 35 % of its grip loss on the drive (the start was 1.7x slower)
+  const wS=!C.wet&&WET>0.2,rT=wS?[2,3].reduce((a,k)=>a+wearF(ty.wear[k])*(1-(1-tempF(ty.temp[k],C))*0.35)*(pk?1-0.62*pk[k]:1)*dirt,0)/2:rr;
+  const Gt=C.wet?G:1-(1-wg)*0.4,kT=Gt*rT/Math.max(0.05,G*rr);
+  return {lat:G*(0.5*fr+0.5*rr),brk:G*(0.6*fr+0.4*rr),trc:Gt*rT,f:G*fr,r:G*rr,kT};
 }
 function tyreStep(race,c,dt,latA,lonA,slip){
   const ty=c.ty,C=COMP[ty.comp],v=Math.abs(c.spd),s=v/VMAX;
@@ -1350,7 +1352,7 @@ function carDyn(c,h,S,sw,tg,asst,inp){
   let Fzf=We*PH.wf+Df-m*(c.axL||0)*PH.h/PH.L;Fzf=Math.max(0.12*We,Fzf);const Fzr=Math.max(0.12*We,We+Df+Dr-Fzf);
   const bump=c.surf===SURF.kerb?0.975+0.025*Math.sin(c.prog*9.7):1;          // kerbs chatter the tyres (gently)
   const capF=PH.mu*S.g*sw*tg.f*bump*Fzf*(1-0.18*sF),capR=PH.mu*PH.rearMu*S.g*sw*tg.r*bump*Fzr*(1-0.18*sR);   // lateral limits (wider rear tyres)
-  const thrOn=c.thr>0.05&&c.bp<0.05,cxF=capF*PH.muX,cxR=capR*(thrOn?PH.muT:PH.muX);                                    // braking / traction limits
+  const thrOn=c.thr>0.05&&c.bp<0.05,cxF=capF*PH.muX;let cxR=capR*(thrOn?PH.muT:PH.muX);                                    // braking / traction limits
   const vxs=Math.max(vx,1.5),af=delta-Math.atan2(vy+PH.a*r,vxs),ar=-Math.atan2(vy-PH.b*r,vxs);
   const pj=al=>Math.sin(PH.C*Math.atan(PH.B*al)),alPk=Math.tan(Math.PI/(2*PH.C))/PH.B;
   const FyF0=capF*pj(af),FyR0=capR*pj(ar),uF=Math.min(1,Math.abs(FyF0)/capF),uR=Math.min(1,Math.abs(FyR0)/capR);
@@ -1361,8 +1363,8 @@ function carDyn(c,h,S,sw,tg,asst,inp){
   const feT=c.thr<0.05&&c.bp<0.05&&vx>3?PH.FeR*Math.min(1,vx/20):0;c.fe=(c.fe||0)+(feT-(c.fe||0))*Math.min(1,h/0.15);let Fe=c.fe;   // the harvest torque ramps in over ~0.15 s
   // driver aids. abs 2: never locks; abs 1: caps just under the limit with a short lag, so hard braking while
   // turning, kerbs, grass or a wet patch can still lock a wheel; 0: full pedal pressure, the driver has to modulate.
-  const kTr=thrOn&&tg.kT>1?1+(tg.kT-1)*(1-uR)*(1-uR):1;   // slicks on a wet straight: the drive grip comes back, mid-corner it doesn't
-  const limF=cxF*(1-0.35*uF*uF),limR=cxR*(1-0.35*uR*uR)*kTr;
+  if(thrOn&&tg.kT>1)cxR*=1+(tg.kT-1)*(1-uR)*(1-uR);   // slicks on a wet straight: the drive grip comes back (wheelspin limit too), mid-corner it doesn't
+  const limF=cxF*(1-0.35*uF*uF),limR=cxR*(1-0.35*uR*uR);
   // brake balance: a fixed 58 % front without aids (lock the fronts at speed, the rears at the end of a stop if you don't
   // modulate); with ABS the system shares the force out to what each axle can take right now
   let bias=PH.bias;
