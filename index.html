@@ -874,8 +874,10 @@ function tyreGrip(c){
   const ty=c.ty,C=COMP[ty.comp],pk=c.dmg&&c.dmg.pk,f=[0,1,2,3].map(k=>wearF(ty.wear[k])*tempF(ty.temp[k],C)*(pk?1-0.62*pk[k]:1));   // pk: puncture (1 = flat, on the rim)
   const dirt=1-0.14*(c.dirt||0);for(let k=0;k<4;k++)f[k]*=dirt;
   const fr=(f[0]+f[1])/2,rr=(f[2]+f[3])/2;
-  const vv=Math.abs(c.spd)/VMAX,aq=C.wet?1-0.1*WET*WET*vv*vv:1-0.38*WET*vv*vv,G=wetGrip(ty.comp,WET)*aq;   // aq: aquaplaning at speed
-  return {lat:G*(0.5*fr+0.5*rr),brk:G*(0.6*fr+0.4*rr),trc:G*rr,f:G*fr,r:G*rr};
+  const vv=Math.abs(c.spd)/VMAX,aq=C.wet?1-0.1*WET*WET*vv*vv:1-0.38*WET*vv*vv,wg=wetGrip(ty.comp,WET),G=wg*aq;   // aq: aquaplaning at speed
+  // slicks in the rain: they still pull on a straight (only 40 % of the wet loss, no aquaplaning on the drive), but corners and braking stay slippery
+  const Gt=C.wet?G:1-(1-wg)*0.4,kT=Gt/Math.max(0.05,G);
+  return {lat:G*(0.5*fr+0.5*rr),brk:G*(0.6*fr+0.4*rr),trc:Gt*rr,f:G*fr,r:G*rr,kT};
 }
 function tyreStep(race,c,dt,latA,lonA,slip){
   const ty=c.ty,C=COMP[ty.comp],v=Math.abs(c.spd),s=v/VMAX;
@@ -1348,7 +1350,7 @@ function carDyn(c,h,S,sw,tg,asst,inp){
   let Fzf=We*PH.wf+Df-m*(c.axL||0)*PH.h/PH.L;Fzf=Math.max(0.12*We,Fzf);const Fzr=Math.max(0.12*We,We+Df+Dr-Fzf);
   const bump=c.surf===SURF.kerb?0.975+0.025*Math.sin(c.prog*9.7):1;          // kerbs chatter the tyres (gently)
   const capF=PH.mu*S.g*sw*tg.f*bump*Fzf*(1-0.18*sF),capR=PH.mu*PH.rearMu*S.g*sw*tg.r*bump*Fzr*(1-0.18*sR);   // lateral limits (wider rear tyres)
-  const cxF=capF*PH.muX,cxR=capR*(c.thr>0.05&&c.bp<0.05?PH.muT:PH.muX);                                    // braking / traction limits
+  const thrOn=c.thr>0.05&&c.bp<0.05,cxF=capF*PH.muX,cxR=capR*(thrOn?PH.muT:PH.muX);                                    // braking / traction limits
   const vxs=Math.max(vx,1.5),af=delta-Math.atan2(vy+PH.a*r,vxs),ar=-Math.atan2(vy-PH.b*r,vxs);
   const pj=al=>Math.sin(PH.C*Math.atan(PH.B*al)),alPk=Math.tan(Math.PI/(2*PH.C))/PH.B;
   const FyF0=capF*pj(af),FyR0=capR*pj(ar),uF=Math.min(1,Math.abs(FyF0)/capF),uR=Math.min(1,Math.abs(FyR0)/capR);
@@ -1359,7 +1361,8 @@ function carDyn(c,h,S,sw,tg,asst,inp){
   const feT=c.thr<0.05&&c.bp<0.05&&vx>3?PH.FeR*Math.min(1,vx/20):0;c.fe=(c.fe||0)+(feT-(c.fe||0))*Math.min(1,h/0.15);let Fe=c.fe;   // the harvest torque ramps in over ~0.15 s
   // driver aids. abs 2: never locks; abs 1: caps just under the limit with a short lag, so hard braking while
   // turning, kerbs, grass or a wet patch can still lock a wheel; 0: full pedal pressure, the driver has to modulate.
-  const limF=cxF*(1-0.35*uF*uF),limR=cxR*(1-0.35*uR*uR);
+  const kTr=thrOn&&tg.kT>1?1+(tg.kT-1)*(1-uR)*(1-uR):1;   // slicks on a wet straight: the drive grip comes back, mid-corner it doesn't
+  const limF=cxF*(1-0.35*uF*uF),limR=cxR*(1-0.35*uR*uR)*kTr;
   // brake balance: a fixed 58 % front without aids (lock the fronts at speed, the rears at the end of a stop if you don't
   // modulate); with ABS the system shares the force out to what each axle can take right now
   let bias=PH.bias;
@@ -6220,7 +6223,7 @@ function sync(dt){
     // MGU-K recharges with the engine still flat out (super clipping at the end of a long straight). Amber lateral lights: a car stopped or
     // under 20 km/h on track, or standing in neutral on the grid
     {const tm=performance.now(),rc=race.rc,onT=!c.pit&&c.fin==null&&!c.dnf&&!c.gone,rz=c.pit?zoneR(c.idx):-1,
-       slow=(onT&&(rc.flag==='sc'||rc.flag==='vsc'||rc.flag==='red'||yellowAt(race,c.idx)>=2))||(!!c.pit&&(c.pit.state==='in'||c.pit.state==='out')&&rz>=PIT.RAMP&&rz<PIT.Z-PIT.RX)||COMP[c.ty.comp].wet||c.fail,
+       slow=(onT&&(rc.flag==='sc'||rc.flag==='vsc'||rc.flag==='red'||yellowAt(race,c.idx)>=2))||(!!c.pit&&(c.pit.state==='in'||c.pit.state==='out')&&rz>=PIT.RAMP&&rz<PIT.Z-PIT.RX)||COMP[c.ty.comp].wet||WET>0.3||c.fail,
        clip=!slow&&onT&&!race.form&&rc.flag==='green'&&Math.abs(c.spd)>79&&!c.braking&&(c.lonG||0)<0.8&&!c.boost,
        on=slow?tm%250<125:clip?(tm%600<360&&tm%120<60):false;
      m.rlM.color.setHex(on?0xff2a1a:0x220000);
@@ -6291,7 +6294,7 @@ function syncRaceControl(dt){
   // weather look: overcast sky, rain, wet asphalt
   const rain=race.wx.rain,wet=WET;
   for(const e of W.wet){e.m.color.copy(e.c0).multiplyScalar(1-(1-e.dk)*wet);e.m.roughness=e.r0+(e.r-e.r0)*wet;e.m.envMapIntensity=1-0.45*wet;}
-  W.sun.intensity=W.sunI*(1-(W.NT?0.25:0.8)*rain);if(W.fill)W.fill.intensity=W.fillI*(1-0.25*rain);W.hemi.intensity=W.hemiI*(1-0.1*rain);W.hemi.color.copy(W.hemiC).lerp(RAINSKY,rain);W.hemi.groundColor.copy(W.hemiG).lerp(RAINGND,rain);
+  W.sun.intensity=W.sunI*(1-(W.NT?0.25:0.6)*rain);if(W.fill)W.fill.intensity=W.fillI*(1-0.25*rain);W.hemi.intensity=W.hemiI*(1-0.1*rain);W.hemi.color.copy(W.hemiC).lerp(RAINSKY,rain);W.hemi.groundColor.copy(W.hemiG).lerp(RAINGND,rain);
   scene.fog.color.copy(W.fogC).lerp(RAINFOG,rain);scene.fog.near=W.fogN*(1-0.7*rain);scene.fog.far=W.fogF*(1-0.72*rain);
   if(W.sky){const u=W.sky.material.uniforms;u.turbidity.value=W.skyT+(18-W.skyT)*rain;u.rayleigh.value=W.skyR+(0.25-W.skyR)*rain;u.mieCoefficient.value=W.skyM+(0.03-W.skyM)*rain;if(u.skyGain)u.skyGain.value=W.skyG+(0.45-W.skyG)*rain;}
   if(W.clouds){const u=W.clouds.uniforms;u.time.value+=dt;u.cover.value=W.cover0+(0.98-W.cover0)*Math.min(1,rain*1.5);u.dark.value=Math.min(1,rain*1.25);}
@@ -6351,12 +6354,12 @@ function initRain(){const M=quality==='high'?1800:800,pos=new Float32Array(M*6),
   const d=new Float32Array(M*3);for(let i=0;i<M;i++){d[i*3]=(Math.random()-0.5)*56;d[i*3+1]=Math.random()*26-4;d[i*3+2]=(Math.random()-0.5)*56;}RAIN={L,g,pos,d,M,m,init:false};}
 function stepRain(dt){if(!RAIN||!race)return;const rain=race.wx.rain;RAIN.L.visible=rain>0.03;if(!RAIN.L.visible)return;
   const cam=camera.position,pl=race.player,h=pl.va!=null?pl.va:pl.a,vx=Math.cos(h)*pl.spd,vz=Math.sin(h)*pl.spd,fall=12,tau=0.028,d=RAIN.d,pos=RAIN.pos,n=Math.floor(RAIN.M*Math.min(1,0.25+rain));
-  RAIN.m.opacity=0.16+0.34*rain;const gy0=hXZ(cam.x,cam.z)-1;
+  RAIN.m.opacity=0.1+0.17*rain;const gy0=hXZ(cam.x,cam.z)-1;
   if(!RAIN.init){RAIN.init=true;for(let i=0;i<RAIN.M;i++){d[i*3]+=cam.x;d[i*3+1]+=cam.y;d[i*3+2]+=cam.z;}}
   for(let i=0;i<RAIN.M;i++){const k=i*3;d[k+1]-=fall*dt;
     let x=d[k]-cam.x,z=d[k+2]-cam.z;if(x>28)d[k]-=56;else if(x<-28)d[k]+=56;if(z>28)d[k+2]-=56;else if(z<-28)d[k+2]+=56;
     if(d[k+1]<cam.y-5||d[k+1]<gy0){d[k+1]=cam.y+14+Math.random()*8;d[k]=cam.x+(Math.random()-0.5)*56;d[k+2]=cam.z+(Math.random()-0.5)*56;}
-    const o=i*6;if(i<n){pos[o]=d[k];pos[o+1]=d[k+1];pos[o+2]=d[k+2];pos[o+3]=d[k]+vx*tau;pos[o+4]=d[k+1]+fall*tau*1.6;pos[o+5]=d[k+2]+vz*tau;}else{pos[o]=pos[o+3]=d[k];pos[o+1]=pos[o+4]=-100;pos[o+2]=pos[o+5]=d[k+2];}}
+    const o=i*6;if(i<n&&(x*x+z*z>12||d[k+1]>cam.y+2)){pos[o]=d[k];pos[o+1]=d[k+1];pos[o+2]=d[k+2];pos[o+3]=d[k]+vx*tau;pos[o+4]=d[k+1]+fall*tau*1.6;pos[o+5]=d[k+2]+vz*tau;}else{pos[o]=pos[o+3]=d[k];pos[o+1]=pos[o+4]=-100;pos[o+2]=pos[o+5]=d[k+2];}}
   RAIN.g.attributes.position.needsUpdate=true;}
 // ---- pit stop choreography: 11 crews of 18 (3 per wheel, 2 jacks, 2 stabilisers, chief, front wing) ----
 const CRW={J:Array.from({length:15},()=>new THREE.Vector3()),d:new THREE.Vector3(),bn:new THREE.Vector3(),x:new THREE.Vector3(),y:new THREE.Vector3(),z:new THREE.Vector3(),
