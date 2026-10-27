@@ -1208,7 +1208,7 @@ function joinStep(race,c,dt){
   const la=4+Math.abs(c.spd)*0.4,li=wrap(ti.i+Math.round(la/STEP)),p=P[li],tt=T[li],lt=PSj*(alg?Math.max(PSj*c.lat,HALF-1.1):yl?HALF-1.1:HALF-2.3),tx=p[0]-tt[1]*lt,tz=p[1]+tt[0]*lt;   // (v12d: Yas joins from the far side)
   let da=Math.atan2(tz-c.z,tx-c.x)-c.a;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;
   const om=Math.max(-2.5,Math.min(2.5,2*Math.sin(da)/la*Math.max(c.spd,2)));c.a+=om*dt;if(c.va!=null)c.va=c.a;c.st+=(Math.max(-1,Math.min(1,om*1.2))-c.st)*Math.min(1,6*dt);
-  const vt=Math.min(pitAheadV(c,ti,g,0.9),vAh);
+  const vt=Math.min(pitAheadV(c,ti,g,0.9),vAh,scCapV(race,c));   // (v13m: behind the red-flag safety car)
   if(c.spd<vt)c.spd=Math.min(vt,c.spd+ACC*0.9*dt);else c.spd=Math.max(vt,c.spd-(12+0.3*c.spd)*dt);
   c.braking=c.spd<v0-0.01;c.boost=false;c.thr=c.spd>v0+0.01?1:c.braking?0:0.4;c.latG=c.spd*om;c.lonG=(c.spd-v0)/Math.max(dt,1e-4);
   move(c,dt);tyreStep(race,c,dt,c.latG,c.lonG,0);
@@ -1268,6 +1268,7 @@ function stepPit(race,c,dt){
   // way to a car on the track that is level or just ahead in the same metres, before the merge, not after it
   if(pp.state==='out'&&r0>PIT.Z-40)for(const o of race.cars){if(o===c||o.gone||o.pit||o.inGarage)continue;const dm=gapTo(c,o)*STEP;
     if(dm>-12&&dm<25&&Math.abs(o.lat-c.lat)<2.6)vt=Math.min(vt,o.spd*(dm<=0?0.85:dm<8?0.9:1));}
+  vt=Math.min(vt,scCapV(race,c));   // v13m: red-flag restart - follow the safety car out of the pit lane
   if(c.spd<vt)c.spd=Math.min(vt,c.spd+ACC*0.9*dt);else c.spd=Math.max(vt,c.spd-(12+0.3*c.spd)*dt);
   c.braking=c.spd<v0-0.01;c.boost=false;c.latG=c.spd*om;c.lonG=(c.spd-v0)/Math.max(dt,1e-4);
   move(c,dt);barrier(race,c);
@@ -1843,9 +1844,15 @@ function redControl(race,dt){const rc=race.rc,R=rc.red,p=race.player;
     const order=R.order.map(id=>race.cars[id]).filter(c=>!c.gone&&!c.dnf&&!c.fail&&c.fin==null);
     // the queue is released in the restart order (a car held short of its place is put there first)
     const Q=order.filter(c=>c.pit&&c.pit.state==='red');Q.forEach(c=>{if(Math.abs(zoneR(c.idx)-redQR(c.pit.q))>3)redTeleport(race,c,c.pit.q);});R.queue=Q.map(c=>c.id);
-    const f=Q[0]||order[0];rc.sc={prog:f.prog+14,spd:0,on:true,lights:true,phase:'lead',left:false,lat:0,x:0,z:0,a:0,idx:0,relP:null};
+    formSetup(race,'red',order);   // first: it re-counts each car's distance (prog) from the lap of the suspension - the safety car is placed on that same count
+    const f=Q[0]||order[0];rc.sc={prog:f.prog+14,spd:0,on:true,lights:true,phase:'lead',left:false,lat:0,x:0,z:0,a:0,idx:0,relP:null};   // (v13m: it was placed before, on the old count - a lap or two "ahead" of the cars, so it crawled waiting for them and they drove past it)
     {const rr=zoneR(wrap(Math.floor(rc.sc.prog)));rc.sc.lat=PIT.side*(rr>=0?pitLatR(rr):HALF);}placeSC(rc.sc);
-    formSetup(race,'red',order);race.EV.push({type:'redResume'});}}
+    race.EV.push({type:'redResume'});}}
+// v13m: red-flag restart - no car passes the safety car leading the field out of the pit lane (on the pit exit road they went at
+// racing speed and ran straight past it). Speed cap for a car following it; a car already in front lets it by.
+function scCapV(race,c){const sc=race.rc.sc,F=race.form;if(!F||F.kind!=='red'||!sc||!sc.on||sc.phase!=='lead')return 1e9;
+  const g=(sc.prog-c.prog)*STEP;if(g<=4)return Math.max(0,sc.spd-6);
+  return Math.max(0,Math.min(sc.spd+Math.max(-8,Math.min(8,(g-24)*0.4)),Math.sqrt(Math.max(0,2*8*(g-12))+sc.spd*sc.spd)));}
 // the safety car leading the field out of the pit lane and round to the grid
 function redSC(race,dt){const sc=race.rc.sc,F=race.form;if(!sc||!sc.on)return;
   const rr=zoneR(wrap(Math.floor(sc.prog)));
@@ -1899,12 +1906,13 @@ function formAI(race,c,dt){const F=race.form,rc=race.rc;trackInfo(c);const tg=ty
   if(!c.fGo){if(!ahead||ahead.gone||ahead.dnf||ahead.parked||gapTo(c,ahead)*STEP>9.5||F.t>0.5*c.fk+1.5)c.fGo=true;else tgt=0;}   // leave the grid in a ripple, just after the car in front
   let lead=null,g=1e9,g0=c.fGap;
   if(ahead&&!ahead.gone&&!ahead.dnf&&!ahead.pit&&!ahead.parked){lead=ahead;g=gapTo(c,ahead)*STEP;}
-  else if(c.fk===0&&sc){lead=sc;g=(sc.prog-c.prog)*STEP;g0=28;}
+  else if(sc&&(c.fk===0||!ahead||ahead.gone||ahead.dnf)){lead=sc;g=(sc.prog-c.prog)*STEP;g0=28;}   // (v13m: also when the car ahead is out)
   c.fOut=false;
   g0+=0.3*Math.max(0,c.spd);   // the gap grows with speed; the car in front may brake hard at any moment
   if(lead&&lead!==sc&&d<90&&lead.fSlot&&Math.abs(lead.fSlot.side-c.fSlot.side)>3&&Math.abs(lead.lat-c.lat)>2.5)g0=Math.min(g0,3+0.15*Math.max(0,c.spd));   // lining up: the car ahead goes to the other column, so close right up behind it
   if(lead){if(g>0){const bL=Math.max(bA,-(lead.lonG||0)*1.05),vF=Math.max(0,Math.max(0,lead.spd)+Math.max(-10,Math.min(12,(g-g0)*0.4))),vS=Math.sqrt(Math.max(0,2*bA*(g-8-0.15*c.spd)+lead.spd*lead.spd*bA/bL));tgt=Math.min(tgt*1.25,cap*1.05,vF,vS);}
-    else if(lead!==sc&&d>-20){tgt=Math.min(tgt,6);c.fOut=true;}}   // in front of the car that should be ahead: let it by
+    else if(lead!==sc&&d>-20){tgt=Math.min(tgt,6);c.fOut=true;}
+    else if(lead===sc)tgt=Math.min(tgt,Math.max(0,sc.spd-6));}   // v13m: in front of the safety car - let it back in front   // in front of the car that should be ahead: let it by
   // anything else in the way: pass a car that belongs behind, otherwise follow it
   let passLane=null;
   for(const o of race.cars){if(o===c||o===lead||o.gone||o.pit||o.dnf)continue;const dp=gapTo(c,o)*STEP;if(dp<=0||dp>22||Math.abs(o.lat-c.lat)>2.5)continue;
