@@ -154,6 +154,7 @@ td:first-child{width:3.2ch; font-weight:800}
 td:last-child{text-align:right}
 tr.me td{color:var(--yellow)}
 .row2{display:flex; gap:8px} .row2 button{flex:1; word-break:keep-all}   /* v12i: Korean labels wrap between words */
+#pause .row2{flex-wrap:wrap} #pause .row2 button{min-width:30%}   /* six buttons: three per line on a phone instead of six slivers */
 #loading{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#0e1116; font-size:18px; color:var(--dim)}
 #err{position:absolute; inset:0; display:none; align-items:center; justify-content:center; padding:24px; text-align:center; background:#0e1116}
 #touch{position:absolute; left:0; right:0; bottom:0; display:none; justify-content:space-between; padding:0 12px 12px; pointer-events:none}
@@ -548,7 +549,7 @@ body.touch.racing #rotate{display:none !important}   /* no full-screen "turn you
     <div class="touchOnly"><p class="label">페달 위치</p><div class="seg" id="pPedSel"><button data-v="split" aria-pressed="true">양쪽 (브레이크 왼쪽)</button><button data-v="right">오른쪽에 모아서</button></div></div>
     <div><p class="label">조향 감도 (1 가장 부드러움)</p><div class="seg" id="pSensSel"><button data-v="1">1</button><button data-v="2" aria-pressed="true">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button></div></div>
     <div class="touchOnly"><p class="label">가속</p><div class="seg" id="pAgSel"><button data-v="auto" aria-pressed="true">자동 가속</button><button data-v="manual">직접 가속</button></div></div>
-    <div class="row2"><button class="go" id="resumeBtn">계속 달리기</button><button id="mirBtn">룸미러</button><button id="haloBtn">헤일로 기둥</button><button id="skipBtn" hidden>건너뛰기</button><button id="quitBtn">메뉴로</button></div></div></div>
+    <div class="row2"><button class="go" id="resumeBtn">계속 달리기</button><button id="mirBtn">룸미러</button><button id="haloBtn">헤일로 기둥</button><button id="fpsBtn">FPS 표시</button><button id="skipBtn" hidden>건너뛰기</button><button id="quitBtn">메뉴로</button></div></div></div>
   <div class="overlay" id="sess" hidden><div class="card"><h1 id="sessTitle">Q1</h1><p class="sub num" id="sessSub"></p><table class="num" id="sessTable"></table><div class="row2"><button class="go" id="sessGo">다음</button><button id="sessMenu">메뉴로</button></div></div></div>
   <div class="overlay" id="result" hidden><div class="card"><h1 id="resTitle">P1</h1><p class="sub num" id="resSub"></p><table class="num" id="resTable"></table><div class="row2"><button class="go" id="againBtn">다시 달리기 (Enter)</button><button id="menuBtn">메뉴로</button></div></div></div>
   <div id="loading">서킷을 준비하는 중</div>
@@ -4566,7 +4567,7 @@ let sens=parseInt(loadLS('lightsout3d-sens'),10)||2;
 const LODD=(quality==='low'?[26,60,120]:[30,70,140]).map(d=>d*d);   // v12h: car detail steps (m); a little closer at the lowest setting
 // v13a: how many of the nearest cars may hold each detail step. Distance alone is not enough - in a
 // pack they are all near. Below these counts nothing changes, so a lone car on track looks as before.
-let LODN=quality==='low'?[3,6,10]:quality==='medium'?[5,9,14]:[8,13,18];
+let LODN=quality==='low'?[3,6,10]:quality==='medium'?[5,9,14]:[8,13,18];const LODN0=LODN.slice();
 
 let renderer;
 // v12h: no multisampling on PCs at the lowest setting (on integrated graphics it is one of the bigger costs per frame); phones keep it
@@ -4574,6 +4575,10 @@ let renderer;
 const MSAA=quality!=='low'||isTouch;
 try{renderer=new THREE.WebGLRenderer({canvas:$('gl'),antialias:MSAA,powerPreference:'high-performance',context:window.__GLCTX||undefined});}
 catch(e){$('err').style.display='flex';$('loading').style.display='none';throw e;}
+// the phone dropped the 3D picture (app switch, low memory): say so instead of a frozen black screen, and reload once it is back
+$('gl').addEventListener('webglcontextlost',e=>{e.preventDefault();if(state==='race'||state==='countdown')setPause(true);
+  const er=$('err');er.innerHTML='<p>화면이 잠시 끊겼어요. 다시 불러올게요.<br><br><button class="go" onclick="location.reload()">다시 불러오기</button></p>';er.style.zIndex=50;er.style.display='flex';});
+$('gl').addEventListener('webglcontextrestored',()=>location.reload());
 renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=0.74;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=quality==='high'?THREE.PCFSoftShadowMap:THREE.PCFShadowMap;renderer.shadowMap.autoUpdate=false;renderer.physicallyCorrectLights=false;
 const scene=new THREE.Scene();
@@ -4654,8 +4659,11 @@ function setupComposer(){
     if(!isGL2&&THREE.FXAAShader){fxaa=new THREE.ShaderPass(THREE.FXAAShader);composer.addPass(fxaa);}
   }catch(e){composer=null;}
 }
-function resize(){const w=innerWidth,h=innerHeight;let pr=Math.min(quality==='high'?2:quality==='medium'?(isTouch?1.25:1):1,window.devicePixelRatio||1);
+// the full resolution for this quality setting, before the smoothness governor takes anything off
+function basePR(){const w=innerWidth,h=innerHeight;let pr=Math.min(quality==='high'?2:quality==='medium'?(isTouch?1.25:1):1,window.devicePixelRatio||1);
   if(quality==='low'&&!isTouch)pr=Math.min(pr,Math.max(0.5,Math.sqrt(2.4e6/Math.max(1,w*h))));   // v12h: the lowest setting on a PC draws at most ~1080p worth of pixels (a 1440p or 4K window drew 2-4 times that)
+  return pr;}
+function resize(){const w=innerWidth,h=innerHeight;let pr=basePR();
   if(typeof PERF!=='undefined'&&PERF.prCap)pr=Math.min(pr,PERF.prCap);   // (and keeps what the smoothness governor took off)
   renderer.setPixelRatio(pr);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
   if(composer){composer.setPixelRatio?composer.setPixelRatio(renderer.getPixelRatio()):0;composer.setSize(w,h);if(fxaa){const pr=renderer.getPixelRatio();fxaa.material.uniforms.resolution.value.set(1/(w*pr),1/(h*pr));}}}
@@ -4689,7 +4697,8 @@ const outCam=c=>c==='chase'||c==='far';
 // v12j: the pause buttons say what is on right now, instead of just "켜기/끄기"
 function pauseLabels(){const m=$('mirBtn'),h=$('haloBtn');
   if(m)m.textContent='룸미러: '+(MIR&&MIR.on?'켬':'끔');
-  if(h)h.textContent='헤일로 기둥 흐리게: '+(typeof HALOGH!=='undefined'&&HALOGH?'켬':'끔');}
+  if(h)h.textContent='헤일로 기둥 흐리게: '+(typeof HALOGH!=='undefined'&&HALOGH?'켬':'끔');
+  const f=$('fpsBtn');if(f)f.textContent='FPS 표시: '+(FPSON?'켬':'끔');}
 function toggleMirror(){if(!MIR){toast('룸미러를 쓸 수 없어요','#fff');return;}MIR.on=!MIR.on;saveLS('lightsout3d-mirror',MIR.on?'1':'0');toast(MIR.on?'룸미러 켬':'룸미러 끔','#fff');pauseLabels();}
 function cycleCam(){camMode=(camMode+1)%CAMS.length;saveLS('lightsout3d-cam',CAMS[camMode]);toast(CAMNAME[CAMS[camMode]]+' 시점 ('+(camMode+1)+'/'+CAMS.length+')','#fff');}
 function setSens(v){sens=Math.max(1,Math.min(5,v));saveLS('lightsout3d-sens',sens);if(race)race.sens=sens;document.querySelectorAll('#sensSel button, #pSensSel button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.v===sens?'true':'false'));}   // v12j: the pause copy too
@@ -4708,7 +4717,7 @@ addEventListener('keydown',e=>{
   if(e.code==='KeyB')togglePit();
   if(/^Digit[1-5]$/.test(e.code))setNext(['S','M','H','I','W'][+e.code.slice(5)-1]);
   if(e.code==='KeyM'){muted=!muted;toast(muted?'사운드 끔':'사운드 켬','#fff');}
-  if(e.code==='KeyF'){FPSON=!FPSON;saveLS('lightsout3d-fps',FPSON?'1':'0');$('fpsBox').hidden=!FPSON;FPSM.a.length=0;FPSM.t=0;$('fpsBox').textContent='FPS …';toast(FPSON?'FPS 표시 켬':'FPS 표시 끔','#fff');}
+  if(e.code==='KeyF')toggleFps();
   if(e.code==='KeyL'){rlMode=rlMode==='corners'?'full':rlMode==='full'?'off':'corners';saveLS('lightsout3d-rl',rlMode);applyRL();document.querySelectorAll('#rlSel button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===rlMode?'true':'false'));toast('레이싱 라인: '+({corners:'코너만',full:'전체',off:'끔'})[rlMode],'#fff');}
   if(e.code==='BracketLeft'||e.code==='BracketRight'){setSens(sens+(e.code==='BracketRight'?1:-1));toast('조향 감도 '+sens,'#fff');}
   if(e.code==='KeyP'||e.code==='Escape'){if(state==='race'||state==='countdown')setPause(true);else if(state==='paused')setPause(false);}
@@ -4716,6 +4725,10 @@ addEventListener('keydown',e=>{
 });
 addEventListener('keyup',e=>{const k=MAP[e.code];if(k){key[k]=false;e.preventDefault();}});
 addEventListener('blur',()=>{for(const k in key)key[k]=false;});
+// switching apps (a call, a notification) pauses the race, and no sound plays in the background
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){for(const k in key)key[k]=false;if(state==='race'||state==='countdown')setPause(true);if(AC)AC.suspend();}
+  else if(AC&&state!=='paused')AC.resume();});
 document.querySelectorAll('#touch button').forEach(b=>{const k=b.dataset.k;
   b.addEventListener('pointerdown',e=>{e.preventDefault();if(k==='cam'){cycleCam();return;}if(k==='pit'){togglePit();return;}if(k==='tyre'){cycleNext();return;}key[k]=true;b.setPointerCapture(e.pointerId);});
   const up=()=>{if(k in key)key[k]=false;};b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('lostpointercapture',up);});
@@ -5420,7 +5433,7 @@ function showSess(){const S=race.sess,p=race.player;if(!S)return;state='sessRes'
 function setPause(on){if(on){if(state==='paused')return;pausedFrom=state;state='paused';$('pause').hidden=false;
     const sk=$('skipBtn');sk.hidden=!canSkip();sk.textContent=race&&race.sess?'이 세션 건너뛰기':'건너뛰기 (빠르게 진행)';pauseLabels();$('resumeBtn').focus();if(AC)AC.suspend();}
   else{state=pausedFrom||'race';$('pause').hidden=true;if(AC)AC.resume();}}
-function toMenu(){document.body.classList.add('inmenu');document.body.classList.remove('racing');state='menu';FF=false;setupRace();['pause','result','sess'].forEach(id=>$(id).hidden=true);$('menu').hidden=false;$('lights').style.opacity=0;updateMenuBest();}
+function toMenu(){perfReset();document.body.classList.add('inmenu');document.body.classList.remove('racing');state='menu';FF=false;setupRace();['pause','result','sess'].forEach(id=>$(id).hidden=true);$('menu').hidden=false;$('lights').style.opacity=0;updateMenuBest();}
 function updateMenuBest(){$('bestMenu').innerHTML=TRK.name+' · '+(bestLap?'내 베스트 랩 <b>'+fmt(bestLap)+'</b>':'첫 랩 기록을 남겨보세요');}
 
 // ---- menu ----
@@ -5589,7 +5602,7 @@ document.querySelectorAll('#btnSteer button').forEach(b=>holdBtn(b,()=>key[b.dat
 const tap=(id,fn)=>$(id).addEventListener('pointerdown',e=>{e.preventDefault();fn();});
 tap('mPause',()=>{if(state==='race'||state==='countdown')setPause(true);});tap('mCam',cycleCam);tap('mCal',calibrateTilt);tap('mPit',togglePit);tap('mTyre',cycleNext);tap('mMap',cycleMini);
 $('portraitOk').onclick=()=>document.body.classList.add('portraitok');
-$('podSkip').onclick=()=>podiumEnd(true);$('startBtn').onclick=()=>startRace();$('againBtn').onclick=()=>startRace(lastStart);$('menuBtn').onclick=toMenu;$('resumeBtn').onclick=()=>setPause(false);$('mirBtn').onclick=toggleMirror;$('haloBtn').onclick=toggleHalo;$('quitBtn').onclick=toMenu;
+$('podSkip').onclick=()=>podiumEnd(true);$('startBtn').onclick=()=>startRace();$('againBtn').onclick=()=>startRace(lastStart);$('menuBtn').onclick=toMenu;$('resumeBtn').onclick=()=>setPause(false);$('mirBtn').onclick=toggleMirror;$('haloBtn').onclick=toggleHalo;$('fpsBtn').onclick=toggleFps;$('quitBtn').onclick=toMenu;
 $('skipBtn').onclick=()=>{setPause(false);doSkip();};$('sessMenu').onclick=toMenu;
 function updStartBtn(){$('startBtn').firstChild.textContent=gameMode==='quali'?'예선 시작':gameMode==='practice'?'연습 주행 시작':'레이스 시작';}
 
@@ -6810,7 +6823,18 @@ function renderMirror(){
   for(const mm of lodS){const lv=mm.lodLv;for(const o of mm.lod1)o.visible=lv<1;for(const o of mm.lod2)o.visible=lv<2;for(const o of mm.lod3)o.visible=lv<3;}}
 // performance governor: if the frame rate stays low while racing, drop the costliest effects one step at a time
 const PERF={acc:0,n:0,step:0};
+// set the resolution to pr (the full one clears the cap)
+function perfSetPR(pr){const b=basePR();if(pr>=b-0.01){pr=b;delete PERF.prCap;}else PERF.prCap=pr;renderer.setPixelRatio(pr);resize2();}
+// back in the menu every race starts fresh: full resolution and car detail (a phone that struggled once is not stuck blurry)
+function perfReset(){const had=PERF.prCap;for(const k in PERF)delete PERF[k];Object.assign(PERF,{acc:0,n:0,step:0});LODN=LODN0.slice();if(had)resize();}
 function perfGovernor(dt){if(state!=='race')return;PERF.acc+=dt;PERF.n++;if(PERF.acc<2.5)return;const fps=PERF.n/PERF.acc;PERF.acc=0;PERF.n=0;
+  // v14: a resolution cut that did not raise the frame rate is undone - the phone is held at 30 by power saving (or it is
+  // not the pixels), and the picture would only get blurry for nothing. Resolution is then left alone for this race.
+  if(PERF.tryFps!=null){const t=PERF.tryFps,p=PERF.tryPr;PERF.tryFps=null;if(fps<t+3){PERF.noRes=true;perfSetPR(p);return;}}
+  // v14: room to spare (57+ for two checks in a row) - give one resolution step back. If that makes it heavy again, the
+  // step is taken off once more and stays off (no see-sawing).
+  if(fps>=57){if(PERF.prCap&&!PERF.noUp&&++PERF.up>=2){PERF.up=0;PERF.upd=true;perfSetPR(Math.min(basePR(),PERF.prCap/0.85));PERF.step=Math.min(PERF.step,3);toast('선명하게: 해상도를 다시 올렸어요','#8ecae6',2.2);}return;}
+  PERF.up=0;
   if(fps>=50||PERF.step>=7)return;const say=m=>toast('부드럽게: '+m,'#8ecae6',2.2);
  // v13d: when it only gets heavy in the race it is the pack, not the scenery. Tighten the car detail
  // budget before switching anything else off - on the lowest setting the steps below have nothing left
@@ -6827,7 +6851,9 @@ function perfGovernor(dt){if(state!=='race')return;PERF.acc+=dt;PERF.n++;if(PERF
       if(sh.mapSize.x>1024){sh.mapSize.set(1024,1024);if(sh.map){sh.map.dispose();sh.map=null;}}
       say('그림자를 가볍게 했어요');return;}
     PERF.step++;}
-  if(PERF.step===4||PERF.step===6){if(renderer.getPixelRatio()>0.62){renderer.setPixelRatio(Math.max(0.6,renderer.getPixelRatio()*0.85));PERF.prCap=renderer.getPixelRatio();resize2();say('해상도를 조금 낮췄어요');return;}PERF.step++;}
+  // v14: phones stop at 85% of the full resolution (one step) - below that the picture is visibly soft on a small screen
+  if(PERF.step===4||PERF.step===6){const cur=renderer.getPixelRatio(),nx=Math.max(isTouch?basePR()*0.85:0.6,cur*0.85);
+    if(!PERF.noRes&&nx<cur-0.01){PERF.tryFps=fps;PERF.tryPr=cur;if(PERF.upd)PERF.noUp=true;perfSetPR(nx);say('해상도를 조금 낮췄어요');return;}PERF.step++;}
   // v13j: switching the shadows or the post chain off changes every shader's program key - a full recompile, a freeze of its
   // own in the middle of the race. Shrink the shadow map instead; the post chain stays.
   if(PERF.step===5){const sh=WORLD&&WORLD.sun&&WORLD.sun.shadow;if(renderer.shadowMap.enabled&&sh&&sh.mapSize.x>512){sh.mapSize.set(512,512);if(sh.map){sh.map.dispose();sh.map=null;}say('그림자를 더 가볍게 했어요');return;}PERF.step++;}}
@@ -6850,11 +6876,12 @@ let last=performance.now(),orbit=0.6;
 function render(){if(WORLD&&WORLD.sky)WORLD.sky.position.copy(camera.position);if(composer)composer.render();else renderer.render(scene,camera);}
 // v12h: FPS meter (F): the average over the last ~2 s and the "1% low" (the slowest 1% of frames), from the real frame intervals
 let FPSON=loadLS('lightsout3d-fps')==='1';const FPSM={a:[],t:0};
+function toggleFps(){FPSON=!FPSON;saveLS('lightsout3d-fps',FPSON?'1':'0');$('fpsBox').hidden=!FPSON;FPSM.a.length=0;FPSM.t=0;$('fpsBox').textContent='FPS …';toast(FPSON?'FPS 표시 켬':'FPS 표시 끔','#fff');pauseLabels();}
 // v12i: the halo's central strut, soft in the cockpit view (on by default)
 let HALOGH=loadLS('lightsout3d-halo')!=='0';
 function toggleHalo(){HALOGH=!HALOGH;saveLS('lightsout3d-halo',HALOGH?'1':'0');toast(HALOGH?'헤일로 가운데 기둥 흐리게 (콕핏 시점)':'헤일로 가운데 기둥 원래대로','#fff');pauseLabels();}
 function fpsTick(raw){if(!FPSON||!(raw>0)||raw>1)return;FPSM.a.push(raw);FPSM.t+=raw;if(FPSM.t<0.5)return;FPSM.t=0;if(FPSM.a.length>240)FPSM.a.splice(0,FPSM.a.length-240);
-  const a=FPSM.a,s=a.slice().sort((x,y)=>x-y),avg=a.reduce((x,y)=>x+y,0)/a.length,p99=s[Math.min(s.length-1,Math.floor(s.length*0.99))],pr=renderer.getPixelRatio();
+  const a=FPSM.a,s=a.slice().sort((x,y)=>x-y),avg=a.reduce((x,y)=>x+y,0)/a.length,p99=s[Math.min(s.length-1,Math.floor(s.length*0.99))],pr=renderer.getPixelRatio()/basePR();   // v14: % of this setting's full resolution
   $('fpsBox').textContent='FPS '+Math.round(1/avg)+' · 최저 '+Math.round(1/p99)+(pr<0.99?' · 해상도 '+Math.round(pr*100)+'%':'');}
 let SHF=0;   // v12j: frame counter, for work that does not need doing every frame
 function frame(now){
