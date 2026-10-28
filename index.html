@@ -4685,7 +4685,7 @@ function setupComposer(){
   }catch(e){composer=null;}
 }
 // the full resolution for this quality setting, before the smoothness governor takes anything off
-function basePR(){const w=innerWidth,h=innerHeight;let pr=Math.min(quality==='high'?2:quality==='medium'?(isTouch?1.25:1):1,window.devicePixelRatio||1);
+function basePR(){const w=innerWidth,h=innerHeight;let pr=Math.min(quality==='high'?2:quality==='medium'?(isTouch?1.5:1):(isTouch?1.25:1),window.devicePixelRatio||1);   // v14b: phones a step sharper (smooth 1 -> 1.25, normal 1.25 -> 1.5) with the post passes gone
   if(quality==='low'&&!isTouch)pr=Math.min(pr,Math.max(0.5,Math.sqrt(2.4e6/Math.max(1,w*h))));   // v12h: the lowest setting on a PC draws at most ~1080p worth of pixels (a 1440p or 4K window drew 2-4 times that)
   return pr;}
 function resize(){const w=innerWidth,h=innerHeight;let pr=basePR();
