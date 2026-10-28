@@ -494,6 +494,8 @@ body.touch.racing #rotate{display:none !important}   /* no full-screen "turn you
       <p class="sub keyOnly">22대 그리드, 콕핏 시점. 레이스만 하면 P12 출발, 예선을 하면 예선 순위대로 출발해요. 건조한 레이스에선 2가지 드라이 컴파운드를 써야 해서 최소 한 번은 피트스톱이 필요해요 (인터·웻을 쓰면 면제). 옐로 플래그·VSC·세이프티카·레드 플래그·트랙 리밋 페널티가 적용돼요.</p>
       <p class="label">모드</p>
       <div class="seg" id="modeSel"><button data-v="race" aria-pressed="true">레이스</button><button data-v="quali" aria-pressed="false">예선 → 레이스</button><button data-v="practice" aria-pressed="false">연습 주행</button></div>
+      <p class="label">대회 모드 (서킷을 이어 달리며 순위별 점수 합산 · 위 설정 그대로)</p>
+      <div id="chBox"></div>
       <p class="label">서킷</p>
       <div class="teams" id="trkSel"></div>
       <p class="label">도로 폭 (실제 서킷)</p>
@@ -555,7 +557,7 @@ body.touch.racing #rotate{display:none !important}   /* no full-screen "turn you
     <div class="touchOnly"><p class="label">가속</p><div class="seg" id="pAgSel"><button data-v="auto" aria-pressed="true">자동 가속</button><button data-v="manual">직접 가속</button></div></div>
     <div class="row2"><button class="go" id="resumeBtn">계속 달리기</button><button id="mirBtn">룸미러</button><button id="haloBtn">헤일로 기둥</button><button id="fpsBtn">FPS 표시</button><button id="skipBtn" hidden>건너뛰기</button><button id="quitBtn">메뉴로</button></div></div></div>
   <div class="overlay" id="sess" hidden><div class="card"><h1 id="sessTitle">Q1</h1><p class="sub num" id="sessSub"></p><table class="num" id="sessTable"></table><div class="row2"><button class="go" id="sessGo">다음</button><button id="sessMenu">메뉴로</button></div></div></div>
-  <div class="overlay" id="result" hidden><div class="card"><h1 id="resTitle">P1</h1><p class="sub num" id="resSub"></p><table class="num" id="resTable"></table><div class="row2"><button class="go" id="againBtn">다시 달리기 (Enter)</button><button id="menuBtn">메뉴로</button></div></div></div>
+  <div class="overlay" id="result" hidden><div class="card"><h1 id="resTitle">P1</h1><p class="sub num" id="resSub"></p><table class="num" id="resTable"></table><div class="row2"><button class="go" id="againBtn">다시 달리기 (Enter)</button><button class="go" id="chBtn" hidden>대회 순위 보기 (Enter)</button><button id="menuBtn">메뉴로</button></div></div></div>
   <div id="loading">서킷을 준비하는 중</div>
   <div id="err"><p>3D 그래픽(WebGL)을 불러오지 못했어요. 최신 Chrome, Edge, Safari에서 다시 열어주세요.</p></div>
 </div>
@@ -4750,7 +4752,7 @@ addEventListener('keydown',e=>{
   const k=MAP[e.code];if(k){key[k]=true;e.preventDefault();}
   if(k==='sm'&&!e.repeat&&state==='race')key.smTap=true;
   if(CINE&&CINE.ph==='pod'&&!e.repeat&&(e.code==='Enter'||e.code==='Space'||e.code==='Escape')){e.preventDefault();podiumEnd(true);return;}
-  if(e.code==='Enter'&&!e.repeat){if(state==='menu'){e.preventDefault();startRace();}else if(state==='done'&&!$('result').hidden){e.preventDefault();startRace(lastStart);}
+  if(e.code==='Enter'&&!e.repeat){if(state==='menu'){e.preventDefault();startRace();}else if(state==='done'&&!$('result').hidden){e.preventDefault();if(race.champ&&CH)chTable();else startRace(lastStart);}
     else if(state==='sessRes'){e.preventDefault();$('sessGo').click();}else if(state==='race'&&race&&(race.form||race.rc.flag==='red')){e.preventDefault();doSkip();}}
   if(e.repeat)return;
   if(e.code==='KeyC')cycleCam();
@@ -5436,7 +5438,7 @@ function fmtClock(t){t=Math.max(0,Math.ceil(t));return Math.floor(t/60)+':'+Stri
 function startRace(o){o=o||{mode:gameMode};const mode=o.mode||gameMode;lastStart=o;FF=false;
   document.body.classList.remove('inmenu');document.body.classList.add('racing');if(isTouch)prepMobile();initAudio();if(AC&&AC.state==='suspended')AC.resume();
   ['menu','result','pause','sess'].forEach(id=>$(id).hidden=true);
-  setupRace(mode,o);warmUp();
+  setupRace(mode,o);warmUp();race.champ=!!o.champ;
   if(race.sess){state='race';$('lights').style.opacity=0;
     toast(mode==='quali'?'예선 Q1 · '+fmtClock(race.sess.len)+' · 상위 16명 Q2 진출':'연습 주행 · '+(isTouch?'PIT':'B')+' 피트인 · '+(isTouch?'타이어 버튼':'1~5')+' 다음 타이어','#fff',3.4,1800);return;}
   if(formOn){formSetup(race,'start',race.cars.slice().sort((a,b)=>a.grid-b.grid));if(isTouch&&autoGas)race.form.autoP=true;state='race';$('lights').style.opacity=0;
@@ -5471,7 +5473,7 @@ function showSess(){const S=race.sess,p=race.player;if(!S)return;state='sessRes'
   const go=$('sessGo');
   if(q<3&&!meOut&&!p.gone){go.textContent='Q'+(q+1)+' 시작 ('+fmtClock(QLEN[q])+')';go.onclick=()=>{sessNext(race);$('sess').hidden=true;state='race';toast('Q'+race.sess.q+' 시작 · '+fmtClock(race.sess.len)+(race.sess.q<3?' · 상위 '+QCUT[race.sess.q-1]+'명 진출':' · 폴 포지션 결정전'),'#fff',3,1500);};}
   else if(q<3){go.textContent='남은 예선 결과 보기';go.onclick=()=>{sessSimRest(race);showSess();};}
-  else{const g=qualiGrid(race),gp=g.indexOf('YOU')+1;go.textContent='레이스 시작 · 그리드 P'+gp+' (Enter)';go.onclick=()=>startRace({mode:'race',gridOrder:g,skills:skillMap(race)});}
+  else{const g=qualiGrid(race),gp=g.indexOf('YOU')+1;go.textContent='레이스 시작 · 그리드 P'+gp+' (Enter)';go.onclick=()=>startRace({mode:'race',gridOrder:g,skills:skillMap(race),champ:race.champ});}
   $('sess').hidden=false;$('sess').querySelector('.card').scrollTop=0;go.focus({preventScroll:true});}
 function setPause(on){if(on){if(state==='paused')return;pausedFrom=state;state='paused';$('pause').hidden=false;
     const sk=$('skipBtn');sk.hidden=!canSkip();sk.textContent=race&&race.sess?'이 세션 건너뛰기':'건너뛰기 (빠르게 진행)';pauseLabels();$('resumeBtn').focus();if(AC)AC.suspend();}
@@ -5651,6 +5653,36 @@ $('portraitOk').onclick=()=>document.body.classList.add('portraitok');
 $('podSkip').onclick=()=>podiumEnd(true);$('startBtn').onclick=()=>startRace();$('againBtn').onclick=()=>startRace(lastStart);$('menuBtn').onclick=toMenu;$('resumeBtn').onclick=()=>setPause(false);$('mirBtn').onclick=toggleMirror;$('haloBtn').onclick=toggleHalo;$('fpsBtn').onclick=toggleFps;$('quitBtn').onclick=toMenu;
 $('skipBtn').onclick=()=>{setPause(false);doSkip();};$('sessMenu').onclick=toMenu;
 function updStartBtn(){$('startBtn').firstChild.textContent=gameMode==='quali'?'예선 시작':gameMode==='practice'?'연습 주행 시작':'레이스 시작';}
+// ---- 대회 모드: circuits one after another, POINTS per finishing position, kept in localStorage so a closed browser resumes mid-season.
+// Changing circuit reloads the page (the track is built at load), so the next round starts from the menu after the reload.
+let CH=null;try{CH=JSON.parse(loadLS('lightsout3d-champ')||'null');}catch(e){CH=null;}if(CH&&!(Array.isArray(CH.list)&&CH.pts&&CH.nm))CH=null;
+function chSave(){saveLS('lightsout3d-champ',CH?JSON.stringify(CH):'');}
+function chEnd(){CH=null;chSave();chMenu();}
+function chNew(n){const a=TRACKS.filter(t=>t.id!==TRK.id).map(t=>t.id);for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}
+  CH={list:[TRK.id].concat(a).slice(0,n),rd:0,pts:{},nm:{},last:{}};chSave();chMenu();}   // round 1 on the circuit already loaded
+function chHere(id){return id===TRK.id||!TRACKS.some(t=>t.id===id);}   // (a circuit removed by an update: race it here instead)
+function chTrk(id){return TRACKS.find(t=>t.id===id)||TRK;}
+function chRows(){return Object.keys(CH.pts).sort((a,b)=>CH.pts[b]-CH.pts[a]);}
+function chGo(){const id=CH.list[CH.rd];if(!chHere(id)){saveLS('lightsout3d-track',id);$('loading').style.display='flex';$('loading').textContent='다음 서킷을 불러오는 중';setTimeout(()=>location.reload(),30);return;}
+  startRace({mode:gameMode==='quali'?'quali':'race',champ:true});}
+function chScore(r,pts){const id=CH.list[CH.rd];if(race.chDone||id==null||!chHere(id))return;race.chDone=true;CH.last={};   // once per round, and only on that round's circuit
+  for(const c of r){const g=pts(c);CH.nm[c.code]=[c.name,c.team];CH.pts[c.code]=(CH.pts[c.code]||0)+g;CH.last[c.code]=g;}CH.rd++;chSave();chMenu();}
+function chTable(){if(!CH)return toMenu();['result','menu'].forEach(id=>$(id).hidden=true);state='sessRes';
+  const N=CH.list.length,fin=CH.rd>=N,ks=chRows(),me=ks.indexOf('YOU'),top=ks.slice(0,10);if(me>=10)top.push('YOU');
+  $('sessTitle').textContent=fin?(me===0?'대회 우승!':'대회 종료'):'대회 순위';
+  $('sessSub').textContent=(fin?'챔피언 '+CH.nm[ks[0]][0]+' · ':'')+'라운드 '+CH.rd+'/'+N+' 종료 · 나 P'+(me+1)+' · '+(CH.pts.YOU||0)+'점'+(fin?'':' · 다음 서킷 '+chTrk(CH.list[CH.rd]).name);
+  $('sessTable').innerHTML=top.map(k=>{const [nm,ti]=CH.nm[k],tm=TEAMS[ti]||TEAMS[0],g=CH.last[k]||0;
+    return `<tr class="${k==='YOU'?'me':''}"><td>P${ks.indexOf(k)+1}</td><td><span class="sw" style="display:inline-block;vertical-align:middle;margin-right:8px;background:${tm.p}"></span>${nm} <span style="color:var(--dim)">${tm.name}</span></td><td class="tm">${CH.pts[k]}점${g?' <span style="color:var(--dim)">+'+g+'</span>':''}</td></tr>`;}).join('');
+  const go=$('sessGo');go.textContent=fin?'새 대회':'다음 라운드 ('+(CH.rd+1)+'/'+N+')';go.onclick=fin?()=>{chEnd();toMenu();}:chGo;
+  $('sess').hidden=false;$('sess').querySelector('.card').scrollTop=0;go.focus({preventScroll:true});}
+function chMenu(){const b=$('chBox');
+  if(!CH){b.innerHTML='<div class="seg">'+[[4,'짧게'],[8,'보통'],[TRACKS.length,'전체']].map(([n,t])=>`<button data-n="${n}">${t}<br>${n}라운드</button>`).join('')+'</div>';
+    b.querySelectorAll('button').forEach(x=>x.onclick=()=>chNew(+x.dataset.n));return;}
+  const N=CH.list.length,fin=CH.rd>=N,ks=chRows(),me=ks.indexOf('YOU');
+  b.innerHTML=`<p class="sub" style="margin:0 0 8px;color:var(--ink)">${fin?'대회 종료 · 챔피언 '+CH.nm[ks[0]][0]:'라운드 '+(CH.rd+1)+'/'+N+' · '+chTrk(CH.list[CH.rd]).name}${me>=0?' · 나 P'+(me+1)+' · '+CH.pts.YOU+'점':''}</p><div class="seg">`+
+    (fin?'':`<button id="chGo" style="flex:2;background:var(--kerb);border-color:var(--kerb)">라운드 ${CH.rd+1} 시작</button>`)+(CH.rd?'<button id="chTbl">순위표</button>':'')+`<button id="chQuit">${fin?'새 대회':'대회 그만두기'}</button></div>`;
+  if(!fin)$('chGo').onclick=chGo;if(CH.rd)$('chTbl').onclick=chTable;$('chQuit').onclick=()=>{if(fin||confirm('대회를 그만둘까요? 지금까지의 점수가 지워져요.'))chEnd();};}
+$('chBtn').onclick=chTable;chMenu();
 
 // ---- minimap: the whole circuit, north-up. Outlined track, start/finish line, direction arrows, turn numbers (large size),
 // the next corner in yellow with its direction, kind and distance, the cars, and the player as an arrow along its heading.
@@ -5999,7 +6031,8 @@ function showResults(){
     else{const d=Math.floor((race.laps*N-c.prog)/N);gap=d>=1?'+'+d+'랩':'주행 중';}
     const pt=pts(c);
     return `<tr class="${c.isP?'me':''}"><td>P${i+1}</td><td><span class="sw" style="display:inline-block;vertical-align:middle;margin-right:8px;background:${TEAMS[c.team].p}"></span>${c.name} <span style="color:var(--dim)">${TEAMS[c.team].name} · ${c.stints.join('→')}</span></td><td>${gap}</td><td class="pts">${pt?'+'+pt:''}</td></tr>`;}).join('');
-  $('result').hidden=false;$('againBtn').focus();
+  const ch=!!(race.champ&&CH);if(ch)chScore(r,pts);$('againBtn').hidden=ch;$('chBtn').hidden=!ch;
+  $('result').hidden=false;$(ch?'chBtn':'againBtn').focus();
 }
 // ===================== v11g: the chequered flag and the podium ceremony =====================
 // At the flag: a TV camera at the line watches the car cross, the flag marshal on the pit wall waves the chequered flag, a banner
