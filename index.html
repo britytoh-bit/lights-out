@@ -31,7 +31,7 @@
 :root{
   --ink:#f4f4f2; --dim:#a7acb3; --panel:rgba(12,14,18,.8); --line:rgba(255,255,255,.14);
   --kerb:#d62828; --yellow:#f5c518; --purple:#b16cff; --green:#3ddc84; --bg:#8fb6de;
-  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  box-sizing:border-box;   /* v14b: no safe-area padding here - it shrank the canvas (squashed 3D) and doubled every HUD inset */
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#0e1116; } }
 :root[data-theme="dark"]{ --bg:#0e1116; }
@@ -111,7 +111,7 @@ body.touch #tyres{bottom:auto; top:210px; width:200px}
 .col{display:flex; flex-direction:column; gap:8px}
 .bulb{width:32px; height:32px; border-radius:50%; background:#2a1111; box-shadow:inset 0 0 0 2px #000}
 .bulb.on{background:radial-gradient(circle at 40% 35%,#ff8a8a,#e10600 55%,#8a0400); box-shadow:0 0 18px #e10600}
-.overlay{position:absolute; inset:0; z-index:10; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(8,10,14,.45)}
+.overlay{position:absolute; inset:0; z-index:10; display:flex; align-items:center; justify-content:center; padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px)); background:rgba(8,10,14,.45)}
 .overlay[hidden]{display:none}
 .card{background:rgba(21,23,27,.94); border-top:6px solid; border-image:repeating-linear-gradient(90deg,var(--kerb) 0 22px,#fff 22px 44px) 6;
   border-radius:4px; padding:22px 24px 20px; width:min(580px,100%); max-height:100%; overflow:auto; box-shadow:0 20px 60px rgba(0,0,0,.5)}
@@ -133,8 +133,8 @@ kbd{font-family:"Saira Condensed",sans-serif; font-weight:700; background:#2b2f3
 .best{font-size:14px; color:var(--dim); margin:12px 0 0; text-align:center}
 #livEd{position:absolute; inset:0; z-index:12; pointer-events:none}
 #livEd[hidden]{display:none}
-#livEd .lecard{pointer-events:auto; position:absolute; left:16px; top:16px; bottom:16px; width:min(400px,calc(100% - 32px)); overflow:auto; background:rgba(21,23,27,.94); border-radius:8px; padding:16px 18px; box-shadow:0 20px 60px rgba(0,0,0,.5)}
-@media (max-aspect-ratio:1/1){#livEd .lecard{top:auto; left:8px; right:8px; bottom:8px; width:auto; height:56%}}
+#livEd .lecard{pointer-events:auto; position:absolute; left:calc(16px + env(safe-area-inset-left,0px)); top:calc(16px + env(safe-area-inset-top,0px)); bottom:calc(16px + env(safe-area-inset-bottom,0px)); width:min(400px,calc(100% - 32px)); overflow:auto; background:rgba(21,23,27,.94); border-radius:8px; padding:16px 18px; box-shadow:0 20px 60px rgba(0,0,0,.5)}
+@media (max-aspect-ratio:1/1){#livEd .lecard{top:auto; left:8px; right:8px; bottom:calc(8px + env(safe-area-inset-bottom,0px)); width:auto; height:56%}}
 #livEd .lehead{display:flex; justify-content:space-between; align-items:baseline; font-size:18px; margin-bottom:6px} #livEd .lehead span{font-size:14px; color:var(--dim)}
 #livEd .lenote{font-size:13px; color:var(--dim); margin:0 0 12px; line-height:1.4} #livEd #leMsg{color:#ffb347; min-height:0}
 #livEd .sws{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; align-items:center}
@@ -199,7 +199,7 @@ body.inmenu .hud, body.inmenu #mini, body.inmenu #camTag, body.inmenu #pitMsg, b
 /* v11g: finish + podium ceremony */
 body.cine .hud, body.cine #mini, body.cine #camTag, body.cine #flag, body.cine #touch, body.cine #mctl, body.cine #mirFrame, body.cine #tower, body.cine #pitT, body.cine #lights{display:none !important}
 #cineFade{position:absolute; inset:0; background:#000; opacity:0; pointer-events:none; transition:opacity .55s; z-index:30}
-#podCap{position:absolute; left:50%; bottom:5%; transform:translateX(-50%); display:none; align-items:stretch; gap:10px; z-index:31; pointer-events:none}
+#podCap{position:absolute; left:50%; bottom:calc(5% + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); display:none; align-items:stretch; gap:10px; z-index:31; pointer-events:none}
 body.cine #podCap.on{display:flex}
 #podCap .pc{background:rgba(10,12,16,.82); border-left:4px solid var(--c,#fff); padding:6px 14px 7px; border-radius:4px; min-width:150px; box-shadow:0 6px 24px rgba(0,0,0,.35)}
 #podCap .pc b{display:block; font:800 13px "Saira Condensed",Arial,sans-serif; letter-spacing:.08em; opacity:.8}
@@ -210,7 +210,7 @@ body.cine #podCap.on{display:flex}
 body.cine #podTitle.on{display:block}
 #podTitle h2{margin:0; font:italic 800 40px "Saira Condensed",Arial,sans-serif; letter-spacing:.04em}
 #podTitle p{margin:2px 0 0; font:700 15px "Saira Condensed",Arial,sans-serif; opacity:.85}
-#podSkip{position:absolute; right:14px; top:12px; z-index:32; display:none; padding:8px 14px; font-weight:700}
+#podSkip{position:absolute; right:calc(14px + env(safe-area-inset-right,0px)); top:calc(12px + env(safe-area-inset-top,0px)); z-index:32; display:none; padding:8px 14px; font-weight:700}
 body.cine #podSkip.on{display:block}
 #finBanner{position:absolute; left:50%; top:16%; transform:translateX(-50%) scale(.92); z-index:31; opacity:0; transition:opacity .35s, transform .35s; pointer-events:none; text-align:center}
 #finBanner.on{opacity:1; transform:translateX(-50%) scale(1)}
@@ -218,7 +218,7 @@ body.cine #podSkip.on{display:block}
 #finBanner h2{margin:6px 0 4px; font:italic 800 46px "Saira Condensed",Arial,sans-serif; text-shadow:0 3px 18px rgba(0,0,0,.8); white-space:nowrap}
 #finBanner p{margin:0 0 6px; font:700 17px "Saira Condensed",Arial,sans-serif; text-shadow:0 2px 12px rgba(0,0,0,.8); white-space:nowrap}
 body.touch #podTitle h2{font-size:28px} body.touch #finBanner h2{font-size:32px} body.touch #podCap .pc{min-width:0; padding:4px 9px} body.touch #podCap .pc span{font-size:14px}
-@media (max-width:620px){#podTitle h2{font-size:26px} #finBanner h2{font-size:30px} #finBanner p{font-size:14px} #podCap{gap:5px; bottom:3%} #podCap .pc{min-width:0; padding:4px 7px} #podCap .pc span{font-size:13px} #podCap .pc b, #podCap .pc i{font-size:10px}}
+@media (max-width:620px){#podTitle h2{font-size:26px} #finBanner h2{font-size:30px} #finBanner p{font-size:14px} #podCap{gap:5px; bottom:calc(3% + env(safe-area-inset-bottom,0px))} #podCap .pc{min-width:0; padding:4px 7px} #podCap .pc span{font-size:13px} #podCap .pc b, #podCap .pc i{font-size:10px}}
 #steerZone{position:absolute; left:0; top:22%; bottom:0; width:46%; pointer-events:auto; touch-action:none}
 #steerPad{position:absolute; left:calc(8px + env(safe-area-inset-left,0px)); bottom:calc(14px + env(safe-area-inset-bottom,0px)); width:268px; height:64px; border-radius:32px; background:rgba(12,14,18,.55); border:1px solid var(--line)}
 #steerKnob{position:absolute; left:50%; top:50%; width:56px; height:56px; margin:-28px 0 0 -28px; border-radius:50%; background:rgba(244,244,242,.85); box-shadow:0 2px 10px rgba(0,0,0,.5)}
