@@ -2323,7 +2323,7 @@ function buildWorld(scene,renderer,opt){
     try{const pm=new THREE.PMREMGenerator(renderer);const e=pm.fromEquirectangular(t).texture;pm.dispose();cb(e);}catch(err){}})).catch(()=>{});
   {const et=TH==='city'?'city':TH==='desert'?'desert':TH==='forest'?'forest':'park';
    if(!NT){W.loadEnv('env_'+et+'_'+(SS?'sunset':'day')+'.jpg',e=>{W.envClear=e;W.photoEnv=true;});W.loadEnv('env_rain.jpg',e=>{W.envRain=e;});}}   // (night: the floodlit environment built with the sky)
-  scene.fog=new THREE.Fog(SS?0xd9b89a:NT?0x0a0e1a:0xa9c2db,SS?380:NT?240:700,SS?2800:NT?2300:5200);W.fogC=scene.fog.color.clone();W.fogN=scene.fog.near;W.fogF=scene.fog.far;
+  scene.fog=new THREE.Fog(SS?0xd9b89a:NT?0x0a0e1a:0xa9c2db,SS?380:NT?240:700,SS?2800:NT?2300:5200);W.fogC=scene.fog.color.clone();if(GRADE_IN_TM)scene.fog.color.convertLinearToSRGB();W.fogN=scene.fog.near;W.fogF=scene.fog.far;
   const hemi=new THREE.HemisphereLight(SS?0xffd2a8:NT?0x3c4c7a:0xcfe3ff,SS?0x3f3a2c:NT?0x17171b:0x56663f,SS?0.46:NT?0.34:0.44);scene.add(hemi);W.hemi=hemi;W.hemiI=hemi.intensity;W.hemiC=hemi.color.clone();W.hemiG=hemi.groundColor.clone();
   const sun=new THREE.DirectionalLight(SS?0xffa45c:NT?0xe8eeff:0xffedd2,NT?1.8:2.9);sun.castShadow=opt.shadows;   // (night: the floodlights - cool white, from high up)
   if(opt.shadows){const ms=opt.q==='high'?4096:1536;sun.shadow.mapSize.set(ms,ms);const sc=sun.shadow.camera;sc.left=-70;sc.right=70;sc.top=70;sc.bottom=-70;sc.near=1;sc.far=500;sun.shadow.bias=-0.0004;sun.shadow.normalBias=0.03;}
@@ -2449,7 +2449,7 @@ function buildWorld(scene,renderer,opt){
   // rubber / tyre marks in braking zones and at apexes
   {const c=mkCanvas(256,256),g=c.getContext('2d');for(let i=0;i<70;i++){const x=20+Math.random()*216,w=1+Math.random()*3,a=0.05+Math.random()*0.22;const gr=g.createLinearGradient(0,0,0,256);gr.addColorStop(0,'rgba(8,8,8,0)');gr.addColorStop(0.2+Math.random()*0.3,`rgba(8,8,8,${a})`);gr.addColorStop(1,`rgba(8,8,8,${a*0.4})`);g.fillStyle=gr;g.fillRect(x,0,w,256);}
    const t=texFrom(c,true);t.repeat.set(1,1/18);const brakeZ=k=>PROF[k]>PROF[wrap(k+12)]+2.5||TR.K[k]>0.02;
-   add(ribbon(i=>Math.max(-HWv(i)+0.3,RLS[i]-3.4),i=>Math.min(HWv(i)-0.3,RLS[i]+3.4),0.05,brakeZ),new THREE.MeshStandardMaterial({map:t,transparent:true,depthWrite:false,roughness:0.6,polygonOffset:true,polygonOffsetFactor:-3}),true);}
+   add(ribbon(i=>Math.max(-HWv(i)+0.3,RLS[i]-3.4),i=>Math.min(HWv(i)-0.3,RLS[i]+3.4),0.05,brakeZ),scrBlend(new THREE.MeshStandardMaterial({map:t,transparent:true,depthWrite:false,roughness:0.6,polygonOffset:true,polygonOffsetFactor:-3})),true);}
   // painted run-off stripes beyond the kerbs in corners
   {const c=mkCanvas(64,128),g=c.getContext('2d');g.fillStyle='#e9ecef';g.fillRect(0,0,64,128);g.fillStyle='#1f55c8';g.fillRect(0,0,64,64);
    const t=texFrom(c,true);t.repeat.set(1,1/3);const m=wetReg(std({map:t,roughness:0.7,polygonOffset:true,polygonOffsetFactor:-2}),0.82,0.15);
@@ -2495,7 +2495,7 @@ function buildWorld(scene,renderer,opt){
     if(pg.length)add(mergeGeos(pg),dM,true,true);}
   // contact shadow along the foot of the walls (cheap ambient occlusion)
   {const mk=(rev)=>{const c=mkCanvas(64,4),g=c.getContext('2d'),gr=g.createLinearGradient(0,0,64,0);gr.addColorStop(rev?1:0,'rgba(0,0,0,0)');gr.addColorStop(rev?0.35:0.65,'rgba(0,0,0,0.18)');gr.addColorStop(rev?0:1,'rgba(0,0,0,0.5)');g.fillStyle=gr;g.fillRect(0,0,64,4);
-     return new THREE.MeshBasicMaterial({map:texFrom(c),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-5});};
+     return scrBlend(new THREE.MeshBasicMaterial({map:texFrom(c),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-5}));};
    add(ribbon(i=>LPv(i)-1.1,i=>LPv(i),0.035,np(1)),mk(false));add(ribbon(i=>-LNv(i),i=>-LNv(i)+1.1,0.035,np(-1)),mk(true));}
 
   // ---- ground with mowing stripes ----
@@ -2888,8 +2888,8 @@ mk(ring(2048,256,23,0.08,0.2,[110,125,140],[150,160,170],1),2450,240,80);}
      const np2=new THREE.Mesh(new THREE.PlaneGeometry(0.9,0.9),new THREE.MeshBasicMaterial({map:texFrom(num)}));np2.position.set(0,1.4,-side*0.91);np2.rotation.y=side>0?Math.PI:0;g.add(np2);
      const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,1.6,5),steelM);pole.position.set(1.3,2.2,-side*0.6);g.add(pole);
      const fm=flagM.clone(),fl=new THREE.Mesh(new THREE.PlaneGeometry(1.2,0.8),fm);fl.geometry.translate(0.6,0,0);fl.position.set(1.32,2.7,-side*0.6);fl.visible=false;fl.userData.keep=true;g.add(fl);W.posts.push({i,m:fm,mesh:fl});
-     scene.add(g);W.tv.push({i,x:f.x,z:f.z});
-     if(k%2===0){const tf=frameAt(wrap(i+30),side*(lim+9)),tg=new THREE.Group();W.tv[W.tv.length-1]={i:wrap(i+30),x:tf.x,z:tf.z};tg.position.set(tf.x,0,tf.z);tg.rotation.y=tf.rot;tg.userData.batch=true;
+     scene.add(g);W.tv.push({i,x:f.x,z:f.z,g});
+     if(k%2===0){const tf=frameAt(wrap(i+30),side*(lim+9)),tg=new THREE.Group();W.tv[W.tv.length-1]={i:wrap(i+30),x:tf.x,z:tf.z,g:tg};tg.position.set(tf.x,0,tf.z);tg.rotation.y=tf.rot;tg.userData.batch=true;
        for(const [x,z] of[[-1,-1],[1,-1],[-1,1],[1,1]]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,7,5),steelM);leg.position.set(x*1,3.5,z*1);tg.add(leg);}
        const pf=new THREE.Mesh(new THREE.BoxGeometry(2.6,0.2,2.6),steelM);pf.position.y=7;tg.add(pf);
        const cam=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.5,0.4),camM);cam.position.set(0,7.6,-side*0.3);tg.add(cam);
@@ -3793,7 +3793,7 @@ const wm=new THREE.MeshStandardMaterial({color:0xe9edf0,metalness:0.55,roughness
      for(const s of[-1.2,1.2]){const l=new THREE.Mesh(new THREE.PlaneGeometry(1.0,0.14),gm);l.rotation.x=-Math.PI/2;l.position.set(2.9,0,s);gg.add(l);}scene.add(gg);}}
   {const c=mkCanvas(64,128),g=c.getContext('2d'),gr=g.createRadialGradient(32,64,4,32,64,62);gr.addColorStop(0,'rgba(0,0,0,.85)');gr.addColorStop(0.55,'rgba(0,0,0,.5)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.save();g.scale(1,1);g.fillRect(0,0,64,128);g.restore();
    const pg=new THREE.PlaneGeometry(2.6,6.2);pg.rotateX(-Math.PI/2);pg.rotateY(Math.PI/2);
-   const im=new THREE.InstancedMesh(pg,new THREE.MeshBasicMaterial({map:texFrom(c),transparent:true,depthWrite:false,opacity:0.55,polygonOffset:true,polygonOffsetFactor:-6}),24);im.renderOrder=2;im.frustumCulled=false;scene.add(im);W.blobs=im;}
+   const im=new THREE.InstancedMesh(pg,scrBlend(new THREE.MeshBasicMaterial({map:texFrom(c),transparent:true,depthWrite:false,opacity:0.55,polygonOffset:true,polygonOffsetFactor:-6})),24);im.renderOrder=2;im.frustumCulled=false;scene.add(im);W.blobs=im;}
   // racing-line guide (menu: corners only / full / off): chevrons on the road coloured by the speed plan (red brake, yellow turn, green power)
   {const RL=racingLine(),n=N,show=new Uint8Array(n);
    for(let i=0;i<n;i++)if(RL.col[i])for(let k=-22;k<=18;k++)show[wrap(i+k)]=1;   // corners only: from ~45 m before the braking zone to ~35 m after the exit
@@ -3810,6 +3810,10 @@ const wm=new THREE.MeshStandardMaterial({color:0xe9edf0,metalness:0.55,roughness
       if(o.isInstancedMesh){let ch=false;for(let i=0;i<o.count;i++){o.getMatrixAt(i,m4);v.setFromMatrixPosition(m4);if(near(v.x,v.z)){o.setMatrixAt(i,zero);ch=true;}}if(ch)o.instanceMatrix.needsUpdate=true;}
       else if((o.isGroup||o.isMesh)&&(o.position.x!==0||o.position.z!==0)&&near(o.position.x,o.position.z)){const sz=new THREE.Box3().setFromObject(o).getSize(v);if(Math.max(sz.x,sz.z)<150)scene.remove(o);}}}
   cullRoadIntruders(scene,W);
+  // v14b: TV sites: a post removed above (bridge, road) leaves no site; a gap over 300 m (the pit straight, where there are no posts)
+  // gets bare camera sites every 300 m on the side away from the pit
+  {W.tv=W.tv.filter(q=>q.g.parent===scene);const s=-PIT.side,near=(x,z)=>HD.on&&HD.cross.some(c=>Math.hypot(x-c.x,z-c.z)<44),q=W.tv.map(t=>t.i).sort((a,b)=>a-b);
+   for(let k=0;k<q.length;k++){const gap=(k+1<q.length?q[k+1]:q[0]+N)-q[k];for(let d=150;d<=gap-75;d+=150){const i=wrap(q[k]+d),f=frameAt(i,s*((s>0?TR.LP[i]:TR.LN[i])+9));if(!inTun(i)&&!near(f.x,f.z))W.tv.push({i,x:f.x,z:f.z});}}}
   bakeHeights(scene);
   fitGround(scene,W);
   scene.traverse(o=>{const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>{if(m&&m.polygonOffset&&m.polygonOffsetFactor<0&&!m.polygonOffsetUnits)m.polygonOffsetUnits=m.polygonOffsetFactor*2;});});
@@ -4595,7 +4599,11 @@ renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmic
 // v14b: phone smooth / normal: the post chain's colour grade (the `grade` pass in setupComposer, same formula) runs inside every material's
 // tone mapping instead - no extra full-screen passes. ACES -> exact sRGB curve -> grade -> back to linear (the output encoding then makes
 // it sRGB again). The vignette is the CSS layer #vig. Set once at load, before the first shader compiles; high and PCs keep the post chain.
-let GRADE_IN_TM=false;const VIG=$('vig');let VIGO=0.6;
+let GRADE_IN_TM=false;
+// v14b: a dark see-through overlay (blob shadow, rubber, skids, wall foot) blends straight onto the sRGB screen with no post chain,
+// not in linear light - the same darkening needs less opacity (as the halo pillar)
+function scrBlend(m){if(GRADE_IN_TM)m.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <alphamap_fragment>','#include <alphamap_fragment>\ndiffuseColor.a=1.0-pow(1.0-diffuseColor.a,0.4545);');};return m;}
+const VIG=$('vig');let VIGO=0.6;
 if(isTouch&&quality!=='high'){const TMS='vec3 CustomToneMapping( vec3 color ) { return color; }',ch=THREE.ShaderChunk.tonemapping_pars_fragment;
   if(ch.includes(TMS)){THREE.ShaderChunk.tonemapping_pars_fragment=ch.replace(TMS,`vec3 CustomToneMapping( vec3 color ) {
     vec3 col=ACESFilmicToneMapping(color);
@@ -4723,7 +4731,8 @@ const outCam=c=>c==='chase'||c==='far'||c==='tv';
 // the menu or a finish shot); then the rain box, the tunnel light, the effects and the car detail are measured from the player's car
 // (VP), not from a camera a couple of hundred metres away. TVS.s: the site in use - it changes (a cut) only when the car is 80 m past it.
 let TVON=false,LODK=1;const TVR=new THREE.Vector3(),TVS={s:null},VP=()=>TVON?TVR:camera.position;
-function tvPick(pl){const Ls=WORLD&&WORLD.tv;if(!Ls||!Ls.length)return null;const sd=q=>{const d=wrap(q.i-pl.idx);return d>N/2?d-N:d;};
+function tvPick(pl){const Ls=WORLD&&WORLD.tv,tn=WORLD&&WORLD.tunnel;if(!Ls||!Ls.length||pitTunSect(pl)||tn&&inRange(pl.idx,tn.i0,tn.i1))return null;   // in a tunnel: the chase view (the tunnel light and exposure go by the camera, for the whole screen)
+ const sd=q=>{const d=wrap(q.i-pl.idx);return d>N/2?d-N:d;};
   const c=TVS.s,dc=c?sd(c):-1e9;if(dc>=-40&&dc<=250)return c;   // (index steps of 2 m: keep it until the car is 80 m past)
   let b=null,bd=1e9;for(const q of Ls){const d=sd(q);if(d>=5&&d<=120&&d<bd){bd=d;b=q;}}   // the next one ahead, at most ~240 m away (further, the car is a speck)
   return TVS.s=b||(dc>=-90?c:null);}   // nothing ahead (a long gap, e.g. the pit straight): hold the last shot a little longer, then the chase view
@@ -5417,7 +5426,6 @@ function warmUp(){if(!renderer||!scene)return;const prev=renderer.getRenderTarge
   try{renderer.setRenderTarget(composer&&composer.readBuffer?composer.readBuffer:null);renderer.compile(scene,camera);
     const e0=scene.environment;for(const e of envs){scene.environment=e;renderer.compile(scene,camera);}scene.environment=e0;}catch(e){}
   try{renderer.setRenderTarget(null);if(MIR&&MIR.hs)renderer.compile(MIR.hs,MIR.hc);}catch(e){}
-  try{if(MIR&&!composer&&(MIR.on||MIR.faces.length)){renderer.setRenderTarget(MIR.rt);renderer.compile(scene,MIR.cam);}}catch(e){}   // v14b: (the mirror target is linear, the screen sRGB: different shaders)
   renderer.setRenderTarget(prev);
   try{if(KIT&&KIT.decalBlur)for(const k in KIT.decalBlur)renderer.initTexture(KIT.decalBlur[k].map);}catch(e){}   // v13j: else they upload as the cars pull away from the grid
   try{const seen=new Set();scene.traverse(o=>{const ms=o.material?(Array.isArray(o.material)?o.material:[o.material]):[];
@@ -6356,7 +6364,8 @@ function syncRaceControl(dt){
   const rain=race.wx.rain,wet=WET;
   for(const e of W.wet){e.m.color.copy(e.c0).multiplyScalar(1-(1-e.dk)*wet);e.m.roughness=e.r0+(e.r-e.r0)*wet;e.m.envMapIntensity=1-0.45*wet;}
   W.sun.intensity=W.sunI*(1-(W.NT?0.25:0.6)*rain);if(W.fill)W.fill.intensity=W.fillI*(1-0.25*rain);W.hemi.intensity=W.hemiI*(1-0.1*rain);W.hemi.color.copy(W.hemiC).lerp(RAINSKY,rain);W.hemi.groundColor.copy(W.hemiG).lerp(RAINGND,rain);
-  scene.fog.color.copy(W.fogC).lerp(RAINFOG,rain);scene.fog.near=W.fogN*(1-0.7*rain);scene.fog.far=W.fogF*(1-0.72*rain);
+  scene.fog.color.copy(W.fogC).lerp(RAINFOG,rain);if(GRADE_IN_TM)scene.fog.color.convertLinearToSRGB();   // v14b: (phone, no post chain: fog mixes after the sRGB encode - give it the screen colour)
+ scene.fog.near=W.fogN*(1-0.7*rain);scene.fog.far=W.fogF*(1-0.72*rain);
   if(W.sky){const u=W.sky.material.uniforms;u.turbidity.value=W.skyT+(18-W.skyT)*rain;u.rayleigh.value=W.skyR+(0.25-W.skyR)*rain;u.mieCoefficient.value=W.skyM+(0.03-W.skyM)*rain;if(u.skyGain)u.skyGain.value=W.skyG+(0.45-W.skyG)*rain;}
   if(W.clouds){const u=W.clouds.uniforms;u.time.value+=dt;u.cover.value=W.cover0+(0.98-W.cover0)*Math.min(1,rain*1.5);u.dark.value=Math.min(1,rain*1.25);}
   for(const m of W.far)m.opacity=1-0.8*rain;
@@ -6751,7 +6760,7 @@ function onDamage(e){const c=race.cars[e.id],m=meshes[e.id];if(!c||!m)return;
 let SPK=null,SMK=null,SPR=null,SKID=null;
 function initSkids(){const cv=mkCanvas(8,32),g=cv.getContext('2d'),gr=g.createLinearGradient(0,0,0,32);gr.addColorStop(0,'rgba(255,255,255,0)');gr.addColorStop(0.25,'rgba(255,255,255,1)');gr.addColorStop(0.75,'rgba(255,255,255,1)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,8,32);
   const geo=new THREE.PlaneGeometry(1,1);geo.rotateX(-Math.PI/2);
-  const mat=new THREE.MeshBasicMaterial({map:texFrom(cv),color:0x050505,transparent:true,opacity:0.55,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4});
+  const mat=scrBlend(new THREE.MeshBasicMaterial({map:texFrom(cv),color:0x050505,transparent:true,opacity:0.55,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4}));
   const im=new THREE.InstancedMesh(geo,mat,2000);im.count=0;im.frustumCulled=false;im.renderOrder=1;scene.add(im);SKID={im,n:0,max:2000,last:[null,null,null,null]};}
 function resetSkids(){if(SKID){SKID.im.count=0;SKID.n=0;SKID.last=[null,null,null,null];}}
 function skidMark(k,x,z,on,ly){if(!SKID)return;const L=SKID.last[k];if(!on){SKID.last[k]=null;return;}if(!L){SKID.last[k]=[x,z];return;}
@@ -6835,7 +6844,7 @@ function burst0(x,z,spd,a){for(let k=0;k<22;k++)emit(SPK,x,0.4,z,Math.cos(a)*spd
 // ---- rear-view mirrors: one wide rear camera rendered into a texture; shown in the cockpit mirrors and as a HUD mirror ----
 let MIR=null,CAMLOOK=false,CAMPIT=false;
 function initMirror(){if(MIR)return;
-  const w=quality==='high'?640:quality==='medium'?448:320,h=w/4,rt=new THREE.WebGLRenderTarget(w,h,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat,stencilBuffer:true});   // stencil -> 24-bit depth (r128 gives a plain target 16-bit depth)
+  const w=quality==='high'?640:quality==='medium'?448:320,h=w/4,rt=new THREE.WebGLRenderTarget(w,h,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat,stencilBuffer:true});if(!composer)rt.texture.encoding=THREE.sRGBEncoding;   // stencil -> 24-bit depth (r128 gives a plain target 16-bit depth). v14b: no post chain - the screen's encoding, so the scene's shaders are the same ones (and the fog and overlays blend as on screen)
   const cam=new THREE.PerspectiveCamera(28,4,0.5,quality==='high'?300:quality==='medium'?170:130);   // 28 deg vertical at 4:1 = ~90 deg horizontal; a shorter view is cheaper
   const mat=new THREE.MeshBasicMaterial({map:rt.texture,toneMapped:false});
   const g=new THREE.PlaneGeometry(2,2),uv=g.attributes.uv;for(let i=0;i<uv.count;i++)uv.setX(i,1-uv.getX(i));   // a mirror flips left-right
@@ -6889,12 +6898,13 @@ function perfGovernor(dt){if(state!=='race')return;PERF.acc+=dt;PERF.n++;if(PERF
       if(sh.mapSize.x>1024){sh.mapSize.set(1024,1024);if(sh.map){sh.map.dispose();sh.map=null;}}
       say('그림자를 가볍게 했어요');return;}
     PERF.step++;}
-  // v14: phones stop at 85% of the full resolution (one step) - below that the picture is visibly soft on a small screen
-  if(PERF.step===4||PERF.step===6){const cur=renderer.getPixelRatio(),nx=Math.max(isTouch?basePR()*0.85:0.6,cur*0.85);
+  // v14: phones stop at 85% of the full resolution (one step) - below that the picture is visibly soft on a small screen.
+  // v14b: smooth / normal may go on (step 6) down to their old floor (0.85 / 1.0625), since their full resolution went up a step (not measured on a phone)
+  if(PERF.step===4||PERF.step===6){const cur=renderer.getPixelRatio(),nx=Math.max(isTouch?Math.min(basePR()*0.85,quality==='low'?0.85:quality==='medium'?1.0625:9):0.6,cur*0.85);
     if(!PERF.noRes&&nx<cur-0.01){PERF.tryFps=fps;PERF.tryPr=cur;if(PERF.upd)PERF.noUp=true;perfSetPR(nx);say('해상도를 조금 낮췄어요');return;}PERF.step++;}
   // v13j: switching the shadows or the post chain off changes every shader's program key - a full recompile, a freeze of its
   // own in the middle of the race. Shrink the shadow map instead; the post chain stays.
-  if(PERF.step===5){const sh=WORLD&&WORLD.sun&&WORLD.sun.shadow;if(renderer.shadowMap.enabled&&sh&&sh.mapSize.x>512){sh.mapSize.set(512,512);if(sh.map){sh.map.dispose();sh.map=null;}say('그림자를 더 가볍게 했어요');return;}PERF.step++;}}
+  if(PERF.step===5){const sh=WORLD&&WORLD.sun&&WORLD.sun.shadow;if(renderer.shadowMap.enabled&&sh&&sh.mapSize.x>512){sh.mapSize.set(512,512);if(sh.map){sh.map.dispose();sh.map=null;}say('그림자를 더 가볍게 했어요');return;}}}   // v14b: (nothing to shrink, e.g. no shadows: stay at 5, so the next check is the second resolution step 6 - it was skipped)
 function resize2(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);if(composer){composer.setPixelRatio?composer.setPixelRatio(renderer.getPixelRatio()):0;composer.setSize(w,h);if(fxaa){const pr=renderer.getPixelRatio();fxaa.material.uniforms.resolution.value.set(1/(w*pr),1/(h*pr));}}}
 // v12j: 미러 크기를 한 곳에서 정한다. 레이아웃(메시지를 얼마나 내릴지)과 그리기가 같은 값을 써야 한다.
 // 가로로 든 휴대폰(높이 440 이하)에서는 작게 — 앞이 가려진다는 지적이 있었다.
