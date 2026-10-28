@@ -4578,7 +4578,7 @@ function saveLS(k,v){try{localStorage.setItem(k,String(v));}catch(e){}}
 let bestLap=parseFloat(loadLS('lightsout3d-best-'+TRK.id))||null;
 const isTouch=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 if(isTouch)document.body.classList.add('touch');
-let quality=loadLS('lightsout3d-q2')||(isTouch?'low':'medium');if(!['high','medium','low'].includes(quality))quality='medium';document.body.classList.add('q-'+quality);let tod=loadLS('lightsout3d-tod')||'day';
+let quality=loadLS('lightsout3d-q2')||'medium';if(!['high','medium','low'].includes(quality))quality='medium';document.body.classList.add('q-'+quality);let tod=loadLS('lightsout3d-tod')||'day';
 let sens=parseInt(loadLS('lightsout3d-sens'),10)||2;
 const LODD=(quality==='low'?[26,60,120]:[30,70,140]).map(d=>d*d);   // v12h: car detail steps (m); a little closer at the lowest setting
 // v13a: how many of the nearest cars may hold each detail step. Distance alone is not enough - in a
