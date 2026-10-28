@@ -520,6 +520,7 @@ body.touch.racing #rotate{display:none !important}   /* no full-screen "turn you
         <div><p class="label">액티브 에어로 (직선 모드)</p><div class="seg" id="aeroSel"><button data-v="manual" aria-pressed="true">버튼으로 직접</button><button data-v="auto" aria-pressed="false">자동</button></div></div>
         <div><p class="label">엔진 사운드</p><div class="seg" id="sndSel"><button data-v="v29" aria-pressed="true">2026 온보드 V6</button><button data-v="v28" aria-pressed="false">그르릉 V6</button><button data-v="v27" aria-pressed="false">낮은 톤 V6</button><button data-v="v26b" aria-pressed="false">v9.1 V6</button><button data-v="v26" aria-pressed="false">v9.0 V6</button><button data-v="classic" aria-pressed="false">예전 합성음</button></div><button id="sndPrev" type="button" style="width:100%;margin:-8px 0 16px;padding:8px">▶ 선택한 엔진 소리 들어보기</button></div>
         <div><p class="label">그래픽</p><div class="seg" id="qSel"><button data-v="high" aria-pressed="false">높음</button><button data-v="medium" aria-pressed="true">보통</button><button data-v="low" aria-pressed="false">부드럽게</button></div></div>
+        <div><p class="label">자동 화질 조절 (프레임이 떨어지면 효과를 하나씩 줄임)</p><div class="seg" id="aqSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔 (고른 그래픽 그대로)</button></div></div>
       </div>
       <p class="sub touchOnly" id="touchHelp">가로 화면 권장. 왼쪽 아래로 조향, 오른쪽 아래 페달로 가속·브레이크. 자동 가속이면 브레이크만 누르면 돼요. 직선 구간에서 '직선' 버튼을 누르면 날개가 열려요. 위쪽 '맵' 버튼으로 미니맵 크기를 바꿀 수 있어요.</p>
       <div class="keys keyOnly">
@@ -5492,6 +5493,9 @@ seg('trkSel',v=>{if(v!==TRK.id){saveLS('lightsout3d-track',v);$('loading').style
 document.querySelectorAll('#wdSel button').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.v==='wide')===ROAD_WIDE?'true':'false'));
 seg('wdSel',v=>{if((v==='wide')!==ROAD_WIDE){saveLS('lightsout3d-width',v);$('loading').style.display='flex';$('loading').textContent='서킷을 다시 만드는 중';setTimeout(()=>location.reload(),30);}});   // v12c: the road is built at load
 seg('todSel',v=>{if(v!==tod){tod=v;saveLS('lightsout3d-tod',v);location.reload();}});document.querySelectorAll('#todSel button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===tod?'true':'false'));
+// v14c: the smoothness governor can be switched off - on High it otherwise takes the effects straight back off on a phone
+let autoQ=loadLS('lightsout3d-autoq')==='off'?'off':'on';
+seg('aqSel',v=>{autoQ=v==='off'?'off':'on';saveLS('lightsout3d-autoq',autoQ);});
 seg('qSel',v=>{if(v!==quality){quality=v;saveLS('lightsout3d-q2',v);location.reload();}});
 seg('wxSel',v=>{weather=v;saveLS('lightsout3d-wx',v);if(state==='menu')setupRace();});seg('incSel',v=>{incidents=v;saveLS('lightsout3d-inc',v);});seg('dmgSel',v=>{damageMode=v;saveLS('lightsout3d-dmg',v);});seg('stSel',v=>{startMode=v;saveLS('lightsout3d-st',v);});seg('sndSel',v=>{sndMode=['v29','v28','v27','v26b','v26','classic'].includes(v)?v:'v29';saveLS('lightsout3d-snd12',sndMode);previewEngine();});$('sndPrev').addEventListener('click',()=>previewEngine());seg('asSel',v=>{assistMode=v;saveLS('lightsout3d-assist',v);if(state==='menu')setupRace();});seg('aeroSel',v=>{aeroMode=v;saveLS('lightsout3d-aero',v);if(state==='menu')setupRace();applyMobileClasses();});seg('rlSel',v=>{rlMode=v;saveLS('lightsout3d-rl',v);applyRL();});
 // ---- livery editor ----
@@ -5536,7 +5540,7 @@ $('leReset').addEventListener('click',()=>{if(!LED)return;const ti=LED.ti;delete
 $('leRand').addEventListener('click',()=>{if(!LED)return;const pick=a=>a[Math.floor(Math.random()*a.length)],L=LED.L;
   L.D=pick(LE_SW);do{L.A=pick(LE_SW);}while(L.A===L.D);L.W=Math.random()<0.45?pick(['#ffffff','#e9edf1','#131417',pick(LE_SW)]):null;L.wt=L.W?pick(['engine','nose','cockpit']):'none';
   L.cut=pick(['rise','slash','step','late','split','fade','solid']);L.K=pick(['#0c0d10','#2b2e35','#101a33']);L.KC=Math.random()<0.2?1:0;L.M=pick(['none','pixels','dots','chevrons','hatch','rays','diamonds','scales','lines','shards','pin','circuit','glitch','prism']);L.fin=pick(['gloss','gloss','satin','matte','metal']);L.spine=Math.random()<0.5?1:0;leSync();leApply();});
-[['wxSel',()=>weather],['incSel',()=>incidents],['dmgSel',()=>damageMode],['stSel',()=>startMode],['aeroSel',()=>aeroMode],['asSel',()=>assistMode],['sndSel',()=>sndMode],['rlSel',()=>rlMode]].forEach(([id,g])=>document.querySelectorAll('#'+id+' button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===g()?'true':'false')));
+[['wxSel',()=>weather],['incSel',()=>incidents],['dmgSel',()=>damageMode],['stSel',()=>startMode],['aeroSel',()=>aeroMode],['asSel',()=>assistMode],['sndSel',()=>sndMode],['rlSel',()=>rlMode],['aqSel',()=>autoQ]].forEach(([id,g])=>document.querySelectorAll('#'+id+' button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===g()?'true':'false')));
 document.querySelectorAll('#qSel button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===quality?'true':'false'));setSens(sens);
 // ===== mobile controls =====
 let pedPos=loadLS('lightsout3d-ped')||'split',steerMode=loadLS('lightsout3d-sm')||'drag',autoGas=(loadLS('lightsout3d-ag')||'auto')==='auto',tiltAxis=0,tiltRef=null,tiltLast=null,tiltOK=false,dragAxis=0,touchGas=false,touchBrake=false,touchErs=false,autoErsOn=false;
@@ -6874,7 +6878,7 @@ const PERF={acc:0,n:0,step:0};
 function perfSetPR(pr){const b=basePR();if(pr>=b-0.01){pr=b;delete PERF.prCap;}else PERF.prCap=pr;renderer.setPixelRatio(pr);resize2();}
 // back in the menu every race starts fresh: full resolution and car detail (a phone that struggled once is not stuck blurry)
 function perfReset(){const had=PERF.prCap;for(const k in PERF)delete PERF[k];Object.assign(PERF,{acc:0,n:0,step:0});LODN=LODN0.slice();if(had)resize();}
-function perfGovernor(dt){if(state!=='race')return;PERF.acc+=dt;PERF.n++;if(PERF.acc<2.5)return;const fps=PERF.n/PERF.acc;PERF.acc=0;PERF.n=0;
+function perfGovernor(dt){if(state!=='race'||autoQ==='off')return;PERF.acc+=dt;PERF.n++;if(PERF.acc<2.5)return;const fps=PERF.n/PERF.acc;PERF.acc=0;PERF.n=0;
   // v14: a resolution cut that did not raise the frame rate is undone - the phone is held at 30 by power saving (or it is
   // not the pixels), and the picture would only get blurry for nothing. Resolution is then left alone for this race.
   if(PERF.tryFps!=null){const t=PERF.tryFps,p=PERF.tryPr;PERF.tryFps=null;if(fps<t+3){PERF.noRes=true;perfSetPR(p);return;}}
