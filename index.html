@@ -4520,8 +4520,8 @@ const POSES=(()=>{const P={
   stab:[-0.12,0.8,0, 0.6, 0.14,0.02,0.18, -0.22,0.02,-0.18, 0.52,0.74,0.2, 0.52,0.74,-0.2]};
   for(const k in P)P[k]=Float32Array.from(P[k]);return P;})();
 function buildPitCrew(scene,W,kit){
-  const NT=11,CN=CREW_N,NF=NT*CN,PS=PIT.side,Z0=new THREE.Matrix4().makeScale(0,0,0);
-  const mk=(geo,mat,cnt,cast)=>{const im=new THREE.InstancedMesh(geo,mat,cnt);im.frustumCulled=false;
+  const NT=11,CN=CREW_N,NF=NT*CN,PS=PIT.side,Z0=new THREE.Matrix4().makeScale(0,0,0),ims=[];
+  const mk=(geo,mat,cnt,cast)=>{const im=new THREE.InstancedMesh(geo,mat,cnt);ims.push(im);im.frustumCulled=false;
     {const s0=im.setMatrixAt.bind(im),t4=new THREE.Matrix4();im.setMatrixAt=(i,m)=>{t4.copy(m);t4.elements[13]+=hXZ(t4.elements[12],t4.elements[14]);s0(i,t4);};}im.castShadow=!!cast;im.receiveShadow=true;for(let i=0;i<cnt;i++)im.setMatrixAt(i,Z0);scene.add(im);return im;};
   const limb=(r0,r1,seg)=>{const g=new THREE.CylinderGeometry(r1,r0,1,seg||6,1,true);g.translate(0,0.5,0);return g;};
   const suitM=new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.78}),suitVC=new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.78,vertexColors:true}),
@@ -4566,7 +4566,7 @@ function buildPitCrew(scene,W,kit){
      v.set(f.x+ca*5.6,0,f.z+sa*5.6);m4.compose(v,q,one);C.gantry.setMatrixAt(t,m4);
      v.set(f.x+ca*5.5,2.8,f.z+sa*5.5);m4.compose(v,q,one);C.lamp.setMatrixAt(t,m4);C.lamp.setColorAt(t,new THREE.Color(0x160404));}}
   C.pos=new Float32Array(NF*3);C.face=new Float32Array(NF);C.pose=new Float32Array(NF*16);C.phase=new Float32Array(NF);C.ready=false;
-  C.team=[...Array(NT)].map(()=>({settled:false,tl:null,fr:null,car:null,prevWt:-99,lampS:-1}));
+  C.team=[...Array(NT)].map(()=>({settled:false,tl:null,fr:null,car:null,prevWt:-99,lampS:-1}));C.ims=ims;
   return C;
 }
 //@@GFX-END
@@ -4652,6 +4652,8 @@ function makeAOPass(w,h){
   pass.render=(renderer,writeBuffer,readBuffer)=>{
     // normals + depth of solid geometry only (fences, crowds, foliage cards, particles and decals do not occlude)
     scene.traverseVisible(o=>{const m=o.material;if(o.isPoints||o.isLine||o.isSprite||(m&&!Array.isArray(m)&&(m.transparent||m.alphaTest>0||m.alphaToCoverage))){hidden.push(o);}});
+    // v14c: nor do the other cars' small parts (the details that go first with distance, ~36 draw calls a car) - half resolution and blurred
+    if(typeof race!=='undefined'&&race)for(let i=0;i<meshes.length;i++){const mm=meshes[i];if(!mm||!mm.lod1||race.cars[i].isP||!mm.root.visible)continue;for(const o of mm.lod1)if(o.visible)hidden.push(o);for(const o of mm.lod2)if(o.visible)hidden.push(o);}
     hidden.forEach(o=>o.visible=false);
     renderer.getClearColor(cc);const ca=renderer.getClearAlpha();renderer.setClearColor(0x7777ff,1);
     // The occlusion is gone by fadeEnd, so this pass only needs to see that far. Frustum culling then drops the rest
@@ -6864,7 +6866,9 @@ function renderMirror(){
   const pl=race.player,m=meshes[race.cars.indexOf(pl)],ca=Math.cos(pl.a),sa=Math.sin(pl.a),gy=roadY(pl.x,pl.z,pl.idx),y0=(m?m.jack||0:0)+gy;
   MIR.cam.position.set(pl.x-ca*0.35,1.3+y0,pl.z-sa*0.35);_v.set(pl.x-ca*40,0.8+y0-slopeAlong(pl.idx,pl.a)*40,pl.z-sa*40);MIR.cam.lookAt(_v);
   if(!MIR.heavy){MIR.heavy=[];scene.traverse(o=>{if(o.userData&&o.userData.heavy)MIR.heavy.push(o);});}
-  const hide=[...MIR.faces,...(SW?[SW.g,...SW.arms]:[]),...MIR.heavy].filter(o=>o.visible);hide.forEach(o=>o.visible=false);   // never sample the texture being drawn
+  // v14c: when only the two small wing mirrors show it (the phone default), the pit crews and their loose wheels - a few pixels there,
+  // ~16 draw calls and ~200k triangles on the pit straight - are left out of the picture
+  const hide=[...MIR.faces,...(SW?[SW.g,...SW.arms]:[]),...MIR.heavy,...(!MIR.on&&WORLD.crew&&WORLD.crew.ims||[])].filter(o=>o.visible);hide.forEach(o=>o.visible=false);   // never sample the texture being drawn
   // v12c: the mirror image is small - other cars in it are drawn at a far level of detail (body, floor and tyres; a bit more when
   // close behind), which roughly halves its draw calls with a pack behind
   const lodS=MIR.lodS||(MIR.lodS=[]);lodS.length=0;
