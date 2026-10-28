@@ -2879,7 +2879,7 @@ mk(ring(2048,256,23,0.08,0.2,[110,125,140],[150,160,170],1),2450,240,80);}
    const hr=new THREE.Mesh(new THREE.BoxGeometry((gr1-gr0)*STEP+4,0.6,19),roofM);hr.position.y=12.3;hg.add(hr);}
   // marshal posts and TV camera towers around the lap
   {const camM=new THREE.MeshStandardMaterial({color:0x1b1c1f,roughness:0.4}),lensM=new THREE.MeshStandardMaterial({color:0x111111,roughness:0.2,metalness:0.6});   // (shared, so the towers batch together)
-   const hutM=new THREE.MeshStandardMaterial({color:0xf2f2f2,roughness:0.6}),orM=new THREE.MeshStandardMaterial({color:0xff7a00,roughness:0.6}),flagM=new THREE.MeshStandardMaterial({color:0x2fbf4a,side:THREE.DoubleSide,roughness:0.8});W.posts=[];
+   const hutM=new THREE.MeshStandardMaterial({color:0xf2f2f2,roughness:0.6}),orM=new THREE.MeshStandardMaterial({color:0xff7a00,roughness:0.6}),flagM=new THREE.MeshStandardMaterial({color:0x2fbf4a,side:THREE.DoubleSide,roughness:0.8});W.posts=[];W.tv=[];   // v14b: W.tv - the TV view's camera sites
    let k=0;for(let i=40;i<N;i+=150){if(zoneR(i)>=0||inTun(i)||inTun(wrap(i+30)))continue;const side=k++%2?1:-1,lim=side>0?TR.LP[i]:TR.LN[i],f=frameAt(i,side*(lim+2.4)),g=new THREE.Group();g.position.set(f.x,0,f.z);g.rotation.y=f.rot;
      g.userData.batch=true;const hut=new THREE.Mesh(new THREE.BoxGeometry(2.2,2.4,1.8),hutM);hut.position.y=1.2;hut.castShadow=true;g.add(hut);
      const band=new THREE.Mesh(new THREE.BoxGeometry(2.25,0.35,1.85),orM);band.position.y=2.1;g.add(band);
@@ -2888,8 +2888,8 @@ mk(ring(2048,256,23,0.08,0.2,[110,125,140],[150,160,170],1),2450,240,80);}
      const np2=new THREE.Mesh(new THREE.PlaneGeometry(0.9,0.9),new THREE.MeshBasicMaterial({map:texFrom(num)}));np2.position.set(0,1.4,-side*0.91);np2.rotation.y=side>0?Math.PI:0;g.add(np2);
      const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,1.6,5),steelM);pole.position.set(1.3,2.2,-side*0.6);g.add(pole);
      const fm=flagM.clone(),fl=new THREE.Mesh(new THREE.PlaneGeometry(1.2,0.8),fm);fl.geometry.translate(0.6,0,0);fl.position.set(1.32,2.7,-side*0.6);fl.visible=false;fl.userData.keep=true;g.add(fl);W.posts.push({i,m:fm,mesh:fl});
-     scene.add(g);
-     if(k%2===0){const tf=frameAt(wrap(i+30),side*(lim+9)),tg=new THREE.Group();tg.position.set(tf.x,0,tf.z);tg.rotation.y=tf.rot;tg.userData.batch=true;
+     scene.add(g);W.tv.push({i,x:f.x,z:f.z});
+     if(k%2===0){const tf=frameAt(wrap(i+30),side*(lim+9)),tg=new THREE.Group();W.tv[W.tv.length-1]={i:wrap(i+30),x:tf.x,z:tf.z};tg.position.set(tf.x,0,tf.z);tg.rotation.y=tf.rot;tg.userData.batch=true;
        for(const [x,z] of[[-1,-1],[1,-1],[-1,1],[1,1]]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,7,5),steelM);leg.position.set(x*1,3.5,z*1);tg.add(leg);}
        const pf=new THREE.Mesh(new THREE.BoxGeometry(2.6,0.2,2.6),steelM);pf.position.y=7;tg.add(pf);
        const cam=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.5,0.4),camM);cam.position.set(0,7.6,-side*0.3);tg.add(cam);
@@ -4714,11 +4714,19 @@ function initWorld(){
 // ---- input ----
 const key={gas:false,brake:false,left:false,right:false,ers:false,sm:false,axis:0};
 const MAP={ArrowUp:'gas',KeyW:'gas',ArrowDown:'brake',KeyS:'brake',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',ShiftLeft:'ers',ShiftRight:'ers',Space:'brake',KeyE:'sm',KeyX:'sm',KeyV:'look'};
-const CAMS=['cockpit','tcam','chase','far'],CAMNAME={cockpit:'콕핏',tcam:'T캠',chase:'추격',far:'원거리 추격'};
+const CAMS=['cockpit','tcam','chase','far','tv'],CAMNAME={cockpit:'콕핏',tcam:'T캠',chase:'추격',far:'원거리 추격',tv:'TV 중계'};
 // T-cam: the TV onboard camera on the airbox, just behind and above the driver's helmet, tilted down over the
 // halo so the helmet, the wheel, the halo and both front tyres frame the lower part of the picture (car-local metres; pitch in radians)
 const TCAMP={x:-0.82,y:1.32,z:0,pitch:0.25,fov:58,fovS:5,near:0.05};let camMode=Math.max(0,CAMS.indexOf(loadLS('lightsout3d-cam')||'cockpit'));   // v12b: T-cam on the car's centre line (the offset made the halo and nose look skewed)
-const outCam=c=>c==='chase'||c==='far';
+const outCam=c=>c==='chase'||c==='far'||c==='tv';
+// v14b: TV view - a camera on the marshal post / TV tower ahead zooms in on the player. TVON: it is what is on screen (not the pit,
+// the menu or a finish shot); then the rain box, the tunnel light, the effects and the car detail are measured from the player's car
+// (VP), not from a camera a couple of hundred metres away. TVS.s: the site in use - it changes (a cut) only when the car is 80 m past it.
+let TVON=false,LODK=1;const TVR=new THREE.Vector3(),TVS={s:null},VP=()=>TVON?TVR:camera.position;
+function tvPick(pl){const Ls=WORLD&&WORLD.tv;if(!Ls||!Ls.length)return null;const sd=q=>{const d=wrap(q.i-pl.idx);return d>N/2?d-N:d;};
+  const c=TVS.s,dc=c?sd(c):-1e9;if(dc>=-40&&dc<=250)return c;   // (index steps of 2 m: keep it until the car is 80 m past)
+  let b=null,bd=1e9;for(const q of Ls){const d=sd(q);if(d>=5&&d<=120&&d<bd){bd=d;b=q;}}   // the next one ahead, at most ~240 m away (further, the car is a speck)
+  return TVS.s=b||(dc>=-90?c:null);}   // nothing ahead (a long gap, e.g. the pit straight): hold the last shot a little longer, then the chase view
 // v12j: the pause buttons say what is on right now, instead of just "켜기/끄기"
 function pauseLabels(){const m=$('mirBtn'),h=$('haloBtn');
   if(m)m.textContent='룸미러: '+(MIR&&MIR.on?'켬':'끔');
@@ -6217,7 +6225,7 @@ function sync(dt){
   // No sorting and no allocation: with twenty cars, counting how many are nearer is cheaper than a
   // sort, and it leaves nothing for the garbage collector to pick up mid-race.
   {const n=race.cars.length;if(_lodR.length<n){_lodR=new Int32Array(n);_lodD=new Float64Array(n);}
-   const cx=camera.position.x,cz=camera.position.z;
+   const vr=VP(),cx=vr.x,cz=vr.z;LODK=TVON?(camera.fov/60)**2:1;   // v14b: TV view - nearest to the player, and the zoom makes cars look nearer
    for(let i=0;i<n;i++){const c=race.cars[i];
      if(c.isP||c.gone||c.inGarage){_lodD[i]=Infinity;continue;}
      const dx=c.x-cx,dz=c.z-cz;_lodD[i]=dx*dx+dz*dz;}
@@ -6226,7 +6234,7 @@ function sync(dt){
   race.cars.forEach((c,i)=>{const m=meshes[i];
     // v13d: a car that is not on screen gets nothing done to it at all
     if(c.gone||c.inGarage||(CINE&&CINE.ph==='pod')){if(m.root.visible)m.root.visible=false;return;}
-    if(!c.isP&&m.lod1){const dx=c.x-camera.position.x,dz=c.z-camera.position.z,d2=dx*dx+dz*dz,
+    if(!c.isP&&m.lod1){const dx=c.x-camera.position.x,dz=c.z-camera.position.z,d2=(dx*dx+dz*dz)*LODK,
         dLv=d2>LODD[2]?3:d2>LODD[1]?2:d2>LODD[0]?1:0,r=_lodR[i],
         rLv=r>=LODN[2]?3:r>=LODN[1]?2:r>=LODN[0]?1:0,lv=dLv>rLv?dLv:rLv;   // v12c: tighter steps (a pack of cars cost ~45 draw calls each)
       if(lv!==m.lodLv){m.lodLv=lv;for(const o of m.lod1)o.visible=lv<1;for(const o of m.lod2)o.visible=lv<2;if(m.lod3)for(const o of m.lod3)o.visible=lv<3;
@@ -6281,7 +6289,7 @@ function sync(dt){
   if(WORLD.blobs){const b=WORLD.blobs;race.cars.forEach((c,i)=>{const h=c.gone||c.inGarage?0.001:1,tn=PIT.tun&&c.pit?[pitDepXZ(c.x,c.z,c.idx),pitDepXZ(c.x+Math.cos(c.a)*1.5,c.z+Math.sin(c.a)*1.5,c.idx)-pitDepXZ(c.x-Math.cos(c.a)*1.5,c.z-Math.sin(c.a)*1.5,c.idx)]:null;   // (v12d: on the Yas exit tunnel's floor)
     _q.setFromEuler(TR.bank?_eb.set(TR.BK[c.idx]?meshes[i].pr||0:0,-c.a,Math.atan(slopeAlong(c.idx,c.a)+(tn?tn[1]/3:0)),'YZX'):_eb.set(0,-c.a,Math.atan(slopeAlong(c.idx,c.a)+(tn?tn[1]/3:0)),'XYZ'));/* v13: leaning with the car on a banked turn */_v.set(c.x+(meshes[i].ox||0),0.07+roadY(c.x,c.z,c.idx)+(tn?tn[0]:0),c.z+(meshes[i].oz||0));_s.set(h,h,h);_m4.compose(_v,_q,_s);b.setMatrixAt(i,_m4);});_s.set(1,1,1);b.count=race.cars.length;b.instanceMatrix.needsUpdate=true;}
   try{stepFlagMarshal(dt);if(WORLD.anim)for(const f of WORLD.anim)f(dt);}catch(e){}
-  {const cmv=CAMS[camMode],spdK=(state==='race'||state==='done')&&!key.look&&!CINE?Math.min(1,Math.max(0,(Math.abs(race.player.spd)-55)/35))*(outCam(cmv)?0.5:1):0;
+  {const cmv=CAMS[camMode],spdK=(state==='race'||state==='done')&&!key.look&&!CINE?Math.min(1,Math.max(0,(Math.abs(race.player.spd)-55)/35))*(cmv==='tv'?0:outCam(cmv)?0.5:1):0;
    if(grade)grade.uniforms.blur.value=spdK;
    if(GRADE_IN_TM){const o=Math.round((0.6+0.4*spdK)*30)/30;if(o!==VIGO){VIGO=o;VIG.style.opacity=o.toFixed(3);}}}   // v14b: phones - the vignette darkens with speed (steps of 1/30)
   const pl=race.player,pm=meshes[race.cars.indexOf(pl)],cm=CAMS[camMode];
@@ -6292,7 +6300,7 @@ function sync(dt){
   headLat+=((pl.latG||0)*-0.0035-headLat)*Math.min(1,dt*6);headLon+=((pl.lonG||0)*0.0022-headLon)*Math.min(1,dt*6);
   headLat=Math.max(-0.09,Math.min(0.09,headLat));headLon=Math.max(-0.07,Math.min(0.05,headLon));
   const pitCam=!!(pInfo&&(pInfo.ph==='stop'||(pInfo.ph==='in'&&Math.abs(pl.spd)<9)||(pInfo.ph==='out'&&race.t-pInfo.car.pit.relT<0.9)));
-  const lookBack=!!key.look&&!pitCam&&(state==='race'||state==='done'||state==='countdown');CAMLOOK=lookBack;CAMPIT=pitCam;
+  const lookBack=!!key.look&&!pitCam&&cm!=='tv'&&(state==='race'||state==='done'||state==='countdown');CAMLOOK=lookBack;CAMPIT=pitCam;
   pm.helmet.visible=pitCam||lookBack||cm!=='cockpit'||!!CINE;if(SW)SW.g.visible=!pitCam&&!lookBack&&(cm==='cockpit'||cm==='tcam')&&!CINE;if(pm.tcPod)pm.tcPod.visible=!(cm==='tcam'&&!pitCam&&!lookBack&&!CINE);
   if(pm.strut){const gh=HALOGH&&cm==='cockpit'&&!pitCam&&!lookBack&&!CINE;if(pm.strut.g.visible!==gh){pm.strut.g.visible=gh;pm.strut.n.visible=!gh;}}   // v12i: G key / pause menu   // the T-cam sits in that pod
   const sp=Math.abs(pl.spd)/VMAX;shakeT+=dt;
@@ -6306,16 +6314,18 @@ function sync(dt){
   // the cockpit view move together. Only the player's: it is the one head the camera ever sees close.
   {const hd=pm.helmet;hd.position.set(-0.28+headLon*0.7,0.79+vib*1.8,headLat*0.85);
    hd.rotation.set(headLat*1.5,pl.st*0.12,-headLon*1.7);}
-  if(pitCam){const [x0,z0,a0]=pInfo.fr,c1=Math.cos(a0),s1=Math.sin(a0),PS=PIT.side,drift=Math.min(1,Math.max(0,(pInfo.wt+1)/5)),lx=7.4-0.8*drift,lz=-PS*(5.7-0.4*drift),tx=-0.5,tz=PS*0.55;
+  let tvS=null;if(pitCam){const [x0,z0,a0]=pInfo.fr,c1=Math.cos(a0),s1=Math.sin(a0),PS=PIT.side,drift=Math.min(1,Math.max(0,(pInfo.wt+1)/5)),lx=7.4-0.8*drift,lz=-PS*(5.7-0.4*drift),tx=-0.5,tz=PS*0.55;
     eye.set(x0+c1*lx-s1*lz,2.9+vib+gy,z0+s1*lx+c1*lz);look.set(x0+c1*tx-s1*tz,0.3+gy,z0+s1*tx+c1*tz);camera.fov=46;camera.near=0.5;chaseInit=false;}
   else if(lookBack){   // hold V: rear-facing onboard from the cockpit views, reverse chase from the outside views
     if(outCam(cm)){L(8.2,2.6+gy+KP*gs*8.2,0,eye,true);if(pitTunSect(pl))pitTunCam(eye);L(-6,0.9+gy-KP*gs*6,0,look,true);camera.fov=60;camera.near=0.3;}else{L(-0.32,1.34+vib+gy,0,eye,true);L(-30,0.6+gy-gs*30,0,look,true);camera.fov=64;camera.near=0.12;}chaseInit=false;}
   else if(cm==='cockpit'){L(-0.36+headLon,0.87+vib+pm.body.position.y+gy+(-0.36+headLon)*gs,headLat,eye,true);L(30,0.45-headLon*4+pitch*30+gy+gs*30,pl.st*1.6,look,false);camera.fov=62+8*sp;camera.near=0.1;chaseInit=false;}
   else if(cm==='tcam'){const Q=TCAMP,by=pm.body.position.y,ah=20;L(Q.x,Q.y+by+vib*0.6+gy+Q.x*gs,Q.z,eye,true);   // fixed to the car: it pitches with the road and the body, no look into the corners
     L(Q.x+ah,Q.y+by+gy-ah*Math.tan(Q.pitch)+(pitch+gs)*ah,Q.z,look,true);camera.fov=Q.fov+Q.fovS*sp;camera.near=Q.near;chaseInit=false;}
+  else if(cm==='tv'&&(tvS=tvPick(pl))){const ey=hXZ(tvS.x,tvS.z)+7.6;eye.set(tvS.x,ey,tvS.z);look.set(PX,0.5+gy,PZ);   // v14b: TV view, zoomed to ~9 m of picture at the car
+    camera.fov=Math.max(2.5,Math.min(45,2*Math.atan(4.5/Math.min(1,camera.aspect)/Math.max(1,eye.distanceTo(look)))*180/Math.PI));camera.near=2;chaseInit=false;TVR.set(PX,1.2+gy,PZ);}
   else{const far=cm==='far',bk=far?11.5:7.5,ah=far?9:6;L(-bk,(far?3.8:2.4)+gy-KP*gs*bk,0,eye,false);if(!chaseInit){chasePos.copy(eye);chaseInit=true;}chasePos.lerp(eye,Math.min(1,dt*(far?6:8)));eye.copy(chasePos);
     if(pitTunSect(pl))pitTunCam(eye);else if(HD.on)eye.y=Math.max(eye.y,hXZ(eye.x,eye.z)+Math.max(0,gy-hXZ(pl.x,pl.z))+1.0);eye.y+=vib*3;L(ah,(far?1.2:1.0)+gy+KP*gs*ah,0,look,true);camera.fov=(far?54:60)+10*sp+(pl.boost?3:0);camera.near=far?0.4:0.3;}   // (v12d: in the Yas exit tunnel the camera stays between its walls and under its roof)
-  let cc=null;try{cc=cineCam(dt);}catch(e){CINE=null;document.body.classList.remove('cine');}if(cc){eye.copy(cc.pos);look.copy(cc.look);camera.fov=cc.fov;camera.near=0.3;chaseInit=false;}CAMFOCUS=cc&&cc.focus;
+  let cc=null;try{cc=cineCam(dt);}catch(e){CINE=null;document.body.classList.remove('cine');}if(cc){eye.copy(cc.pos);look.copy(cc.look);camera.fov=cc.fov;camera.near=0.3;chaseInit=false;}CAMFOCUS=cc&&cc.focus;TVON=!!tvS&&!cc&&state!=='menu';
   camera.position.copy(eye);camera.lookAt(look);if(!cc&&!outCam(cm)&&cm!=='tcam'&&!pitCam&&!lookBack)camera.rotateZ(-pl.st*0.02*sp+headLat*0.15);
   if(TR.bank&&!cc&&(cm==='cockpit'||cm==='tcam')&&!pitCam&&!lookBack&&pm.pr)camera.rotateZ(-pm.pr);   // v13: on a circuit with banked turns the onboard cameras lean with the car (the horizon tilts)
   camera.updateProjectionMatrix();   // the head tilts in the cockpit; the T-cam is bolted to the car (v12b: it no longer tips with the steering)
@@ -6391,8 +6401,8 @@ function mkNightEnv(renderer,k){k=k==null?1:k;try{const pm=new THREE.PMREMGenera
   for(let a=0;a<14;a++){const ang=a/14*Math.PI*2,el=0.22+0.3*((a*7)%5)/4,p=new THREE.Mesh(new THREE.PlaneGeometry(10,3.5),lm);p.position.setFromSphericalCoords(80,Math.PI/2-el,ang);p.lookAt(0,0,0);sc.add(p);}
   const t=pm.fromScene(sc,0.03).texture;pm.dispose();return t;}catch(e){return null;}}
 function tunnelFx(dt,W){const tn=W.tunnel;let f=0;
-  if(W.pitTun){const c=camera.position;f=pitTunIn(c.x,c.y,c.z);}
-  if(tn){const c=camera.position;if(Math.hypot(c.x-tn.c[0],c.z-tn.c[1])<tn.r){let best=1e18,bi=-1;for(let i=tn.i0;inRange(i,tn.i0,tn.i1);i=wrap(i+1)){const d=(P[i][0]-c.x)**2+(P[i][1]-c.z)**2;if(d<best){best=d;bi=i;}}
+  if(W.pitTun){const c=VP();f=pitTunIn(c.x,c.y,c.z);}
+  if(tn){const c=VP();if(Math.hypot(c.x-tn.c[0],c.z-tn.c[1])<tn.r){let best=1e18,bi=-1;for(let i=tn.i0;inRange(i,tn.i0,tn.i1);i=wrap(i+1)){const d=(P[i][0]-c.x)**2+(P[i][1]-c.z)**2;if(d<best){best=d;bi=i;}}
       if(bi>=0){const t=T[bi],dx=c.x-P[bi][0],dz=c.z-P[bi][1],lat=-t[1]*dx+t[0]*dz;
         if(lat<TR.LP[bi]+0.3&&-lat<TR.LN[bi]+0.3&&c.y<TR.H[bi]+tn.TH-0.1)f=smooth(Math.min(wrap(bi-tn.i0),wrap(tn.i1-bi))/7);}}}
   TUNF=f;
@@ -6404,13 +6414,13 @@ function initRain(){const M=quality==='high'?1800:800,pos=new Float32Array(M*6),
   const m=new THREE.LineBasicMaterial({color:0xc6d0da,transparent:true,opacity:0,depthWrite:false});m.userData.noHD=true;const L=new THREE.LineSegments(g,m);L.frustumCulled=false;L.renderOrder=6;L.visible=false;scene.add(L);
   const d=new Float32Array(M*3);for(let i=0;i<M;i++){d[i*3]=(Math.random()-0.5)*56;d[i*3+1]=Math.random()*26-4;d[i*3+2]=(Math.random()-0.5)*56;}RAIN={L,g,pos,d,M,m,init:false};}
 function stepRain(dt){if(!RAIN||!race)return;const rain=race.wx.rain;RAIN.L.visible=rain>0.03;if(!RAIN.L.visible)return;
-  const cam=camera.position,pl=race.player,h=pl.va!=null?pl.va:pl.a,vx=Math.cos(h)*pl.spd,vz=Math.sin(h)*pl.spd,fall=12,tau=0.028,d=RAIN.d,pos=RAIN.pos,n=Math.floor(RAIN.M*Math.min(1,0.25+rain));
+  const cam=VP(),pl=race.player,h=pl.va!=null?pl.va:pl.a,vx=Math.cos(h)*pl.spd,vz=Math.sin(h)*pl.spd,fall=12,tau=0.028,d=RAIN.d,pos=RAIN.pos,n=Math.floor(RAIN.M*Math.min(1,0.25+rain));
   RAIN.m.opacity=0.1+0.17*rain;const gy0=hXZ(cam.x,cam.z)-1;
   if(!RAIN.init){RAIN.init=true;for(let i=0;i<RAIN.M;i++){d[i*3]+=cam.x;d[i*3+1]+=cam.y;d[i*3+2]+=cam.z;}}
   for(let i=0;i<RAIN.M;i++){const k=i*3;d[k+1]-=fall*dt;
     let x=d[k]-cam.x,z=d[k+2]-cam.z;if(x>28)d[k]-=56;else if(x<-28)d[k]+=56;if(z>28)d[k+2]-=56;else if(z<-28)d[k+2]+=56;
     if(d[k+1]<cam.y-5||d[k+1]<gy0){d[k+1]=cam.y+14+Math.random()*8;d[k]=cam.x+(Math.random()-0.5)*56;d[k+2]=cam.z+(Math.random()-0.5)*56;}
-    const o=i*6;if(i<n&&(x*x+z*z>12||d[k+1]>cam.y+2)){pos[o]=d[k];pos[o+1]=d[k+1];pos[o+2]=d[k+2];pos[o+3]=d[k]+vx*tau;pos[o+4]=d[k+1]+fall*tau*1.6;pos[o+5]=d[k+2]+vz*tau;}else{pos[o]=pos[o+3]=d[k];pos[o+1]=pos[o+4]=-100;pos[o+2]=pos[o+5]=d[k+2];}}
+    const o=i*6;if(i<n&&(TVON||x*x+z*z>12||d[k+1]>cam.y+2)){pos[o]=d[k];pos[o+1]=d[k+1];pos[o+2]=d[k+2];pos[o+3]=d[k]+vx*tau;pos[o+4]=d[k+1]+fall*tau*1.6;pos[o+5]=d[k+2]+vz*tau;}else{pos[o]=pos[o+3]=d[k];pos[o+1]=pos[o+4]=-100;pos[o+2]=pos[o+5]=d[k+2];}}
   RAIN.g.attributes.position.needsUpdate=true;}
 // ---- pit stop choreography: 11 crews of 18 (3 per wheel, 2 jacks, 2 stabilisers, chief, front wing) ----
 const CRW={J:Array.from({length:15},()=>new THREE.Vector3()),d:new THREE.Vector3(),bn:new THREE.Vector3(),x:new THREE.Vector3(),y:new THREE.Vector3(),z:new THREE.Vector3(),
@@ -6532,7 +6542,7 @@ function crewIdle(C,t,k){const PS=C.PS,bi=WORLD.boxes[t],along=((k%9)-4)*1.05+(k
 function pitFx(dt){
   const C=WORLD&&WORLD.crew;if(!C||!race)return null;let dirty=false;if(!C.ready){crewInit(C);dirty=true;}   // v12h: dirty - re-upload the crews' instances only when one moved
   const PS=C.PS,o=CRW.o;let pInfo=null;
-  {let dmin=1e9;for(const f of C.boxF){dmin=Math.min(dmin,Math.hypot(f.x-camera.position.x,f.z-camera.position.z));}const vis=dmin<190;
+  {let dmin=1e9;for(const f of C.boxF){dmin=Math.min(dmin,Math.hypot(f.x-VP().x,f.z-VP().z));}const vis=dmin<190;
    if(vis!==C.vis){C.vis=vis;for(const k of['torso','head','uarm','farm','thigh','shin','foot','hand','gun','jackB','jackH','wT','wR','wC','lamp','gantry'])C[k].visible=vis;}}
   for(let t=0;t<C.NT;t++){const S=C.team[t];
     let car=null,ph='idle';
@@ -6727,7 +6737,7 @@ function sfxCrash(v,near){if(!AC||muted)return;v=Math.min(1,Math.max(0.05,v));
   for(let k=0;k<3+Math.round(4*v);k++)sfxBurst({type:'bandpass',f:2200+Math.random()*2600,q:3,amp:(0.12+0.18*Math.random())*v,att:0.001,dur:0.035+Math.random()*0.05,delay:Math.random()*0.14});   // carbon cracking
   if(near)for(let k=0;k<4;k++)sfxBurst({type:'highpass',f:4200+Math.random()*2000,q:0.7,amp:0.05*v,att:0.001,dur:0.05,delay:0.25+Math.random()*0.6});}   // bits landing
 function onDamage(e){const c=race.cars[e.id],m=meshes[e.id];if(!c||!m)return;
-  const sev=Math.min(1,(e.hit||0)/20),dist=Math.hypot(c.x-camera.position.x,c.z-camera.position.z);
+  const sev=Math.min(1,(e.hit||0)/20),dist=Math.hypot(c.x-VP().x,c.z-VP().z);
   if(dist<260)debrisFor(c,m,e);
   if(e.isP){IMPACT=Math.max(IMPACT,0.25+0.75*sev);sfxCrash(0.45+0.55*sev,true);
     const d=c.dmg,ch=e.ch,parts=[];
@@ -6782,7 +6792,7 @@ let VKA=null;function vkAt(i){if(!VKA){VKA=new Float32Array(N);const H=TR.H,d=3,
 function particles(dt){
   if(!SPK||!race)return;
   if(state==='race'||state==='done'){
-    for(const c of race.cars){if(c.gone||c.dnf)continue;const dx=c.x-camera.position.x,dz=c.z-camera.position.z;if(dx*dx+dz*dz>150*150||c.pit)continue;EML=roadY(c.x,c.z,c.idx);
+    for(const c of race.cars){if(c.gone||c.dnf)continue;const dx=c.x-VP().x,dz=c.z-VP().z;if(dx*dx+dz*dz>150*150||c.pit)continue;EML=roadY(c.x,c.z,c.idx);
       if(WET>0.06&&Math.abs(c.spd)>9){const cs=Math.cos(c.va!=null?c.va:c.a),sn=Math.sin(c.va!=null?c.va:c.a),rate=WET*Math.min(1,Math.abs(c.spd)/70)*(quality==='high'?70:35);let q=rate*dt;
         while(q>0){if(Math.random()<q){const lz=(Math.random()<0.5?-1:1)*(0.45+Math.random()*0.35),lx=-1.8-Math.random()*0.6;
           emit(SPR,c.x+cs*lx-sn*lz,0.2+Math.random()*0.3,c.z+sn*lx+cs*lz,cs*c.spd*0.5+(Math.random()-0.5)*3,0.6+Math.random()*1.8,sn*c.spd*0.5+(Math.random()-0.5)*3,0.9+Math.random()*0.7,0.9,5.5,0.2+0.22*WET,0.84,0.86,0.9);}q-=1;}}
