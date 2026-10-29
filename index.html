@@ -4401,7 +4401,7 @@ function loadCarModel(kit){if(!THREE.GLTFLoader)return;
     Q.carbonM=new Phys({map:Q.carbonMap||null,color:0x9a9ca2,roughness:0.42,metalness:0.15,clearcoat:0.3,clearcoatRoughness:0.25,envMapIntensity:0.45});
     Q.genericM=new THREE.MeshStandardMaterial({map:Q.genericMap||null,roughness:0.5,metalness:0.25});
     Q.chromeM=new THREE.MeshStandardMaterial({color:0x8d939a,roughness:0.28,metalness:0.9});
-    Q.farDarkM=new THREE.MeshStandardMaterial({color:0x121316,roughness:0.6,metalness:0.1});
+    Q.farDarkM=new THREE.MeshStandardMaterial({color:new THREE.Color(0x121316).convertSRGBToLinear(),roughness:0.6,metalness:0.1,envMapIntensity:0.45});   // 10-29: the far body's dark parts (floor, diffuser, gearbox) were a hex colour taken as linear (~4x too light) at full sky reflection - grey like the asphalt, the cars ahead looked see-through below. Now as dark as the near model's
     for(const m of[Q.carbonM,Q.genericM])if(m.map)m.map.anisotropy=8;
     // v15b: the cut-down model is an open shell in places (where its wings and wheels were cut off): drawn one-sided, the cars ahead
     // looked see-through from behind. Both sides drawn; the shadow map keeps the back faces as before (no new acne)
@@ -4529,7 +4529,13 @@ function buildCar(kit,scene,c){
   // v12c: beyond 30 m the four carbon parts and the four tyres are drawn as two shared stand-in meshes (8 draw calls -> 2)
   let px=null,pxHide=null;if(!c.isP){if(!kit.pxC){kit.pxC=mergeGeos([G.carbon,G.fw.cP,G.fw.cN,G.rwC]);const tg=[];for(const [x,front] of[[WHL.xf,true],[WHL.xr,false]])for(const s of[-1,1]){const g=(front?kit.tyreFlo:kit.tyreRlo).clone();g.translate(x,0.36,s*(front?WHL.zf:WHL.zr));tg.push(g);}kit.pxT=mergeGeos(tg);}
     const pc=new THREE.Mesh(Q?kit.pxCg:kit.pxC,kit.carbonM),pt=new THREE.Mesh(kit.pxT,kit.tyreM);pc.visible=pt.visible=false;pc.receiveShadow=pt.receiveShadow=true;body.add(pc);root.add(pt);px={pc,pt,bf:Q?bodyF:null};
-    pxHide=[];root.traverse(o=>{if(o.isMesh&&o!==pc&&o!==pt&&(o.geometry===G.carbon||o.geometry===G.fw.cP||o.geometry===G.fw.cN||o.geometry===G.rwC||o.geometry===kit.tyreF||o.geometry===kit.tyreR||(Q&&o.geometry===Q.pylon)))pxHide.push(o);});if(Q)pxHide.push(...bodyN);}
+    pxHide=[];root.traverse(o=>{if(o.isMesh&&o!==pc&&o!==pt&&(o.geometry===G.carbon||o.geometry===G.fw.cP||o.geometry===G.fw.cN||o.geometry===G.rwC||o.geometry===kit.tyreF||o.geometry===kit.tyreR||(Q&&o.geometry===Q.pylon)))pxHide.push(o);});if(Q)pxHide.push(...bodyN);
+    // 10-30: an AI car's shadow is drawn from one stand-in (the model's light body + the four tyres, ~16k triangles, 1 draw call) that
+    // only the sun's shadow camera sees (layer 1) - it was ~29 draw calls and ~55k triangles per car close by. At 7 cm shadow texels
+    // the outline is the same. The wing main planes and endplates keep their own shadows (they break off); the thin flaps drop theirs.
+    if(Q){if(!kit.shG)kit.shG=mergeGeos([Q.far_paint,Q.far_dark,kit.pxT]);const sh=new THREE.Mesh(kit.shG,Q.farDarkM);sh.receiveShadow=false;sh.layers.set(1);body.add(sh);
+      const keep=new Set([G.fw.cP,G.fw.cN,G.fw.sP,G.fw.sN,G.rwC,G.rwS]);for(const o of casters)o.castShadow=false;casters.length=0;casters.push(sh);
+      root.traverse(o=>{if(o.isMesh&&keep.has(o.geometry))casters.push(o);});for(const o of casters)o.castShadow=true;}}
   return {lod1,lod2,lod3,casters,px,pxHide,lodLv:0,root,body,wheels,fronts,uprights,helmet,tcPod,drs,ffp,fw,rw,nose:null,noseAnim:null,rwSpare:null,rwAnim:null,ck,mirF:Q?Q.mir:null,fixV:null,dmgKey:'',toe:[0,0,0,0],cam:[0,0,0,0],pkAny:false,dmgRoll:0,dmgPitch:0,rlM,latM,spinF:0,spinR:0,pitch:0,roll:0,steer:0,sw:null,rings,comp:c.ty.comp,strut,halo};
 }
 function buildSteeringWheel(kit,c){
@@ -4806,7 +4812,11 @@ if(isTouch){const TMS='vec3 CustomToneMapping( vec3 color ) { return color; }',c
     col=clamp(col,0.0,1.0);
     return mix(pow(col*0.9478672986+vec3(0.0521327014),vec3(2.4)),col*0.0773993808,vec3(lessThanEqual(col,vec3(0.04045))));}`);
     renderer.toneMapping=THREE.CustomToneMapping;GRADE_IN_TM=true;document.body.classList.add('tmgrade');}}
-renderer.shadowMap.enabled=true;renderer.shadowMap.type=quality==='high'&&!isTouch?THREE.PCFSoftShadowMap:THREE.PCFShadowMap;   // 10-29: phones (the only target) - soft PCF runs many taps per pixel over the whole screenrenderer.shadowMap.autoUpdate=false;renderer.physicallyCorrectLights=false;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=quality==='high'&&!isTouch?THREE.PCFSoftShadowMap:THREE.PCFShadowMap;   // 10-29: phones (the only target) - soft PCF runs many taps per pixel over the whole screen
+renderer.shadowMap.autoUpdate=false;renderer.physicallyCorrectLights=false;   // 10-30: (these two had ended up inside the comment above: the shadow map was redrawn for every render call - the main view AND the mirror - and the every-other-frame step did nothing)
+// 10-30: layer 1 holds shadow-only stand-ins (the AI cars' shadows). three r128 tests the VIEWING camera's layers in the shadow pass
+// too (the main view's list is already built by then), so the camera takes layer 1 just while the shadow map is drawn
+{const SR=renderer.shadowMap.render;renderer.shadowMap.render=function(l,s,c){const m=c.layers.mask;c.layers.enable(1);try{SR.call(this,l,s,c);}finally{c.layers.mask=m;}};}
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(70,1,0.05,5000);
 let composer=null,bloom=null,fxaa=null,grade=null;
@@ -7112,11 +7122,11 @@ function burst0(x,z,spd,a){for(let k=0;k<22;k++)emit(SPK,x,0.4,z,Math.cos(a)*spd
 let MIR=null,CAMLOOK=false,CAMPIT=false;
 function initMirror(){if(MIR)return;
   const w=quality==='high'?640:quality==='medium'?448:320,h=w/4,rt=new THREE.WebGLRenderTarget(w,h,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat,stencilBuffer:true});if(!composer)rt.texture.encoding=THREE.sRGBEncoding;   // stencil -> 24-bit depth (r128 gives a plain target 16-bit depth). v14b: no post chain - the screen's encoding, so the scene's shaders are the same ones (and the fog and overlays blend as on screen)
-  const cam=new THREE.PerspectiveCamera(28,4,0.5,quality==='high'?300:quality==='medium'?170:130);   // 28 deg vertical at 4:1 = ~90 deg horizontal; a shorter view is cheaper
+  const cam=new THREE.PerspectiveCamera(28,4,0.5,quality==='high'?(isTouch?200:300):quality==='medium'?170:130);   // 28 deg vertical at 4:1 = ~90 deg horizontal; a shorter view is cheaper (10-30: phones 200 m - in their ~140 px mirror a car at 200 m is a pixel; 5-20 draw calls less, same picture)
   const mat=new THREE.MeshBasicMaterial({map:rt.texture,toneMapped:false});
   const g=new THREE.PlaneGeometry(2,2),uv=g.attributes.uv;for(let i=0;i<uv.count;i++)uv.setX(i,1-uv.getX(i));   // a mirror flips left-right
   const hs=new THREE.Scene(),hc=new THREE.OrthographicCamera(-1,1,1,-1,0,1);hs.add(new THREE.Mesh(g,mat));
-  const on=loadLS('lightsout3d-mirror');MIR={rt,cam,mat,hs,hc,frame:0,on:on==null?(!isTouch&&quality!=='low'):on==='1',rect:'',faces:[]};}
+  const on=loadLS('lightsout3d-mirror');MIR={rt,cam,mat,hs,hc,far0:cam.far,frame:0,on:on==null?(!isTouch&&quality!=='low'):on==='1',rect:'',faces:[]};}
 // beyond the first detail step: the carbon parts and tyres as one stand-in each, and the model's light body (v15)
 function pxFar(m,far,lv3){m.px.pc.visible=far&&!lv3;m.px.pt.visible=far;for(const o of m.pxHide)o.visible=!far;if(m.px.bf)for(const o of m.px.bf)o.visible=far;}
 function addMirrorFaces(m){if(!MIR)return;MIR.faces=[];if(quality==='low')return;   // the player's two wing mirrors show the left / right halves of the (flipped) rear view
@@ -7135,16 +7145,24 @@ function renderMirror(){
   // v12c: the mirror image is small - other cars in it are drawn at a far level of detail (body, floor and tyres; a bit more when
   // close behind), which roughly halves its draw calls with a pack behind
   const lodS=MIR.lodS||(MIR.lodS=[]);lodS.length=0;
-  for(let i=0;i<meshes.length;i++){const mm=meshes[i],c=race.cars[i];if(!mm||!mm.lod3||c.isP||!mm.root.visible)continue;const lv=Math.hypot(c.x-pl.x,c.z-pl.z)<20?2:3;if(mm.lodLv>=lv)continue;lodS.push(mm);
+  // 10-30 (phones): the mirror is ~140 px wide there - a car 50 m back is ~3 px in it, 90 m back ~1.5 px. Beyond 50 m only its
+  // painted body is drawn (no floor, tyres, wings: 3 draw calls -> 1), beyond 90 m none of it (the blob under it stays)
+  const mh=MIR.mh||(MIR.mh=[]);mh.length=0;
+  for(let i=0;i<meshes.length;i++){const mm=meshes[i],c=race.cars[i];if(!mm||!mm.lod3||c.isP||!mm.root.visible)continue;const d=Math.hypot(c.x-pl.x,c.z-pl.z);
+    if(isTouch&&d>(PERF.mirLite?60:90)){mm.root.visible=false;mh.push(mm.root);continue;}
+    const lv=d<20?2:3;if(mm.lodLv<lv){lodS.push(mm);
     for(const o of mm.lod1)o.visible=false;for(const o of mm.lod2)o.visible=false;if(lv>=3)for(const o of mm.lod3)o.visible=false;if(mm.px&&mm.px.bf&&mm.lodLv<1)pxFar(mm,true,lv>=3);}
-  renderer.setRenderTarget(MIR.rt);renderer.render(scene,MIR.cam);renderer.setRenderTarget(null);hide.forEach(o=>o.visible=true);
+    if(isTouch&&d>(PERF.mirLite?30:50)&&mm.px&&mm.px.bf)for(const o of[mm.px.pt,mm.px.pc,mm.px.bf[1]])if(o.visible){o.visible=false;mh.push(o);}}
+  // 10-30: nothing has moved since the main view was drawn this frame - the scene's ~2200 matrices are not worked out a second time
+  renderer.setRenderTarget(MIR.rt);const au=scene.autoUpdate;scene.autoUpdate=false;renderer.render(scene,MIR.cam);scene.autoUpdate=au;renderer.setRenderTarget(null);hide.forEach(o=>o.visible=true);for(const o of mh)o.visible=true;
   for(const mm of lodS){const lv=mm.lodLv;for(const o of mm.lod1)o.visible=lv<1;for(const o of mm.lod2)o.visible=lv<2;for(const o of mm.lod3)o.visible=lv<3;if(mm.px&&mm.px.bf&&lv<1)pxFar(mm,false,false);}}
 // performance governor: if the frame rate stays low while racing, drop the costliest effects one step at a time
 const PERF={acc:0,n:0,step:0};
 // set the resolution to pr (the full one clears the cap)
 function perfSetPR(pr){const b=basePR();if(pr>=b-0.01){pr=b;delete PERF.prCap;}else PERF.prCap=pr;renderer.setPixelRatio(pr);resize2();}
 // back in the menu every race starts fresh: full resolution and car detail (a phone that struggled once is not stuck blurry)
-function perfReset(){const had=PERF.prCap;for(const k in PERF)delete PERF[k];Object.assign(PERF,{acc:0,n:0,step:0});LODN=LODN0.slice();if(had)resize();}
+function perfReset(){const had=PERF.prCap;for(const k in PERF)delete PERF[k];Object.assign(PERF,{acc:0,n:0,step:0});LODN=LODN0.slice();if(had)resize();
+  if(MIR&&MIR.cam.far!==MIR.far0){MIR.cam.far=MIR.far0;MIR.cam.updateProjectionMatrix();}}   // 10-30: the mirror's view length comes back too (it stayed cut for good)
 function perfGovernor(dt){if(state!=='race'||autoQ==='off')return;
   if(VS.hz>=90&&!PERF.lock60){VS.n++;if(dt*1000>1.45*1000/VS.hz)VS.miss++;VS.t+=dt;if(VS.t>=2){if(VS.miss>VS.n*0.12){PERF.lock60=true;toast('부드럽게: 60Hz로 고정했어요 (이 레이스)','#8ecae6',2.4);}VS.t=VS.n=VS.miss=0;}}
   PERF.acc+=dt;PERF.n++;if(PERF.acc<2.5)return;const fps=PERF.n/PERF.acc;PERF.acc=0;PERF.n=0;
@@ -7160,7 +7178,10 @@ function perfGovernor(dt){if(state!=='race'||autoQ==='off')return;
  // budget before switching anything else off - on the lowest setting the steps below have nothing left
  // to turn off anyway (AO, bloom, shadows and the post chain are already gone), so this ran out of
  // moves and only dropped resolution.
- if(!PERF.lodCut&&LODN[0]>2){PERF.lodCut=true;LODN=[2,4,7];say('멀리 있는 차를 간단히 그려요');return;}
+ // 10-30: first what cannot be seen: the rear-view mirror (~140 px wide on a phone) looks 150 m back and draws the cars behind
+ // at its lightest (no message - nothing changes on screen). Then the car detail in two steps, the second only after the shadows.
+ if(!PERF.mirLite&&MIR){PERF.mirLite=true;if(MIR.cam.far>150){MIR.cam.far=150;MIR.cam.updateProjectionMatrix();}return;}
+ if(!PERF.lodCut&&LODN[0]>4){PERF.lodCut=1;LODN=[4,8,12];say('멀리 있는 차를 간단히 그려요');return;}
  PERF.step++;
   if(PERF.step===1){if(aoPass&&aoPass.enabled){aoPass.enabled=false;say('그림자 보정(AO)을 껐어요');return;}PERF.step++;}
   if(PERF.step===2){let did=false;if(bloom&&bloom.enabled){bloom.enabled=false;did=true;}if(MIR&&MIR.cam.far>150){MIR.cam.far=150;MIR.cam.updateProjectionMatrix();}if(did){say('빛 번짐 효과를 껐어요');return;}PERF.step++;}
@@ -7173,6 +7194,7 @@ function perfGovernor(dt){if(state!=='race'||autoQ==='off')return;
     PERF.step++;}
   // v14: phones stop at 85% of the full resolution (one step) - below that the picture is visibly soft on a small screen.
   // v14b: smooth / normal may go on (step 6) down to their old floor (0.85 / 1.0625), since their full resolution went up a step (not measured on a phone)
+  if(PERF.step===4&&(PERF.lodCut||0)<2&&LODN[0]>2){PERF.lodCut=2;LODN=[2,4,7];PERF.step--;say('멀리 있는 차를 더 간단히 그려요');return;}   // (before any resolution step; the next check comes back to step 4)
   if(PERF.step===4||PERF.step===6){const cur=renderer.getPixelRatio(),nx=Math.max(isTouch?Math.min(basePR()*0.85,quality==='low'?0.85:quality==='medium'?1.0625:9):0.6,cur*0.85);
     if(!PERF.noRes&&nx<cur-0.01){PERF.tryFps=fps;PERF.tryPr=cur;if(PERF.upd)PERF.noUp=true;perfSetPR(nx);say('해상도를 조금 낮췄어요');return;}PERF.step++;}
   // v13j: switching the shadows or the post chain off changes every shader's program key - a full recompile, a freeze of its
@@ -7210,7 +7232,7 @@ let SHF=0;   // v12j: frame counter, for work that does not need doing every fra
 // over 12 % of the race frames miss it, draws every other refresh instead: a steady 60 beats a ragged 70-90 (PERF.lock60, per race).
 const VS={a:new Float32Array(120),i:0,hz:60,t:0,n:0,miss:0,lastV:0};
 function vsTick(now){const d=now-VS.lastV;VS.lastV=now;if(!(d>0&&d<100))return;VS.a[VS.i++%120]=d;
-  if(VS.i%120===0){const s=Array.from(VS.a).sort((x,y)=>x-y),p=s[12];VS.hz=p<9.5?120:p<12.5?90:60;}}
+  if(VS.i%120===0){const s=Array.from(VS.a).sort((x,y)=>x-y),p=s[12];VS.hz=Math.max(VS.hz,p<9.5?120:p<12.5?90:60);}}   // 10-30: the screen's rate only goes up - a heavy stretch (frames of 17 ms+) used to make a 120 Hz screen read "60Hz"
 function frame(now){
   vsTick(now);if(PERF.lock60&&now-last<12.5){requestAnimationFrame(frame);return;}   // locked: skip the in-between refresh
   const raw=(now-last)/1000,dt=Math.min(1/30,Math.max(0,raw));last=now;fpsTick(raw);
