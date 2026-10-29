@@ -7135,7 +7135,9 @@ const PERF={acc:0,n:0,step:0};
 function perfSetPR(pr){const b=basePR();if(pr>=b-0.01){pr=b;delete PERF.prCap;}else PERF.prCap=pr;renderer.setPixelRatio(pr);resize2();}
 // back in the menu every race starts fresh: full resolution and car detail (a phone that struggled once is not stuck blurry)
 function perfReset(){const had=PERF.prCap;for(const k in PERF)delete PERF[k];Object.assign(PERF,{acc:0,n:0,step:0});LODN=LODN0.slice();if(had)resize();}
-function perfGovernor(dt){if(state!=='race'||autoQ==='off')return;PERF.acc+=dt;PERF.n++;if(PERF.acc<2.5)return;const fps=PERF.n/PERF.acc;PERF.acc=0;PERF.n=0;
+function perfGovernor(dt){if(state!=='race'||autoQ==='off')return;
+  if(VS.hz>=90&&!PERF.lock60){VS.n++;if(dt*1000>1.45*1000/VS.hz)VS.miss++;VS.t+=dt;if(VS.t>=2){if(VS.miss>VS.n*0.12){PERF.lock60=true;toast('부드럽게: 60Hz로 고정했어요 (이 레이스)','#8ecae6',2.4);}VS.t=VS.n=VS.miss=0;}}
+  PERF.acc+=dt;PERF.n++;if(PERF.acc<2.5)return;const fps=PERF.n/PERF.acc;PERF.acc=0;PERF.n=0;
   // v14: a resolution cut that did not raise the frame rate is undone - the phone is held at 30 by power saving (or it is
   // not the pixels), and the picture would only get blurry for nothing. Resolution is then left alone for this race.
   if(PERF.tryFps!=null){const t=PERF.tryFps,p=PERF.tryPr;PERF.tryFps=null;if(fps<t+3){PERF.noRes=true;perfSetPR(p);return;}}
@@ -7191,9 +7193,16 @@ let HALOGH=loadLS('lightsout3d-haloblur')!=='0';   // 10-29 윤택님: the halo 
 function toggleHalo(){HALOGH=!HALOGH;saveLS('lightsout3d-haloblur',HALOGH?'1':'0');toast(HALOGH?'헤일로 블러 켬 (콕핏 시점)':'헤일로 블러 끔','#fff');pauseLabels();}
 function fpsTick(raw){if(!FPSON||!(raw>0)||raw>1)return;FPSM.a.push(raw);FPSM.t+=raw;if(FPSM.t<0.5)return;FPSM.t=0;if(FPSM.a.length>240)FPSM.a.splice(0,FPSM.a.length-240);
   const a=FPSM.a,s=a.slice().sort((x,y)=>x-y),avg=a.reduce((x,y)=>x+y,0)/a.length,p99=s[Math.min(s.length-1,Math.floor(s.length*0.99))],pr=renderer.getPixelRatio()/basePR();   // v14: % of this setting's full resolution
-  $('fpsBox').textContent='FPS '+Math.round(1/avg)+' · 최저 '+Math.round(1/p99)+(pr<0.99?' · 해상도 '+Math.round(pr*100)+'%':'');}
+  $('fpsBox').textContent='FPS '+Math.round(1/avg)+' · 최저 '+Math.round(1/p99)+' · 화면 '+VS.hz+'Hz'+(PERF.lock60?' · 60 고정':'')+(pr<0.99?' · 해상도 '+Math.round(pr*100)+'%':'');}
 let SHF=0;   // v12j: frame counter, for work that does not need doing every frame
+// 10-29 윤택님 (iPhone 18 Pro, high refresh): a 120 Hz screen the game cannot hold every frame alternates 8 ms and 16 ms
+// frames - an uneven picture that reads as stutter at speed. VS watches the refresh rate (the shortest rAF intervals) and, when
+// over 12 % of the race frames miss it, draws every other refresh instead: a steady 60 beats a ragged 70-90 (PERF.lock60, per race).
+const VS={a:new Float32Array(120),i:0,hz:60,t:0,n:0,miss:0,lastV:0};
+function vsTick(now){const d=now-VS.lastV;VS.lastV=now;if(!(d>0&&d<100))return;VS.a[VS.i++%120]=d;
+  if(VS.i%120===0){const s=Array.from(VS.a).sort((x,y)=>x-y),p=s[12];VS.hz=p<9.5?120:p<12.5?90:60;}}
 function frame(now){
+  vsTick(now);if(PERF.lock60&&now-last<12.5){requestAnimationFrame(frame);return;}   // locked: skip the in-between refresh
   const raw=(now-last)/1000,dt=Math.min(1/30,Math.max(0,raw));last=now;fpsTick(raw);
   if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').style.opacity=0;}
   if(flagPulse>0)flagPulse-=dt;
