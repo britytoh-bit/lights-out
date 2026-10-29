@@ -4483,11 +4483,11 @@ function ghostMat(kit){const gm=kit.ghostM=new THREE.MeshBasicMaterial({color:0x
 function buildCar(kit,scene,c){
   const M=teamMats(kit,c.team,c.num,c.isP?null:c.code,!!kit.glb),root=new THREE.Group(),body=new THREE.Group(),G=kit.geo;root.add(body);
   const add=(g,m,par,cast)=>{const me=new THREE.Mesh(g,m);me.castShadow=!!cast;me.receiveShadow=true;(par||body).add(me);return me;};
-  const Q=kit.glb,ck=Q?Q.ck:{x:0,y:0,tx:0,ty:0},bodyN=[],bodyF=[];let tcPod,strut=null;
+  const Q=kit.glb,ck=Q?Q.ck:{x:0,y:0,tx:0,ty:0},bodyN=[],bodyF=[];let tcPod,strut=null,halo=null;
   if(Q){Q.dbl(M.paint);const P=glbMats(kit,c.team),nb=(g,m,cast)=>{const me=add(g,m,body,cast);bodyN.push(me);return me;};   // v15: the 3D model's body
     nb(Q.paint,M.paint,true);nb(Q.black,P.gBlack,true);nb(Q.carbon,Q.carbonM,true);nb(Q.generic,Q.genericM,true);nb(Q.chrome,Q.chromeM);nb(Q.mirror,kit.mirrorM);
     tcPod=nb(Q.tcam,M.tcam);add(Q.pylon,kit.carbonM,body,true);
-    const sn=nb(Q.strut,P.gBlack,true);
+    const sn=nb(Q.strut,P.gBlack,true);if(Q.halo&&c.isP)halo=nb(Q.halo,P.gBlack,true);else if(Q.halo)nb(Q.halo,P.gBlack,true);   // 10-29: the halo hoop is its own part, hidden in the player's cockpit view
     if(c.isP){if(!kit.ghostM)ghostMat(kit);strut={n:sn,g:add(Q.strut,kit.ghostM,body)};strut.g.visible=false;strut.g.renderOrder=3;}
     for(const [g,m] of[[Q.far_paint,M.paint],[Q.far_dark,Q.farDarkM]]){const me=add(g,m,body);me.visible=false;bodyF.push(me);}}
   else{
@@ -4530,7 +4530,7 @@ function buildCar(kit,scene,c){
   let px=null,pxHide=null;if(!c.isP){if(!kit.pxC){kit.pxC=mergeGeos([G.carbon,G.fw.cP,G.fw.cN,G.rwC]);const tg=[];for(const [x,front] of[[WHL.xf,true],[WHL.xr,false]])for(const s of[-1,1]){const g=(front?kit.tyreFlo:kit.tyreRlo).clone();g.translate(x,0.36,s*(front?WHL.zf:WHL.zr));tg.push(g);}kit.pxT=mergeGeos(tg);}
     const pc=new THREE.Mesh(Q?kit.pxCg:kit.pxC,kit.carbonM),pt=new THREE.Mesh(kit.pxT,kit.tyreM);pc.visible=pt.visible=false;pc.receiveShadow=pt.receiveShadow=true;body.add(pc);root.add(pt);px={pc,pt,bf:Q?bodyF:null};
     pxHide=[];root.traverse(o=>{if(o.isMesh&&o!==pc&&o!==pt&&(o.geometry===G.carbon||o.geometry===G.fw.cP||o.geometry===G.fw.cN||o.geometry===G.rwC||o.geometry===kit.tyreF||o.geometry===kit.tyreR||(Q&&o.geometry===Q.pylon)))pxHide.push(o);});if(Q)pxHide.push(...bodyN);}
-  return {lod1,lod2,lod3,casters,px,pxHide,lodLv:0,root,body,wheels,fronts,uprights,helmet,tcPod,drs,ffp,fw,rw,nose:null,noseAnim:null,rwSpare:null,rwAnim:null,ck,mirF:Q?Q.mir:null,fixV:null,dmgKey:'',toe:[0,0,0,0],cam:[0,0,0,0],pkAny:false,dmgRoll:0,dmgPitch:0,rlM,latM,spinF:0,spinR:0,pitch:0,roll:0,steer:0,sw:null,rings,comp:c.ty.comp,strut};
+  return {lod1,lod2,lod3,casters,px,pxHide,lodLv:0,root,body,wheels,fronts,uprights,helmet,tcPod,drs,ffp,fw,rw,nose:null,noseAnim:null,rwSpare:null,rwAnim:null,ck,mirF:Q?Q.mir:null,fixV:null,dmgKey:'',toe:[0,0,0,0],cam:[0,0,0,0],pkAny:false,dmgRoll:0,dmgPitch:0,rlM,latM,spinF:0,spinR:0,pitch:0,roll:0,steer:0,sw:null,rings,comp:c.ty.comp,strut,halo};
 }
 function buildSteeringWheel(kit,c){
   // v11b: a modern F1-style wheel (an original design, no team's real wheel): flat-topped faceplate, sculpted grips with a band in the
@@ -6539,7 +6539,7 @@ function sync(dt){
   headLat=Math.max(-0.09,Math.min(0.09,headLat));headLon=Math.max(-0.07,Math.min(0.05,headLon));
   const pitCam=!!(pInfo&&(pInfo.ph==='stop'||(pInfo.ph==='in'&&Math.abs(pl.spd)<9)||(pInfo.ph==='out'&&race.t-pInfo.car.pit.relT<0.9)));
   const lookBack=!!key.look&&!pitCam&&cm!=='tv'&&(state==='race'||state==='done'||state==='countdown');CAMLOOK=lookBack;CAMPIT=pitCam;
-  pm.helmet.visible=pitCam||lookBack||cm!=='cockpit'||!!CINE;if(SW)SW.g.visible=!pitCam&&!lookBack&&(cm==='cockpit'||cm==='tcam')&&!CINE;if(pm.tcPod)pm.tcPod.visible=!(cm==='tcam'&&!pitCam&&!lookBack&&!CINE);
+  pm.helmet.visible=pitCam||lookBack||cm!=='cockpit'||!!CINE;if(SW)SW.g.visible=!pitCam&&!lookBack&&(cm==='cockpit'||cm==='tcam')&&!CINE;if(pm.tcPod)pm.tcPod.visible=!(cm==='tcam'&&!pitCam&&!lookBack&&!CINE);if(pm.halo)pm.halo.visible=!(cm==='cockpit'&&!pitCam&&!lookBack&&!CINE);   // 10-29 윤택님: the hoop blocked the view
   if(pm.strut){const gh=HALOGH&&cm==='cockpit'&&!pitCam&&!lookBack&&!CINE;if(pm.strut.g.visible!==gh){pm.strut.g.visible=gh;pm.strut.n.visible=!gh;}}   // v12i: G key / pause menu   // the T-cam sits in that pod
   const sp=Math.abs(pl.spd)/VMAX;shakeT+=dt;
   const vib=(Math.sin(shakeT*61)*0.6+Math.sin(shakeT*37))*0.0025*sp+(pl.off?Math.sin(shakeT*45)*0.018:0)+(pl.kerbW||0)*Math.min(1,sp*2.5)*(Math.sin(shakeT*83)*0.006+Math.sin(shakeT*131)*0.003)
