@@ -47,6 +47,7 @@ body{height:100%; margin:0; background:var(--bg); color:var(--ink); overflow:hid
 /* v14b: phone smooth / normal - the post chain's vignette as a CSS layer (same curve: 0.22 at the default .6 opacity, darker with speed) */
 #vig{display:none; position:absolute; inset:0; pointer-events:none; opacity:.6; background:radial-gradient(ellipse 72% 90% at 50% 48%,rgba(0,0,0,0) 38.89%,rgba(0,0,0,.0573) 54.17%,rgba(0,0,0,.1833) 69.44%,rgba(0,0,0,.3094) 84.72%,rgba(0,0,0,.3667) 100%)}
 body.tmgrade #vig{display:block}
+#hitfx{display:none; position:absolute; inset:0; pointer-events:none; opacity:0; background:radial-gradient(ellipse 70% 80% at 50% 50%,rgba(255,240,225,0) 42%,rgba(255,225,205,.32) 75%,rgba(255,205,185,.7) 100%)}
 .num{font-family:"Saira Condensed","Arial Narrow",system-ui,sans-serif; font-variant-numeric:tabular-nums}
 /* ---- v11 HUD: slim broadcast-style panels, the player's team colour as the accent (--team, set per race) ---- */
 :root{--team:#e10600; --hud:rgba(9,11,15,.8); --hudLine:rgba(255,255,255,.08)}
@@ -417,7 +418,7 @@ body.touch.racing #rotate{display:none !important}   /* no full-screen "turn you
 </head>
 <body>
 <div id="wrap">
-  <canvas id="gl"></canvas><div id="vig"></div>
+  <canvas id="gl"></canvas><div id="vig"></div><div id="hitfx"></div>
   <div class="hud num" id="hudTop"><div><span id="pos">P12</span><span class="small" id="posN">/22</span></div><div><span class="small" id="lapL">랩 </span><span id="lap">1/3</span></div><div id="pen" class="small" style="color:#ffb347"></div><div id="wxI" class="small"></div></div>
   <div id="flag" class="num"></div>
   <div id="pitT" class="num"><span id="pitTl">피트 스톱</span><b id="pitTv">0.0</b></div>
@@ -1117,7 +1118,7 @@ function barrier(race,c){
 }
 function wallHit(race,c,hit,into,side){
   if(race.rc&&(hit>(c.bigHit||0)||race.t-(c.bigHitT||-99)>15)){c.bigHit=hit;c.bigHitT=race.t;}   // v12g: the hardest recent barrier impact (a big crash may stop the race)
-  if(hit>5){for(let k=0;k<4;k++)c.ty.wear[k]+=Math.min(0.08,hit*0.004);if(c.isP){race.EV.push({type:'wall',hit});if(hit>22&&race.rc)addYellow(race,c.idx,false,10);}}
+  if(hit>5){for(let k=0;k<4;k++)c.ty.wear[k]+=Math.min(0.08,hit*0.004);if(c.isP){race.EV.push({type:'wall',hit,into,side});if(hit>22&&race.rc)addYellow(race,c.idx,false,10);}}
   if(hit>3)applyDmg(race,c,impactInc(hit,into,side),hit,'wall');}
 // ---------------- damage ----------------
 // fp / fn: front-wing half on the car's +z / -z side (+z is the driver's right), rw: rear wing,
@@ -1630,7 +1631,7 @@ function collide(race){
       const ax=a.x+Math.cos(a.a)*sa,az=a.z+Math.sin(a.a)*sa,bx=b.x+Math.cos(b.a)*sb,bz=b.z+Math.sin(b.a)*sb,dx=bx-ax,dz=bz-az,d=Math.hypot(dx,dz);
       if(d>0.001&&d<2.1){const nx=dx/d,nz=dz/d,ov=(2.1-d)/2;a.x-=nx*ov;a.z-=nz*ov;b.x+=nx*ov;b.z+=nz*ov;a.jx=(a.jx||0)-nx*ov;a.jz=(a.jz||0)-nz*ov;b.jx=(b.jx||0)+nx*ov;b.jz=(b.jz||0)+nz*ov;a.px-=nx*2.5;a.pz-=nz*2.5;b.px+=nx*2.5;b.pz+=nz*2.5;
         const rel=Math.abs(a.spd-b.spd),back=gapTo(a,b)>0?a:b,front=back===a?b:a;back.spd=Math.min(back.spd,front.spd*0.97);a.spd*=0.99;b.spd*=0.99;
-        if((a.isP||b.isP)&&rel>2.5)race.EV.push({type:'contact'});if(rel>4&&(a.isP||b.isP))contactDmg(race,a,b,sa,sb,rel,nx,nz);/* AI-AI touches in this simple model are mostly traffic overlap, not racing incidents */done=true;break;}}}
+        if((a.isP||b.isP)&&rel>2.5)race.EV.push({type:'contact',rel,x:(ax+bx)/2,z:(az+bz)/2,nx:a.isP?nx:-nx,nz:a.isP?nz:-nz});if(rel>4&&(a.isP||b.isP))contactDmg(race,a,b,sa,sb,rel,nx,nz);/* AI-AI touches in this simple model are mostly traffic overlap, not racing incidents */done=true;break;}}}
   }
 }
 function stepRace(race,dt,inp){
@@ -4562,11 +4563,24 @@ function buildSteeringWheel(kit,c){
     const a=(i-0.5)*0.9,t=add(tickG,tickM,face-0.0098,y+0.0055*Math.cos(a),z+0.0055*Math.sin(a));t.rotation.x=a;});
   add(mergeGeosC(rrs),std({vertexColors:true,roughness:0.4}),0,0,0);
   const arms=[];
-  {const gloveM=new THREE.MeshStandardMaterial({color:0x26272b,roughness:0.9}),cuffM=new THREE.MeshStandardMaterial({color:new THREE.Color(tm.p).convertSRGBToLinear().multiplyScalar(0.7),roughness:0.8}),suitM=new THREE.MeshStandardMaterial({color:new THREE.Color(tm.p).convertSRGBToLinear().multiplyScalar(0.8),roughness:0.8});
-   for(const s of[-1,1]){const gl=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),gloveM);gl.scale.set(0.04,0.052,0.036);gl.position.set(-0.045,-0.002,s*0.148);g.add(gl);
-     const th=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),gloveM);th.scale.set(0.028,0.016,0.018);th.position.set(-0.028,0.04,s*0.125);g.add(th);
+  {const gloveM=new THREE.MeshStandardMaterial({color:0x2a2c31,roughness:0.85}),cuffM=new THREE.MeshStandardMaterial({color:new THREE.Color(tm.p).convertSRGBToLinear().multiplyScalar(0.7),roughness:0.8}),suitM=new THREE.MeshStandardMaterial({color:new THREE.Color(tm.p).convertSRGBToLinear().multiplyScalar(0.8),roughness:0.8});
+   // v15: gloves that hold the grips (they were two blobs): four fingers curl round the outside of the grip to the back, where the
+   // paddles are; the thumb lies along the front of the faceplate by the top buttons; the back of the hand runs into the cuff (team
+   // colour). Built round the grip's own axis and tilt, all in the wheel group g, so they turn with the wheel. One mesh for both hands.
+   const hd=[];
+   for(const s of[-1,1]){const T=gg=>gg.rotateX(s*0.1).translate(-0.004,-0.004,s*0.146),el=(rx,ry,rz,x,y,z,ay)=>new THREE.SphereGeometry(1,12,9).scale(rx,ry,rz).rotateY(ay||0).translate(x,y,s*z);
+     [[0.025,0.0084,0.88],[0.0075,0.0088,0.94],[-0.0105,0.0085,0.92],[-0.027,0.0076,0.84]].forEach(([y,tb,ar])=>{   // index .. little finger
+       const rg=y>0?0.028-0.002*y/0.03:0.028,Rx=rg*1.15+tb,Rz=rg*0.85+tb,Rm=(Rx+Rz)/2,a1=1.92,a0=a1-ar*Math.PI;   // from the knuckles (~110 deg, outside) round the back
+       const f=new THREE.TorusGeometry(Rm,tb,6,10,a1-a0).rotateX(Math.PI/2).rotateY(s>0?-a0:a1).scale(Rx/Rm,1,Rz/Rm).translate(0,y,0);
+       const at=(t,r)=>new THREE.SphereGeometry(r,8,6).translate(Rx*Math.cos(t),y,s*Rz*Math.sin(t));
+       hd.push(T(f),T(at(a0,tb)),T(at(1.66,tb*1.18)));});
+     hd.push(T(el(0.017,0.03,0.019,-0.036,0.004,0.004,0)));   // the ball of the thumb on the driver's side of the grip
+     {const th=[[-0.04,0.022,0.004,0.0105],[-0.036,0.04,-0.016,0.0094],[-0.031,0.045,-0.035,0.0086]];   // thumb: base, knuckle, tip (resting on the faceplate)
+      for(let k=0;k<3;k++){const [x,y,z,r]=th[k];hd.push(T(new THREE.SphereGeometry(r,8,6).translate(x,y,s*z)));if(k)hd.push(T(rod(th[k-1].slice(0,3).map((v,j)=>j===2?s*v:v),[x,y,s*z],r,7)));}}
+     hd.push(T(el(0.05,0.038,0.0155,-0.038,-0.001,0.033,s*0.12)));   // back of the hand, on the outside of the grip
      const cf=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.042,0.05,14),cuffM);cf.rotation.z=Math.PI/2;cf.rotation.y=s*0.35;cf.position.set(-0.095,-0.02,s*0.17);g.add(cf);
-     const ag=new THREE.CylinderGeometry(0.034,0.044,1,14);ag.translate(0,0.5,0);const am=new THREE.Mesh(ag,suitM);am.userData.s=s;arms.push(am);}}
+     const ag=new THREE.CylinderGeometry(0.034,0.044,1,14);ag.translate(0,0.5,0);const am=new THREE.Mesh(ag,suitM);am.userData.s=s;arms.push(am);}
+   g.add(new THREE.Mesh(mergeGeos(hd),gloveM));}
   col.position.set(0.1,isTouch?0.63:0.66,0);col.scale.setScalar(0.8);col.rotation.z=-0.28;   // phones: a little lower, under the speed panel
   mergeStaticParts(g);   // v12h: the static parts that share a material become one mesh each (the wheel: ~49 draw calls -> 14)
   const SWo={g,col,leds,ledIM,dc,dt,last:'',acc:0,lastG:'',lastL:false,accC:acc,arms};
@@ -4744,7 +4758,7 @@ let GRADE_IN_TM=false;
 // v14b: a dark see-through overlay (blob shadow, rubber, skids, wall foot) blends straight onto the sRGB screen with no post chain,
 // not in linear light - the same darkening needs less opacity (as the halo pillar)
 function scrBlend(m){if(GRADE_IN_TM)m.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <alphamap_fragment>','#include <alphamap_fragment>\ndiffuseColor.a=1.0-pow(1.0-diffuseColor.a,0.4545);');};return m;}
-const VIG=$('vig');let VIGO=0.6;
+const VIG=$('vig'),HITFX=$('hitfx');let VIGO=0.6;
 if(isTouch&&quality!=='high'){const TMS='vec3 CustomToneMapping( vec3 color ) { return color; }',ch=THREE.ShaderChunk.tonemapping_pars_fragment;
   if(ch.includes(TMS)){THREE.ShaderChunk.tonemapping_pars_fragment=ch.replace(TMS,`vec3 CustomToneMapping( vec3 color ) {
     vec3 col=ACESFilmicToneMapping(color);
@@ -6390,7 +6404,7 @@ function handleEvents(){
     if(e.type==='finish'){state='done';doneT=0;if(!race.sess)finishFx();}
     if(e.type==='green')race.rc.greenAt=race.t;
     if(e.type==='wall'||e.type==='contact'||e.type==='pitStop'||e.type==='finish')sfx(e.type);
-    if(e.type==='wall'||e.type==='contact'){const p=race.player;burst(p.x+Math.cos(p.a)*2,p.z+Math.sin(p.a)*2,p.spd,p.a);}
+    if(e.type==='wall'||e.type==='contact')crashFx(e);
     if(e.type==='contact'&&toastT>0.8)continue;
     if(isTouch&&FLAG_EV.has(e.type)){flagPanel();if($('flag').classList.contains('show')){flagPulse=2.2;if(toastT>0&&performance.now()>=toastHold){toastT=0;$('toast').style.opacity=0;}flagPanel();continue;}}
     const f=MSG[e.type],mm=f&&f(e);if(mm){const [m,c]=mm;toast(m,c,/sc|vsc|dnf|Pen|Pass|jump|restart/.test(e.type)?2.6:1.8);}
@@ -6492,6 +6506,8 @@ function sync(dt){
   const vib=(Math.sin(shakeT*61)*0.6+Math.sin(shakeT*37))*0.0025*sp+(pl.off?Math.sin(shakeT*45)*0.018:0)+(pl.kerbW||0)*Math.min(1,sp*2.5)*(Math.sin(shakeT*83)*0.006+Math.sin(shakeT*131)*0.003)
     +((pl.lockF||pl.lockR)?Math.sin(shakeT*57)*0.006:0)+Math.max(0,(pl.flat||0)-0.05)*Math.sin(shakeT*Math.abs(pl.spd)*2.7)*0.009
     +IMPACT*(Math.sin(shakeT*73)*0.05+Math.sin(shakeT*41)*0.035);IMPACT*=Math.exp(-dt*5);
+  {const J=JOLT,h=Math.min(dt,0.05);J.vx+=(-260*J.x-22*J.vx)*h;J.vz+=(-260*J.z-22*J.vz)*h;J.x+=J.vx*h;J.z+=J.vz*h;J.x=Math.max(-0.12,Math.min(0.12,J.x));J.z=Math.max(-0.14,Math.min(0.14,J.z));
+   if(HITF>0||HITO){HITF=Math.max(0,HITF-dt*2.8);const o=Math.round(HITF*20)/20;if(o!==HITO){HITO=o;HITFX.style.opacity=o;HITFX.style.display=o>0?'block':'none';}}}
   const pitch=pm.pitch||0,gy=pm.py!=null?pm.py:roadY(pl.x,pl.z,pl.idx),gs=pm.pp!=null?Math.tan(pm.pp):slopeAlong(pl.idx,pl.a),KP=0.5;   // v12c: the car's own pose
   // v13g: the driver's head is not bolted to the car. It is thrown against the cornering load,
   // nods under braking and shakes over the kerbs, and it turns a little into the corner. headLat
@@ -6503,15 +6519,15 @@ function sync(dt){
     eye.set(x0+c1*lx-s1*lz,2.9+vib+gy,z0+s1*lx+c1*lz);look.set(x0+c1*tx-s1*tz,0.3+gy,z0+s1*tx+c1*tz);camera.fov=46;camera.near=0.5;chaseInit=false;}
   else if(lookBack){   // hold V: rear-facing onboard from the cockpit views, reverse chase from the outside views
     if(outCam(cm)){L(8.2,2.6+gy+KP*gs*8.2,0,eye,true);if(pitTunSect(pl))pitTunCam(eye);L(-6,0.9+gy-KP*gs*6,0,look,true);camera.fov=60;camera.near=0.3;}else{L(-0.32+pm.ck.tx,1.34+pm.ck.ty+vib+gy,0,eye,true);L(-30,0.6+gy-gs*30,0,look,true);camera.fov=64;camera.near=0.12;}chaseInit=false;}
-  else if(cm==='cockpit'){const ex=-0.36+pm.ck.x+(pm.ck.ex||0)+headLon;L(ex,0.87+pm.ck.y+(pm.ck.ey||0)+vib+pm.body.position.y+gy+ex*gs,headLat,eye,true);L(30,0.45-headLon*4+pitch*30+gy+gs*30,pl.st*1.6,look,false);camera.fov=62+8*sp;camera.near=0.1;chaseInit=false;}
-  else if(cm==='tcam'){const Q=TCAMP,by=pm.body.position.y,ah=20,qx=Q.x+pm.ck.tx,qy=Q.y+pm.ck.ty;L(qx,qy+by+vib*0.6+gy+qx*gs,Q.z,eye,true);   // fixed to the car: it pitches with the road and the body, no look into the corners
+  else if(cm==='cockpit'){const ex=-0.36+pm.ck.x+(pm.ck.ex||0)+headLon+JOLT.x;L(ex,0.87+pm.ck.y+(pm.ck.ey||0)+vib+pm.body.position.y+gy+ex*gs,headLat+JOLT.z,eye,true);L(30,0.45-headLon*4+pitch*30+gy+gs*30,pl.st*1.6,look,false);camera.fov=62+8*sp;camera.near=0.1;chaseInit=false;}
+  else if(cm==='tcam'){const Q=TCAMP,by=pm.body.position.y,ah=20,qx=Q.x+pm.ck.tx+JOLT.x*0.5,qy=Q.y+pm.ck.ty;L(qx,qy+by+vib*0.6+gy+qx*gs,Q.z+JOLT.z*0.5,eye,true);   // fixed to the car: it pitches with the road and the body, no look into the corners
     L(qx+ah,qy+by+gy-ah*Math.tan(Q.pitch)+(pitch+gs)*ah,Q.z,look,true);camera.fov=Q.fov+Q.fovS*sp;camera.near=Q.near;chaseInit=false;}
   else if(cm==='tv'&&(tvS=tvPick(pl))){const ey=hXZ(tvS.x,tvS.z)+7.6;eye.set(tvS.x,ey,tvS.z);look.set(PX,0.5+gy,PZ);   // v14b: TV view, zoomed to ~9 m of picture at the car
     camera.fov=Math.max(2.5,Math.min(45,2*Math.atan(4.5/Math.min(1,camera.aspect)/Math.max(1,eye.distanceTo(look)))*180/Math.PI));camera.near=2;chaseInit=false;TVR.set(PX,1.2+gy,PZ);}
   else{const far=cm==='far',bk=far?11.5:7.5,ah=far?9:6;L(-bk,(far?3.8:2.4)+gy-KP*gs*bk,0,eye,false);if(!chaseInit){chasePos.copy(eye);chaseInit=true;}chasePos.lerp(eye,Math.min(1,dt*(far?6:8)));eye.copy(chasePos);
     if(pitTunSect(pl))pitTunCam(eye);else if(HD.on)eye.y=Math.max(eye.y,hXZ(eye.x,eye.z)+Math.max(0,gy-hXZ(pl.x,pl.z))+1.0);eye.y+=vib*3;L(ah,(far?1.2:1.0)+gy+KP*gs*ah,0,look,true);camera.fov=(far?54:60)+10*sp+(pl.boost?3:0);camera.near=far?0.4:0.3;}   // (v12d: in the Yas exit tunnel the camera stays between its walls and under its roof)
   let cc=null;try{cc=cineCam(dt);}catch(e){CINE=null;document.body.classList.remove('cine');}if(cc){eye.copy(cc.pos);look.copy(cc.look);camera.fov=cc.fov;camera.near=0.3;chaseInit=false;}CAMFOCUS=cc&&cc.focus;TVON=!!tvS&&!cc&&state!=='menu';
-  camera.position.copy(eye);camera.lookAt(look);if(!cc&&!outCam(cm)&&cm!=='tcam'&&!pitCam&&!lookBack)camera.rotateZ(-pl.st*0.02*sp+headLat*0.15);
+  camera.position.copy(eye);camera.lookAt(look);if(!cc&&!outCam(cm)&&cm!=='tcam'&&!pitCam&&!lookBack)camera.rotateZ(-pl.st*0.02*sp+headLat*0.15+JOLT.z*0.9);
   if(TR.bank&&!cc&&(cm==='cockpit'||cm==='tcam')&&!pitCam&&!lookBack&&pm.pr)camera.rotateZ(-pm.pr);   // v13: on a circuit with banked turns the onboard cameras lean with the car (the horizon tilts)
   camera.updateProjectionMatrix();   // the head tilts in the cockpit; the T-cam is bolted to the car (v12b: it no longer tips with the steering)
   // the shadow camera follows the car in whole shadow-map texels, so shadow edges do not crawl or flicker while driving
@@ -6961,13 +6977,14 @@ function initParticles(){
   SPR=makePS(1600,mt,THREE.NormalBlending);initRain();initSkids();initDebris();
 }
 let EML=0;   // road height under the car emitting
-function emit(ps,x,y,z,vx,vy,vz,life,size,grow,a0,r,g,b){const i=ps.head;ps.head=(ps.head+1)%ps.max;
+function emit(ps,x,y,z,vx,vy,vz,life,size,grow,a0,r,g,b){const i=ps.head;ps.head=(ps.head+1)%ps.max;ps.pts.visible=true;
   ps.pos[i*3]=x;ps.pos[i*3+1]=y+EML;ps.fl[i]=EML;ps.pos[i*3+2]=z;ps.vel[i*3]=vx;ps.vel[i*3+1]=vy;ps.vel[i*3+2]=vz;ps.life[i]=life;ps.age[i]=0;ps.size[i]=size;ps.grow[i]=grow;ps.a0[i]=a0;ps.alpha[i]=a0;ps.col[i*3]=r;ps.col[i*3+1]=g;ps.col[i*3+2]=b;}
 function stepPS(ps,dt,grav,drag){
-  const P3=ps.pos,V=ps.vel,k=Math.max(0,1-drag*dt);
-  for(let i=0;i<ps.max;i++){if(ps.life[i]<=0)continue;ps.age[i]+=dt;const f=ps.age[i]/ps.life[i];if(f>=1){ps.life[i]=0;ps.alpha[i]=0;continue;}
+  const P3=ps.pos,V=ps.vel,k=Math.max(0,1-drag*dt);let live=0;
+  for(let i=0;i<ps.max;i++){if(ps.life[i]<=0)continue;live++;ps.age[i]+=dt;const f=ps.age[i]/ps.life[i];if(f>=1){ps.life[i]=0;ps.alpha[i]=0;continue;}
     V[i*3+1]-=grav*dt;V[i*3]*=k;V[i*3+1]*=k;V[i*3+2]*=k;P3[i*3]+=V[i*3]*dt;P3[i*3+1]+=V[i*3+1]*dt;P3[i*3+2]+=V[i*3+2]*dt;
     if(P3[i*3+1]<0.02+ps.fl[i]){P3[i*3+1]=0.02+ps.fl[i];V[i*3+1]*=-0.3;}ps.size[i]+=ps.grow[i]*dt;ps.alpha[i]=ps.a0[i]*(1-f)*(f<0.1?f*10:1);}
+  const was=ps.live;ps.live=live;ps.pts.visible=live>0;if(!live&&!was)return;   // v15: nothing alive: no uploads, no draw call (one last upload hides the dead ones)
   ps.geo.attributes.position.needsUpdate=true;ps.geo.attributes.alpha.needsUpdate=true;ps.geo.attributes.size.needsUpdate=true;ps.geo.attributes.pcol.needsUpdate=true;
   ps.mat.uniforms.scale.value=renderer.getDrawingBufferSize(_dbs).y/2/Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
 }
@@ -7010,11 +7027,31 @@ function particles(dt){
           if(Math.random()<dt*sp*0.08*p)spawnShard(wx,0.3,wz,ca*c.spd*0.35,sa*c.spd*0.35,c,RUBBER);
           if(Math.random()<dt*6*p)emit(SMK,wx,0.2,wz,ca*c.spd*0.2,0.4,sa*c.spd*0.2,0.7+Math.random()*0.5,0.35,0.9,0.12*p,0.3,0.3,0.32);}
         for(let k=0;k<4;k++)if(d.sus[k]>=0.8&&Math.random()<dt*sp*0.7){const lx=wX(k),lz=wZ(k);emit(SPK,c.x+ca*lx-sa*lz,0.05,c.z+sa*lx+ca*lz,ca*c.spd*0.5+(Math.random()-0.5)*3,0.8+Math.random()*2,sa*c.spd*0.5+(Math.random()-0.5)*3,0.2+Math.random()*0.3,0.08,0,1,1,0.75,0.35);}}
+      if(sp>8&&!c.pit){const sd=c.lat>=0?1:-1;if(Math.abs(c.lat)>sideLimit(c.idx,sd)-1.13&&Math.random()<dt*sp*2.2){const t=T[c.idx],nx=-t[1]*sd,nz=t[0]*sd,va=c.va!=null?c.va:c.a,vx=Math.cos(va)*c.spd,vz=Math.sin(va)*c.spd;   // v15: scraping along the barrier
+        for(let q=0;q<3;q++)emit(SPK,c.x+nx*0.85+ca*(Math.random()-0.3)*2,0.1+Math.random()*0.3,c.z+nz*0.85+sa*(Math.random()-0.3)*2,vx*0.55-nx*(1+Math.random()*3)+(Math.random()-0.5)*3,0.6+Math.random()*2.2,vz*0.55-nz*(1+Math.random()*3)+(Math.random()-0.5)*3,0.2+Math.random()*0.3,0.07,0,1,1,0.78,0.38);}}
       if(c.off&&sp>6&&Math.random()<dt*30){const lz=(Math.random()<0.5?-1:1)*WHL.zr;emit(SMK,c.x-ca*1.6-sa*lz,0.4,c.z-sa*1.6+ca*lz,ca*c.spd*0.2+(Math.random()-0.5)*2,1+Math.random(),sa*c.spd*0.2+(Math.random()-0.5)*2,1.6+Math.random(),1.0,2.2,0.45,0.78,0.68,0.5);}
     }
   }
   EML=0;stepPS(SPK,dt,9.8,1.2);stepPS(SMK,dt,-0.4,0.9);stepPS(SPR,dt,-0.2,1.6);stepDebris(dt);
 }
+// v15: the player hitting the wall or another car: sparks, carbon chips and a dust puff from the contact point (more for a harder hit),
+// the onboard camera thrown towards the impact (JOLT, a damped spring) and on a big hit a short flash at the screen's edges.
+// Touches repeat every frame while two cars rub, so they are thinned to one effect every 0.1 s.
+const JOLT={x:0,z:0,vx:0,vz:0};let HITF=0,HITO=0,crashFxT=0;
+function crashFx(e){const p=race.player,now=performance.now();if(e.type==='contact'&&now-crashFxT<100)return;crashFxT=now;
+  const ca=Math.cos(p.a),sa=Math.sin(p.a),va=p.va!=null?p.va:p.a,vx=Math.cos(va)*p.spd,vz=Math.sin(va)*p.spd,r=()=>Math.random()-0.5;let x,z,hit,lat,lon;
+  if(e.type==='wall'&&e.side){hit=e.hit;const into=Math.max(0,e.into||0),lx=into>0.45?2.1:0.5,lz=e.side*0.85;x=p.x+ca*lx-sa*lz;z=p.z+sa*lx+ca*lz;lat=e.side*(1-0.6*into);lon=into;}
+  else if(e.x!=null){hit=e.rel||3;x=e.x;z=e.z;lat=-sa*e.nx+ca*e.nz;lon=ca*e.nx+sa*e.nz;}   // the other car's direction in the player's frame
+  else{hit=e.hit||3;x=p.x+ca*2;z=p.z+sa*2;lat=0;lon=1;}
+  const sev=Math.min(1,hit/22),e0=EML;EML=hXZ(x,z);
+  const ns=Math.round((10+60*sev)*(quality==='low'?0.6:1)),sp=4+10*sev;
+  for(let k=0;k<ns;k++)emit(SPK,x,0.15+Math.random()*0.35,z,vx*0.45+r()*sp,1+Math.random()*(2+4*sev),vz*0.45+r()*sp,0.25+Math.random()*0.45,0.06+Math.random()*0.05,0,1,1,0.78+0.2*Math.random(),0.4);
+  for(let k=0,n=3+Math.round(9*sev);k<n;k++)emit(SMK,x+r()*1.2,0.35,z+r()*1.2,vx*0.15+r()*2.5,0.6+Math.random()*0.8,vz*0.15+r()*2.5,1.2+Math.random()*0.9,0.8+0.6*sev,2.2+1.5*sev,0.25+0.25*sev,0.72,0.7,0.66);
+  EML=e0;
+  if(DEB&&hit>6)for(let k=0,n=Math.round((2+10*sev)*(quality==='low'?0.5:1));k<n;k++)spawnShard(x,0.25,z,vx,vz,p,DEB.carbon);   // chips; parts that break off come from the damage event
+  IMPACT=Math.max(IMPACT,0.6*sev);
+  const jk=0.35+1.8*sev;JOLT.vz+=lat*jk;JOLT.vx+=lon*jk*0.8;   // the head carries on towards the impact
+  if(sev>0.35)HITF=Math.max(HITF,Math.min(0.9,sev));}
 function burst(x,z,spd,a){const e0=EML;EML=hXZ(x,z);burst0(x,z,spd,a);EML=e0;}
 function burst0(x,z,spd,a){for(let k=0;k<22;k++)emit(SPK,x,0.4,z,Math.cos(a)*spd*0.3+(Math.random()-0.5)*8,1+Math.random()*4,Math.sin(a)*spd*0.3+(Math.random()-0.5)*8,0.3+Math.random()*0.4,0.08,0,1,1,0.8,0.45);
   for(let k=0;k<8;k++)emit(SMK,x+(Math.random()-0.5)*2,0.5,z+(Math.random()-0.5)*2,(Math.random()-0.5)*2,0.8,(Math.random()-0.5)*2,1.5+Math.random(),1.2,2.4,0.4,0.8,0.8,0.8);}
