@@ -2473,6 +2473,7 @@ function buildWorld(scene,renderer,opt){
     sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vFD;').replace('#include <alphatest_fragment>','diffuseColor.a*=1.0-smoothstep(45.0,140.0,vFD);\n#include <alphatest_fragment>');};
   // fine 5 cm chain-link; with MSAA, alpha-to-coverage keeps it crisp near and see-through far
   useTex(fenceM,'map','fence.png',{srgb:true,rep:[2,5.9],after:()=>{if(renderer.capabilities.isWebGL2&&MSAA){fenceM.transparent=false;fenceM.depthWrite=true;fenceM.alphaTest=0.02;fenceM.alphaToCoverage=true;}else{fenceM.alphaTest=0.02;fenceM.opacity=0.9;}fenceM.metalness=0.7;fenceM.roughness=0.45;fenceM.needsUpdate=true;}});
+  W.bkUp=[barrM,wallM,wallM2,topM,fenceM];   // (v15: these read the baked sun too - see bakeGround)
   add(wall(i=>LPv(i)+0.3,1.25,4.2,k=>np(1)(k)&&!inTun(k)),fenceM);add(wall(i=>-LNv(i)-0.3,1.25,4.2,k=>np(-1)(k)&&!inTun(k)),fenceM);
   // fence posts (instanced)
   {const cnt=Math.floor(N/3)*2,pg=new THREE.CylinderGeometry(0.06,0.06,4.3,6);pg.translate(0,2.15,0);const im=new THREE.InstancedMesh(pg,topM,cnt),m4=new THREE.Matrix4();let k=0;
@@ -3822,8 +3823,94 @@ const wm=new THREE.MeshStandardMaterial({color:0xe9edf0,metalness:0.55,roughness
   fitGround(scene,W);
   scene.traverse(o=>{const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>{if(m&&m.polygonOffset&&m.polygonOffsetFactor<0&&!m.polygonOffsetUnits)m.polygonOffsetUnits=m.polygonOffsetFactor*2;});});
   W.batched=batchWorld(scene);
+  try{bakeGround(scene,renderer,W,opt);}catch(e){console.warn('bakeGround',e);}
   return W;
 }
+// v15: baked ground light (Monoposto-style). Once, at load: the static scene's sun shadow and its ambient occlusion (12 sky
+// directions, occluders within ~22 m) are rendered into one top-down texture over the circuit area (R = sun, G = sky). Every flat
+// receiving material (road, run-off, kerbs, paint, ground) multiplies its direct light by R and its ambient by G: one texture read
+// per pixel, no extra draw calls. Where the real (moving) shadow map covers the ground, it wins and the baked sun fades out.
+function bakeGround(scene,renderer,W,opt){const t0=performance.now();scene.updateMatrixWorld(true);
+  const rec=[],bad=new Set(),cand=new Set(),v=new THREE.Vector3(),bb=new THREE.Box3();let yMin=1e9,yMax=-1e9;
+  scene.traverse(o=>{if(!o.isMesh)return;const ms=Array.isArray(o.material)?o.material:[o.material];
+    let flat=!o.isInstancedMesh&&o.receiveShadow&&!o.castShadow&&o.visible&&ms.length===1&&ms[0].isMeshStandardMaterial&&!!o.geometry.attributes.normal;
+    if(flat){const n=o.geometry.attributes.normal,st=Math.max(1,Math.floor(n.count/300));let s=0,c=0;for(let i=0;i<n.count;i+=st){v.fromBufferAttribute(n,i);if(v.lengthSq()<0.25)continue;s+=Math.abs(v.transformDirection(o.matrixWorld).y);c++;}if(!c)return;flat=s/c>0.7;}   // (unused vertices of a filtered band have no normal)
+    if(flat){rec.push(o);cand.add(ms[0]);if(!o.geometry.boundingBox)o.geometry.computeBoundingBox();bb.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);yMin=Math.min(yMin,bb.min.y);yMax=Math.max(yMax,bb.max.y);}
+    else if(o.castShadow||o.isInstancedMesh)ms.forEach(m=>m&&bad.add(m));});   // (upright faces of a shared material fade the bake out by their normal)
+  if(!rec.length||!W.bounds)return null;
+  const [bx0,bz0,bx1,bz1]=W.bounds,MG=150,x0=bx0-MG,z0=bz0-MG,ex=bx1-bx0+2*MG,ez=bz1-bz0+2*MG,ts=Math.max(0.5,Math.max(ex,ez)/2048),tw=Math.ceil(ex/ts),th=Math.ceil(ez/ts);
+  yMin=Math.max(yMin,-200)-2;yMax=Math.min(yMax,400)+2;const yR=yMax-yMin;
+  const B=new THREE.Vector4(x0,z0,tw*ts,th*ts),HR=new THREE.Vector2(yMin,yR);
+  const hRT=new THREE.WebGLRenderTarget(tw,th,{minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter,format:THREE.RGBAFormat,generateMipmaps:false}),
+    out=new THREE.WebGLRenderTarget(tw,th,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat,depthBuffer:false,stencilBuffer:false,generateMipmaps:false});
+  const cc=new THREE.Color();renderer.getClearColor(cc);const ca=renderer.getClearAlpha(),rt0=renderer.getRenderTarget(),ac=renderer.autoClear,snu=renderer.shadowMap.needsUpdate;renderer.autoClear=false;renderer.shadowMap.needsUpdate=false;
+  // 1. the height of the topmost receiver in every texel (a top-down orthographic view built by hand, packed depth)
+  const hm=new THREE.ShaderMaterial({side:THREE.DoubleSide,uniforms:{B:{value:B},HR:{value:HR}},
+    vertexShader:'uniform vec4 B;uniform vec2 HR;void main(){vec4 w=modelMatrix*vec4(position,1.0);gl_Position=vec4((w.x-B.x)/B.z*2.0-1.0,(w.z-B.y)/B.w*2.0-1.0,1.0-2.0*(w.y-HR.x)/HR.y,1.0);}',
+    fragmentShader:'#include <packing>\nvoid main(){gl_FragColor=packDepthToRGBA(gl_FragCoord.z);}'});
+  const hs=new THREE.Scene(),cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+  for(const o of rec){const m=new THREE.Mesh(o.geometry,hm);m.matrixAutoUpdate=false;m.matrix.copy(o.matrixWorld);m.frustumCulled=false;hs.add(m);}
+  renderer.setRenderTarget(hRT);renderer.setClearColor(0xffffff,1);renderer.clear(true,true,false);renderer.render(hs,cam);
+  // 2. per direction: a depth map of the static casters seen from that direction (each caster drawn with its shadow depth material,
+  //    so the trees' cut-outs work), then a full-screen pass that tests every texel against it and adds the result into R (sun) or G (sky)
+  const S=2048,sRT=new THREE.WebGLRenderTarget(S,S,{minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter,format:THREE.RGBAFormat,generateMipmaps:false}),sc=new THREE.OrthographicCamera(-1,1,1,-1,1,2);
+  const DM=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,side:THREE.DoubleSide}),cast=[],hid=[],swp=[];
+  scene.traverse(o=>{if(!(o.isMesh||o.isPoints||o.isLine||o.isSprite))return;if(!o.visible)return;if(o.isMesh&&o.castShadow){cast.push(o);return;}hid.push(o);});
+  for(const o of cast){const dm=o.customDepthMaterial||DM;swp.push([o,o.material,dm,dm.side]);o.material=dm;dm.side=THREE.DoubleSide;}for(const o of hid)o.visible=false;
+  const bg=scene.background,fg=scene.fog,ovm=scene.overrideMaterial;scene.background=null;scene.fog=null;scene.overrideMaterial=null;
+  const BIAS=new THREE.Matrix4().set(0.5,0,0,0.5,0,0.5,0,0.5,0,0,0.5,0.5,0,0,0,1);
+  const cx=x0+B.z/2,cz=z0+B.w/2,cy=(yMin+yMax)/2,R0=Math.hypot(B.z,B.w,yR+120)/2+20;
+  const pm=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,blending:THREE.CustomBlending,blendEquation:THREE.AddEquation,blendSrc:THREE.OneFactor,blendDst:THREE.OneFactor,
+    uniforms:{tH:{value:hRT.texture},tS:{value:null},sM:{value:new THREE.Matrix4()},B:{value:B},HR:{value:HR},P:{value:new THREE.Vector4()},C:{value:new THREE.Vector4()},px:{value:1/S}},
+    vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.0,1.0);}',
+    fragmentShader:`#include <packing>
+      uniform sampler2D tH,tS;uniform mat4 sM;uniform vec4 B,P,C;uniform vec2 HR;uniform float px;varying vec2 vUv;
+      float occ(vec2 q,float z){float d=(z-unpackRGBAToDepth(texture2D(tS,q)))*P.w;return P.y>0.0?step(0.25,d)*(1.0-smoothstep(P.y*0.45,P.y,d)):step(0.2,d);}
+      void main(){float d=unpackRGBAToDepth(texture2D(tH,vUv));float vis=1.0;
+        if(d<0.999){vec4 s=sM*vec4(B.x+vUv.x*B.z,HR.x+(1.0-d)*HR.y+0.05,B.y+vUv.y*B.w,1.0);float o=0.0;
+          if(P.z>0.5){for(int i=-1;i<=1;i++)for(int j=-1;j<=1;j++)o+=occ(s.xy+vec2(float(i),float(j))*px,s.z);o/=9.0;}
+          else o=0.25*(occ(s.xy+vec2(-0.5,-0.5)*px,s.z)+occ(s.xy+vec2(0.5,-0.5)*px,s.z)+occ(s.xy+vec2(-0.5,0.5)*px,s.z)+occ(s.xy+vec2(0.5,0.5)*px,s.z));
+          vis=1.0-o;}
+        gl_FragColor=C*vis*P.x;}`});
+  const quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2),pm);quad.frustumCulled=false;const qs=new THREE.Scene();qs.add(quad);
+  renderer.setRenderTarget(out);renderer.setClearColor(0x000000,0);renderer.clear(true,false,false);
+  const vm=new THREE.Matrix4(),pc=new THREE.Vector3(),pass=(dir,wgt,maxD,sun,ch)=>{
+    sc.position.set(cx,cy,cz).addScaledVector(dir,R0);sc.up.set(Math.abs(dir.y)>0.99?1:0,Math.abs(dir.y)>0.99?0:1,0);sc.lookAt(cx,cy,cz);sc.updateMatrixWorld();vm.copy(sc.matrixWorldInverse);
+    let l=1e9,r=-1e9,b=1e9,t=-1e9;for(const X of[x0,x0+B.z])for(const Y of[yMin,yMax+60])for(const Z of[z0,z0+B.w]){pc.set(X,Y,Z).applyMatrix4(vm);l=Math.min(l,pc.x);r=Math.max(r,pc.x);b=Math.min(b,pc.y);t=Math.max(t,pc.y);}
+    sc.left=l;sc.right=r;sc.bottom=b;sc.top=t;sc.near=1;sc.far=2*R0;sc.updateProjectionMatrix();
+    renderer.setRenderTarget(sRT);renderer.setClearColor(0xffffff,1);renderer.clear(true,true,false);renderer.render(scene,sc);renderer.setClearColor(0x000000,0);
+    pm.uniforms.tS.value=sRT.texture;pm.uniforms.sM.value.multiplyMatrices(BIAS,sc.projectionMatrix).multiply(vm);pm.uniforms.P.value.set(wgt,maxD,sun?1:0,sc.far-sc.near);pm.uniforms.C.value.set(ch===0?1:0,ch===1?1:0,0,0);
+    renderer.setRenderTarget(out);renderer.render(qs,cam);};
+  const NT=W.NT;let nd=0;
+  if(!NT){pass(W.sunDir.clone().normalize(),1,0,true,0);nd++;}   // (night: floodlights from many towers - no hard sun shadow, only the sky term)
+  const AOD=[];for(let k=0;k<12;k++){const el=THREE.MathUtils.degToRad(k<6?27:57),az=(k%6)/6*Math.PI*2+(k<6?0:Math.PI/6);AOD.push([new THREE.Vector3().setFromSphericalCoords(1,Math.PI/2-el,az),Math.sin(el)]);}
+  const wS=AOD.reduce((a,d)=>a+d[1],0);for(const [d,w] of AOD){pass(d,w/wS,22,false,1);nd++;}
+  for(const [o,m,dm,sd] of swp.reverse()){o.material=m;dm.side=sd;}for(const o of hid)o.visible=true;scene.background=bg;scene.fog=fg;scene.overrideMaterial=ovm;   // (backwards: a shared depth material gets its own side back)
+  renderer.autoClear=ac;renderer.shadowMap.needsUpdate=snu;renderer.setRenderTarget(rt0);renderer.setClearColor(cc,ca);
+  sRT.dispose();DM.dispose();hRT.dispose();hm.dispose();pm.dispose();quad.geometry.dispose();
+  renderer.readRenderTargetPixels(out,0,0,1,1,new Uint8Array(4));renderer.setRenderTarget(rt0);const ms=Math.round(performance.now()-t0);   // (the read waits for the GPU)
+  // 3. the materials read it: flat receivers (materials also used by anything shadow-casting are left alone; upright faces of a shared
+  //    material fade it out by their normal) take sun and sky; upright things (barriers, boards, fences, the cars: bk.up) take the sun
+  //    and a little of the sky, from the ground just in front of each face - a sunlit face reads the lit ground, not its own foot
+  const U={bkMap:{value:out.texture},bkB:{value:new THREE.Vector4(x0,z0,1/B.z,1/B.w)},bkK:{value:new THREE.Vector4(NT?0:1,opt.q==='high'?0.8:1,NT?0.55:0.3,0)}},done=new WeakSet();
+  const inj=(m,up)=>{if(!m||!m.isMeshStandardMaterial||done.has(m))return;done.add(m);const prev=m.onBeforeCompile,key=m.customProgramCacheKey();
+    m.onBeforeCompile=(sh,r)=>{if(prev)prev.call(m,sh,r);Object.assign(sh.uniforms,U);
+      sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform vec4 bkB;varying vec2 vBk;varying float vBkF;').replace('#include <project_vertex>','#include <project_vertex>\n'+(up
+        ?'{vec3 wn=normalize(mat3(modelMatrix)*objectNormal);vBk=((modelMatrix*vec4(transformed,1.0)).xz+wn.xz*0.7-bkB.xy)*bkB.zw;vBkF='+(up===1?'1.0-smoothstep(0.5,0.9,abs(wn.y))':'1.0')+';}'
+        :'vBk=((modelMatrix*vec4(transformed,1.0)).xz-bkB.xy)*bkB.zw;vBkF=smoothstep(0.5,0.85,abs(normalize(mat3(modelMatrix)*objectNormal).y));'));
+      sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform sampler2D bkMap;uniform vec4 bkK;varying vec2 vBk;varying float vBkF;').replace('#include <aomap_fragment>',`#include <aomap_fragment>
+        {vec2 e2=smoothstep(0.0,0.02,vBk)*smoothstep(1.0,0.98,vBk);vec2 bk=mix(vec2(1.0),texture2D(bkMap,vBk).rg,e2.x*e2.y*vBkF);float sw=bkK.x;
+         #if defined(USE_SHADOWMAP) && NUM_DIR_LIGHT_SHADOWS>0
+         {vec2 q=vDirectionalShadowCoord[0].xy/vDirectionalShadowCoord[0].w-0.5;sw*=smoothstep(0.42,0.5,max(abs(q.x),abs(q.y)));}
+         #endif
+         float ao=mix(1.0,bk.g,bkK.y${up?'*0.4':''}),dl=mix(1.0,bk.r,sw)*mix(1.0,ao,bkK.z);
+         reflectedLight.directDiffuse*=dl;reflectedLight.directSpecular*=dl;reflectedLight.indirectDiffuse*=ao;reflectedLight.indirectSpecular*=mix(1.0,ao,0.6);}`);};
+    m.customProgramCacheKey=()=>key+(up?'|bku':'|bk');m.needsUpdate=true;};
+  let nm=0;for(const m of cand)if(!bad.has(m)){inj(m,false);nm++;}
+  (W.bkUp||[]).forEach(m=>inj(m,1));
+  W.bk={tex:out,k:U.bkK,sun:U.bkK.value.x,up:root=>root.traverse(o=>{if(o.isMesh&&!o.isInstancedMesh)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>inj(m,2));})};
+  window.__BK={ms,w:tw,h:th,ts:+ts.toFixed(2),mb:+(tw*th*4/1048576).toFixed(1),dirs:nd,rec:rec.length,mats:nm};console.info('bakeGround',JSON.stringify(window.__BK));
+  return W.bk;}
 // v11g: last line of defence - nothing may stand on the road. Every prop (each instance of an instanced one) is tested at the bottom
 // of its box (instances) or at its lowest vertices (single meshes); where one stands on any part of the lap (lower than 4.5 m above
 // it - gantries and bridges pass over), the instance is removed, or the whole object it belongs to. Flat decals (grid boxes,
@@ -5468,7 +5555,7 @@ function setupRace(mode,o){o=o||{};podiumEnd(false);meshes.forEach(m=>scene.remo
   else race=makeRace(teamSel,laps,diff,sens,startComp,null,opts);
   {const cl=LIVC[teamSel];if(cl&&cl.num)race.player.num=cl.num;}   // the player's own race number
   {const tm=TEAMS[teamSel];document.documentElement.style.setProperty('--team',lumOf(tm.p)>=lumOf(tm.s)?tm.p:tm.s);}   // v11: HUD accent = the brighter team colour
-  meshes=race.cars.map(c=>buildCar(KIT,scene,c));
+  meshes=race.cars.map(c=>buildCar(KIT,scene,c));if(WORLD.bk)meshes.forEach(m=>WORLD.bk.up(m.root));   // v15: cars in the shade of a stand get darker (baked sun)
   if(!SCM)SCM=buildSafetyCar(scene);SCM.root.visible=false;
   try{buildFlagMarshal();}catch(e){}
   const pi=race.cars.indexOf(race.player);SW=buildSteeringWheel(KIT,race.player);SW.col.position.x+=meshes[pi].ck.x;SW.col.position.y+=meshes[pi].ck.y;meshes[pi].body.add(SW.col);SW.arms.forEach(a=>meshes[pi].body.add(a));meshes[pi].sw=SW;addMirrorFaces(meshes[pi]);sessionBest=null;camYaw=race.player.a;}
@@ -6448,7 +6535,7 @@ function syncRaceControl(dt){
   // weather look: overcast sky, rain, wet asphalt
   const rain=race.wx.rain,wet=WET;
   for(const e of W.wet){e.m.color.copy(e.c0).multiplyScalar(1-(1-e.dk)*wet);e.m.roughness=e.r0+(e.r-e.r0)*wet;e.m.envMapIntensity=1-0.45*wet;}
-  W.sun.intensity=W.sunI*(1-(W.NT?0.25:0.6)*rain);if(W.fill)W.fill.intensity=W.fillI*(1-0.25*rain);W.hemi.intensity=W.hemiI*(1-0.1*rain);W.hemi.color.copy(W.hemiC).lerp(RAINSKY,rain);W.hemi.groundColor.copy(W.hemiG).lerp(RAINGND,rain);
+  W.sun.intensity=W.sunI*(1-(W.NT?0.25:0.6)*rain);if(W.bk)W.bk.k.value.x=W.bk.sun*(1-0.85*rain);if(W.fill)W.fill.intensity=W.fillI*(1-0.25*rain);W.hemi.intensity=W.hemiI*(1-0.1*rain);W.hemi.color.copy(W.hemiC).lerp(RAINSKY,rain);W.hemi.groundColor.copy(W.hemiG).lerp(RAINGND,rain);
   scene.fog.color.copy(W.fogC).lerp(RAINFOG,rain);if(GRADE_IN_TM)scene.fog.color.convertLinearToSRGB();   // v14b: (phone, no post chain: fog mixes after the sRGB encode - give it the screen colour)
  scene.fog.near=W.fogN*(1-0.7*rain);scene.fog.far=W.fogF*(1-0.72*rain);
   if(W.sky){const u=W.sky.material.uniforms;u.turbidity.value=W.skyT+(18-W.skyT)*rain;u.rayleigh.value=W.skyR+(0.25-W.skyR)*rain;u.mieCoefficient.value=W.skyM+(0.03-W.skyM)*rain;if(u.skyGain)u.skyGain.value=W.skyG+(0.45-W.skyG)*rain;}
