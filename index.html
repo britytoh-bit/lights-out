@@ -4403,6 +4403,9 @@ function loadCarModel(kit){if(!THREE.GLTFLoader)return;
     Q.chromeM=new THREE.MeshStandardMaterial({color:0x8d939a,roughness:0.28,metalness:0.9});
     Q.farDarkM=new THREE.MeshStandardMaterial({color:0x121316,roughness:0.6,metalness:0.1});
     for(const m of[Q.carbonM,Q.genericM])if(m.map)m.map.anisotropy=8;
+    // v15b: the cut-down model is an open shell in places (where its wings and wheels were cut off): drawn one-sided, the cars ahead
+    // looked see-through from behind. Both sides drawn; the shadow map keeps the back faces as before (no new acne)
+    Q.dbl=m=>{m.side=THREE.DoubleSide;m.shadowSide=THREE.BackSide;return m;};for(const m of[Q.carbonM,Q.genericM,Q.chromeM,Q.farDarkM])Q.dbl(m);
     // where the model puts the cockpit, the T-cam and the mirrors (the procedural car's numbers are the zero)
     // v15b: the eye sits 15 cm further back and 2 cm lower than the helmet's offset says: at the old spot it was inside the model's halo (cut by the near plane - jagged black shapes) and the mirrors were out of view
     const c3=b=>[(b.mn[0]+b.mx[0])/2,(b.mn[1]+b.mx[1])/2,(b.mn[2]+b.mx[2])/2];
@@ -4418,7 +4421,7 @@ function loadCarModel(kit){if(!THREE.GLTFLoader)return;
 // layout (colour split, cut line, number, names, sponsors, finish map); here only the team's black for the model's dark panels
 function glbMats(kit,ti){kit.teamCache=kit.teamCache||{};const tc=kit.teamCache[ti]||(kit.teamCache[ti]={});if(tc.gBlack)return tc;
   const L=LIV[ti],Phys=THREE.MeshPhysicalMaterial||THREE.MeshStandardMaterial,lin=h=>new THREE.Color(h).convertSRGBToLinear();
-  tc.gBlack=new Phys({color:lin(L.K),roughness:0.5,metalness:0.1,clearcoat:0.3,clearcoatRoughness:0.3,envMapIntensity:0.5});
+  tc.gBlack=kit.glb.dbl(new Phys({color:lin(L.K),roughness:0.5,metalness:0.1,clearcoat:0.3,clearcoatRoughness:0.3,envMapIntensity:0.5}));
   return tc;}
 function buildCarKit(){
   const geo=buildCarGeometry();
@@ -4481,7 +4484,7 @@ function buildCar(kit,scene,c){
   const M=teamMats(kit,c.team,c.num,c.isP?null:c.code,!!kit.glb),root=new THREE.Group(),body=new THREE.Group(),G=kit.geo;root.add(body);
   const add=(g,m,par,cast)=>{const me=new THREE.Mesh(g,m);me.castShadow=!!cast;me.receiveShadow=true;(par||body).add(me);return me;};
   const Q=kit.glb,ck=Q?Q.ck:{x:0,y:0,tx:0,ty:0},bodyN=[],bodyF=[];let tcPod,strut=null;
-  if(Q){const P=glbMats(kit,c.team),nb=(g,m,cast)=>{const me=add(g,m,body,cast);bodyN.push(me);return me;};   // v15: the 3D model's body
+  if(Q){Q.dbl(M.paint);const P=glbMats(kit,c.team),nb=(g,m,cast)=>{const me=add(g,m,body,cast);bodyN.push(me);return me;};   // v15: the 3D model's body
     nb(Q.paint,M.paint,true);nb(Q.black,P.gBlack,true);nb(Q.carbon,Q.carbonM,true);nb(Q.generic,Q.genericM,true);nb(Q.chrome,Q.chromeM);nb(Q.mirror,kit.mirrorM);
     tcPod=nb(Q.tcam,M.tcam);add(Q.pylon,kit.carbonM,body,true);
     const sn=nb(Q.strut,P.gBlack,true);
@@ -4790,9 +4793,11 @@ renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmic
 let GRADE_IN_TM=false;
 // v14b: a dark see-through overlay (blob shadow, rubber, skids, wall foot) blends straight onto the sRGB screen with no post chain,
 // not in linear light - the same darkening needs less opacity (as the halo pillar)
+// v15b: phones grade in the tone mapping at every setting - 'high' too: its post chain (render target, bloom, gamma and grade passes
+// at 1.75x) cost a phone more than the rest of 'high' together. Phone 'high' keeps its shadows, view distance, detail and mirrors
 function scrBlend(m){if(GRADE_IN_TM)m.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <alphamap_fragment>','#include <alphamap_fragment>\ndiffuseColor.a=1.0-pow(1.0-diffuseColor.a,0.4545);');};return m;}
 const VIG=$('vig'),HITFX=$('hitfx');let VIGO=0.6;
-if(isTouch&&quality!=='high'){const TMS='vec3 CustomToneMapping( vec3 color ) { return color; }',ch=THREE.ShaderChunk.tonemapping_pars_fragment;
+if(isTouch){const TMS='vec3 CustomToneMapping( vec3 color ) { return color; }',ch=THREE.ShaderChunk.tonemapping_pars_fragment;
   if(ch.includes(TMS)){THREE.ShaderChunk.tonemapping_pars_fragment=ch.replace(TMS,`vec3 CustomToneMapping( vec3 color ) {
     vec3 col=ACESFilmicToneMapping(color);
     col=mix(pow(col,vec3(0.41666))*1.055-vec3(0.055),col*12.92,vec3(lessThanEqual(col,vec3(0.0031308))));
@@ -4866,10 +4871,11 @@ function setupComposer(){
     // AO was 'high' only, so the default setting ('medium' on a PC) never showed it. It draws at half resolution,
     // and perfDown() turns it off first when the frame rate drops, so 'medium' can afford it.
     // v13j: not on a phone's 'medium' - it draws the whole scene a second time every frame, and that is where it stuttered
-    aoPass=null;if((quality==='high'||quality==='medium'&&!isTouch)&&isGL2){try{aoPass=makeAOPass(w*renderer.getPixelRatio(),h*renderer.getPixelRatio());if(aoPass)composer.addPass(aoPass);}catch(e){aoPass=null;}}
+    // (v15b: nor on a phone's 'high' - with it 'high' still stuttered on the owner's phone)
+    aoPass=null;if((quality==='high'||quality==='medium')&&!isTouch&&isGL2){try{aoPass=makeAOPass(w*renderer.getPixelRatio(),h*renderer.getPixelRatio());if(aoPass)composer.addPass(aoPass);}catch(e){aoPass=null;}}
     if(quality==='high'){bloom=new THREE.UnrealBloomPass(new THREE.Vector2(w,h),0.22,0.5,0.9);composer.addPass(bloom);}
     composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));
-    grade=new THREE.ShaderPass({defines:{TAPS:quality==='high'?8:1},uniforms:{tDiffuse:{value:null},blur:{value:0},vig:{value:0.22}},
+    grade=new THREE.ShaderPass({defines:{TAPS:quality==='high'?(isTouch?3:8):1},uniforms:{tDiffuse:{value:null},blur:{value:0},vig:{value:0.22}},
       vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
       fragmentShader:`uniform sampler2D tDiffuse;uniform float blur;uniform float vig;varying vec2 vUv;
         void main(){vec2 c=vec2(0.5,0.52),d=vUv-c;vec3 col=vec3(0.0);
@@ -4883,7 +4889,7 @@ function setupComposer(){
   }catch(e){composer=null;}
 }
 // the full resolution for this quality setting, before the smoothness governor takes anything off
-function basePR(){const w=innerWidth,h=innerHeight;let pr=Math.min(quality==='high'?2:quality==='medium'?(isTouch?1.5:1):(isTouch?1.25:1),window.devicePixelRatio||1);   // v14b: phones a step sharper (smooth 1 -> 1.25, normal 1.25 -> 1.5) with the post passes gone
+function basePR(){const w=innerWidth,h=innerHeight;let pr=Math.min(quality==='high'?(isTouch?1.75:2):quality==='medium'?(isTouch?1.5:1):(isTouch?1.25:1),window.devicePixelRatio||1);   // v14b: phones a step sharper (smooth 1 -> 1.25, normal 1.25 -> 1.5) with the post passes gone
   if(quality==='low'&&!isTouch)pr=Math.min(pr,Math.max(0.5,Math.sqrt(2.4e6/Math.max(1,w*h))));   // v12h: the lowest setting on a PC draws at most ~1080p worth of pixels (a 1440p or 4K window drew 2-4 times that)
   return pr;}
 function resize(){const w=innerWidth,h=innerHeight;let pr=basePR();
