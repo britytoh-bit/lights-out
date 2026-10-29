@@ -4478,7 +4478,7 @@ function teamMats(kit,ti,num,code,g26){
 // the see-through halo pillar of the cockpit view
 function ghostMat(kit){const gm=kit.ghostM=new THREE.MeshBasicMaterial({color:0x050607,transparent:true,opacity:0.92,depthWrite:false});
       gm.onBeforeCompile=sh=>{sh.vertexShader='varying vec3 vGN;varying vec3 vGV;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\nvGN=normalize(normalMatrix*normal);vGV=-mvPosition.xyz;');
-        sh.fragmentShader='varying vec3 vGN;varying vec3 vGV;\n'+sh.fragmentShader.replace('#include <alphamap_fragment>','#include <alphamap_fragment>\n{float q=abs(dot(normalize(vGN),normalize(vGV)));diffuseColor.a*=smoothstep(0.0,0.55,q);'+(GRADE_IN_TM?'diffuseColor.a=1.0-pow(1.0-diffuseColor.a,0.4545);':'')+'}');};}   // dark in the middle, fading out to its edges: a blurred pillar
+        sh.fragmentShader='varying vec3 vGN;varying vec3 vGV;\n'+sh.fragmentShader.replace('#include <alphamap_fragment>','#include <alphamap_fragment>\n{float q=abs(dot(normalize(vGN),normalize(vGV)));diffuseColor.a*=smoothstep(0.0,0.55,q);'+(GRADE_IN_TM?'diffuseColor.a=1.0-pow(1.0-diffuseColor.a,0.4545);':'')+'}');};kit.ghostS=gm.clone();kit.ghostS.opacity=0.28;kit.ghostS.onBeforeCompile=gm.onBeforeCompile;}   // dark in the middle, fading out to its edges: a blurred pillar. 10-30 윤택님 (blur on, the centre was still blocked): the pillar much fainter (ghostS) - the hoop keeps ghostM
       // v14b: (no post chain on a phone: it blends straight onto the sRGB screen, not in linear light - the same see-through needs less opacity)
 function buildCar(kit,scene,c){
   const M=teamMats(kit,c.team,c.num,c.isP?null:c.code,!!kit.glb),root=new THREE.Group(),body=new THREE.Group(),G=kit.geo;root.add(body);
@@ -4488,12 +4488,12 @@ function buildCar(kit,scene,c){
     nb(Q.paint,M.paint,true);nb(Q.black,P.gBlack,true);nb(Q.carbon,Q.carbonM,true);nb(Q.generic,Q.genericM,true);nb(Q.chrome,Q.chromeM);nb(Q.mirror,kit.mirrorM);
     tcPod=nb(Q.tcam,M.tcam);add(Q.pylon,kit.carbonM,body,true);
     const sn=nb(Q.strut,P.gBlack,true),hn=Q.halo?nb(Q.halo,P.gBlack,true):null;   // 10-29: the halo hoop is its own part (blurred in the cockpit view, like the pillar)
-    if(c.isP){if(!kit.ghostM)ghostMat(kit);strut={n:sn,g:add(Q.strut,kit.ghostM,body)};strut.g.visible=false;strut.g.renderOrder=3;if(hn){halo={n:hn,g:add(Q.halo,kit.ghostM,body)};halo.g.visible=false;halo.g.renderOrder=3;}}
+    if(c.isP){if(!kit.ghostM)ghostMat(kit);strut={n:sn,g:add(Q.strut,kit.ghostS,body)};strut.g.visible=false;strut.g.renderOrder=3;if(hn){halo={n:hn,g:add(Q.halo,kit.ghostM,body)};halo.g.visible=false;halo.g.renderOrder=3;}}
     for(const [g,m] of[[Q.far_paint,M.paint],[Q.far_dark,Q.farDarkM]]){const me=add(g,m,body);me.visible=false;bodyF.push(me);}}
   else{
   add(G.paint,M.paint,body,true);if(M.podL===M.podR)add(G.pods,M.podL,body,true);else{add(G.podL,M.podL,body,true);add(G.podR,M.podR,body,true);}/* v12h: both sidepods in one mesh (one draw call less per car) */add(G.fin,M.fin,body,true);tcPod=add(G.tcam,M.tcam,body);if(c.isP){add(G.carbonP,kit.carbonM,body,true);   // v12i: the player's halo strut is its own mesh (soft in the cockpit view)
     if(!kit.ghostM)ghostMat(kit);
-    strut={n:add(G.strut,kit.carbonM,body,true),g:add(G.strutG,kit.ghostM,body)};strut.g.visible=false;strut.g.renderOrder=3;}
+    strut={n:add(G.strut,kit.carbonM,body,true),g:add(G.strutG,kit.ghostS,body)};strut.g.visible=false;strut.g.renderOrder=3;}
   else add(G.carbon,kit.carbonM,body,true);add(G.dark,kit.darkM);add(G.second,M.second,body,true);add(G.metal,kit.mirrorM);add(G.haloD,M.decal,body);}   // v12j: the halo's sponsor decals
   const wheels=[],fronts=[],rings=[],uprights=[];
   for(const [x,front] of[[WHL.xf,true],[WHL.xr,false]])for(const s of[-1,1]){const zw=front?WHL.zf:WHL.zr;
