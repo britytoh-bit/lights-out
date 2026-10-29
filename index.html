@@ -987,6 +987,12 @@ function buildProfile(g){
 const PROF=buildProfile(0.95);
 // down to 0.2: the AI's share of the grip (race.gam) times a wet tyre's grip goes well under 0.5; other callers keep the 0.5 floor
 const PROFS=[1,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2].map(g=>({g,p:g===1?PROF:buildProfile(0.95*g)}));
+// v15: the safety car's own speed round the lap. It is a road-going GT, not a racing car: about 1.15 g in the corners (no downforce, so
+// the fast corners are where it is slowest against the race cars), braking at 7.5 m/s^2 into them (it may brake with 8 per step) and at
+// most 69 m/s (~250 km/h) on the straights; never above 70 % of the race cars' own profile, so the queue (held to 80 % of theirs behind
+// it) can always close up. (Was 58 % of the race profile everywhere, capped at 58 m/s.)
+const SCPROF=(()=>{const v=new Float32Array(N);for(let i=0;i<N;i++)v[i]=Math.min(69,PROF[i]*0.7,Math.sqrt(1.15*9.81/Math.max(TR.K[i],1e-5)));
+  for(let pass=0;pass<2;pass++)for(let i=N-1;i>=0;i--){const nx=v[(i+1)%N];v[i]=Math.min(v[i],Math.sqrt(nx*nx+2*7.5*STEP));}return v;})();
 function profAt(i,g,lo){g=Math.max(lo||0.5,Math.min(1,g));let k=0;while(k<PROFS.length-2&&PROFS[k+1].g>=g)k++;const a=PROFS[k],b=PROFS[k+1],f=Math.max(0,Math.min(1,(a.g-g)/(a.g-b.g)));return a.p[i]+(b.p[i]-a.p[i])*f;}
 // ---------------- racing line (the guide on the road and the AI's line) ----------------
 // K1999 method (R. Coulom's TORCS robot): the path's curvature is smoothed at ever finer steps inside the usable width,
@@ -1766,7 +1772,7 @@ function raceControl(race,dt){
         const q=race.cars.filter(c=>!c.pit&&!c.dnf&&!c.gone&&!c.fail&&c.fin==null).sort((a,b)=>b.prog-a.prog);let mg=0;for(let i=1;i<q.length;i++)mg=Math.max(mg,(q[i-1].prog-q[i].prog)*STEP);
         if(mg<70||race.t>sc.clear+45){sc.phase='in';sc.lights=false;clearIncident(race);race.EV.push({type:'scIn'});}}
       const r=zoneR(sc.idx);if(sc.phase==='in'&&r>=0&&r<8){sc.phase='pit';rc.restartLap=L?Math.floor(L.prog/N):0;rc.go=false;rc.goM=120+Math.random()*330;race.EV.push({type:'restart'});}
-      let tgt=sc.phase==='pit'?PIT.LIMIT:Math.min(58,profAt(wrap(sc.idx+3),1)*0.58);
+      let tgt=sc.phase==='pit'?PIT.LIMIT:SCPROF[wrap(sc.idx+3)];
       if(sc.phase==='out'&&L&&sc.prog-L.prog>40)tgt*=0.8;
       sc.spd+=Math.max(-8*dt,Math.min(5*dt,tgt-sc.spd));sc.prog+=sc.spd*dt/STEP;
       sc.onLane=sc.phase==='pit';if(sc.phase==='pit'){const rr=zoneR(wrap(Math.floor(sc.prog)));sc.lat=PIT.side*(rr>=0?pitLatR(rr):HALF);
@@ -1775,7 +1781,7 @@ function raceControl(race,dt){
       if(sc.phase!=='pit'&&sc.on)for(const c of race.cars){if(c.pit||c.gone||c.fin!=null)continue;const dx=c.x-sc.x,dz=c.z-sc.z,d=Math.hypot(dx,dz);   // nobody drives through the SC
         if(d<3.2){const k=(3.2-d)/Math.max(d,0.01);c.x+=dx*k;c.z+=dz*k;c.jx=(c.jx||0)+dx*k;c.jz=(c.jz||0)+dz*k;if(c.prog<sc.prog)c.spd=Math.min(c.spd,sc.spd*0.9);}}
       // the player leading: the restart is his call once the safety car has pitted
-      if(!rc.go&&sc.phase==='pit'&&L===p&&!p.pit&&p.spd>Math.min(58,profAt(wrap(p.idx+2),1)*0.58)+4){rc.go=true;race.EV.push({type:'scGo',code:p.code,name:p.name,me:true});}
+      if(!rc.go&&sc.phase==='pit'&&L===p&&!p.pit&&p.spd>SCPROF[wrap(p.idx+2)]+4){rc.go=true;race.EV.push({type:'scGo',code:p.code,name:p.name,me:true});}
       if(p.fin==null&&!p.pit&&sc.phase!=='pit'&&sc.on){
         const rel=sc.prog-p.prog;   // v12i: one penalty per pass - ahead from 3 m past the safety car, behind again from 3 m back (alongside it fired almost every step: 8 x 5 s)
         if(rel>1.5)sc.pAh=false;else if(rel<-1.5&&rel>-20&&sc.pAh===false){sc.pAh=true;addPen(race,p,5,'scPass');}}
@@ -1865,7 +1871,7 @@ function scCapV(race,c){const sc=race.rc.sc,F=race.form;if(!F||F.kind!=='red'||!
 function redSC(race,dt){const sc=race.rc.sc,F=race.form;if(!sc||!sc.on)return;
   const rr=zoneR(wrap(Math.floor(sc.prog)));
   if(sc.phase==='lead'){if(rr<0)sc.left=true;if(sc.left&&rr>=0&&rr<8)sc.phase='pit';}
-  let tgt=sc.phase==='pit'||(!sc.left&&rr>=0)?PIT.LIMIT:Math.min(58,profAt(wrap(sc.idx+3),1)*0.58);
+  let tgt=sc.phase==='pit'||(!sc.left&&rr>=0)?PIT.LIMIT:SCPROF[wrap(sc.idx+3)];
   const L=race.cars[F.order[0]];if(L&&sc.phase==='lead'&&!L.pit&&(sc.prog-L.prog)*STEP>70)tgt*=0.7;   // wait for the field
   sc.spd+=Math.max(-8*dt,Math.min(5*dt,tgt-sc.spd));sc.prog+=sc.spd*dt/STEP;
   const r2=zoneR(wrap(Math.floor(sc.prog)));
@@ -4603,9 +4609,7 @@ function drawWheelDash(SW,d){const x=SW.dc.getContext('2d'),F='"Saira Condensed"
   x.textAlign='left';x.font='700 20px '+F;x.fillStyle=d.boost?'#ffd23f':d.ovt?'#c08bff':dim;x.fillText((d.ovt?'OVERTAKE ':d.boost?'BOOST ':'ERS ')+Math.round(d.ers*100)+'%',86,198);
   x.fillStyle='#161d27';x.fillRect(86,212,412,28);x.fillStyle=d.boost?'#ffd23f':d.ovt?'#b16cff':'#2fe08a';x.fillRect(86,212,412*Math.max(0,Math.min(1,d.ers)),28);
   SW.dt.needsUpdate=true;}
-// v12i: the safety car rebuilt as a closed body (it was an open tube without ends or floor: from behind or in front you looked into
-// it and through it - "broken"): body, glasshouse and roof with end caps, wheel arches, a dark floor between the wheels, lights,
-// a light bar, mirrors, a small rear wing. An original design (no real make or livery).
+// v12i: a lofted body closed with end caps (the safety car's body, glasshouse and roof)
 function loftCapped(keys,S,M,uFn){const g=loftGeo(keys,S,M,0,uFn||(()=>0)),pa=g.attributes.position,parts=[g];
   for(const [r0,out] of[[0,1],[S*(M+1),-1]]){let cx=0,cy=0,cz=0;for(let m=0;m<M;m++){cx+=pa.getX(r0+m);cy+=pa.getY(r0+m);cz+=pa.getZ(r0+m);}cx/=M;cy/=M;cz/=M;
     const pos=[];for(let m=0;m<M;m++){const ax=pa.getX(r0+m),ay=pa.getY(r0+m),az=pa.getZ(r0+m),bx=pa.getX(r0+m+1),by=pa.getY(r0+m+1),bz=pa.getZ(r0+m+1);
@@ -4613,49 +4617,78 @@ function loftCapped(keys,S,M,uFn){const g=loftGeo(keys,S,M,0,uFn||(()=>0)),pa=g.
     const cg=new THREE.BufferGeometry(),n=pos.length/3;cg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
     cg.setAttribute('normal',new THREE.Float32BufferAttribute(new Array(n).fill(0).flatMap(()=>[out,0,0]),3));cg.setAttribute('uv',new THREE.Float32BufferAttribute(new Array(n*2).fill(0),2));parts.push(cg);}
   return mergeGeos(parts);}
+// v15: the safety car redrawn as a modern front-engined GT (an original design - no real make, badge or livery): long bonnet, the
+// cabin set well back, a fastback roof into a short ducktail, wide rear haunches over the rear wheels. The livery is one canvas mapped
+// along the body (white, black sills, grille and diffuser, a red / amber shoulder line); 'SAFETY CAR' on
+// the doors; LED headlight strips, a full-width tail light, quad exhausts; open-spoke rims over the brake discs and red calipers; a
+// slim light bar on the roof whose two amber lamps flash in turn. Static parts are merged per material (about 15 draw calls).
 function buildSafetyCar(scene){
-  const g=new THREE.Group(),Phys=THREE.MeshPhysicalMaterial||THREE.MeshStandardMaterial;
-  const paint=new Phys({color:0xc4cad1,metalness:0.7,roughness:0.3,clearcoat:1,clearcoatRoughness:0.08}),glass=new THREE.MeshStandardMaterial({color:0x0a0d11,metalness:0.85,roughness:0.06}),
-    dark=new THREE.MeshStandardMaterial({color:0x16181b,roughness:0.6,metalness:0.2});
-  const mk=(geo,m,x,y,z)=>{const me=new THREE.Mesh(geo,m);me.castShadow=true;me.receiveShadow=true;if(x!=null)me.position.set(x,y,z);g.add(me);return me;};
-  // body: [x, half-width, bottom, top, top/bottom roundness]; the bottom lifts over each axle (wheel arches)
-  mk(loftCapped([[2.41,0.3,0.35,0.47,2],[2.37,0.62,0.27,0.55,2.4],[2.3,0.85,0.21,0.61,2.7],[2.08,0.95,0.19,0.66,3],[1.82,0.975,0.3,0.7,3.2],[1.45,0.98,0.66,0.745,3.4],[1.08,0.98,0.27,0.78,3.4],
-    [0.7,0.98,0.22,0.82,3.6],[-0.2,0.985,0.22,0.86,3.6],[-1.08,0.99,0.27,0.885,3.6],[-1.45,0.99,0.67,0.9,3.4],[-1.84,0.98,0.32,0.9,3.2],[-2.18,0.93,0.3,0.87,3],
-    [-2.32,0.78,0.34,0.81,2.6],[-2.39,0.42,0.43,0.7,2]],44,28),paint);
-  // glasshouse (windscreen, side windows, rear window) and the painted roof over it
-  mk(loftCapped([[0.86,0.68,0.7,0.79,2.4],[0.32,0.74,0.72,1.15,2.6],[-0.4,0.76,0.74,1.265,2.8],[-1.0,0.74,0.76,1.2,2.6],[-1.48,0.69,0.8,0.97,2.4],[-1.74,0.64,0.84,0.89,2.2]],28,22),glass);
-  mk(loftCapped([[0.1,0.56,1.1,1.205,3],[-0.4,0.665,1.17,1.282,3.2],[-0.98,0.62,1.11,1.222,3]],14,22),paint);
-  // floor and inner wheel wells (dark): nothing to see through under the bonnet or between the wheels
-  mk(new THREE.BoxGeometry(4.1,0.42,1.3),dark,0,0.4,0);
-  // lower trim: front splitter, side skirts, rear diffuser; grille
-  mk(new THREE.BoxGeometry(0.34,0.05,1.7),dark,2.12,0.17,0);
-  for(const sd of[-1,1])mk(new THREE.BoxGeometry(1.86,0.07,0.06),dark,-0.01,0.25,sd*0.965);
-  mk(new THREE.BoxGeometry(0.3,0.12,1.45),dark,-2.2,0.3,0);
-  mk(new THREE.BoxGeometry(0.06,0.12,0.8),dark,2.375,0.36,0);
-  // lights: headlights, tail lights
-  const head=new THREE.MeshBasicMaterial({color:0xf4f1e6}),tail=new THREE.MeshBasicMaterial({color:0xc8141a});
-  for(const sd of[-1,1]){const h=mk(new THREE.BoxGeometry(0.3,0.075,0.34),head,2.16,0.605,sd*0.6);h.rotation.y=-sd*0.32;h.rotation.z=-0.32;h.castShadow=false;
-    const t=mk(new THREE.BoxGeometry(0.05,0.055,0.5),tail,-2.315,0.745,sd*0.5);t.rotation.y=sd*0.22;t.castShadow=false;}
-  // mirrors, a small rear wing on two posts
-  for(const sd of[-1,1]){mk(new THREE.BoxGeometry(0.12,0.08,0.16),paint,0.62,0.9,sd*0.97);mk(new THREE.BoxGeometry(0.06,0.03,0.1),dark,0.64,0.86,sd*0.88);
-    mk(new THREE.BoxGeometry(0.1,0.14,0.04),dark,-2.02,0.95,sd*0.55);}
-  mk(new THREE.BoxGeometry(0.26,0.035,1.62),dark,-2.06,1.03,0);
-  // "SAFETY CAR" on both doors
-  const tc=mkCanvas(512,64),x=tc.getContext('2d');x.fillStyle='#d91c1c';x.fillRect(0,0,512,64);x.fillStyle='#fff';x.font='italic 800 44px "Saira Condensed",Arial,sans-serif';x.textAlign='center';x.textBaseline='middle';fitText(x,'SAFETY CAR',256,34,470);
-  const dm=new THREE.MeshStandardMaterial({map:texFrom(tc),roughness:0.4,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
-  for(const sd of[-1,1]){const pl=new THREE.Mesh(new THREE.PlaneGeometry(1.9,0.24),dm);pl.position.set(-0.18,0.5,sd*0.996);pl.rotation.y=sd>0?0:Math.PI;g.add(pl);}
-  // wheels: tyre, a five-spoke rim face on the outside, spinning about the axle
-  const rc=mkCanvas(128,128),r=rc.getContext('2d');r.fillStyle='#1b1d20';r.beginPath();r.arc(64,64,63,0,Math.PI*2);r.fill();r.strokeStyle='#b9bec4';r.lineCap='round';r.lineWidth=15;
-  for(let k=0;k<5;k++){const a=k*Math.PI*2/5;r.beginPath();r.moveTo(64+Math.cos(a)*14,64+Math.sin(a)*14);r.lineTo(64+Math.cos(a)*56,64+Math.sin(a)*56);r.stroke();}
-  r.lineWidth=6;r.beginPath();r.arc(64,64,58,0,Math.PI*2);r.stroke();r.fillStyle='#d0d4d8';r.beginPath();r.arc(64,64,13,0,Math.PI*2);r.fill();
-  const tyre=new THREE.MeshStandardMaterial({color:0x111214,roughness:0.85}),rimM=new THREE.MeshStandardMaterial({map:texFrom(rc),metalness:0.55,roughness:0.35}),wheels=[];
-  const tG=new THREE.CylinderGeometry(0.34,0.34,0.255,28),fG=new THREE.CircleGeometry(0.235,24);
-  for(const [wx,wz] of[[1.45,0.835],[1.45,-0.835],[-1.45,0.835],[-1.45,-0.835]]){const w=new THREE.Group();w.position.set(wx,0.34,wz);g.add(w);
-    const t=new THREE.Mesh(tG,tyre);t.rotation.x=Math.PI/2;t.castShadow=true;w.add(t);
-    const f=new THREE.Mesh(fG,rimM);f.position.z=Math.sign(wz)*0.129;if(wz<0)f.rotation.y=Math.PI;w.add(f);wheels.push(w);}
-  // the light bar on the roof: two amber lamps that flash in turn
-  const bar=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.07,1.1),dark);bar.position.set(-0.4,1.31,0);g.add(bar);
-  const lamps=[0,1].map(k=>{const m=new THREE.MeshBasicMaterial({color:0x332200,toneMapped:false}),l=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.09,0.34),m);l.position.set(-0.4,1.37,k?0.33:-0.33);g.add(l);return m;});
+  const g=new THREE.Group(),Phys=THREE.MeshPhysicalMaterial||THREE.MeshStandardMaterial,U=x=>(x+2.4)/4.8;
+  // livery: u along the car (0 = rear, 1 = nose), v round the section (0 bottom, .25 the +z side, .5 the top, .75 the -z side)
+  const lc=mkCanvas(512,256),l=lc.getContext('2d'),V=(v0,v1,col,u0,u1)=>{l.fillStyle=col;l.fillRect((u0||0)*512,(1-v1)*256,((u1==null?1:u1)-(u0||0))*512,(v1-v0)*256);};
+  V(0,1,'#eceef1');V(0,0.135,'#111214');V(0.865,1,'#111214');V(0.135,0.175,'#2b2e33');V(0.825,0.865,'#2b2e33');
+  V(0.296,0.312,'#d8261c');V(0.316,0.324,'#ffae12');V(0.688,0.704,'#d8261c');V(0.676,0.684,'#ffae12');
+  V(0,0.29,'#111214',0.988,1);V(0.71,1,'#111214',0.988,1);V(0,0.24,'#111214',0,0.012);V(0.76,1,'#111214',0,0.012);   // grille opening, rear fascia
+  const paint=new Phys({color:0xffffff,map:texFrom(lc),metalness:0.35,roughness:0.32,clearcoat:1,clearcoatRoughness:0.06});
+  const glass=new Phys({color:0x07090c,metalness:0.9,roughness:0.05,clearcoat:1,clearcoatRoughness:0.02}),
+    dark=new THREE.MeshStandardMaterial({color:0x121315,roughness:0.55,metalness:0.25}),metal=new THREE.MeshStandardMaterial({color:0x8a8f95,roughness:0.3,metalness:0.9}),
+    red=new THREE.MeshStandardMaterial({color:0xc81a14,roughness:0.4,metalness:0.3});
+  const mk=(geo,m,cast)=>{const me=new THREE.Mesh(geo,m);me.castShadow=cast!==false;me.receiveShadow=true;g.add(me);return me;};
+  const box=(w,h,d,x,y,z,ry,rz)=>{const b=new THREE.BoxGeometry(w,h,d);if(rz)b.rotateZ(rz);if(ry)b.rotateY(ry);return b.translate(x,y,z);};
+  // body: [x, half-width, bottom, top, top roundness, bottom roundness, top taper]; the bottom lifts round each wheel (arches, r ~0.41)
+  const arch=(cx,w,top)=>[[cx+0.44,w,0.2,top+0.01,3.4,3.4,0.1],[cx+0.33,w,0.6,top+0.005,3.4,3.4,0.1],[cx+0.2,w,0.71,top,3.4,3.4,0.1],[cx,w,0.76,top,3.4,3.4,0.1],
+    [cx-0.2,w,0.71,top,3.4,3.4,0.1],[cx-0.33,w,0.6,top,3.4,3.4,0.1],[cx-0.44,w,0.2,top-0.005,3.4,3.4,0.1]];
+  const body=[[2.4,0.5,0.33,0.4,2.4,2.4,0],[2.36,0.68,0.22,0.52,2.6,2.4,0.02],[2.29,0.8,0.18,0.6,2.8,2.6,0.03],[2.12,0.9,0.15,0.665,3,3,0.05],
+    ...arch(1.42,0.965,0.79),[0.75,0.96,0.19,0.875,3.6,3.6,0.1],[0.3,0.955,0.19,0.9,3.6,3.6,0.12],[-0.3,0.965,0.19,0.925,3.6,3.6,0.14],
+    ...arch(-1.3,1.0,0.965),[-1.95,0.95,0.24,0.985,3.2,3.2,0.1],[-2.12,0.88,0.27,1.005,3,3,0.08],[-2.24,0.84,0.3,0.97,3,3,0.08],[-2.3,0.72,0.42,0.86,2.8,2.8,0.06],[-2.33,0.6,0.56,0.64,2.4,2.4,0]];   // a flat Kamm tail (ends closed down to slits)
+  const pg=[loftCapped(body,64,32,U),
+    loftCapped([[0.14,0.62,1.11,1.15,3],[-0.35,0.735,1.19,1.263,3.2],[-1.0,0.68,1.13,1.21,3],[-1.3,0.6,1.08,1.125,3]],18,24,U)];   // the painted roof over the glasshouse
+  for(const sd of[-1,1]){pg.push(box(0.13,0.06,0.12,0.4,0.93,sd*0.99,-sd*0.15));}   // door mirrors (their caps take the black of the map)
+  mk(mergeGeos(pg),paint);
+  // glasshouse: windscreen, side glass, the long fastback rear window
+  mk(loftCapped([[0.52,0.74,0.84,0.89,2.4],[0.12,0.775,0.86,1.14,2.6],[-0.35,0.775,0.88,1.25,2.8],[-0.95,0.725,0.9,1.19,2.6],[-1.55,0.6,0.93,1.03,2.4],[-1.92,0.48,0.95,0.98,2.2]],30,24),glass);
+  // dark parts: floor and the wheel wells (nothing to see through), splitter, diffuser with fins, mirror stalks, light-bar base
+  const dg=[box(4.2,0.5,1.3,0,0.45,0),box(0.26,0.025,1.4,2.1,0.15,0),box(0.26,0.12,1.2,-2.1,0.3,0)];
+  for(const f of[-0.42,-0.14,0.14,0.42])dg.push(box(0.26,0.1,0.02,-2.12,0.26,f));
+  for(const [wx,wz] of[[1.42,0.83],[-1.3,0.835]])for(const sd of[-1,1]){const w=new THREE.CylinderGeometry(0.41,0.41,0.3,20,1,true,-Math.PI/2,Math.PI);w.rotateX(Math.PI/2);dg.push(w.translate(wx,0.36,sd*wz));}
+  for(const sd of[-1,1])dg.push(box(0.05,0.04,0.09,0.42,0.92,sd*0.94));
+  dg.push(box(0.3,0.05,1.12,-0.3,1.285,0));
+  mk(mergeGeos(dg),dark);
+  // quad exhausts, brake discs
+  const mg=[];for(const z of[-0.46,-0.34,0.34,0.46])mg.push(new THREE.CylinderGeometry(0.042,0.042,0.12,12).rotateZ(Math.PI/2).translate(-2.27,0.3,z));
+  const cg=[];
+  for(const [wx,wz] of[[1.42,0.835],[1.42,-0.835],[-1.3,0.84],[-1.3,-0.84]]){const s=Math.sign(wz);mg.push(new THREE.CylinderGeometry(0.2,0.2,0.025,24).rotateX(Math.PI/2).translate(wx,0.32,wz+s*0.06));
+    cg.push(box(0.1,0.15,0.05,wx+(wx>0?-0.13:0.13),0.395,wz+s*0.085));}   // calipers, behind the axle at the front, ahead of it at the back
+  mk(mergeGeos(mg),metal);mk(mergeGeos(cg),red);
+  // LED headlight strips (slanted, following the nose), a full-width tail light with the corner clusters
+  const hg=[],tg=[];
+  for(const sd of[-1,1]){hg.push(box(0.36,0.028,0.07,2.06,0.645,sd*0.62,-sd*0.55,-0.32),box(0.16,0.02,0.05,2.24,0.5,sd*0.6,-sd*0.95,-0.15));
+    tg.push(box(0.05,0.05,0.3,-2.235,0.88,sd*0.6,sd*0.5));}
+  tg.push(box(0.03,0.022,1.2,-2.27,0.9,0));
+  mk(mergeGeos(hg),new THREE.MeshBasicMaterial({color:0xf6f8ff}),false);mk(mergeGeos(tg),new THREE.MeshBasicMaterial({color:0xd0141a}),false);
+  // 'SAFETY CAR' on both doors
+  const tc=mkCanvas(512,64),x=tc.getContext('2d');x.font='italic 800 50px "Saira Condensed",Arial,sans-serif';x.textAlign='center';x.textBaseline='middle';
+  x.lineWidth=6;x.strokeStyle='#ffffff';x.strokeText('SAFETY CAR',256,34);x.fillStyle='#d8261c';fitText(x,'SAFETY CAR',256,34,480);
+  const dm=new THREE.MeshStandardMaterial({map:texFrom(tc),transparent:true,alphaTest:0.3,roughness:0.35,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
+  mk(mergeGeos([-1,1].map(sd=>{const p=new THREE.PlaneGeometry(1.45,0.2);if(sd<0)p.rotateY(Math.PI);return p.rotateY(sd*0.026).translate(-0.12,0.47,sd*0.98);})),dm,false);
+  // wheels: tyre (open tube + sidewalls), a ten-spoke rim face you can see the disc and caliper through
+  const rcv=mkCanvas(128,128),r=rcv.getContext('2d');r.lineCap='round';
+  r.strokeStyle='#2a2d31';r.lineWidth=9;r.beginPath();r.arc(64,64,58,0,Math.PI*2);r.stroke();
+  for(let k=0;k<10;k++){const a=k*Math.PI/5;r.strokeStyle='#30343a';r.lineWidth=10;r.beginPath();r.moveTo(64+Math.cos(a)*12,64+Math.sin(a)*12);r.lineTo(64+Math.cos(a+0.12)*56,64+Math.sin(a+0.12)*56);r.stroke();
+    r.strokeStyle='#a9afb6';r.lineWidth=3;r.beginPath();r.moveTo(64+Math.cos(a)*13,64+Math.sin(a)*13);r.lineTo(64+Math.cos(a+0.12)*54,64+Math.sin(a+0.12)*54);r.stroke();}
+  r.fillStyle='#1d1f22';r.beginPath();r.arc(64,64,14,0,Math.PI*2);r.fill();r.fillStyle='#c8ccd1';r.beginPath();r.arc(64,64,6,0,Math.PI*2);r.fill();
+  const tyre=new THREE.MeshStandardMaterial({color:0x101113,roughness:0.88}),rimM=new THREE.MeshStandardMaterial({map:texFrom(rcv),alphaTest:0.5,metalness:0.6,roughness:0.3}),wheels=[];
+  const tG=mergeGeos([new THREE.CylinderGeometry(0.345,0.345,0.27,28,1,true).rotateX(Math.PI/2),new THREE.RingGeometry(0.255,0.345,28).translate(0,0,0.135),new THREE.RingGeometry(0.255,0.345,28).rotateY(Math.PI).translate(0,0,-0.135)]),
+    fG=new THREE.CircleGeometry(0.262,24);
+  for(const [wx,wz] of[[1.42,0.835],[1.42,-0.835],[-1.3,0.84],[-1.3,-0.84]]){const w=new THREE.Group();w.position.set(wx,0.32,wz);g.add(w);
+    const t=new THREE.Mesh(tG,tyre);t.castShadow=true;w.add(t);
+    const f=new THREE.Mesh(fG,rimM);f.position.z=Math.sign(wz)*0.11;if(wz<0)f.rotation.y=Math.PI;w.add(f);wheels.push(w);}
+  // the light bar's two amber lamps
+  const lamps=[0,1].map(k=>{const m=new THREE.MeshBasicMaterial({color:0x332200,toneMapped:false}),lm=new THREE.Mesh(new THREE.BoxGeometry(0.24,0.06,0.46),m);lm.position.set(-0.3,1.33,k?0.28:-0.28);g.add(lm);return m;});
+  // a soft contact shadow under it (the race cars get theirs from the ground-shadow blobs)
+  {const sc=mkCanvas(64,32),q=sc.getContext('2d'),gr=q.createRadialGradient(32,16,2,32,16,31);gr.addColorStop(0,'rgba(0,0,0,0.75)');gr.addColorStop(0.6,'rgba(0,0,0,0.45)');gr.addColorStop(1,'rgba(0,0,0,0)');
+   q.fillStyle=gr;q.save();q.scale(1,0.5);q.fillRect(0,0,64,64);q.restore();
+   const sh=new THREE.Mesh(new THREE.PlaneGeometry(5.4,2.6).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({map:texFrom(sc),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2}));sh.position.y=0.012;sh.renderOrder=1;g.add(sh);}
   g.visible=false;scene.add(g);return {root:g,lamps,wheels};
 }
 // ---------- pit crews: jointed figures from instanced parts, wheel guns, jacks, loose wheels, tyre stacks, release lights ----------
@@ -6867,19 +6900,20 @@ function spareNose(m){if(m.nose)return m.nose;const g=new THREE.Group();
 function noseAnimAt(N,wt){if(wt<N.o0)return null;if(wt<N.o1)return {ph:'off',u:smooth((wt-N.o0)/(N.o1-N.o0))};if(wt<N.n0)return {ph:'gone',u:0};
   if(wt<N.n1)return {ph:'on',u:smooth((wt-N.n0)/(N.n1-N.n0))};return {ph:'new',u:0};}
 // ---- crash debris: carbon shards (instanced) and the parts that came off (clones of the car's own wing groups) ----
-let DEB=null;const RUBBER=new THREE.Color(0x141414),_dq=new THREE.Quaternion(),_de=new THREE.Euler(),_dv=new THREE.Vector3();
+let DEB=null;const _dcol=new THREE.Color(),RUBBER=new THREE.Color(0x141414),_dq=new THREE.Quaternion(),_de=new THREE.Euler(),_dv=new THREE.Vector3();
 function initDebris(){
   const n=quality==='high'?320:quality==='medium'?200:110,g=new THREE.BufferGeometry();
-  // a thin irregular sliver, lying flat at identity rotation
-  g.setAttribute('position',new THREE.Float32BufferAttribute([-0.05,0,-0.035,0.07,0,-0.015,-0.01,0,0.055,-0.05,0.006,-0.035,0.07,0.006,-0.015,-0.01,0.006,0.055],3));
+  // a thin irregular sliver, lying flat at identity rotation (v15: about 9 x 3 cm and 3 mm thick - the old 12 x 9 cm ones flying past
+  // the onboard camera read as big black triangles)
+  g.setAttribute('position',new THREE.Float32BufferAttribute([-0.04,0,-0.012,0.05,0,-0.004,-0.006,0,0.016,-0.04,0.003,-0.012,0.05,0.003,-0.004,-0.006,0.003,0.016],3));
   g.setIndex([0,2,1,3,4,5,0,1,4,0,4,3,1,2,5,1,5,4,2,0,3,2,3,5]);g.computeVertexNormals();
-  const im=new THREE.InstancedMesh(g,new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.32,metalness:0.35,side:THREE.DoubleSide}),n);
+  const im=new THREE.InstancedMesh(g,new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.24,metalness:0.55,side:THREE.DoubleSide}),n);
   im.frustumCulled=false;im.receiveShadow=true;const c0=new THREE.Color(0x0a0a0b);
   for(let i=0;i<n;i++){_m4.makeScale(0,0,0);im.setMatrixAt(i,_m4);im.setColorAt(i,c0);}
   scene.add(im);
   DEB={im,n,head:0,P:new Float32Array(n*3),V:new Float32Array(n*3),W:new Float32Array(n*3),Q:Array.from({length:n},()=>new THREE.Quaternion()),S:new Float32Array(n),
-    age:new Float32Array(n),life:new Float32Array(n),rest:new Uint8Array(n),car:new Int16Array(n).fill(-1),idx:new Int32Array(n),parts:[],carbon:new THREE.Color(0x1d2024).convertSRGBToLinear()};}
-function clearDebris(){const D=DEB;if(!D)return;D.S.fill(0);for(let i=0;i<D.n;i++){_m4.makeScale(0,0,0);D.im.setMatrixAt(i,_m4);}D.im.instanceMatrix.needsUpdate=true;
+    age:new Float32Array(n),life:new Float32Array(n),rest:new Uint8Array(n),fd:new Uint8Array(n),car:new Int16Array(n).fill(-1),idx:new Int32Array(n),parts:[],carbon:new THREE.Color(0x1d2024).convertSRGBToLinear(),carbonL:new THREE.Color(0x5a6068).convertSRGBToLinear()};}
+function clearDebris(){const D=DEB;if(!D)return;D.S.fill(0);D.fd.fill(0);for(let i=0;i<D.n;i++){_m4.makeScale(0,0,0);D.im.setMatrixAt(i,_m4);}D.im.instanceMatrix.needsUpdate=true;
   D.parts.forEach(p=>scene.remove(p.o));D.parts.length=0;}
 function nearIdx(x,z,i0){let bi=i0,bd=1e18;for(let k=-6;k<=6;k++){const i=wrap(i0+k),dx=x-P[i][0],dz=z-P[i][1],d=dx*dx+dz*dz;if(d<bd){bd=d;bi=i;}}return bi;}
 // keeps a flying piece on the track side of the barrier (returns the new track index)
@@ -6889,7 +6923,8 @@ const _dp=new THREE.Vector3(),_dvv=new THREE.Vector3();
 function spawnShard(x,y,z,vx,vz,c,col){const D=DEB;if(!D)return;const i=D.head,r=()=>Math.random()-0.5,j=i*3,k=0.3+Math.random()*0.5;D.head=(D.head+1)%D.n;
   D.P[j]=x+r()*0.5;D.P[j+1]=y+Math.random()*0.15;D.P[j+2]=z+r()*0.5;D.V[j]=vx*k+r()*7;D.V[j+1]=1+Math.random()*4.5;D.V[j+2]=vz*k+r()*7;
   D.W[j]=r()*30;D.W[j+1]=r()*30;D.W[j+2]=r()*30;D.Q[i].setFromEuler(_de.set(r()*6,r()*6,r()*6));
-  D.S[i]=0.4+Math.random()*1.25;D.age[i]=0;D.life[i]=28+Math.random()*16;D.rest[i]=0;D.car[i]=c.id;D.idx[i]=c.idx;D.im.setColorAt(i,col);D.im.instanceColor.needsUpdate=true;}
+  D.S[i]=0.5+Math.random()*0.7;D.age[i]=0;D.life[i]=28+Math.random()*16;D.rest[i]=0;D.car[i]=c.id;D.idx[i]=c.idx;
+  D.im.setColorAt(i,col===D.carbon?_dcol.copy(D.carbon).lerp(D.carbonL,Math.random()*0.7):col);D.im.instanceColor.needsUpdate=true;}   // carbon: a few tones, some catch the light
 function spawnPart(src,c,vx,vz){const D=DEB;if(!D||!src)return;src.updateMatrixWorld(true);
   const o=src.clone(true);src.matrixWorld.decompose(o.position,o.quaternion,o.scale);
   const q0=o.quaternion.clone(),p0=o.position.clone();o.position.set(0,0,0);o.quaternion.identity();o.updateMatrixWorld(true);
@@ -6908,8 +6943,9 @@ function debrisFor(c,m,e){if(!DEB)return;const ch=e.ch,va=c.va!=null?c.va:c.a,vx
   if(e.lost[0])spawnPart(m.fw[0],c,vx,vz);if(e.lost[1])spawnPart(m.fw[1],c,vx,vz);if(e.lost[2])spawnPart(m.rw,c,vx,vz);
   m.fw.forEach((g,j)=>{const h=j===0?c.dmg.fp:c.dmg.fn,b=h-ch[j];if(b<0.55&&h>=0.55&&h<1&&g.ep.visible)spawnPart(g.ep,c,vx,vz);});   // endplate snapped off
   if(src.length){const p=src[0][0];burst(p[0],p[2],c.spd,va);}}
-function stepDebris(dt){const D=DEB;if(!D||!race)return;let upd=false;
+function stepDebris(dt){const D=DEB;if(!D||!race)return;let upd=false;const cp=camera.position;
   for(let i=0;i<D.n;i++){if(D.S[i]<=0)continue;const j=i*3;D.age[i]+=dt;let moved=false;
+    {const hx=D.P[j]-cp.x,hz=D.P[j+2]-cp.z;if(D.fd[i]||hx*hx+hz*hz<9)moved=true;}   // v15: near the camera: redrawn (faded) every frame
     const car=D.car[i]>=0?race.cars[D.car[i]]:null;
     if(D.age[i]>D.life[i]||(car&&car.gone)){D.S[i]=Math.max(0,D.S[i]-dt*1.5);moved=true;}   // cleared by the marshals / swept away
     if(!D.rest[i]){moved=true;D.V[j+1]-=9.81*dt;const k=Math.exp(-0.35*dt);D.V[j]*=k;D.V[j+2]*=k;
@@ -6920,7 +6956,8 @@ function stepDebris(dt){const D=DEB;if(!D||!race)return;let upd=false;
         else{D.V[j+1]=0;const f=Math.exp(-5*dt);D.V[j]*=f;D.V[j+2]*=f;D.W[j]*=f;D.W[j+1]*=f;D.W[j+2]*=f;
           if(D.V[j]*D.V[j]+D.V[j+2]*D.V[j+2]<0.08){D.rest[i]=1;D.Q[i].setFromAxisAngle(_up,Math.random()*6.28);D.P[j+1]=0.03;}}}
       if(!D.rest[i]){_dv.set(D.W[j],D.W[j+1],D.W[j+2]);const w=_dv.length();if(w>1e-3){_dq.setFromAxisAngle(_dv.multiplyScalar(1/w),w*dt);D.Q[i].premultiply(_dq);}}}
-    if(moved){_v.set(D.P[j],D.P[j+1]+roadY(D.P[j],D.P[j+2],D.idx[i]||0),D.P[j+2]);_s.setScalar(D.S[i]);_m4.compose(_v,D.Q[i],_s);D.im.setMatrixAt(i,_m4);upd=true;}}
+    if(moved){_v.set(D.P[j],D.P[j+1]+roadY(D.P[j],D.P[j+2],D.idx[i]||0),D.P[j+2]);const dd=_v.distanceTo(cp),f=dd<2.5?Math.max(0,dd-1.5):1;D.fd[i]=f<1?1:0;   // never drawn within 1.5 m of the camera, faded in by 2.5 m
+      _s.setScalar(D.S[i]*f);_m4.compose(_v,D.Q[i],_s);D.im.setMatrixAt(i,_m4);upd=true;}}
   if(upd){_s.set(1,1,1);D.im.instanceMatrix.needsUpdate=true;}
   for(let n=D.parts.length-1;n>=0;n--){const p=D.parts[n],o=p.o;p.age+=dt;const car=race.cars[p.car];
     if(p.age>52||(car&&car.gone)){scene.remove(o);D.parts.splice(n,1);continue;}
