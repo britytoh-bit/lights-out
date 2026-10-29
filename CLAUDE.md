@@ -7,6 +7,7 @@
 - `index.html`: 게임 전체(HTML·CSS·JS 한 파일). 대부분의 수정은 여기서 합니다.
 - `lib-*.js`: three.js r128과 예제 스크립트(원본 그대로, 수정하지 않음).
 - `font-*.woff2`: Saira / Saira Condensed 글꼴(index.html 안의 @font-face가 불러옴).
+- `car-f1.glb`: 차량 차체 3D 모델(CC BY 4.0, CREDITS.txt). 바퀴·날개·헬멧은 index.html의 코드로 만듭니다. 못 불러오면 코드로 만든 예전 차체가 나옵니다.
 - `tex-*.jpg|png`: 텍스처. 코드에서는 `TEXDIR='tex-'` + 이름으로 불러옵니다.
 - `icon-*.png`, `manifest.webmanifest`: 홈 화면·바탕화면 설치용.
 - `sw.js`: 오프라인 저장과 자동 업데이트. 직접 고치지 말고 `make-sw.py`로 다시 만듭니다.

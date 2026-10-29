@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # sw.js를 다시 만듭니다. 게임 파일(index.html, lib-*, font-*, icon-*, tex-*, manifest.webmanifest)을 고치거나 더한 뒤에는
-# 꼭 이 폴더에서 실행하세요:  python3 make-sw.py
+# (car-*.glb 차량 3D 모델 포함) 꼭 이 폴더에서 실행하세요:  python3 make-sw.py
 # Rebuilds sw.js (offline cache + automatic updates): every game file in this folder with a fingerprint of its content
 # (sha-256, first 16 hex digits) and a version made from those fingerprints. Run it after changing any game file.
 import hashlib, json, os
@@ -9,7 +9,7 @@ D = os.path.dirname(os.path.abspath(__file__))
 
 
 def is_game(f):
-    return f in ('index.html', 'manifest.webmanifest') or f.startswith(('lib-', 'font-', 'icon-', 'tex-'))
+    return f in ('index.html', 'manifest.webmanifest') or f.startswith(('lib-', 'font-', 'icon-', 'tex-', 'car-'))
 
 
 names = sorted(f for f in os.listdir(D) if os.path.isfile(os.path.join(D, f)) and is_game(f))

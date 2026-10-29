@@ -564,6 +564,7 @@ body.touch.racing #rotate{display:none !important}   /* no full-screen "turn you
 
 <script src="lib-three.min.js"></script>
 <script src="lib-Sky.js"></script>
+<script src="lib-GLTFLoader.js"></script>
 <script src="lib-CopyShader.js"></script>
 <script src="lib-LuminosityHighPassShader.js"></script>
 <script src="lib-GammaCorrectionShader.js"></script>
@@ -4287,6 +4288,39 @@ function wheelTextures(tm){
   h.fillStyle='#8a8f96';h.beginPath();h.arc(128,128,20,0,Math.PI*2);h.fill();h.fillStyle='#2a2c30';h.beginPath();h.arc(128,128,11,0,Math.PI*2);h.fill();
   return {cover:texFrom(cv)};
 }
+// v15: the car body is a real 3D model - "F1 Generic 2022" by TheoDev, CC BY 4.0 (see CREDITS.txt) - cut down for this game
+// offline: its tyres, rims, wings, steering wheel and every logo removed, ~50k triangles near / ~10k far, already in the car's
+// frame (x forward, y up, metres, wheel centres on WHL). The wheels, both wings (active aero, damage), helmet, lights and
+// the wings' sponsor decals stay the game's own. It loads in the background: until it is in - or if it never loads (offline
+// first visit, an old browser) - the cars are the procedural ones below, and the next race (or the menu) picks it up.
+const CAR_GLB='car-f1.glb';
+function loadCarModel(kit){if(!THREE.GLTFLoader)return;
+  new THREE.GLTFLoader().load(CAR_GLB,g=>{try{
+    const Q={},need=['paint','black','carbon','generic','chrome','mirror','tcam','strut','ductL','ductR','far_paint','far_dark'],ex=g.scene.userData||{};
+    g.scene.traverse(o=>{if(o.isMesh){Q[o.name]=o.geometry;if(o.name==='carbon')Q.carbonMap=o.material.map;if(o.name==='generic')Q.genericMap=o.material.map;}});
+    if(!need.every(n=>Q[n])){window.__CARGLB={ok:false,why:'parts'};return;}
+    const Phys=THREE.MeshPhysicalMaterial||THREE.MeshStandardMaterial;
+    Q.carbonM=new Phys({map:Q.carbonMap||null,color:0x9a9ca2,roughness:0.42,metalness:0.15,clearcoat:0.3,clearcoatRoughness:0.25,envMapIntensity:0.45});
+    Q.genericM=new THREE.MeshStandardMaterial({map:Q.genericMap||null,roughness:0.5,metalness:0.25});
+    Q.chromeM=new THREE.MeshStandardMaterial({color:0x8d939a,roughness:0.28,metalness:0.9});
+    Q.farDarkM=new THREE.MeshStandardMaterial({color:0x121316,roughness:0.6,metalness:0.1});
+    for(const m of[Q.carbonM,Q.genericM])if(m.map)m.map.anisotropy=8;
+    // where the model puts the cockpit, the T-cam and the mirrors (the procedural car's numbers are the zero)
+    const c3=b=>[(b.mn[0]+b.mx[0])/2,(b.mn[1]+b.mx[1])/2,(b.mn[2]+b.mx[2])/2];
+    Q.ck={x:0.70,y:-0.07,tx:ex.tcam?c3(ex.tcam)[0]+0.5:0.41,ty:ex.tcam?ex.tcam.mx[1]-1.055:0.075};
+    Q.mir=[ex.mirrorL,ex.mirrorR].map(b=>b?[b.mn[0]-0.003,(b.mn[1]+b.mx[1])/2,(b.mn[2]+b.mx[2])/2,(b.mx[2]-b.mn[2])/2*0.92,(b.mx[1]-b.mn[1])/2*0.9]:null);
+    Q.pylon=wingRod([-1.82,0.42,0],[-2.12,0.8,0],0.06,0.014);
+    Q.latLight=mergeGeos(Q.mir.filter(Boolean).map(b=>new THREE.BoxGeometry(0.04,0.02,0.014).translate(b[0]+0.02,b[1],b[2]+Math.sign(b[2])*(b[3]+0.008))));
+    kit.pxCg=mergeGeos([kit.geo.fw.cP,kit.geo.fw.cN,kit.geo.rwC,Q.pylon]);
+    kit.glb=Q;window.__CARGLB={ok:true,t:Math.round(performance.now())};
+    if(typeof state!=='undefined'&&state==='menu'&&KIT===kit)setupRace();   // the menu's cars at once; a race in progress keeps its cars
+  }catch(e){console.warn('car model',e);window.__CARGLB={ok:false,why:String(e)};}},undefined,()=>{window.__CARGLB={ok:false,why:'load'};});}
+// the model's paint for one team: one colour on the whole body, in the team's finish (gloss / satin / metallic / matte)
+function glbMats(kit,ti){kit.teamCache=kit.teamCache||{};const tc=kit.teamCache[ti]||(kit.teamCache[ti]={});if(tc.gPaint)return tc;
+  const L=LIV[ti],Phys=THREE.MeshPhysicalMaterial||THREE.MeshStandardMaterial,fp=LIV_FINISH[L.fin]||LIV_FINISH.gloss,lin=h=>new THREE.Color(h).convertSRGBToLinear();
+  tc.gPaint=new Phys(Object.assign({color:lin(L.D)},fp));
+  tc.gBlack=new Phys({color:lin(L.K),roughness:0.5,metalness:0.1,clearcoat:0.3,clearcoatRoughness:0.3,envMapIntensity:0.5});
+  return tc;}
 function buildCarKit(){
   const geo=buildCarGeometry();
   const tyreProfile=(hw,seg)=>{const pts=[[0.235,-hw],[0.3,-hw],[0.338,-hw*0.95],[0.356,-hw*0.8],[0.362,-hw*0.45],[0.362,hw*0.45],[0.356,hw*0.8],[0.338,hw*0.95],[0.3,hw],[0.235,hw]];
@@ -4317,6 +4351,7 @@ function buildCarKit(){
     const d=mkCanvas(256,256),g=d.getContext('2d');g.fillStyle='#141414';g.fillRect(0,0,256,256);g.strokeStyle=c;g.lineWidth=9;g.globalAlpha=0.9;g.beginPath();g.arc(128,128,106,0,Math.PI*2);g.stroke();
     g.globalAlpha=0.28;g.strokeStyle='#e8e8e8';g.lineWidth=16;g.beginPath();g.arc(128,128,90,0,Math.PI*2);g.stroke();
     kit.decalBlur[k]=new THREE.MeshStandardMaterial({map:texFrom(d),roughness:0.85,polygonOffset:true,polygonOffsetFactor:-2});}
+  loadCarModel(kit);
   return kit;
 }
 function teamMats(kit,ti,num,code){
@@ -4338,25 +4373,36 @@ function teamMats(kit,ti,num,code){
     cover:new THREE.MeshStandardMaterial({map:wt.cover,roughness:0.35,metalness:0.6})};
   kit.cache[key]=m;return m;
 }
-function buildCar(kit,scene,c){
-  const M=teamMats(kit,c.team,c.num,c.isP?null:c.code),root=new THREE.Group(),body=new THREE.Group(),G=kit.geo;root.add(body);
-  const add=(g,m,par,cast)=>{const me=new THREE.Mesh(g,m);me.castShadow=!!cast;me.receiveShadow=true;(par||body).add(me);return me;};
-  add(G.paint,M.paint,body,true);if(M.podL===M.podR)add(G.pods,M.podL,body,true);else{add(G.podL,M.podL,body,true);add(G.podR,M.podR,body,true);}/* v12h: both sidepods in one mesh (one draw call less per car) */add(G.fin,M.fin,body,true);const tcPod=add(G.tcam,M.tcam,body);let strut=null;if(c.isP){add(G.carbonP,kit.carbonM,body,true);   // v12i: the player's halo strut is its own mesh (soft in the cockpit view)
-    if(!kit.ghostM){const gm=kit.ghostM=new THREE.MeshBasicMaterial({color:0x050607,transparent:true,opacity:0.42,depthWrite:false});
+// the see-through halo pillar of the cockpit view
+function ghostMat(kit){const gm=kit.ghostM=new THREE.MeshBasicMaterial({color:0x050607,transparent:true,opacity:0.42,depthWrite:false});
       gm.onBeforeCompile=sh=>{sh.vertexShader='varying vec3 vGN;varying vec3 vGV;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\nvGN=normalize(normalMatrix*normal);vGV=-mvPosition.xyz;');
         sh.fragmentShader='varying vec3 vGN;varying vec3 vGV;\n'+sh.fragmentShader.replace('#include <alphamap_fragment>','#include <alphamap_fragment>\n{float q=abs(dot(normalize(vGN),normalize(vGV)));diffuseColor.a*=q*q;'+(GRADE_IN_TM?'diffuseColor.a=1.0-pow(1.0-diffuseColor.a,0.4545);':'')+'}');};}   // dark in the middle, fading out to its edges: a blurred pillar
       // v14b: (no post chain on a phone: it blends straight onto the sRGB screen, not in linear light - the same see-through needs less opacity)
+function buildCar(kit,scene,c){
+  const M=teamMats(kit,c.team,c.num,c.isP?null:c.code),root=new THREE.Group(),body=new THREE.Group(),G=kit.geo;root.add(body);
+  const add=(g,m,par,cast)=>{const me=new THREE.Mesh(g,m);me.castShadow=!!cast;me.receiveShadow=true;(par||body).add(me);return me;};
+  const Q=kit.glb,ck=Q?Q.ck:{x:0,y:0,tx:0,ty:0},bodyN=[],bodyF=[];let tcPod,strut=null;
+  if(Q){const P=glbMats(kit,c.team),nb=(g,m,cast)=>{const me=add(g,m,body,cast);bodyN.push(me);return me;};   // v15: the 3D model's body
+    nb(Q.paint,P.gPaint,true);nb(Q.black,P.gBlack,true);nb(Q.carbon,Q.carbonM,true);nb(Q.generic,Q.genericM,true);nb(Q.chrome,Q.chromeM);nb(Q.mirror,kit.mirrorM);
+    tcPod=nb(Q.tcam,M.tcam);add(Q.pylon,kit.carbonM,body,true);
+    const sn=nb(Q.strut,P.gPaint,true);
+    if(c.isP){if(!kit.ghostM)ghostMat(kit);strut={n:sn,g:add(Q.strut,kit.ghostM,body)};strut.g.visible=false;strut.g.renderOrder=3;}
+    for(const [g,m] of[[Q.far_paint,P.gPaint],[Q.far_dark,Q.farDarkM]]){const me=add(g,m,body);me.visible=false;bodyF.push(me);}}
+  else{
+  add(G.paint,M.paint,body,true);if(M.podL===M.podR)add(G.pods,M.podL,body,true);else{add(G.podL,M.podL,body,true);add(G.podR,M.podR,body,true);}/* v12h: both sidepods in one mesh (one draw call less per car) */add(G.fin,M.fin,body,true);tcPod=add(G.tcam,M.tcam,body);if(c.isP){add(G.carbonP,kit.carbonM,body,true);   // v12i: the player's halo strut is its own mesh (soft in the cockpit view)
+    if(!kit.ghostM)ghostMat(kit);
     strut={n:add(G.strut,kit.carbonM,body,true),g:add(G.strutG,kit.ghostM,body)};strut.g.visible=false;strut.g.renderOrder=3;}
-  else add(G.carbon,kit.carbonM,body,true);add(G.dark,kit.darkM);add(G.second,M.second,body,true);add(G.metal,kit.mirrorM);add(G.haloD,M.decal,body);   // v12j: the halo's sponsor decals
+  else add(G.carbon,kit.carbonM,body,true);add(G.dark,kit.darkM);add(G.second,M.second,body,true);add(G.metal,kit.mirrorM);add(G.haloD,M.decal,body);}   // v12j: the halo's sponsor decals
   const wheels=[],fronts=[],rings=[],uprights=[];
   for(const [x,front] of[[WHL.xf,true],[WHL.xr,false]])for(const s of[-1,1]){const zw=front?WHL.zf:WHL.zr;
     const piv=new THREE.Group();piv.position.set(x,0.36,s*zw);root.add(piv);const spin=new THREE.Group();piv.add(spin);
-    if(front){const ug=new THREE.Group();ug.position.set(x,0.36,s*zw);root.add(ug);add(kit.upright,kit.darkM,ug).position.z=-s*0.2;uprights.push(ug);}
+    if(front){const ug=new THREE.Group();ug.position.set(x,0.36,s*zw);root.add(ug);add(kit.upright,kit.darkM,ug).position.z=-s*0.2;uprights.push(ug);
+      if(Q){const d=add(s<0?Q.ductL:Q.ductR,Q.carbonM,ug,true);d.position.set(-x,-0.36,-s*zw);bodyN.push(d);}}
     const hw=front?WHL.hwf:WHL.hwr;add(front?kit.tyreF:kit.tyreR,kit.tyreM,spin,true);
     const r=add(kit.ring,kit.decal[c.ty.comp],spin);r.position.z=s*(hw+0.003);if(s<0)r.rotation.y=Math.PI;rings.push(r);
     const cv=add(kit.cover,M.cover,spin);cv.position.z=s*(hw-0.012);if(s<0)cv.rotation.y=Math.PI;
     wheels.push(spin);if(front)fronts.push(piv);}
-  const helmet=new THREE.Group();helmet.position.set(-0.28,0.79,0);body.add(helmet);add(kit.helmet,M.helmet,helmet);add(kit.visor,kit.visorM,helmet);   // in front of the roll hoop (it used to sit half inside the airbox)
+  const helmet=new THREE.Group();helmet.position.set(-0.28+ck.x,0.79+ck.y,0);body.add(helmet);add(kit.helmet,M.helmet,helmet);add(kit.visor,kit.visorM,helmet);   // in front of the roll hoop (it used to sit half inside the airbox)
   // active aero: each moving element hinges at its trailing edge; userData c = corner-mode angle, o = straight-mode angle
   const flap=(par,geo,mat,x,y,cA,oA)=>{const pv=new THREE.Group();pv.position.set(x,y,0);pv.rotation.z=cA;pv.userData={c:cA,o:oA};par.add(pv);add(geo,mat,pv,true);return pv;};
   // breakable parts: each front-wing half (mainplane half, fence, endplate + decal, its half of both active flaps) hinges
@@ -4371,18 +4417,18 @@ function buildCar(kit,scene,c){
   add(G.rwC,kit.carbonM,rw,true).position.copy(ro);add(G.rwS,M.endp,rw,true).position.copy(ro);add(G.rwD,M.decal,rw).position.copy(ro);
   const drs=new THREE.Group();drs.position.copy(ro);rw.add(drs);const rf=flap(drs,kit.drs,M.rflap,-2.44,0.95,-0.52,-0.06);add(kit.flapDecal,M.decal,rf);
   const rlM=new THREE.MeshBasicMaterial({color:0x220000,toneMapped:false});add(kit.light,rlM).position.set(-2.24,0.3,0);add(kit.epLight,rlM,rw).position.copy(ro);   // (the endplate strips go with the rear wing if it breaks off)
-  const latM=new THREE.MeshBasicMaterial({color:0x1a0f00,toneMapped:false});add(kit.latLight,latM,body);
+  const latM=new THREE.MeshBasicMaterial({color:0x1a0f00,toneMapped:false});add(Q?Q.latLight:kit.latLight,latM,body);
   scene.add(root);
   // level of detail: small parts drop out on distant cars (fewer draw calls with the whole field in view)
   const L1=new Set([M.cover,M.helmet,kit.visorM,M.decal,M.tcam,kit.mirrorM,kit.darkM]),L2=new Set([M.flap,M.gur,M.rflap,M.fin,M.second,M.endp]),lod1=[],lod2=[],lod3=[],casters=[];
   const L3=new Set([G.fw.cP,G.fw.cN,G.fw.sP,G.fw.sN,G.fw.oP,G.fw.oN,G.rwC,G.rwS,kit.light]);   // v12c: far away (>140 m) only the body, pods, floor and tyres are drawn
   const L1G=new Set([kit.fflapP,kit.fflapN,kit.fflap2P,kit.fflap2N,kit.gurP,kit.gurN,kit.drs]);   // v12c: the thin flaps go with the small details (>30 m)
-  root.traverse(o=>{if(!o.isMesh)return;if(o.castShadow)casters.push(o);if(L1G.has(o.geometry)||L1.has(o.material)||rings.includes(o))lod1.push(o);else if(L2.has(o.material)||o.geometry===kit.epLight||o.geometry===kit.latLight)lod2.push(o);else if(L3.has(o.geometry))lod3.push(o);});
+  root.traverse(o=>{if(!o.isMesh)return;if(o.castShadow)casters.push(o);if(L1G.has(o.geometry)||L1.has(o.material)||rings.includes(o))lod1.push(o);else if(L2.has(o.material)||o.geometry===kit.epLight||o.geometry===kit.latLight||(Q&&o.geometry===Q.latLight))lod2.push(o);else if(L3.has(o.geometry))lod3.push(o);});
   // v12c: beyond 30 m the four carbon parts and the four tyres are drawn as two shared stand-in meshes (8 draw calls -> 2)
   let px=null,pxHide=null;if(!c.isP){if(!kit.pxC){kit.pxC=mergeGeos([G.carbon,G.fw.cP,G.fw.cN,G.rwC]);const tg=[];for(const [x,front] of[[WHL.xf,true],[WHL.xr,false]])for(const s of[-1,1]){const g=(front?kit.tyreFlo:kit.tyreRlo).clone();g.translate(x,0.36,s*(front?WHL.zf:WHL.zr));tg.push(g);}kit.pxT=mergeGeos(tg);}
-    const pc=new THREE.Mesh(kit.pxC,kit.carbonM),pt=new THREE.Mesh(kit.pxT,kit.tyreM);pc.visible=pt.visible=false;pc.receiveShadow=pt.receiveShadow=true;body.add(pc);root.add(pt);px={pc,pt};
-    pxHide=[];root.traverse(o=>{if(o.isMesh&&o!==pc&&o!==pt&&(o.geometry===G.carbon||o.geometry===G.fw.cP||o.geometry===G.fw.cN||o.geometry===G.rwC||o.geometry===kit.tyreF||o.geometry===kit.tyreR))pxHide.push(o);});}
-  return {lod1,lod2,lod3,casters,px,pxHide,lodLv:0,root,body,wheels,fronts,uprights,helmet,tcPod,drs,ffp,fw,rw,nose:null,noseAnim:null,rwSpare:null,rwAnim:null,fixV:null,dmgKey:'',toe:[0,0,0,0],cam:[0,0,0,0],pkAny:false,dmgRoll:0,dmgPitch:0,rlM,latM,spinF:0,spinR:0,pitch:0,roll:0,steer:0,sw:null,rings,comp:c.ty.comp,strut};
+    const pc=new THREE.Mesh(Q?kit.pxCg:kit.pxC,kit.carbonM),pt=new THREE.Mesh(kit.pxT,kit.tyreM);pc.visible=pt.visible=false;pc.receiveShadow=pt.receiveShadow=true;body.add(pc);root.add(pt);px={pc,pt,bf:Q?bodyF:null};
+    pxHide=[];root.traverse(o=>{if(o.isMesh&&o!==pc&&o!==pt&&(o.geometry===G.carbon||o.geometry===G.fw.cP||o.geometry===G.fw.cN||o.geometry===G.rwC||o.geometry===kit.tyreF||o.geometry===kit.tyreR||(Q&&o.geometry===Q.pylon)))pxHide.push(o);});if(Q)pxHide.push(...bodyN);}
+  return {lod1,lod2,lod3,casters,px,pxHide,lodLv:0,root,body,wheels,fronts,uprights,helmet,tcPod,drs,ffp,fw,rw,nose:null,noseAnim:null,rwSpare:null,rwAnim:null,ck,mirF:Q?Q.mir:null,fixV:null,dmgKey:'',toe:[0,0,0,0],cam:[0,0,0,0],pkAny:false,dmgRoll:0,dmgPitch:0,rlM,latM,spinF:0,spinR:0,pitch:0,roll:0,steer:0,sw:null,rings,comp:c.ty.comp,strut};
 }
 function buildSteeringWheel(kit,c){
   // v11b: a modern F1-style wheel (an original design, no team's real wheel): flat-topped faceplate, sculpted grips with a band in the
@@ -4717,7 +4763,7 @@ for(let i=0;i<TEAMS.length;i++)applyLivData(i);
 // forget one team's cached car materials (and free their textures) so the next build uses the new paint
 function dropTeamMats(ti){if(!KIT)return;const kill=m=>{if(!m)return;if(m.map)m.map.dispose();if(m.roughnessMap)m.roughnessMap.dispose();m.dispose();};
   for(const k of Object.keys(KIT.cache||{}))if(+k.split('_')[0]===ti){const m=KIT.cache[k];for(const n of['paint','fin','tcam','second','helmet'])kill(m[n]);if(m.cover){if(m.cover.map)m.cover.map.dispose();m.cover.dispose();}delete KIT.cache[k];}
-  const tc=KIT.teamCache&&KIT.teamCache[ti];if(tc){for(const n of['podR','flap','gur','endp','rflap','decal'])kill(tc[n]);delete KIT.teamCache[ti];}}
+  const tc=KIT.teamCache&&KIT.teamCache[ti];if(tc){for(const n of['podR','flap','gur','endp','rflap','decal','gPaint','gBlack'])kill(tc[n]);delete KIT.teamCache[ti];}}
 function initWorld(){
   renderer.shadowMap.enabled=quality!=='low';
   WORLD=buildWorld(scene,renderer,{shadows:quality!=='low',q:quality,tod});applyRL();KIT=buildCarKit();WORLD.crew=buildPitCrew(scene,WORLD,KIT);if(tod==='sunset')renderer.toneMappingExposure=0.8;else if(tod==='night')renderer.toneMappingExposure=0.9;EXPO=renderer.toneMappingExposure;initParticles();
@@ -5425,7 +5471,7 @@ function setupRace(mode,o){o=o||{};podiumEnd(false);meshes.forEach(m=>scene.remo
   meshes=race.cars.map(c=>buildCar(KIT,scene,c));
   if(!SCM)SCM=buildSafetyCar(scene);SCM.root.visible=false;
   try{buildFlagMarshal();}catch(e){}
-  const pi=race.cars.indexOf(race.player);SW=buildSteeringWheel(KIT,race.player);meshes[pi].body.add(SW.col);SW.arms.forEach(a=>meshes[pi].body.add(a));meshes[pi].sw=SW;addMirrorFaces(meshes[pi]);sessionBest=null;camYaw=race.player.a;}
+  const pi=race.cars.indexOf(race.player);SW=buildSteeringWheel(KIT,race.player);SW.col.position.x+=meshes[pi].ck.x;SW.col.position.y+=meshes[pi].ck.y;meshes[pi].body.add(SW.col);SW.arms.forEach(a=>meshes[pi].body.add(a));meshes[pi].sw=SW;addMirrorFaces(meshes[pi]);sessionBest=null;camYaw=race.player.a;}
 function warmUp(){if(!renderer||!scene)return;const prev=renderer.getRenderTarget();let envs=[];try{envs=prepEnvs();}catch(e){}
   // compile against the same target the frames are drawn into (the post-processing buffer), or the shaders do not match
   try{renderer.setRenderTarget(composer&&composer.readBuffer?composer.readBuffer:null);renderer.compile(scene,camera);
@@ -5487,7 +5533,7 @@ function updateMenuBest(){$('bestMenu').innerHTML=TRK.name+' · '+(bestLap?'내 
 {const btn=t=>`<button data-v="${t.id}" aria-pressed="${t.id===TRK.id}" style="flex-direction:column;align-items:flex-start;gap:2px"><b>${t.name}</b><span style="font-size:12px;opacity:.75;font-weight:400">${t.desc}</span></button>`,
   hd=x=>`<p style="grid-column:1/-1;margin:2px 0 0;font-size:12px;font-weight:700;color:var(--dim)">${x}</p>`;
  $('trkSel').innerHTML=hd('실제 서킷 (실제 레이아웃·길이)')+TRACKS.filter(t=>t.real).map(btn).join('')+hd('가상 서킷')+TRACKS.filter(t=>!t.real).map(btn).join('')+
-  `<p style="grid-column:1/-1;margin:0;font-size:11px;line-height:1.4;color:var(--dim)">실제 서킷 형상: © OpenStreetMap 기여자(ODbL, mvoof/F1TrackDownloader 경유) · TUM racetrack-database(LGPL-3.0) · bacinger/f1-circuits(MIT)를 가공. 높낮이·출발선·피트 레인 일부: 2025·2026 F1 위치 데이터(TracingInsights, Apache-2.0)를 가공 — 높낮이는 부드럽게 다듬어 실제보다 완만한 곳이 있어요.</p>`;}
+  `<p style="grid-column:1/-1;margin:0;font-size:11px;line-height:1.4;color:var(--dim)">실제 서킷 형상: © OpenStreetMap 기여자(ODbL, mvoof/F1TrackDownloader 경유) · TUM racetrack-database(LGPL-3.0) · bacinger/f1-circuits(MIT)를 가공. 높낮이·출발선·피트 레인 일부: 2025·2026 F1 위치 데이터(TracingInsights, Apache-2.0)를 가공 — 높낮이는 부드럽게 다듬어 실제보다 완만한 곳이 있어요. 차량 3D 모델: “F1 Generic 2022” © TheoDev(CC BY 4.0)를 가공 — 바퀴·날개·로고를 빼고 가볍게 줄였어요.</p>`;}
 $('teamSel').innerHTML=TEAMS.map((t,i)=>`<button data-v="${i}" aria-pressed="${i===teamSel}"><span class="sw" style="background:linear-gradient(90deg,${t.p} 0 60%,${t.s} 60%)"></span>${t.name}</button>`).join('');
 function seg(id,cb){document.querySelectorAll('#'+id+' button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#'+id+' button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));cb(b.dataset.v);}));}
 seg('modeSel',v=>{gameMode=v;saveLS('lightsout3d-mode',v);updStartBtn();});seg('fmlSel',v=>{formOn=v==='on';saveLS('lightsout3d-fml',v);});
@@ -6285,7 +6331,7 @@ function sync(dt){
         dLv=d2>LODD[2]?3:d2>LODD[1]?2:d2>LODD[0]?1:0,r=_lodR[i],
         rLv=r>=LODN[2]?3:r>=LODN[1]?2:r>=LODN[0]?1:0,lv=dLv>rLv?dLv:rLv;   // v12c: tighter steps (a pack of cars cost ~45 draw calls each)
       if(lv!==m.lodLv){m.lodLv=lv;for(const o of m.lod1)o.visible=lv<1;for(const o of m.lod2)o.visible=lv<2;if(m.lod3)for(const o of m.lod3)o.visible=lv<3;
-        if(m.px){const far=lv>=1;m.px.pc.visible=far&&lv<3;m.px.pt.visible=far;for(const o of m.pxHide)o.visible=!far;}
+        if(m.px)pxFar(m,lv>=1,lv>=3);
         if(m.casters){const sh=lv<1;for(const o of m.casters)o.castShadow=sh;}}}   // only cars within 30 m cast real shadows (the rest keep the soft blob under them)
     // v12i: the sim moves a car sideways at once when it touches another car or a wall (overlap pushes): on screen that jump is eased
     // in over ~0.1 s (critically damped, no overshoot) - the car and the camera no longer twitch in a frame. Big jumps (resets) snap.
@@ -6319,7 +6365,7 @@ function sync(dt){
     if(m.sw){const th=Math.max(-1.6,Math.min(1.6,(m.steer||0)/Math.max(0.05,steerMax(Math.abs(c.spd)))*0.95));m.sw.g.rotation.x=th;   // shows the assist's counter-steer
       const co=Math.cos(th),si=Math.sin(th);
       const cl=m.sw.col,wsc=cl.scale.x,wp=cl.position,tc=Math.cos(cl.rotation.z),ts=Math.sin(cl.rotation.z);m.sw.arms.forEach(a=>{const sd=a.userData.s,hx=-0.1,hy=-0.01,hz=sd*0.17,y1=hy*co-hz*si,z1=hy*si+hz*co,wx=wp.x+(hx*tc-y1*ts)*wsc,wy=wp.y+(hx*ts+y1*tc)*wsc,wz=z1*wsc;
-        _v.set(wx,wy,wz);const sh=_armS.set(-0.3,0.3,sd*0.36),dir=_armD.copy(_v).sub(sh),L=dir.length();a.position.copy(sh);a.quaternion.setFromUnitVectors(_up,dir.normalize());a.scale.set(1,L,1);a.visible=m.sw.g.visible;});}
+        _v.set(wx,wy,wz);const sh=_armS.set(-0.3+m.ck.x,0.3+m.ck.y,sd*0.36),dir=_armD.copy(_v).sub(sh),L=dir.length();a.position.copy(sh);a.quaternion.setFromUnitVectors(_up,dir.normalize());a.scale.set(1,L,1);a.visible=m.sw.g.visible;});}
     {const fast=Math.abs(c.spd)>14;if(m.comp!==c.ty.comp||m.fast!==fast){m.comp=c.ty.comp;m.fast=fast;m.rings.forEach(r=>r.material=(fast?KIT.decalBlur:KIT.decal)[c.ty.comp]);}}
     }   // ← v13d farLod
     // v12h: 2026 rules - the rear light (and the endplate strips) flash in every reduced-speed situation: SC, VSC, red flag, a double-waved
@@ -6359,15 +6405,15 @@ function sync(dt){
   // nods under braking and shakes over the kerbs, and it turns a little into the corner. headLat
   // and headLon are the same lagged g-loads the cockpit camera already rides on, so the head and
   // the cockpit view move together. Only the player's: it is the one head the camera ever sees close.
-  {const hd=pm.helmet;hd.position.set(-0.28+headLon*0.7,0.79+vib*1.8,headLat*0.85);
+  {const hd=pm.helmet;hd.position.set(-0.28+pm.ck.x+headLon*0.7,0.79+pm.ck.y+vib*1.8,headLat*0.85);
    hd.rotation.set(headLat*1.5,pl.st*0.12,-headLon*1.7);}
   let tvS=null;if(pitCam){const [x0,z0,a0]=pInfo.fr,c1=Math.cos(a0),s1=Math.sin(a0),PS=PIT.side,drift=Math.min(1,Math.max(0,(pInfo.wt+1)/5)),lx=7.4-0.8*drift,lz=-PS*(5.7-0.4*drift),tx=-0.5,tz=PS*0.55;
     eye.set(x0+c1*lx-s1*lz,2.9+vib+gy,z0+s1*lx+c1*lz);look.set(x0+c1*tx-s1*tz,0.3+gy,z0+s1*tx+c1*tz);camera.fov=46;camera.near=0.5;chaseInit=false;}
   else if(lookBack){   // hold V: rear-facing onboard from the cockpit views, reverse chase from the outside views
-    if(outCam(cm)){L(8.2,2.6+gy+KP*gs*8.2,0,eye,true);if(pitTunSect(pl))pitTunCam(eye);L(-6,0.9+gy-KP*gs*6,0,look,true);camera.fov=60;camera.near=0.3;}else{L(-0.32,1.34+vib+gy,0,eye,true);L(-30,0.6+gy-gs*30,0,look,true);camera.fov=64;camera.near=0.12;}chaseInit=false;}
-  else if(cm==='cockpit'){L(-0.36+headLon,0.87+vib+pm.body.position.y+gy+(-0.36+headLon)*gs,headLat,eye,true);L(30,0.45-headLon*4+pitch*30+gy+gs*30,pl.st*1.6,look,false);camera.fov=62+8*sp;camera.near=0.1;chaseInit=false;}
-  else if(cm==='tcam'){const Q=TCAMP,by=pm.body.position.y,ah=20;L(Q.x,Q.y+by+vib*0.6+gy+Q.x*gs,Q.z,eye,true);   // fixed to the car: it pitches with the road and the body, no look into the corners
-    L(Q.x+ah,Q.y+by+gy-ah*Math.tan(Q.pitch)+(pitch+gs)*ah,Q.z,look,true);camera.fov=Q.fov+Q.fovS*sp;camera.near=Q.near;chaseInit=false;}
+    if(outCam(cm)){L(8.2,2.6+gy+KP*gs*8.2,0,eye,true);if(pitTunSect(pl))pitTunCam(eye);L(-6,0.9+gy-KP*gs*6,0,look,true);camera.fov=60;camera.near=0.3;}else{L(-0.32+pm.ck.tx,1.34+pm.ck.ty+vib+gy,0,eye,true);L(-30,0.6+gy-gs*30,0,look,true);camera.fov=64;camera.near=0.12;}chaseInit=false;}
+  else if(cm==='cockpit'){const ex=-0.36+pm.ck.x+headLon;L(ex,0.87+pm.ck.y+vib+pm.body.position.y+gy+ex*gs,headLat,eye,true);L(30,0.45-headLon*4+pitch*30+gy+gs*30,pl.st*1.6,look,false);camera.fov=62+8*sp;camera.near=0.1;chaseInit=false;}
+  else if(cm==='tcam'){const Q=TCAMP,by=pm.body.position.y,ah=20,qx=Q.x+pm.ck.tx,qy=Q.y+pm.ck.ty;L(qx,qy+by+vib*0.6+gy+qx*gs,Q.z,eye,true);   // fixed to the car: it pitches with the road and the body, no look into the corners
+    L(qx+ah,qy+by+gy-ah*Math.tan(Q.pitch)+(pitch+gs)*ah,Q.z,look,true);camera.fov=Q.fov+Q.fovS*sp;camera.near=Q.near;chaseInit=false;}
   else if(cm==='tv'&&(tvS=tvPick(pl))){const ey=hXZ(tvS.x,tvS.z)+7.6;eye.set(tvS.x,ey,tvS.z);look.set(PX,0.5+gy,PZ);   // v14b: TV view, zoomed to ~9 m of picture at the car
     camera.fov=Math.max(2.5,Math.min(45,2*Math.atan(4.5/Math.min(1,camera.aspect)/Math.max(1,eye.distanceTo(look)))*180/Math.PI));camera.near=2;chaseInit=false;TVR.set(PX,1.2+gy,PZ);}
   else{const far=cm==='far',bk=far?11.5:7.5,ah=far?9:6;L(-bk,(far?3.8:2.4)+gy-KP*gs*bk,0,eye,false);if(!chaseInit){chasePos.copy(eye);chaseInit=true;}chasePos.lerp(eye,Math.min(1,dt*(far?6:8)));eye.copy(chasePos);
@@ -6889,10 +6935,12 @@ function initMirror(){if(MIR)return;
   const g=new THREE.PlaneGeometry(2,2),uv=g.attributes.uv;for(let i=0;i<uv.count;i++)uv.setX(i,1-uv.getX(i));   // a mirror flips left-right
   const hs=new THREE.Scene(),hc=new THREE.OrthographicCamera(-1,1,1,-1,0,1);hs.add(new THREE.Mesh(g,mat));
   const on=loadLS('lightsout3d-mirror');MIR={rt,cam,mat,hs,hc,frame:0,on:on==null?(!isTouch&&quality!=='low'):on==='1',rect:'',faces:[]};}
+// beyond the first detail step: the carbon parts and tyres as one stand-in each, and the model's light body (v15)
+function pxFar(m,far,lv3){m.px.pc.visible=far&&!lv3;m.px.pt.visible=far;for(const o of m.pxHide)o.visible=!far;if(m.px.bf)for(const o of m.px.bf)o.visible=far;}
 function addMirrorFaces(m){if(!MIR)return;MIR.faces=[];if(quality==='low')return;   // the player's two wing mirrors show the left / right halves of the (flipped) rear view
-  for(const s of[-1,1]){const g=new THREE.CircleGeometry(1,20);g.scale(0.066,0.024,1);const uv=g.attributes.uv;
+  for(const s of[-1,1]){const f=m.mirF&&m.mirF[s<0?0:1],g=new THREE.CircleGeometry(1,20);g.scale(f?f[3]:0.066,f?f[4]:0.024,1);const uv=g.attributes.uv;
     for(let i=0;i<uv.count;i++){const um=(s<0?0:0.5)+uv.getX(i)*0.5;uv.setX(i,1-um);}
-    g.rotateY(-Math.PI/2);g.translate(0.2465,0.675,s*0.56);const me=new THREE.Mesh(g,MIR.mat);m.body.add(me);MIR.faces.push(me);}}
+    g.rotateY(-Math.PI/2);if(f)g.translate(f[0],f[1],f[2]);else g.translate(0.2465,0.675,s*0.56);const me=new THREE.Mesh(g,MIR.mat);m.body.add(me);MIR.faces.push(me);}}
 function renderMirror(){
   if(!MIR||!race||!(state==='race'||state==='done'||state==='countdown'))return;const cm=CAMS[camMode];
   const need=!CAMPIT&&!CAMLOOK&&(MIR.on||((cm==='cockpit'||cm==='tcam')&&MIR.faces.length>0));if(!need)return;MIR.frame++;   // every frame: an every-other-frame mirror makes uneven frame times
@@ -6906,9 +6954,9 @@ function renderMirror(){
   // close behind), which roughly halves its draw calls with a pack behind
   const lodS=MIR.lodS||(MIR.lodS=[]);lodS.length=0;
   for(let i=0;i<meshes.length;i++){const mm=meshes[i],c=race.cars[i];if(!mm||!mm.lod3||c.isP||!mm.root.visible)continue;const lv=Math.hypot(c.x-pl.x,c.z-pl.z)<20?2:3;if(mm.lodLv>=lv)continue;lodS.push(mm);
-    for(const o of mm.lod1)o.visible=false;for(const o of mm.lod2)o.visible=false;if(lv>=3)for(const o of mm.lod3)o.visible=false;}
+    for(const o of mm.lod1)o.visible=false;for(const o of mm.lod2)o.visible=false;if(lv>=3)for(const o of mm.lod3)o.visible=false;if(mm.px&&mm.px.bf&&mm.lodLv<1)pxFar(mm,true,lv>=3);}
   renderer.setRenderTarget(MIR.rt);renderer.render(scene,MIR.cam);renderer.setRenderTarget(null);hide.forEach(o=>o.visible=true);
-  for(const mm of lodS){const lv=mm.lodLv;for(const o of mm.lod1)o.visible=lv<1;for(const o of mm.lod2)o.visible=lv<2;for(const o of mm.lod3)o.visible=lv<3;}}
+  for(const mm of lodS){const lv=mm.lodLv;for(const o of mm.lod1)o.visible=lv<1;for(const o of mm.lod2)o.visible=lv<2;for(const o of mm.lod3)o.visible=lv<3;if(mm.px&&mm.px.bf&&lv<1)pxFar(mm,false,false);}}
 // performance governor: if the frame rate stays low while racing, drop the costliest effects one step at a time
 const PERF={acc:0,n:0,step:0};
 // set the resolution to pr (the full one clears the cap)
