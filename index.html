@@ -4261,8 +4261,10 @@ function livMotif(g,type,x0,y0,w,h,col,a,seed){g.save();g.beginPath();g.rect(x0,
 // the texture's colour and strength on a livery: most in black or white at low strength; the fine line and the ribbons in the accent
 const MOT_ACC={pin:1,aurora:0.55,speed:0.6,circuit:0.5,glitch:0.8,prism:0.92};   // textures drawn in the accent colour, and their strength
 function motifInk(L){const acc=MOT_ACC[L.M];return [acc?L.A:(lumOf(L.D)>0.5?'#000000':'#ffffff'),acc||(L.M==='weave'?0.22:0.17)];}
-function liveryTex(tm,num,ti,code){
-  const W=1024,H=512,c=mkCanvas(W,H),g=c.getContext('2d'),L=LIV[ti],D=L.D,K=L.K,A=L.A,R=matMap(L,W,H);
+// g26 (v15, the 3D model's body): the 2026 look - the dark lower body is bare carbon for every team, a bigger race number on the
+// nose, a second big one on the engine cover, and a bigger driver code by the cockpit
+function liveryTex(tm,num,ti,code,g26){
+  const W=1024,H=512,c=mkCanvas(W,H),g=c.getContext('2d'),L=g26?Object.assign({},LIV[ti],{KC:1}):LIV[ti],D=L.D,K=L.K,A=L.A,R=matMap(L,W,H);
   // v around the section: 0 bottom, 0.25 right flank (+z), 0.5 top, 0.75 left flank; h = height on a flank (0 lower edge .. 1 top line)
   const V=(s,h)=>(1-(s>0?0.07+0.43*h:0.93-0.43*h))*H,X=u=>u*W;
   const bnd=(LIV_CUT[L.cut]||LIV_CUT.rise)[0];   // where the colour ends: black rises towards the back
@@ -4287,10 +4289,10 @@ function liveryTex(tm,num,ti,code){
     const w=q.measureText(t).width,k=Math.min(1,(maxW||400)/w);q.scale(k,1);q.fillStyle=cl;q.fillText(t,0,0);q.restore();}};   // numbers and names: vinyl (glossier than matte paint)
   const bb=(sp,cx,cy,w,h,col,fh,fv,sx)=>{brandBlit(g,sp,cx,cy,w,h,col,fh,fv,sx);if(R)brandBlit(R.g,sp,cx,cy,w,h,R.decal,fh,fv,sx);};
   const noseBg=L.wt==='nose'&&L.W?L.W:D,numC=lumOf(A)>0.5&&lumOf(noseBg)<0.5?A:inkOn(noseBg);
-  txt(String(num),0.19*W,V(1,0.62),108,true,false,numC);txt(String(num),0.19*W,V(-1,0.62),108,false,true,numC);   // race number on the nose
-  txt(String(num),0.12*W,0.5*H,74,false,false,numC);
+  const nS=g26?150:108;txt(String(num),0.19*W,V(1,0.62),nS,true,false,numC);txt(String(num),0.19*W,V(-1,0.62),nS,false,true,numC);   // race number on the nose
+  txt(String(num),0.12*W,0.5*H,g26?104:74,false,false,numC);
   const onD=inkOn(D);txt(tm.short,0.3*W,V(1,0.42),34,true,false,onD,260);txt(tm.short,0.3*W,V(-1,0.42),34,false,true,onD,260);   // maker's name on the nose
-  if(code){const cb=L.wt==='cockpit'&&L.W?L.W:D;txt(code,0.47*W,V(1,0.86),30,true,false,inkOn(cb),120,700);txt(code,0.47*W,V(-1,0.86),30,false,true,inkOn(cb),120,700);}   // driver on the cockpit side
+  if(code){const cb=L.wt==='cockpit'&&L.W?L.W:D;const cs=g26?44:30;txt(code,0.47*W,V(1,0.86),cs,true,false,inkOn(cb),120,700);txt(code,0.47*W,V(-1,0.86),cs,false,true,inkOn(cb),120,700);}   // driver on the cockpit side
   if(ti!=null){const sp=TEAM_SP[ti];
     bb(SPONSORS[sp[0]],0.765*W,V(1,0.4),215,58,'#ffffff',true,false,0.62);bb(SPONSORS[sp[0]],0.765*W,V(-1,0.4),215,58,'#ffffff',false,true,0.62);   // title sponsor on the black rear
     bb(SPONSORS[sp[2]],0.38*W,V(1,0.64),220,40,onD,true,false,0.5);bb(SPONSORS[sp[2]],0.38*W,V(-1,0.64),220,40,onD,false,true,0.5);
@@ -4306,7 +4308,9 @@ function liveryTex(tm,num,ti,code){
     // partners rather than competing with the title sponsor.
     const bb2=(q,u,h,w,hh)=>{bb(SPONSORS[q],u*W,V(1,h),w,hh,ink(u,h),true,false,0.5);bb(SPONSORS[q],u*W,V(-1,h),w,hh,ink(u,h),false,true,0.5);};
     bb2(sp[4],0.505,0.295,176,34);  // low on the sidepod, ahead of the cooling exit
-    bb2(sp[5],0.715,0.62,180,36);   // mid flank, behind the cockpit
+    if(g26){const ec=(u,h)=>{const ink=h<bnd(u)||((L.cut==='fade'||L.cut==='sunset')&&u>0.62)?'#ffffff':inkOn(D);return ink;};   // the engine-cover number (where the 2026 cars carry it)
+      txt(String(num),0.745*W,V(1,0.72),130,true,false,ec(0.745,0.72));txt(String(num),0.745*W,V(-1,0.72),130,false,true,ec(0.745,0.72));}
+    else bb2(sp[5],0.715,0.62,180,36);   // mid flank, behind the cockpit
     bb2(sp[4],0.878,0.47,150,30);   // far back, under the rear suspension
     bb2(sp[5],0.442,0.205,160,30);  // along the floor edge
     bb2(sp[2],0.172,0.865,132,26);  // up on the nose, ahead of the number
@@ -4441,8 +4445,8 @@ function buildCarKit(){
   loadCarModel(kit);
   return kit;
 }
-function teamMats(kit,ti,num,code){
-  const tm=TEAMS[ti],key=ti+'_'+num,L=LIV[ti];
+function teamMats(kit,ti,num,code,g26){
+  const tm=TEAMS[ti],key=ti+'_'+num+(g26?'_g':''),L=LIV[ti];
   kit.cache=kit.cache||{};if(kit.cache[key])return kit.cache[key];
   const Phys=THREE.MeshPhysicalMaterial||THREE.MeshStandardMaterial,fp=LIV_FINISH[L.fin]||LIV_FINISH.gloss,lin=h=>new THREE.Color(h).convertSRGBToLinear();
   const wt=wheelTextures(tm);
@@ -4453,7 +4457,7 @@ function teamMats(kit,ti,num,code){
     flap:new Phys(Object.assign({color:lin(L.flap)},fp)),gur:new Phys(Object.assign({color:lin(gurCol(L))},fp)),endp:new Phys(Object.assign({color:lin(L.endp)},fp)),rflap:new Phys(Object.assign({color:lin(L.rflap)},fp)),
     decal:new THREE.MeshStandardMaterial({map:at,alphaTest:0.4,roughness:0.4,metalness:0.1,polygonOffset:true,polygonOffsetFactor:-2,side:THREE.FrontSide})};}
   const second=num===ti*2+3;   // the team's second driver runs the fluorescent T-cam
-  const m={podR:tc.podR,podL:tc.podL,decal:tc.decal,flap:tc.flap,gur:tc.gur,endp:tc.endp,rflap:tc.rflap,paint:pm(liveryTex(tm,num,ti,code)),fin:pm(finTex(tm,num,ti)),
+  const m={podR:tc.podR,podL:tc.podL,decal:tc.decal,flap:tc.flap,gur:tc.gur,endp:tc.endp,rflap:tc.rflap,paint:pm(liveryTex(tm,num,ti,code,g26)),fin:pm(finTex(tm,num,ti)),
     tcam:new THREE.MeshStandardMaterial({color:second?0xd6ff00:0x111214,roughness:0.45,emissive:second?0x2a3300:0x000000}),
     second:new Phys({color:lin(tm.s),roughness:0.45,metalness:0.05,clearcoat:0.35,clearcoatRoughness:0.15,envMapIntensity:0.7}),
     helmet:new Phys({color:lin(tm.s),roughness:0.25,metalness:0.2,clearcoat:1}),
@@ -4466,13 +4470,13 @@ function ghostMat(kit){const gm=kit.ghostM=new THREE.MeshBasicMaterial({color:0x
         sh.fragmentShader='varying vec3 vGN;varying vec3 vGV;\n'+sh.fragmentShader.replace('#include <alphamap_fragment>','#include <alphamap_fragment>\n{float q=abs(dot(normalize(vGN),normalize(vGV)));diffuseColor.a*=q*q;'+(GRADE_IN_TM?'diffuseColor.a=1.0-pow(1.0-diffuseColor.a,0.4545);':'')+'}');};}   // dark in the middle, fading out to its edges: a blurred pillar
       // v14b: (no post chain on a phone: it blends straight onto the sRGB screen, not in linear light - the same see-through needs less opacity)
 function buildCar(kit,scene,c){
-  const M=teamMats(kit,c.team,c.num,c.isP?null:c.code),root=new THREE.Group(),body=new THREE.Group(),G=kit.geo;root.add(body);
+  const M=teamMats(kit,c.team,c.num,c.isP?null:c.code,!!kit.glb),root=new THREE.Group(),body=new THREE.Group(),G=kit.geo;root.add(body);
   const add=(g,m,par,cast)=>{const me=new THREE.Mesh(g,m);me.castShadow=!!cast;me.receiveShadow=true;(par||body).add(me);return me;};
   const Q=kit.glb,ck=Q?Q.ck:{x:0,y:0,tx:0,ty:0},bodyN=[],bodyF=[];let tcPod,strut=null;
   if(Q){const P=glbMats(kit,c.team),nb=(g,m,cast)=>{const me=add(g,m,body,cast);bodyN.push(me);return me;};   // v15: the 3D model's body
     nb(Q.paint,M.paint,true);nb(Q.black,P.gBlack,true);nb(Q.carbon,Q.carbonM,true);nb(Q.generic,Q.genericM,true);nb(Q.chrome,Q.chromeM);nb(Q.mirror,kit.mirrorM);
     tcPod=nb(Q.tcam,M.tcam);add(Q.pylon,kit.carbonM,body,true);
-    const sn=nb(Q.strut,M.paint,true);
+    const sn=nb(Q.strut,P.gBlack,true);
     if(c.isP){if(!kit.ghostM)ghostMat(kit);strut={n:sn,g:add(Q.strut,kit.ghostM,body)};strut.g.visible=false;strut.g.renderOrder=3;}
     for(const [g,m] of[[Q.far_paint,M.paint],[Q.far_dark,Q.farDarkM]]){const me=add(g,m,body);me.visible=false;bodyF.push(me);}}
   else{
