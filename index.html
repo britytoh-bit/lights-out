@@ -2337,7 +2337,7 @@ function buildWorld(scene,renderer,opt){
   scene.fog=new THREE.Fog(SS?0xd9b89a:NT?0x0a0e1a:0xa9c2db,SS?380:NT?240:700,SS?2800:NT?2300:5200);W.fogC=scene.fog.color.clone();if(GRADE_IN_TM)scene.fog.color.convertLinearToSRGB();W.fogN=scene.fog.near;W.fogF=scene.fog.far;
   const hemi=new THREE.HemisphereLight(SS?0xffd2a8:NT?0x3c4c7a:0xcfe3ff,SS?0x3f3a2c:NT?0x17171b:0x56663f,SS?0.46:NT?0.34:0.44);scene.add(hemi);W.hemi=hemi;W.hemiI=hemi.intensity;W.hemiC=hemi.color.clone();W.hemiG=hemi.groundColor.clone();
   const sun=new THREE.DirectionalLight(SS?0xffa45c:NT?0xe8eeff:0xffedd2,NT?1.8:2.9);sun.castShadow=opt.shadows;   // (night: the floodlights - cool white, from high up)
-  if(opt.shadows){const ms=opt.q==='high'?4096:1536;sun.shadow.mapSize.set(ms,ms);const sc=sun.shadow.camera;sc.left=-70;sc.right=70;sc.top=70;sc.bottom=-70;sc.near=1;sc.far=500;sun.shadow.bias=-0.0004;sun.shadow.normalBias=0.03;}
+  if(opt.shadows){const ms=opt.q==='high'?(isTouch?2048:4096):1536;   /* 10-29: a 4096 map on a phone - 7 cm texels over the 140 m box at 2048 still read sharp */sun.shadow.mapSize.set(ms,ms);const sc=sun.shadow.camera;sc.left=-70;sc.right=70;sc.top=70;sc.bottom=-70;sc.near=1;sc.far=500;sun.shadow.bias=-0.0004;sun.shadow.normalBias=0.03;}
   // v13k: floodlights come from many towers, so a shadow under one is only partly dark - part of the light casts no shadow (was all of it: the shadows went near-black)
   if(NT){const fl=new THREE.DirectionalLight(0xe8eeff,0.8);fl.position.copy(sunDir);scene.add(fl);W.fill=fl;W.fillI=fl.intensity;sun.intensity=1.0;}
   scene.add(sun);scene.add(sun.target);W.sun=sun;W.sunI=sun.intensity;
@@ -4806,7 +4806,7 @@ if(isTouch){const TMS='vec3 CustomToneMapping( vec3 color ) { return color; }',c
     col=clamp(col,0.0,1.0);
     return mix(pow(col*0.9478672986+vec3(0.0521327014),vec3(2.4)),col*0.0773993808,vec3(lessThanEqual(col,vec3(0.04045))));}`);
     renderer.toneMapping=THREE.CustomToneMapping;GRADE_IN_TM=true;document.body.classList.add('tmgrade');}}
-renderer.shadowMap.enabled=true;renderer.shadowMap.type=quality==='high'?THREE.PCFSoftShadowMap:THREE.PCFShadowMap;renderer.shadowMap.autoUpdate=false;renderer.physicallyCorrectLights=false;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=quality==='high'&&!isTouch?THREE.PCFSoftShadowMap:THREE.PCFShadowMap;   // 10-29: phones (the only target) - soft PCF runs many taps per pixel over the whole screenrenderer.shadowMap.autoUpdate=false;renderer.physicallyCorrectLights=false;
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(70,1,0.05,5000);
 let composer=null,bloom=null,fxaa=null,grade=null;
@@ -4909,9 +4909,19 @@ for(let i=0;i<TEAMS.length;i++)applyLivData(i);
 function dropTeamMats(ti){if(!KIT)return;const kill=m=>{if(!m)return;if(m.map)m.map.dispose();if(m.roughnessMap)m.roughnessMap.dispose();m.dispose();};
   for(const k of Object.keys(KIT.cache||{}))if(+k.split('_')[0]===ti){const m=KIT.cache[k];for(const n of['paint','fin','tcam','second','helmet'])kill(m[n]);if(m.cover){if(m.cover.map)m.cover.map.dispose();m.cover.dispose();}delete KIT.cache[k];}
   const tc=KIT.teamCache&&KIT.teamCache[ti];if(tc){for(const n of['podR','flap','gur','endp','rflap','decal','gBlack'])kill(tc[n]);delete KIT.teamCache[ti];}}
+// 10-29 (phone at 52 fps): the ground (180k triangles, 8 km across) and the road surface (100k) were single meshes, so every
+// pass - the view, and again the mirror looking back - drew all of them. Cut into square tiles they are frustum-culled like
+// everything else. WORLD.ground / roadMesh stay the whole meshes (out of the scene) for anything that reads their geometry.
+function tileMesh(me,cell){if(!me||!me.parent)return;const g0=me.geometry.index?me.geometry.toNonIndexed():me.geometry,pa=g0.attributes.position,n=pa.count/3,cells=new Map();
+  for(let t=0;t<n;t++){const x=(pa.getX(3*t)+pa.getX(3*t+1)+pa.getX(3*t+2))/3,z=(pa.getZ(3*t)+pa.getZ(3*t+1)+pa.getZ(3*t+2))/3,k=Math.floor(x/cell)+','+Math.floor(z/cell);let L=cells.get(k);if(!L)cells.set(k,L=[]);L.push(t);}
+  if(cells.size<2)return;const par=me.parent;
+  for(const L of cells.values()){const g=new THREE.BufferGeometry();
+    for(const [name,at] of Object.entries(g0.attributes)){const sz=at.itemSize,src=at.array,dst=new src.constructor(L.length*3*sz);let j=0;for(const t of L)for(let v=0;v<3;v++){const o=(3*t+v)*sz;for(let c=0;c<sz;c++)dst[j++]=src[o+c];}g.setAttribute(name,new THREE.BufferAttribute(dst,sz,at.normalized));}
+    g.computeBoundingSphere();const m=new THREE.Mesh(g,me.material);m.receiveShadow=me.receiveShadow;m.castShadow=me.castShadow;m.renderOrder=me.renderOrder;m.matrixAutoUpdate=false;m.matrix.copy(me.matrix);par.add(m);}
+  par.remove(me);}
 function initWorld(){
   renderer.shadowMap.enabled=quality!=='low';
-  WORLD=buildWorld(scene,renderer,{shadows:quality!=='low',q:quality,tod});applyRL();KIT=buildCarKit();WORLD.crew=buildPitCrew(scene,WORLD,KIT);if(tod==='sunset')renderer.toneMappingExposure=0.8;else if(tod==='night')renderer.toneMappingExposure=0.9;EXPO=renderer.toneMappingExposure;initParticles();
+  WORLD=buildWorld(scene,renderer,{shadows:quality!=='low',q:quality,tod});tileMesh(WORLD.ground,700);tileMesh(WORLD.roadMesh,500);applyRL();KIT=buildCarKit();WORLD.crew=buildPitCrew(scene,WORLD,KIT);if(tod==='sunset')renderer.toneMappingExposure=0.8;else if(tod==='night')renderer.toneMappingExposure=0.9;EXPO=renderer.toneMappingExposure;initParticles();
   setupComposer();resize();initMirror();
 }
 
@@ -6495,7 +6505,7 @@ function sync(dt){
      m.pitch+=(lon*0.00042-m.pitch)*k;m.roll+=(-lat*0.00022-m.roll)*k;dmgVis(m,c);m.body.rotation.z=m.pitch+m.dmgPitch;m.body.rotation.x=m.roll+m.dmgRoll;
      if(m.pkAny&&!c.pit&&Math.abs(c.spd)>2){const tt=performance.now()*0.001,pk=c.dmg.pk;for(let k=0;k<4;k++)if(pk[k]>0.3)m.wheels[k].parent.rotation.x=m.cam[k]+Math.sin(tt*(18+Math.abs(c.spd)*1.2)+k*1.7)*0.05*pk[k];}
      {const v=Math.abs(c.spd),dw=PH.kD*v*v/(PH.m*9.81)*(c.aeroOpen===2?0.75:1),cp=c.pit?0:Math.max(-0.5,Math.min(3,v*v*vkAt(c.idx)/9.81)),tg=Math.max(-0.042,-0.0105*dw-0.006*cp);   // v12f: pressed down onto its springs by the downforce and in compressions (ride height ~2.5 cm lower at top speed)
-      m.sqY=(m.sqY==null?tg:m.sqY+(tg-m.sqY)*Math.min(1,dt*10));m.body.position.y=m.sqY+(v>45?(bumpy(c.idx)-0.5)*0.006*Math.sin(performance.now()*0.05+i)*Math.min(1,(v-45)/40):0)+(c.isP&&c.kerbW&&!c.pit&&v>8?Math.sin(performance.now()*0.09)*0.006*c.kerbW:0);}}
+      m.sqY=(m.sqY==null?tg:m.sqY+(tg-m.sqY)*Math.min(1,dt*10));m.body.position.y=m.sqY+(v>45?(bumpy(c.idx)-0.5)*0.006*Math.sin(performance.now()*0.05+i)*Math.min(1,(v-45)/40):0)+(c.isP&&c.kerbW&&!c.pit&&v>8?Math.sin(performance.now()*0.05)*0.005*c.kerbW:0);}}
     // wheels: locked wheels stop, spinning rears turn faster than the road
     {const dA=c.spd*dt/0.36,sw=m.spinW||(m.spinW=[0,0,0,0]);for(let w=0;w<4;w++){const lk=w<2?((c.lkS?c.lkS[w]:c.lockF)||(c.aiLk>0&&c.aiLkW===w)):c.lockR;   // v12h: per wheel
        if(!lk)sw[w]-=w<2?dA:dA*(c.spinR?1.7:1);m.wheels[w].rotation.z=sw[w];}}
@@ -6542,7 +6552,7 @@ function sync(dt){
   pm.helmet.visible=pitCam||lookBack||cm!=='cockpit'||!!CINE;if(SW)SW.g.visible=!pitCam&&!lookBack&&(cm==='cockpit'||cm==='tcam')&&!CINE;if(pm.tcPod)pm.tcPod.visible=!(cm==='tcam'&&!pitCam&&!lookBack&&!CINE);
   {const gh=HALOGH&&cm==='cockpit'&&!pitCam&&!lookBack&&!CINE;for(const h of[pm.strut,pm.halo])if(h&&h.g.visible!==gh){h.g.visible=gh;h.n.visible=!gh;}}   // v12i: G key / pause menu   // the T-cam sits in that pod
   const sp=Math.abs(pl.spd)/VMAX;shakeT+=dt;
-  const vib=(Math.sin(shakeT*61)*0.6+Math.sin(shakeT*37))*0.0025*sp+(pl.off?Math.sin(shakeT*45)*0.018:0)+(pl.kerbW||0)*Math.min(1,sp*2.5)*(Math.sin(shakeT*83)*0.006+Math.sin(shakeT*131)*0.003)
+  const vib=(Math.sin(shakeT*61)*0.6+Math.sin(shakeT*37))*0.0025*sp+(pl.off?Math.sin(shakeT*45)*0.018:0)+(pl.kerbW||0)*Math.min(1,sp*2.5)*(Math.sin(shakeT*47)*0.0045+Math.sin(shakeT*66)*0.002)   // 10-29: the kerb rumble at 7.5 / 10.5 Hz (it was 13 / 21 Hz: faster than a phone's 50-60 frames can show, it strobed and read as stutter)
     +((pl.lockF||pl.lockR)?Math.sin(shakeT*57)*0.006:0)+Math.max(0,(pl.flat||0)-0.05)*Math.sin(shakeT*Math.abs(pl.spd)*2.7)*0.009
     +IMPACT*(Math.sin(shakeT*73)*0.05+Math.sin(shakeT*41)*0.035);IMPACT*=Math.exp(-dt*5);
   {const J=JOLT,h=Math.min(dt,0.05);J.vx+=(-260*J.x-22*J.vx)*h;J.vz+=(-260*J.z-22*J.vz)*h;J.x+=J.vx*h;J.z+=J.vz*h;J.x=Math.max(-0.12,Math.min(0.12,J.x));J.z=Math.max(-0.14,Math.min(0.14,J.z));
