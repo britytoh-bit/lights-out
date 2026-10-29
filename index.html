@@ -545,7 +545,7 @@ body.touch.racing #rotate{display:none !important}   /* no full-screen "turn you
         <span><kbd>[</kbd> <kbd>]</kbd></span><span>레이스 중 조향 감도 조절</span>
         <span><kbd>M</kbd> · <kbd>P</kbd> · <kbd>R</kbd></span><span>사운드 · 일시정지 · 재시작</span>
         <span><kbd>F</kbd></span><span>FPS(초당 화면 수) 표시 켜기/끄기 · 버벅임 확인용 (최저 = 가장 느린 1% 화면 기준)</span>
-        <span><kbd>G</kbd></span><span>콕핏 시점에서 헤일로 가운데 기둥 흐리게 켜기/끄기 (기본 끔 · 일시정지 메뉴에도 있어요)</span>
+        <span><kbd>G</kbd></span><span>콕핏 시점에서 헤일로 블러 켜기/끄기 (기본 켬 · 일시정지 메뉴에도 있어요)</span>
       </div>
       <button class="go" id="startBtn">레이스 시작<span class="keyOnly"> (Enter)</span></button>
       <p class="best num" id="bestMenu"></p>
@@ -556,7 +556,7 @@ body.touch.racing #rotate{display:none !important}   /* no full-screen "turn you
     <div class="touchOnly"><p class="label">페달 위치</p><div class="seg" id="pPedSel"><button data-v="split" aria-pressed="true">양쪽 (브레이크 왼쪽)</button><button data-v="right">오른쪽에 모아서</button></div></div>
     <div><p class="label">조향 감도 (1 가장 부드러움)</p><div class="seg" id="pSensSel"><button data-v="1">1</button><button data-v="2" aria-pressed="true">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button></div></div>
     <div class="touchOnly"><p class="label">가속</p><div class="seg" id="pAgSel"><button data-v="auto" aria-pressed="true">자동 가속</button><button data-v="manual">직접 가속</button></div></div>
-    <div class="row2"><button class="go" id="resumeBtn">계속 달리기</button><button id="mirBtn">룸미러</button><button id="haloBtn">헤일로 기둥</button><button id="fpsBtn">FPS 표시</button><button id="skipBtn" hidden>건너뛰기</button><button id="quitBtn">메뉴로</button></div></div></div>
+    <div class="row2"><button class="go" id="resumeBtn">계속 달리기</button><button id="mirBtn">룸미러</button><button id="haloBtn">헤일로 블러</button><button id="fpsBtn">FPS 표시</button><button id="skipBtn" hidden>건너뛰기</button><button id="quitBtn">메뉴로</button></div></div></div>
   <div class="overlay" id="sess" hidden><div class="card"><h1 id="sessTitle">Q1</h1><p class="sub num" id="sessSub"></p><table class="num" id="sessTable"></table><div class="row2"><button class="go" id="sessGo">다음</button><button id="sessMenu">메뉴로</button></div></div></div>
   <div class="overlay" id="result" hidden><div class="card"><h1 id="resTitle">P1</h1><p class="sub num" id="resSub"></p><table class="num" id="resTable"></table><div class="row2"><button class="go" id="againBtn">다시 달리기 (Enter)</button><button class="go" id="chBtn" hidden>대회 순위 보기 (Enter)</button><button id="menuBtn">메뉴로</button></div></div></div>
   <div id="loading">서킷을 준비하는 중</div>
@@ -4409,7 +4409,7 @@ function loadCarModel(kit){if(!THREE.GLTFLoader)return;
     // where the model puts the cockpit, the T-cam and the mirrors (the procedural car's numbers are the zero)
     // v15b: the eye sits 15 cm further back and 2 cm lower than the helmet's offset says: at the old spot it was inside the model's halo (cut by the near plane - jagged black shapes) and the mirrors were out of view
     const c3=b=>[(b.mn[0]+b.mx[0])/2,(b.mn[1]+b.mx[1])/2,(b.mn[2]+b.mx[2])/2];
-    Q.ck={x:0.70,y:-0.07,ex:-0.15,ey:-0.02,tx:ex.tcam?c3(ex.tcam)[0]+0.5:0.41,ty:ex.tcam?ex.tcam.mx[1]-1.055:0.075};
+    Q.ck={x:0.70,y:-0.07,ex:-0.05,ey:-0.10,fov:52,tx:ex.tcam?c3(ex.tcam)[0]+0.5:0.41,ty:ex.tcam?ex.tcam.mx[1]-1.055:0.075};   // 10-29 (onboard reference): the eye sits lower under the hoop with a narrower view - the blurred hoop frames the top, the wheel is bigger
     Q.mir=[ex.mirrorL,ex.mirrorR].map(b=>b?[b.mn[0]-0.003,(b.mn[1]+b.mx[1])/2,(b.mn[2]+b.mx[2])/2,(b.mx[2]-b.mn[2])/2*0.92,(b.mx[1]-b.mn[1])/2*0.9]:null);
     Q.pylon=wingRod([-1.82,0.42,0],[-2.12,0.8,0],0.06,0.014);
     Q.latLight=mergeGeos(Q.mir.filter(Boolean).map(b=>new THREE.BoxGeometry(0.04,0.02,0.014).translate(b[0]+0.02,b[1],b[2]+Math.sign(b[2])*(b[3]+0.008))));
@@ -4476,9 +4476,9 @@ function teamMats(kit,ti,num,code,g26){
   kit.cache[key]=m;return m;
 }
 // the see-through halo pillar of the cockpit view
-function ghostMat(kit){const gm=kit.ghostM=new THREE.MeshBasicMaterial({color:0x050607,transparent:true,opacity:0.42,depthWrite:false});
+function ghostMat(kit){const gm=kit.ghostM=new THREE.MeshBasicMaterial({color:0x050607,transparent:true,opacity:0.92,depthWrite:false});
       gm.onBeforeCompile=sh=>{sh.vertexShader='varying vec3 vGN;varying vec3 vGV;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\nvGN=normalize(normalMatrix*normal);vGV=-mvPosition.xyz;');
-        sh.fragmentShader='varying vec3 vGN;varying vec3 vGV;\n'+sh.fragmentShader.replace('#include <alphamap_fragment>','#include <alphamap_fragment>\n{float q=abs(dot(normalize(vGN),normalize(vGV)));diffuseColor.a*=q*q;'+(GRADE_IN_TM?'diffuseColor.a=1.0-pow(1.0-diffuseColor.a,0.4545);':'')+'}');};}   // dark in the middle, fading out to its edges: a blurred pillar
+        sh.fragmentShader='varying vec3 vGN;varying vec3 vGV;\n'+sh.fragmentShader.replace('#include <alphamap_fragment>','#include <alphamap_fragment>\n{float q=abs(dot(normalize(vGN),normalize(vGV)));diffuseColor.a*=smoothstep(0.0,0.55,q);'+(GRADE_IN_TM?'diffuseColor.a=1.0-pow(1.0-diffuseColor.a,0.4545);':'')+'}');};}   // dark in the middle, fading out to its edges: a blurred pillar
       // v14b: (no post chain on a phone: it blends straight onto the sRGB screen, not in linear light - the same see-through needs less opacity)
 function buildCar(kit,scene,c){
   const M=teamMats(kit,c.team,c.num,c.isP?null:c.code,!!kit.glb),root=new THREE.Group(),body=new THREE.Group(),G=kit.geo;root.add(body);
@@ -4487,8 +4487,8 @@ function buildCar(kit,scene,c){
   if(Q){Q.dbl(M.paint);const P=glbMats(kit,c.team),nb=(g,m,cast)=>{const me=add(g,m,body,cast);bodyN.push(me);return me;};   // v15: the 3D model's body
     nb(Q.paint,M.paint,true);nb(Q.black,P.gBlack,true);nb(Q.carbon,Q.carbonM,true);nb(Q.generic,Q.genericM,true);nb(Q.chrome,Q.chromeM);nb(Q.mirror,kit.mirrorM);
     tcPod=nb(Q.tcam,M.tcam);add(Q.pylon,kit.carbonM,body,true);
-    const sn=nb(Q.strut,P.gBlack,true);if(Q.halo&&c.isP)halo=nb(Q.halo,P.gBlack,true);else if(Q.halo)nb(Q.halo,P.gBlack,true);   // 10-29: the halo hoop is its own part, hidden in the player's cockpit view
-    if(c.isP){if(!kit.ghostM)ghostMat(kit);strut={n:sn,g:add(Q.strut,kit.ghostM,body)};strut.g.visible=false;strut.g.renderOrder=3;}
+    const sn=nb(Q.strut,P.gBlack,true),hn=Q.halo?nb(Q.halo,P.gBlack,true):null;   // 10-29: the halo hoop is its own part (blurred in the cockpit view, like the pillar)
+    if(c.isP){if(!kit.ghostM)ghostMat(kit);strut={n:sn,g:add(Q.strut,kit.ghostM,body)};strut.g.visible=false;strut.g.renderOrder=3;if(hn){halo={n:hn,g:add(Q.halo,kit.ghostM,body)};halo.g.visible=false;halo.g.renderOrder=3;}}
     for(const [g,m] of[[Q.far_paint,M.paint],[Q.far_dark,Q.farDarkM]]){const me=add(g,m,body);me.visible=false;bodyF.push(me);}}
   else{
   add(G.paint,M.paint,body,true);if(M.podL===M.podR)add(G.pods,M.podL,body,true);else{add(G.podL,M.podL,body,true);add(G.podR,M.podR,body,true);}/* v12h: both sidepods in one mesh (one draw call less per car) */add(G.fin,M.fin,body,true);tcPod=add(G.tcam,M.tcam,body);if(c.isP){add(G.carbonP,kit.carbonM,body,true);   // v12i: the player's halo strut is its own mesh (soft in the cockpit view)
@@ -4935,7 +4935,7 @@ function tvPick(pl){const Ls=WORLD&&WORLD.tv,tn=WORLD&&WORLD.tunnel;if(!Ls||!Ls.
 // v12j: the pause buttons say what is on right now, instead of just "켜기/끄기"
 function pauseLabels(){const m=$('mirBtn'),h=$('haloBtn');
   if(m)m.textContent='룸미러: '+(MIR&&MIR.on?'켬':'끔');
-  if(h)h.textContent='헤일로 기둥 흐리게: '+(typeof HALOGH!=='undefined'&&HALOGH?'켬':'끔');
+  if(h)h.textContent='헤일로 블러: '+(typeof HALOGH!=='undefined'&&HALOGH?'켬':'끔');
   const f=$('fpsBtn');if(f)f.textContent='FPS 표시: '+(FPSON?'켬':'끔');}
 function toggleMirror(){if(!MIR){toast('룸미러를 쓸 수 없어요','#fff');return;}MIR.on=!MIR.on;saveLS('lightsout3d-mirror',MIR.on?'1':'0');toast(MIR.on?'룸미러 켬':'룸미러 끔','#fff');pauseLabels();}
 function cycleCam(){camMode=(camMode+1)%CAMS.length;saveLS('lightsout3d-cam',CAMS[camMode]);toast(CAMNAME[CAMS[camMode]]+' 시점 ('+(camMode+1)+'/'+CAMS.length+')','#fff');}
@@ -6539,8 +6539,8 @@ function sync(dt){
   headLat=Math.max(-0.09,Math.min(0.09,headLat));headLon=Math.max(-0.07,Math.min(0.05,headLon));
   const pitCam=!!(pInfo&&(pInfo.ph==='stop'||(pInfo.ph==='in'&&Math.abs(pl.spd)<9)||(pInfo.ph==='out'&&race.t-pInfo.car.pit.relT<0.9)));
   const lookBack=!!key.look&&!pitCam&&cm!=='tv'&&(state==='race'||state==='done'||state==='countdown');CAMLOOK=lookBack;CAMPIT=pitCam;
-  pm.helmet.visible=pitCam||lookBack||cm!=='cockpit'||!!CINE;if(SW)SW.g.visible=!pitCam&&!lookBack&&(cm==='cockpit'||cm==='tcam')&&!CINE;if(pm.tcPod)pm.tcPod.visible=!(cm==='tcam'&&!pitCam&&!lookBack&&!CINE);if(pm.halo)pm.halo.visible=!(cm==='cockpit'&&!pitCam&&!lookBack&&!CINE);   // 10-29 윤택님: the hoop blocked the view
-  if(pm.strut){const gh=HALOGH&&cm==='cockpit'&&!pitCam&&!lookBack&&!CINE;if(pm.strut.g.visible!==gh){pm.strut.g.visible=gh;pm.strut.n.visible=!gh;}}   // v12i: G key / pause menu   // the T-cam sits in that pod
+  pm.helmet.visible=pitCam||lookBack||cm!=='cockpit'||!!CINE;if(SW)SW.g.visible=!pitCam&&!lookBack&&(cm==='cockpit'||cm==='tcam')&&!CINE;if(pm.tcPod)pm.tcPod.visible=!(cm==='tcam'&&!pitCam&&!lookBack&&!CINE);
+  {const gh=HALOGH&&cm==='cockpit'&&!pitCam&&!lookBack&&!CINE;for(const h of[pm.strut,pm.halo])if(h&&h.g.visible!==gh){h.g.visible=gh;h.n.visible=!gh;}}   // v12i: G key / pause menu   // the T-cam sits in that pod
   const sp=Math.abs(pl.spd)/VMAX;shakeT+=dt;
   const vib=(Math.sin(shakeT*61)*0.6+Math.sin(shakeT*37))*0.0025*sp+(pl.off?Math.sin(shakeT*45)*0.018:0)+(pl.kerbW||0)*Math.min(1,sp*2.5)*(Math.sin(shakeT*83)*0.006+Math.sin(shakeT*131)*0.003)
     +((pl.lockF||pl.lockR)?Math.sin(shakeT*57)*0.006:0)+Math.max(0,(pl.flat||0)-0.05)*Math.sin(shakeT*Math.abs(pl.spd)*2.7)*0.009
@@ -6558,7 +6558,7 @@ function sync(dt){
     eye.set(x0+c1*lx-s1*lz,2.9+vib+gy,z0+s1*lx+c1*lz);look.set(x0+c1*tx-s1*tz,0.3+gy,z0+s1*tx+c1*tz);camera.fov=46;camera.near=0.5;chaseInit=false;}
   else if(lookBack){   // hold V: rear-facing onboard from the cockpit views, reverse chase from the outside views
     if(outCam(cm)){L(8.2,2.6+gy+KP*gs*8.2,0,eye,true);if(pitTunSect(pl))pitTunCam(eye);L(-6,0.9+gy-KP*gs*6,0,look,true);camera.fov=60;camera.near=0.3;}else{L(-0.32+pm.ck.tx,1.34+pm.ck.ty+vib+gy,0,eye,true);L(-30,0.6+gy-gs*30,0,look,true);camera.fov=64;camera.near=0.12;}chaseInit=false;}
-  else if(cm==='cockpit'){const ex=-0.36+pm.ck.x+(pm.ck.ex||0)+headLon+JOLT.x;L(ex,0.87+pm.ck.y+(pm.ck.ey||0)+vib+pm.body.position.y+gy+ex*gs,headLat+JOLT.z,eye,true);L(30,0.45-headLon*4+pitch*30+gy+gs*30,pl.st*1.6,look,false);camera.fov=62+8*sp;camera.near=0.1;chaseInit=false;}
+  else if(cm==='cockpit'){const ex=-0.36+pm.ck.x+(pm.ck.ex||0)+headLon+JOLT.x;L(ex,0.87+pm.ck.y+(pm.ck.ey||0)+vib+pm.body.position.y+gy+ex*gs,headLat+JOLT.z,eye,true);L(30,0.45-headLon*4+pitch*30+gy+gs*30,pl.st*1.6,look,false);camera.fov=(pm.ck.fov||62)+8*sp;camera.near=0.1;chaseInit=false;}
   else if(cm==='tcam'){const Q=TCAMP,by=pm.body.position.y,ah=20,qx=Q.x+pm.ck.tx+JOLT.x*0.5,qy=Q.y+pm.ck.ty;L(qx,qy+by+vib*0.6+gy+qx*gs,Q.z+JOLT.z*0.5,eye,true);   // fixed to the car: it pitches with the road and the body, no look into the corners
     L(qx+ah,qy+by+gy-ah*Math.tan(Q.pitch)+(pitch+gs)*ah,Q.z,look,true);camera.fov=Q.fov+Q.fovS*sp;camera.near=Q.near;chaseInit=false;}
   else if(cm==='tv'&&(tvS=tvPick(pl))){const ey=hXZ(tvS.x,tvS.z)+7.6;eye.set(tvS.x,ey,tvS.z);look.set(PX,0.5+gy,PZ);   // v14b: TV view, zoomed to ~9 m of picture at the car
@@ -7187,8 +7187,8 @@ function render(){if(WORLD&&WORLD.sky)WORLD.sky.position.copy(camera.position);i
 let FPSON=loadLS('lightsout3d-fps')==='1';const FPSM={a:[],t:0};
 function toggleFps(){FPSON=!FPSON;saveLS('lightsout3d-fps',FPSON?'1':'0');$('fpsBox').hidden=!FPSON;FPSM.a.length=0;FPSM.t=0;$('fpsBox').textContent='FPS …';toast(FPSON?'FPS 표시 켬':'FPS 표시 끔','#fff');pauseLabels();}
 // v12i: the halo's central strut, soft in the cockpit view (on by default)
-let HALOGH=loadLS('lightsout3d-halo')==='1';   // v15b: off by default - on the 3D car the faded pillar left jagged halo ends and a grey patch
-function toggleHalo(){HALOGH=!HALOGH;saveLS('lightsout3d-halo',HALOGH?'1':'0');toast(HALOGH?'헤일로 가운데 기둥 흐리게 (콕핏 시점)':'헤일로 가운데 기둥 원래대로','#fff');pauseLabels();}
+let HALOGH=loadLS('lightsout3d-haloblur')!=='0';   // 10-29 윤택님: the halo (hoop + pillar) out of focus like the real onboard view - on by default, G / pause menu   // v15b: off by default - on the 3D car the faded pillar left jagged halo ends and a grey patch
+function toggleHalo(){HALOGH=!HALOGH;saveLS('lightsout3d-haloblur',HALOGH?'1':'0');toast(HALOGH?'헤일로 블러 켬 (콕핏 시점)':'헤일로 블러 끔','#fff');pauseLabels();}
 function fpsTick(raw){if(!FPSON||!(raw>0)||raw>1)return;FPSM.a.push(raw);FPSM.t+=raw;if(FPSM.t<0.5)return;FPSM.t=0;if(FPSM.a.length>240)FPSM.a.splice(0,FPSM.a.length-240);
   const a=FPSM.a,s=a.slice().sort((x,y)=>x-y),avg=a.reduce((x,y)=>x+y,0)/a.length,p99=s[Math.min(s.length-1,Math.floor(s.length*0.99))],pr=renderer.getPixelRatio()/basePR();   // v14: % of this setting's full resolution
   $('fpsBox').textContent='FPS '+Math.round(1/avg)+' · 최저 '+Math.round(1/p99)+(pr<0.99?' · 해상도 '+Math.round(pr*100)+'%':'');}
