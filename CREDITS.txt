@@ -21,8 +21,7 @@
   (원본 파일은 https://github.com/diazandez/threejs-F1-2022-models 의 f1_generic_2022 사본에서 받음)
   라이선스: Creative Commons Attribution 4.0 (CC BY 4.0) - https://creativecommons.org/licenses/by/4.0/
   바꾼 점: 타이어·휠·브레이크·앞뒤 날개·스티어링 휠과 원본의 로고 텍스처(대회·타이어 회사)를 모두 빼고, 크기와 비율을
-  이 게임 차량에 맞추고(휠베이스 3.40 m, 노즈를 짧게), 삼각형 수를 줄였습니다(가까이 ~5만, 멀리 ~1만). 차체 색은 게임의
-  가상 팀 색으로 칠합니다. 원작자가 이 게임을 보증하거나 후원하는 것은 아닙니다.
+  이 게임 차량에 맞추고(휠베이스 3.40 m, 노즈를 짧게), 삼각형 수를 줄였습니다(가까이 ~5만, 멀리 ~1만). 차체에는 게임의 가상 팀 리버리(색 구분·번호·가상 스폰서)를 입힙니다. 원작자가 이 게임을 보증하거나 후원하는 것은 아닙니다.
 - GLTFLoader (lib-GLTFLoader.js): three.js r128 예제 파일 원본 - MIT License (LICENSE-three.js-MIT.txt)
 
 게임 코드, 차량의 바퀴·날개·헬멧, 팀 디자인, 아이콘은 이 게임을 위해 새로 만든 것입니다.

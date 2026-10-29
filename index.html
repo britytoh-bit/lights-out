@@ -4402,10 +4402,10 @@ function loadCarModel(kit){if(!THREE.GLTFLoader)return;
     kit.glb=Q;window.__CARGLB={ok:true,t:Math.round(performance.now())};
     if(typeof state!=='undefined'&&state==='menu'&&KIT===kit)setupRace();   // the menu's cars at once; a race in progress keeps its cars
   }catch(e){console.warn('car model',e);window.__CARGLB={ok:false,why:String(e)};}},undefined,()=>{window.__CARGLB={ok:false,why:'load'};});}
-// the model's paint for one team: one colour on the whole body, in the team's finish (gloss / satin / metallic / matte)
-function glbMats(kit,ti){kit.teamCache=kit.teamCache||{};const tc=kit.teamCache[ti]||(kit.teamCache[ti]={});if(tc.gPaint)return tc;
-  const L=LIV[ti],Phys=THREE.MeshPhysicalMaterial||THREE.MeshStandardMaterial,fp=LIV_FINISH[L.fin]||LIV_FINISH.gloss,lin=h=>new THREE.Color(h).convertSRGBToLinear();
-  tc.gPaint=new Phys(Object.assign({color:lin(L.D)},fp));
+// the model's paint is the procedural car's own livery texture (teamMats: M.paint), mapped by the UVs the GLB carries in that
+// layout (colour split, cut line, number, names, sponsors, finish map); here only the team's black for the model's dark panels
+function glbMats(kit,ti){kit.teamCache=kit.teamCache||{};const tc=kit.teamCache[ti]||(kit.teamCache[ti]={});if(tc.gBlack)return tc;
+  const L=LIV[ti],Phys=THREE.MeshPhysicalMaterial||THREE.MeshStandardMaterial,lin=h=>new THREE.Color(h).convertSRGBToLinear();
   tc.gBlack=new Phys({color:lin(L.K),roughness:0.5,metalness:0.1,clearcoat:0.3,clearcoatRoughness:0.3,envMapIntensity:0.5});
   return tc;}
 function buildCarKit(){
@@ -4470,11 +4470,11 @@ function buildCar(kit,scene,c){
   const add=(g,m,par,cast)=>{const me=new THREE.Mesh(g,m);me.castShadow=!!cast;me.receiveShadow=true;(par||body).add(me);return me;};
   const Q=kit.glb,ck=Q?Q.ck:{x:0,y:0,tx:0,ty:0},bodyN=[],bodyF=[];let tcPod,strut=null;
   if(Q){const P=glbMats(kit,c.team),nb=(g,m,cast)=>{const me=add(g,m,body,cast);bodyN.push(me);return me;};   // v15: the 3D model's body
-    nb(Q.paint,P.gPaint,true);nb(Q.black,P.gBlack,true);nb(Q.carbon,Q.carbonM,true);nb(Q.generic,Q.genericM,true);nb(Q.chrome,Q.chromeM);nb(Q.mirror,kit.mirrorM);
+    nb(Q.paint,M.paint,true);nb(Q.black,P.gBlack,true);nb(Q.carbon,Q.carbonM,true);nb(Q.generic,Q.genericM,true);nb(Q.chrome,Q.chromeM);nb(Q.mirror,kit.mirrorM);
     tcPod=nb(Q.tcam,M.tcam);add(Q.pylon,kit.carbonM,body,true);
-    const sn=nb(Q.strut,P.gPaint,true);
+    const sn=nb(Q.strut,M.paint,true);
     if(c.isP){if(!kit.ghostM)ghostMat(kit);strut={n:sn,g:add(Q.strut,kit.ghostM,body)};strut.g.visible=false;strut.g.renderOrder=3;}
-    for(const [g,m] of[[Q.far_paint,P.gPaint],[Q.far_dark,Q.farDarkM]]){const me=add(g,m,body);me.visible=false;bodyF.push(me);}}
+    for(const [g,m] of[[Q.far_paint,M.paint],[Q.far_dark,Q.farDarkM]]){const me=add(g,m,body);me.visible=false;bodyF.push(me);}}
   else{
   add(G.paint,M.paint,body,true);if(M.podL===M.podR)add(G.pods,M.podL,body,true);else{add(G.podL,M.podL,body,true);add(G.podR,M.podR,body,true);}/* v12h: both sidepods in one mesh (one draw call less per car) */add(G.fin,M.fin,body,true);tcPod=add(G.tcam,M.tcam,body);if(c.isP){add(G.carbonP,kit.carbonM,body,true);   // v12i: the player's halo strut is its own mesh (soft in the cockpit view)
     if(!kit.ghostM)ghostMat(kit);
@@ -4850,7 +4850,7 @@ for(let i=0;i<TEAMS.length;i++)applyLivData(i);
 // forget one team's cached car materials (and free their textures) so the next build uses the new paint
 function dropTeamMats(ti){if(!KIT)return;const kill=m=>{if(!m)return;if(m.map)m.map.dispose();if(m.roughnessMap)m.roughnessMap.dispose();m.dispose();};
   for(const k of Object.keys(KIT.cache||{}))if(+k.split('_')[0]===ti){const m=KIT.cache[k];for(const n of['paint','fin','tcam','second','helmet'])kill(m[n]);if(m.cover){if(m.cover.map)m.cover.map.dispose();m.cover.dispose();}delete KIT.cache[k];}
-  const tc=KIT.teamCache&&KIT.teamCache[ti];if(tc){for(const n of['podR','flap','gur','endp','rflap','decal','gPaint','gBlack'])kill(tc[n]);delete KIT.teamCache[ti];}}
+  const tc=KIT.teamCache&&KIT.teamCache[ti];if(tc){for(const n of['podR','flap','gur','endp','rflap','decal','gBlack'])kill(tc[n]);delete KIT.teamCache[ti];}}
 function initWorld(){
   renderer.shadowMap.enabled=quality!=='low';
   WORLD=buildWorld(scene,renderer,{shadows:quality!=='low',q:quality,tod});applyRL();KIT=buildCarKit();WORLD.crew=buildPitCrew(scene,WORLD,KIT);if(tod==='sunset')renderer.toneMappingExposure=0.8;else if(tod==='night')renderer.toneMappingExposure=0.9;EXPO=renderer.toneMappingExposure;initParticles();
