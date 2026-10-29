@@ -545,7 +545,7 @@ body.touch.racing #rotate{display:none !important}   /* no full-screen "turn you
         <span><kbd>[</kbd> <kbd>]</kbd></span><span>레이스 중 조향 감도 조절</span>
         <span><kbd>M</kbd> · <kbd>P</kbd> · <kbd>R</kbd></span><span>사운드 · 일시정지 · 재시작</span>
         <span><kbd>F</kbd></span><span>FPS(초당 화면 수) 표시 켜기/끄기 · 버벅임 확인용 (최저 = 가장 느린 1% 화면 기준)</span>
-        <span><kbd>G</kbd></span><span>콕핏 시점에서 헤일로 가운데 기둥 흐리게 켜기/끄기 (기본 켬 · 일시정지 메뉴에도 있어요)</span>
+        <span><kbd>G</kbd></span><span>콕핏 시점에서 헤일로 가운데 기둥 흐리게 켜기/끄기 (기본 끔 · 일시정지 메뉴에도 있어요)</span>
       </div>
       <button class="go" id="startBtn">레이스 시작<span class="keyOnly"> (Enter)</span></button>
       <p class="best num" id="bestMenu"></p>
@@ -1482,7 +1482,7 @@ function aiWantsPit(race,c){
   if(cur==='W'&&w<0.55)return left>0.6;
   if(cur==='I'&&w<0.1+c.wxThr*0.25&&race.wx.rain<0.1)return left>0.6;  // drying line: back to slicks
   const n2=needsSecond(c),wr=avgWear(c);
-  if(race.rc.flag!=='green'&&left>0.8&&(n2||wr>0.35))return true;      // cheap stop under SC / VSC
+  if(race.rc.flag!=='green'&&left>0.8&&(wr>0.35||(n2&&COMP[pickCompound(race,c)].life*race.laps>=left*0.95&&(c.id*37+Math.floor(race.rc.since||0)*11)%100<65)))return true;      // cheap stop under SC / VSC - v15b: only if the new set reaches the flag, and on fresh tyres only about two in three take it (the rest keep track position; fixed per car for each neutralisation) - the whole field used to pit on the same lap
   if(n2&&left<1.35)return true;
   if(n2&&wr>c.pitThr&&COMP[pickCompound(race,c)].life*race.laps>=left*0.95)return true;
   return wr>0.88&&left>0.7;
@@ -7181,7 +7181,7 @@ function render(){if(WORLD&&WORLD.sky)WORLD.sky.position.copy(camera.position);i
 let FPSON=loadLS('lightsout3d-fps')==='1';const FPSM={a:[],t:0};
 function toggleFps(){FPSON=!FPSON;saveLS('lightsout3d-fps',FPSON?'1':'0');$('fpsBox').hidden=!FPSON;FPSM.a.length=0;FPSM.t=0;$('fpsBox').textContent='FPS …';toast(FPSON?'FPS 표시 켬':'FPS 표시 끔','#fff');pauseLabels();}
 // v12i: the halo's central strut, soft in the cockpit view (on by default)
-let HALOGH=loadLS('lightsout3d-halo')!=='0';
+let HALOGH=loadLS('lightsout3d-halo')==='1';   // v15b: off by default - on the 3D car the faded pillar left jagged halo ends and a grey patch
 function toggleHalo(){HALOGH=!HALOGH;saveLS('lightsout3d-halo',HALOGH?'1':'0');toast(HALOGH?'헤일로 가운데 기둥 흐리게 (콕핏 시점)':'헤일로 가운데 기둥 원래대로','#fff');pauseLabels();}
 function fpsTick(raw){if(!FPSON||!(raw>0)||raw>1)return;FPSM.a.push(raw);FPSM.t+=raw;if(FPSM.t<0.5)return;FPSM.t=0;if(FPSM.a.length>240)FPSM.a.splice(0,FPSM.a.length-240);
   const a=FPSM.a,s=a.slice().sort((x,y)=>x-y),avg=a.reduce((x,y)=>x+y,0)/a.length,p99=s[Math.min(s.length-1,Math.floor(s.length*0.99))],pr=renderer.getPixelRatio()/basePR();   // v14: % of this setting's full resolution
