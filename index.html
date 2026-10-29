@@ -363,7 +363,7 @@ body.touch.ph-land #hudSpeed>#tyMini{order:1} body.touch.ph-land #hudSpeed>div:n
 body.touch.ph-land #hudSpeed>.ers{order:4; width:112px; display:flex; flex-wrap:wrap; align-items:center; gap:2px 6px}
 body.touch.ph-land #hudSpeed .ers .bar{flex:1 1 100%; min-width:0; height:7px} body.touch.ph-land #ersT{order:2; font-size:10px; white-space:nowrap}
 body.touch.ph-land #hudSpeed .ers>div:last-child{order:3; width:auto; display:flex}
-body.touch.ph-land #hudSpeed.dk1>#tyMini i{width:18px; height:18px; border-width:3px; font-size:9px} body.touch.ph-land #hudSpeed.dk1 #tyMT{display:none} body.touch.ph-land #hudSpeed.dk1>.ers{width:84px} body.touch.ph-land #hudSpeed.dk1 #spd, body.touch.ph-land #hudSpeed.dk1 #gear{font-size:26px}
+body.touch.ph-land #hudSpeed.dk1>#tyMini i{width:18px; height:18px; border-width:3px; font-size:9px} body.touch.ph-land #hudSpeed.dk1 #tyMini b{font-size:9px} body.touch.ph-land #hudSpeed.dk1>.ers{width:84px} body.touch.ph-land #hudSpeed.dk1 #spd, body.touch.ph-land #hudSpeed.dk1 #gear{font-size:26px}
 body.touch.ph-land #hudSpeed.dk2{gap:7px; padding:12px 9px 5px} body.touch.ph-land #hudSpeed.dk2>.ers{width:60px} body.touch.ph-land #hudSpeed.dk2 #ersT{font-size:9px}
 body.touch.ph-land.ph-narrow #steerPad{width:228px}
 body.touch #hudSpeed .badge:not(.on):not(.arm){display:none}   /* only what is happening now: straight mode, overtake, tow */
@@ -4397,8 +4397,9 @@ function loadCarModel(kit){if(!THREE.GLTFLoader)return;
     Q.farDarkM=new THREE.MeshStandardMaterial({color:0x121316,roughness:0.6,metalness:0.1});
     for(const m of[Q.carbonM,Q.genericM])if(m.map)m.map.anisotropy=8;
     // where the model puts the cockpit, the T-cam and the mirrors (the procedural car's numbers are the zero)
+    // v15b: the eye sits 15 cm further back and 2 cm lower than the helmet's offset says: at the old spot it was inside the model's halo (cut by the near plane - jagged black shapes) and the mirrors were out of view
     const c3=b=>[(b.mn[0]+b.mx[0])/2,(b.mn[1]+b.mx[1])/2,(b.mn[2]+b.mx[2])/2];
-    Q.ck={x:0.70,y:-0.07,tx:ex.tcam?c3(ex.tcam)[0]+0.5:0.41,ty:ex.tcam?ex.tcam.mx[1]-1.055:0.075};
+    Q.ck={x:0.70,y:-0.07,ex:-0.15,ey:-0.02,tx:ex.tcam?c3(ex.tcam)[0]+0.5:0.41,ty:ex.tcam?ex.tcam.mx[1]-1.055:0.075};
     Q.mir=[ex.mirrorL,ex.mirrorR].map(b=>b?[b.mn[0]-0.003,(b.mn[1]+b.mx[1])/2,(b.mn[2]+b.mx[2])/2,(b.mx[2]-b.mn[2])/2*0.92,(b.mx[1]-b.mn[1])/2*0.9]:null);
     Q.pylon=wingRod([-1.82,0.42,0],[-2.12,0.8,0],0.06,0.014);
     Q.latLight=mergeGeos(Q.mir.filter(Boolean).map(b=>new THREE.BoxGeometry(0.04,0.02,0.014).translate(b[0]+0.02,b[1],b[2]+Math.sign(b[2])*(b[3]+0.008))));
@@ -6502,7 +6503,7 @@ function sync(dt){
     eye.set(x0+c1*lx-s1*lz,2.9+vib+gy,z0+s1*lx+c1*lz);look.set(x0+c1*tx-s1*tz,0.3+gy,z0+s1*tx+c1*tz);camera.fov=46;camera.near=0.5;chaseInit=false;}
   else if(lookBack){   // hold V: rear-facing onboard from the cockpit views, reverse chase from the outside views
     if(outCam(cm)){L(8.2,2.6+gy+KP*gs*8.2,0,eye,true);if(pitTunSect(pl))pitTunCam(eye);L(-6,0.9+gy-KP*gs*6,0,look,true);camera.fov=60;camera.near=0.3;}else{L(-0.32+pm.ck.tx,1.34+pm.ck.ty+vib+gy,0,eye,true);L(-30,0.6+gy-gs*30,0,look,true);camera.fov=64;camera.near=0.12;}chaseInit=false;}
-  else if(cm==='cockpit'){const ex=-0.36+pm.ck.x+headLon;L(ex,0.87+pm.ck.y+vib+pm.body.position.y+gy+ex*gs,headLat,eye,true);L(30,0.45-headLon*4+pitch*30+gy+gs*30,pl.st*1.6,look,false);camera.fov=62+8*sp;camera.near=0.1;chaseInit=false;}
+  else if(cm==='cockpit'){const ex=-0.36+pm.ck.x+(pm.ck.ex||0)+headLon;L(ex,0.87+pm.ck.y+(pm.ck.ey||0)+vib+pm.body.position.y+gy+ex*gs,headLat,eye,true);L(30,0.45-headLon*4+pitch*30+gy+gs*30,pl.st*1.6,look,false);camera.fov=62+8*sp;camera.near=0.1;chaseInit=false;}
   else if(cm==='tcam'){const Q=TCAMP,by=pm.body.position.y,ah=20,qx=Q.x+pm.ck.tx,qy=Q.y+pm.ck.ty;L(qx,qy+by+vib*0.6+gy+qx*gs,Q.z,eye,true);   // fixed to the car: it pitches with the road and the body, no look into the corners
     L(qx+ah,qy+by+gy-ah*Math.tan(Q.pitch)+(pitch+gs)*ah,Q.z,look,true);camera.fov=Q.fov+Q.fovS*sp;camera.near=Q.near;chaseInit=false;}
   else if(cm==='tv'&&(tvS=tvPick(pl))){const ey=hXZ(tvS.x,tvS.z)+7.6;eye.set(tvS.x,ey,tvS.z);look.set(PX,0.5+gy,PZ);   // v14b: TV view, zoomed to ~9 m of picture at the car
