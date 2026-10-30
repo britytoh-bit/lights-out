@@ -396,6 +396,14 @@ body.touch.ph-small #hudTime{width:164px}
 body.touch.ph-port #steerPad{width:min(200px,46vw)} body.touch.ph-port #hudTime, body.touch.ph-port #hudSpeed{width:176px}
 body.touch.ph-port #hudTime .row:nth-child(4){display:none}   /* v12j: the all-time best row goes (as in landscape): room for the message line above the panels */
 #benchBar{position:absolute; left:50%; top:calc(6px + env(safe-area-inset-top,0px)); transform:translateX(-50%); z-index:12; display:flex; align-items:center; gap:10px; padding:6px 6px 6px 12px; border-radius:6px; background:rgba(9,11,15,.85); color:#fff; font-size:13px; max-width:calc(100% - 32px)} #benchBar[hidden]{display:none} #benchBar button{min-height:44px; padding:0 18px; flex:none}   /* 10-30: performance test */
+/* 10-31: sector popup - for 3.5 s after a sector line it takes the place of the 'fastest lap' row (same height: the phone layout does not move); diffs to my last lap and my best on this circuit */
+#hudTime .row.sp{display:none !important} #hudTime.spOn .row.sp{display:flex !important} #hudTime.spOn .row.fast{display:none !important}
+#hudTime .row.sp b{font-size:14px} #hudTime .row.sp b.k-ob{color:#b16cff} #hudTime .row.sp b.k-pb{color:#2fd06b} #hudTime .row.sp b.k-sl{color:#f5c518} #hudTime .row.sp i{font-style:normal}
+body.touch #hudTime .row.sp .spt{display:none}   /* the time itself is in the coloured cell above */
+/* my laps (pause, session and result cards): small, one line per lap */
+.laps details{margin:0 0 12px} .laps summary{cursor:pointer; font-size:14px; color:var(--dim); padding:4px 0}
+.laps table{font-size:12px; margin:4px 0 6px} .laps td,.laps th{padding:2px 4px; text-align:right; white-space:nowrap} .laps th{color:var(--dim); font-weight:600; border-bottom:1px solid var(--line)}
+.laps td:first-child,.laps th:first-child{text-align:left; width:auto} .laps .lb{color:var(--purple)} .laps .lv{color:#ff8a8a}
 #bench td:first-child{width:auto} #bench td:first-child:empty{display:none} #benchTa{width:100%; height:9em; font-size:12px; margin:0 0 12px}
 #fpsBox{position:absolute; left:50%; bottom:calc(6px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); padding:2px 9px; border-radius:4px; background:rgba(9,11,15,.72); color:#cfe3ff; font-size:12px; pointer-events:none; z-index:5; white-space:nowrap}   /* v12h: F key */
 body.inmenu #fpsBox{display:none}
@@ -435,6 +443,7 @@ body.touch.racing #rotate{display:none !important}   /* no full-screen "turn you
     <div class="row"><span>베스트</span><b id="tBest" class="pb">-</b></div>
     <div class="row fast"><span>이번 최고</span><b id="tFast" class="fb">-</b></div>
     <div class="row dlt"><span>델타</span><b id="tDelta">-</b></div>
+    <div class="row sp" id="secPop"><span id="spL">S1</span><b id="spV"></b></div>
   </div>
   <div class="hud num" id="hudSpeed"><div id="rev" aria-hidden="true"></div><canvas id="gMeter" width="112" height="112" aria-hidden="true"></canvas>
     <div class="ers" id="ersBox"><div class="unit" id="ersT">배터리 4.0MJ</div><div class="bar"><div class="fill" id="ers"></div></div><div><span class="badge" id="bSM">직선 모드</span><span class="badge ovt" id="bOVT">오버테이크</span><span class="badge air" id="bAir"></span></div></div>
@@ -563,15 +572,15 @@ body.touch.racing #rotate{display:none !important}   /* no full-screen "turn you
     <div class="touchOnly"><p class="label">페달 위치</p><div class="seg" id="pPedSel"><button data-v="split" aria-pressed="true">양쪽 (브레이크 왼쪽)</button><button data-v="right">오른쪽에 모아서</button></div></div>
     <div><p class="label">조향 감도 (1 가장 부드러움)</p><div class="seg" id="pSensSel"><button data-v="1">1</button><button data-v="2" aria-pressed="true">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button></div></div>
     <div class="touchOnly"><p class="label">가속</p><div class="seg" id="pAgSel"><button data-v="auto" aria-pressed="true">자동 가속</button><button data-v="manual">직접 가속</button></div></div>
-    <div class="row2"><button class="go" id="resumeBtn">계속 달리기</button><button id="mirBtn">룸미러</button><button id="haloBtn">헤일로 블러</button><button id="fpsBtn">FPS 표시</button><button id="skipBtn" hidden>건너뛰기</button><button id="quitBtn">메뉴로</button></div></div></div>
-  <div class="overlay" id="sess" hidden><div class="card"><h1 id="sessTitle">Q1</h1><p class="sub num" id="sessSub"></p><table class="num" id="sessTable"></table><div class="row2"><button class="go" id="sessGo">다음</button><button id="sessMenu">메뉴로</button></div></div></div>
+    <div class="row2"><button class="go" id="resumeBtn">계속 달리기</button><button id="mirBtn">룸미러</button><button id="haloBtn">헤일로 블러</button><button id="fpsBtn">FPS 표시</button><button id="skipBtn" hidden>건너뛰기</button><button id="quitBtn">메뉴로</button></div><div class="laps" id="pLaps" style="margin-top:12px"></div></div></div>
+  <div class="overlay" id="sess" hidden><div class="card"><h1 id="sessTitle">Q1</h1><p class="sub num" id="sessSub"></p><div class="laps" id="sLaps"></div><table class="num" id="sessTable"></table><div class="row2"><button class="go" id="sessGo">다음</button><button id="sessMenu">메뉴로</button></div></div></div>
   <div class="overlay" id="bench" hidden><div class="card"><h1>성능 측정 결과</h1><p class="sub num" id="benchSub"></p>
     <div class="row2" style="margin:0 0 14px"><button class="go" id="benchCopy" type="button" style="min-height:52px">결과 복사</button><button id="benchClose" type="button" style="min-height:52px">닫기</button></div>
     <p class="label">가장 느린 지점 10곳 (평균 fps)</p><table class="num" id="benchSlow"></table>
     <p class="label">서킷별 (평균 fps)</p><table class="num" id="benchTrk"></table>
     <textarea id="benchTa" readonly hidden></textarea>
     </div></div>
-  <div class="overlay" id="result" hidden><div class="card"><h1 id="resTitle">P1</h1><p class="sub num" id="resSub"></p><table class="num" id="resTable"></table><div class="row2"><button class="go" id="againBtn">다시 달리기 (Enter)</button><button class="go" id="chBtn" hidden>대회 순위 보기 (Enter)</button><button id="menuBtn">메뉴로</button></div></div></div>
+  <div class="overlay" id="result" hidden><div class="card"><h1 id="resTitle">P1</h1><p class="sub num" id="resSub"></p><table class="num" id="resTable"></table><div class="laps" id="rLaps"></div><div class="row2"><button class="go" id="againBtn">다시 달리기 (Enter)</button><button class="go" id="chBtn" hidden>대회 순위 보기 (Enter)</button><button id="menuBtn">메뉴로</button></div></div></div>
   <div id="loading">서킷을 준비하는 중</div>
   <div id="err"><p>3D 그래픽(WebGL)을 불러오지 못했어요. 최신 Chrome, Edge, Safari에서 다시 열어주세요.</p></div>
 </div>
@@ -1665,14 +1674,14 @@ function stepRace(race,dt,inp){
     if(c.dmg&&!c.pit)dmgStep(race,c,dt);
     // v12f: sector times - the lap in three equal thirds; a sector counts towards the bests only on a clean lap out of the pits
     {const q=x=>Math.floor((((x%N)+N)%N)*3/N),sb=q(before),sa=q(c.prog);
-     if(sa!==sb&&c.prog>before&&c.fin==null&&!race.form){const S=c.sec||(c.sec={cur:[null,null,null],best:[null,null,null]});
+     if(sa!==sb&&c.prog>before&&c.fin==null&&!race.form){const S=c.sec||(c.sec={cur:[null,null,null],best:[null,null,null],lap:[null,null,null],done:null});
        if(c.secT0!=null&&sa===(sb+1)%3){const st=race.t-c.secT0,ok=!c.pit&&!c.lapInv&&!c.ex,B=race.secBest||(race.secBest=[1e9,1e9,1e9]);
-         let cls='sl';if(ok&&(S.best[sb]==null||st<S.best[sb])){S.best[sb]=st;cls='pb';}if(ok&&st<B[sb]){B[sb]=st;cls='ob';}S.cur[sb]={t:st,cls};}
-       if(sa===0)S.cur=[null,null,null];c.secT0=race.t;}}
+         let cls='sl';if(ok&&(S.best[sb]==null||st<S.best[sb])){S.best[sb]=st;cls='pb';}if(ok&&st<B[sb]){B[sb]=st;cls='ob';}S.cur[sb]={t:st,cls};S.lap[sb]=st;if(c.isP)race.EV.push({type:'sec',k:sb,t:st,cls,ok});}
+       if(sa===0){S.done=S.lap;S.lap=[null,null,null];S.cur=[null,null,null];}c.secT0=race.t;}}   // done: the three sectors of the lap just finished (for the lap event below)
     const lb=Math.floor(before/N),la=Math.floor(c.prog/N);
     if(la>lb&&c.fin==null){
       const inv=!!c.lapInv;
-      if(lb>=0){const lt=race.t-c.lapStart;c.lastLap=lt;if(!inv&&(c.best==null||lt<c.best)){c.best=lt;if(c.dTr)c.bTr=c.dTr.slice();}if(c.dTr)c.dTr.fill(-1);if(!inv&&(c.bestEver==null||lt<c.bestEver))c.bestEver=lt;if(c.isP)race.EV.push({type:'lap',lt,inv});}
+      if(lb>=0){const lt=race.t-c.lapStart;c.lastLap=lt;if(!inv&&(c.best==null||lt<c.best)){c.best=lt;if(c.dTr)c.bTr=c.dTr.slice();}if(c.dTr)c.dTr.fill(-1);if(!inv&&(c.bestEver==null||lt<c.bestEver))c.bestEver=lt;if(c.isP)race.EV.push({type:'lap',lt,inv,s:c.sec&&c.sec.done?c.sec.done.slice():null});}
       c.lapInv=!!c.ex;
       c.lapStart=race.t;
       // 2026 Overtake Mode: within 1.0 s of the car ahead at the line -> +0.5 MJ and full deployment to 337 km/h for the next lap
@@ -4811,6 +4820,20 @@ function fmt(t){if(t==null||!isFinite(t))return '-';const m=Math.floor(t/60),s=t
 function loadLS(k){try{return localStorage.getItem(k);}catch(e){return null;}}
 function saveLS(k,v){try{localStorage.setItem(k,String(v));}catch(e){}}
 let bestLap=parseFloat(loadLS('lightsout3d-best-'+TRK.id))||null;
+// 10-31: my best sector times on this circuit (kept like the best lap), my laps this session, the sector popup's end time
+let bestSec=(()=>{try{const a=JSON.parse(loadLS('lightsout3d-bsec-'+TRK.id));if(Array.isArray(a)&&a.length===3)return a.map(v=>typeof v==='number'&&v>0?v:null);}catch(e){}return [null,null,null];})(),lapLog=[],spUntil=0;
+const sgn=d=>(d<0?'-':'+')+Math.abs(d).toFixed(3);
+function secPop(e){const k=e.k,L=lapLog[lapLog.length-1],prev=L&&L.s?L.s[k]:null,old=bestSec[k];let cls=e.cls;
+  if(e.ok&&(old==null||e.t<old)){bestSec[k]=e.t;saveLS('lightsout3d-bsec-'+TRK.id,JSON.stringify(bestSec));if(cls==='sl')cls='pb';}
+  const d=[];if(prev!=null)d.push('지난 '+sgn(e.t-prev));if(old!=null)d.push('베스트 '+sgn(e.t-old));
+  $('spL').textContent='S'+(k+1);const v=$('spV');v.innerHTML='<i class="spt">'+e.t.toFixed(3)+(d.length?' · ':'')+'</i>'+(d.join(' · ')||'첫 기록');v.className='k-'+cls;
+  $('hudTime').classList.add('spOn');spUntil=performance.now()+3500;}
+function lapTable(open){if(!lapLog.length)return '';let bi=-1;lapLog.forEach((l,i)=>{if(!l.inv&&(bi<0||l.t<lapLog[bi].t))bi=i;});
+  const bs=[0,1,2].map(k=>{let m=null;for(const l of lapLog)if(!l.inv&&l.s&&l.s[k]!=null&&(m==null||l.s[k]<m))m=l.s[k];return m;});
+  const rows=lapLog.map((l,i)=>'<tr'+(i===bi?' class="lb"':'')+'><td>'+l.n+'</td><td>'+fmt(l.t)+(l.inv?' <span class="lv">무효</span>':'')+'</td>'+
+    [0,1,2].map(k=>{const v=l.s&&l.s[k];return v==null?'<td>-</td>':'<td'+(!l.inv&&v===bs[k]?' class="lb"':'')+'>'+v.toFixed(3)+'</td>';}).join('')+
+    '<td>'+(i===bi?'베스트':bi>=0&&!l.inv?sgn(l.t-lapLog[bi].t):'')+'</td></tr>').join('');
+  return '<details'+(open?' open':'')+'><summary>내 랩 기록 · '+lapLog.length+'랩'+(bi>=0?' · 베스트 '+fmt(lapLog[bi].t):'')+(bestLap?' · 서킷 베스트 '+fmt(bestLap):'')+'</summary><table class="num"><tr><th>랩</th><th>랩 타임</th><th>S1</th><th>S2</th><th>S3</th><th>차이</th></tr>'+rows+'</table></details>';}
 const isTouch=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 if(isTouch)document.body.classList.add('touch');
 let quality=loadLS('lightsout3d-q2')||'medium';if(!['high','medium','low'].includes(quality))quality='medium';document.body.classList.add('q-'+quality);let tod=loadLS('lightsout3d-tod')||'day';
@@ -5682,7 +5705,7 @@ function setupRace(mode,o){o=o||{};podiumEnd(false);meshes.forEach(m=>scene.remo
   meshes=race.cars.map(c=>buildCar(KIT,scene,c));if(WORLD.bk)meshes.forEach(m=>WORLD.bk.up(m.root));   // v15: cars in the shade of a stand get darker (baked sun)
   if(!SCM)SCM=buildSafetyCar(scene);SCM.root.visible=false;
   try{buildFlagMarshal();}catch(e){}
-  const pi=race.cars.indexOf(race.player);SW=buildSteeringWheel(KIT,race.player);SW.col.position.x+=meshes[pi].ck.x;SW.col.position.y+=meshes[pi].ck.y;meshes[pi].body.add(SW.col);SW.arms.forEach(a=>meshes[pi].body.add(a));meshes[pi].sw=SW;addMirrorFaces(meshes[pi]);sessionBest=null;camYaw=race.player.a;}
+  const pi=race.cars.indexOf(race.player);SW=buildSteeringWheel(KIT,race.player);SW.col.position.x+=meshes[pi].ck.x;SW.col.position.y+=meshes[pi].ck.y;meshes[pi].body.add(SW.col);SW.arms.forEach(a=>meshes[pi].body.add(a));meshes[pi].sw=SW;addMirrorFaces(meshes[pi]);sessionBest=null;lapLog=[];spUntil=0;$('hudTime').classList.remove('spOn');camYaw=race.player.a;}
 function warmUp(){if(!renderer||!scene)return;const prev=renderer.getRenderTarget();let envs=[];try{envs=prepEnvs();}catch(e){}
   // compile against the same target the frames are drawn into (the post-processing buffer), or the shaders do not match
   try{renderer.setRenderTarget(composer&&composer.readBuffer?composer.readBuffer:null);renderer.compile(scene,camera);
@@ -5733,8 +5756,8 @@ function showSess(){const S=race.sess,p=race.player;if(!S)return;state='sessRes'
   if(q<3&&!meOut&&!p.gone){go.textContent='Q'+(q+1)+' 시작 ('+fmtClock(QLEN[q])+')';go.onclick=()=>{sessNext(race);$('sess').hidden=true;state='race';toast('Q'+race.sess.q+' 시작 · '+fmtClock(race.sess.len)+(race.sess.q<3?' · 상위 '+QCUT[race.sess.q-1]+'명 진출':' · 폴 포지션 결정전'),'#fff',3,1500);};}
   else if(q<3){go.textContent='남은 예선 결과 보기';go.onclick=()=>{sessSimRest(race);showSess();};}
   else{const g=qualiGrid(race),gp=g.indexOf('YOU')+1;go.textContent='레이스 시작 · 그리드 P'+gp+' (Enter)';go.onclick=()=>startRace({mode:'race',gridOrder:g,skills:skillMap(race),champ:race.champ});}
-  $('sess').hidden=false;$('sess').querySelector('.card').scrollTop=0;go.focus({preventScroll:true});}
-function setPause(on){if(on){if(state==='paused')return;pausedFrom=state;state='paused';$('pause').hidden=false;
+  $('sLaps').innerHTML=lapTable(true);$('sess').hidden=false;$('sess').querySelector('.card').scrollTop=0;go.focus({preventScroll:true});}
+function setPause(on){if(on){if(state==='paused')return;pausedFrom=state;state='paused';$('pLaps').innerHTML=lapTable(false);$('pause').hidden=false;
     const sk=$('skipBtn');sk.hidden=!canSkip();sk.textContent=race&&race.sess?'이 세션 건너뛰기':'건너뛰기 (빠르게 진행)';pauseLabels();$('resumeBtn').focus();if(AC)AC.suspend();}
   else{state=pausedFrom||'race';$('pause').hidden=true;if(AC)AC.resume();}}
 function toMenu(){perfReset();document.body.classList.add('inmenu');document.body.classList.remove('racing');state='menu';FF=false;setupRace();['pause','result','sess'].forEach(id=>$(id).hidden=true);$('menu').hidden=false;$('lights').style.opacity=0;updateMenuBest();}
@@ -5933,7 +5956,7 @@ function chTable(){if(!CH)return toMenu();['result','menu'].forEach(id=>$(id).hi
   $('sessTable').innerHTML=top.map(k=>{const [nm,ti]=CH.nm[k],tm=TEAMS[ti]||TEAMS[0],g=CH.last[k]||0;
     return `<tr class="${k==='YOU'?'me':''}"><td>P${ks.indexOf(k)+1}</td><td><span class="sw" style="display:inline-block;vertical-align:middle;margin-right:8px;background:${tm.p}"></span>${nm} <span style="color:var(--dim)">${tm.name}</span></td><td class="tm">${CH.pts[k]}점${g?' <span style="color:var(--dim)">+'+g+'</span>':''}</td></tr>`;}).join('');
   const go=$('sessGo');go.textContent=fin?'새 대회':'다음 라운드 ('+(CH.rd+1)+'/'+N+')';go.onclick=fin?()=>{chEnd();toMenu();}:chGo;
-  $('sess').hidden=false;$('sess').querySelector('.card').scrollTop=0;go.focus({preventScroll:true});}
+  $('sLaps').innerHTML='';$('sess').hidden=false;$('sess').querySelector('.card').scrollTop=0;go.focus({preventScroll:true});}
 function chMenu(){const b=$('chBox');
   if(!CH){b.innerHTML='<div class="seg">'+[[4,'짧게'],[8,'보통'],[TRACKS.length,'전체']].map(([n,t])=>`<button data-n="${n}">${t}<br>${n}라운드</button>`).join('')+'</div>';
     b.querySelectorAll('button').forEach(x=>x.onclick=()=>chNew(+x.dataset.n));return;}
@@ -6169,6 +6192,7 @@ function drawHUD(dt){
   setT('tCur',fmt(state==='race'&&!race.form&&pl.fin==null&&pl.prog>=0&&!(pl.pit&&(pl.pit.state==='garage'||pl.pit.state==='red'))&&!(S&&pl.crossT<0)?race.t-pl.lapStart:0));setT('tLast',fmt(pl.lastLap));setT('tBest',fmt(bestLap));
   {let fb=null;for(const c of race.cars)if(c.best!=null&&(fb==null||c.best<fb))fb=c.best;setT('tFast',fb==null?'-':fmt(fb));   // v12f: the fastest lap of the race so far, and the gap to my best lap at this point of the lap
    const dv=pl.dlt,el=$('tDelta'),cls=dv==null?'':dv<0?'neg':'pos';setT('tDelta',dv==null?'-':(dv<0?'-':'+')+Math.abs(dv).toFixed(3));if(el._c!==cls){el._c=cls;el.className=cls;}}
+  if(spUntil&&performance.now()>spUntil){spUntil=0;$('hudTime').classList.remove('spOn');}   // 10-31: the sector popup's time is up
   const kmh=Math.round(Math.abs(pl.spd)*3.6);setT('spd',String(kmh));
   let [g,rpm]=sndMode==='classic'?gearRpmC(kmh):gearRpm(kmh,hudGear);
   if(sndMode!=='classic'){hudShT+=dt;if(g!==hudGear){const d=g>hudGear?1:-1,r0=kmh*GR[hudGear-1];
@@ -6291,6 +6315,7 @@ function showResults(){
     const pt=pts(c);
     return `<tr class="${c.isP?'me':''}"><td>P${i+1}</td><td><span class="sw" style="display:inline-block;vertical-align:middle;margin-right:8px;background:${TEAMS[c.team].p}"></span>${c.name} <span style="color:var(--dim)">${TEAMS[c.team].name} · ${c.stints.join('→')}</span></td><td>${gap}</td><td class="pts">${pt?'+'+pt:''}</td></tr>`;}).join('');
   const ch=!!(race.champ&&CH);if(ch)chScore(r,pts);$('againBtn').hidden=ch;$('chBtn').hidden=!ch;
+  $('rLaps').innerHTML=lapTable(true);
   $('result').hidden=false;$(ch?'chBtn':'againBtn').focus();
 }
 // ===================== v11g: the chequered flag and the podium ceremony =====================
@@ -6502,10 +6527,12 @@ function handleEvents(){
   for(const e of race.EV){
     if(e.type==='dmg'){onDamage(e);continue;}
     if(e.type==='pdnf'){if(race.sess){toast('크래시 · 이번 세션 종료','#ff3b30',2.6,1500);sessSimFinish(race);showSess();continue;}state='done';doneT=0;continue;}
+    if(e.type==='sec'){secPop(e);continue;}
+    if(e.type==='lap'){const L=lapLog[lapLog.length-1],d=[];if(!e.inv){if(L)d.push('지난 '+sgn(e.lt-L.t));if(bestLap!=null)d.push('베스트 '+sgn(e.lt-bestLap));}e.dtx=d.length?' · '+d.join(' · '):'';lapLog.push({n:lapLog.length+1,t:e.lt,s:e.s,inv:!!e.inv});}   // 10-31: diffs to my last lap and my best here
     if(e.type==='lap'&&e.inv){toast('랩 기록 삭제 '+fmt(e.lt)+' · 트랙 리밋','#ff8a8a');continue;}
     if(e.type==='lap'&&race.sess&&race.sess.kind==='quali'){let msg='랩 '+fmt(e.lt),col='#fff';if(bestLap==null||e.lt<bestLap){bestLap=e.lt;saveLS('lightsout3d-best-'+TRK.id,e.lt);col='#b16cff';}
-      const cl=sessClass(race),i=cl.indexOf(race.player)+1;if(race.player.best===e.lt){msg='Q'+race.sess.q+' P'+i+' · '+fmt(e.lt);if(col==='#fff')col='#3ddc84';}toast(msg,col,2.2);continue;}
-    if(e.type==='lap'){let msg='랩 '+fmt(e.lt),col='#fff';if(sessionBest==null||e.lt<sessionBest){sessionBest=e.lt;col='#3ddc84';}if(bestLap==null||e.lt<bestLap){bestLap=e.lt;saveLS('lightsout3d-best-'+TRK.id,e.lt);msg='개인 최고! '+fmt(e.lt);col='#b16cff';}toast(msg,col);continue;}
+      const cl=sessClass(race),i=cl.indexOf(race.player)+1;if(race.player.best===e.lt){msg='Q'+race.sess.q+' P'+i+' · '+fmt(e.lt);if(col==='#fff')col='#3ddc84';}toast(msg+e.dtx,col,2.2);continue;}
+    if(e.type==='lap'){let msg='랩 '+fmt(e.lt),col='#fff';if(sessionBest==null||e.lt<sessionBest){sessionBest=e.lt;col='#3ddc84';}if(bestLap==null||e.lt<bestLap){bestLap=e.lt;saveLS('lightsout3d-best-'+TRK.id,e.lt);msg='개인 최고! '+fmt(e.lt);col='#b16cff';}toast(msg+e.dtx,col);continue;}
     if(e.type==='finish'){state='done';doneT=0;if(!race.sess)finishFx();}
     if(e.type==='green')race.rc.greenAt=race.t;
     if(e.type==='wall'||e.type==='contact'||e.type==='pitStop'||e.type==='finish')sfx(e.type);
