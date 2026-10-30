@@ -4428,7 +4428,9 @@ function glbMats(kit,ti){kit.teamCache=kit.teamCache||{};const tc=kit.teamCache[
 function buildCarKit(){
   const geo=buildCarGeometry();
   const tyreProfile=(hw,seg)=>{const pts=[[0.235,-hw],[0.3,-hw],[0.338,-hw*0.95],[0.356,-hw*0.8],[0.362,-hw*0.45],[0.362,hw*0.45],[0.356,hw*0.8],[0.338,hw*0.95],[0.3,hw],[0.235,hw]];
-    const g=new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),seg||48);g.rotateX(Math.PI/2);return g;};
+    const g=new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),seg||48);g.rotateX(Math.PI/2);
+    // 10-30: a disc across the tyre's middle plane (both faces) — the open centre read as see-through from the inboard side; same draw call
+    const d=Math.max(16,(seg||48)>>1);return mergeGeos([g,new THREE.CircleGeometry(0.236,d),new THREE.CircleGeometry(0.236,d).rotateY(Math.PI)]);};
   const Phys=THREE.MeshPhysicalMaterial||THREE.MeshStandardMaterial;
   const kit={geo,tyreF:tyreProfile(WHL.hwf),tyreR:tyreProfile(WHL.hwr),ring:new THREE.RingGeometry(0.245,0.345,64),
     // v12h: lighter wheels for what is never seen close: the far-car stand-ins and (below the top setting) the pit crews' loose wheels
