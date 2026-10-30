@@ -4784,7 +4784,8 @@ let sens=parseInt(loadLS('lightsout3d-sens'),10)||2;
 const LODD=(quality==='low'?[26,60,120]:[30,70,140]).map(d=>d*d);   // v12h: car detail steps (m); a little closer at the lowest setting
 // v13a: how many of the nearest cars may hold each detail step. Distance alone is not enough - in a
 // pack they are all near. Below these counts nothing changes, so a lone car on track looks as before.
-let LODN=quality==='low'?[3,6,10]:quality==='medium'?[5,9,14]:[8,13,18];const LODN0=LODN.slice();
+let LODN=quality==='low'?[3,6,10]:quality==='medium'?[5,9,14]:isTouch?[6,10,15]:[8,13,18];   // 10-30: phone high - the 7th/8th car in full detail is ~90 draw calls in a street-circuit pack (40 fps) and too far to see the difference
+const LODN0=LODN.slice();
 
 let renderer;
 // v12h: no multisampling on PCs at the lowest setting (on integrated graphics it is one of the bigger costs per frame); phones keep it
@@ -7184,7 +7185,7 @@ function perfGovernor(dt){if(state!=='race'||autoQ==='off')return;
  // moves and only dropped resolution.
  // 10-30: first what cannot be seen: the rear-view mirror (~140 px wide on a phone) looks 150 m back and draws the cars behind
  // at its lightest (no message - nothing changes on screen). Then the car detail in two steps, the second only after the shadows.
- if(!PERF.mirLite&&MIR){PERF.mirLite=true;if(MIR.cam.far>150){MIR.cam.far=150;MIR.cam.updateProjectionMatrix();}return;}
+ if(!PERF.mirLite&&MIR){PERF.mirLite=true;if(MIR.cam.far>150){MIR.cam.far=150;MIR.cam.updateProjectionMatrix();}if(fps>=42)return;}   // 10-30: well below (a pack at the start) - the next step too, not 2.5 s later
  if(!PERF.lodCut&&LODN[0]>4){PERF.lodCut=1;LODN=[4,8,12];say('멀리 있는 차를 간단히 그려요');return;}
  PERF.step++;
   if(PERF.step===1){if(aoPass&&aoPass.enabled){aoPass.enabled=false;say('그림자 보정(AO)을 껐어요');return;}PERF.step++;}
