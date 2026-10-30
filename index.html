@@ -2587,7 +2587,7 @@ mk(ring(2048,256,23,0.08,0.2,[110,125,140],[150,160,170],1),2450,240,80);}
     for(let k=0;k<26;k++){const g=new THREE.Group(),L=10+Math.random()*25;const hull=new THREE.Mesh(new THREE.CylinderGeometry(L*0.14,L*0.1,L,8,1),hullM);hull.rotation.z=Math.PI/2;hull.scale.set(1,1,0.55);hull.position.y=0.6;g.add(hull);
       const dk=new THREE.Mesh(new THREE.BoxGeometry(L*0.6,L*0.08,L*0.18),deckM);dk.position.y=0.6+L*0.07;g.add(dk);if(Math.random()<0.6){const m=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.12,L*1.1,6),mastM);m.position.set(0,L*0.6,0);g.add(m);}
       else{const cab=new THREE.Mesh(new THREE.BoxGeometry(L*0.3,L*0.12,L*0.15),hullM);cab.position.set(-L*0.05,0.6+L*0.16,0);g.add(cab);}
-      g.position.set(bx0-200+Math.random()*(bx1-bx0+400),WL+0.1,bz1+130+Math.random()*350);g.rotation.y=Math.random()*6.28;g.traverse(o=>o.castShadow=true);scene.add(g);}
+      g.position.set(bx0-200+Math.random()*(bx1-bx0+400),WL+0.1,bz1+130+Math.random()*350);g.rotation.y=Math.random()*6.28;g.traverse(o=>o.castShadow=true);g.userData.batch=true;scene.add(g);}   /* 10-30: batched (26 boats were ~78 draw calls when the harbour was in view) */
     // (v11g: the scattered random blocks are gone - the modern city below lines the streets instead)
     }
     // street lights along the circuit
@@ -3326,8 +3326,10 @@ const wm=new THREE.MeshStandardMaterial({color:0xe9edf0,metalness:0.55,roughness
     const sg=[];for(let k=0;k<36;k++){const a=k/36*Math.PI*2;for(const dz of[-2.2,2.2]){const sp=new THREE.CylinderGeometry(0.09,0.09,R,4);sp.translate(0,R/2,0);sp.rotateZ(a);sp.translate(0,0,dz);sg.push(sp);}}ring.add(new THREE.Mesh(mergeGeos(sg),wm));
     const hubM=new THREE.Mesh(new THREE.CylinderGeometry(2,2,6,16),wm);hubM.rotation.x=Math.PI/2;ring.add(hubM);
     const cg=cap==='pod'?new THREE.SphereGeometry(1.8,12,8):new THREE.BoxGeometry(2.2,2.4,2.2),pal=[0xe63946,0xffb703,0x219ebc,0x3ddc84,0xff4fa3,0xf1faee];
-    for(let k=0;k<(cap==='pod'?28:32);k++){const a=k/(cap==='pod'?28:32)*Math.PI*2,m=new THREE.Mesh(cg,cap==='pod'?new THREE.MeshStandardMaterial({color:0xd6ecf5,roughness:0.08,metalness:0.4,transparent:true,opacity:0.85}):new THREE.MeshStandardMaterial({color:pal[k%pal.length],roughness:0.5}));
+    const podM=new THREE.MeshStandardMaterial({color:0xd6ecf5,roughness:0.08,metalness:0.4,transparent:true,opacity:0.85}),boxM=pal.map(c=>new THREE.MeshStandardMaterial({color:c,roughness:0.5}));   /* 10-30: shared, so the ring merges into a few meshes below */
+    for(let k=0;k<(cap==='pod'?28:32);k++){const a=k/(cap==='pod'?28:32)*Math.PI*2,m=new THREE.Mesh(cg,cap==='pod'?podM:boxM[k%pal.length]);
       if(cap==='pod')m.scale.set(1.5,1,1);m.position.set(Math.cos(a)*(R+1.6),Math.sin(a)*(R+1.6),0);ring.add(m);}
+    mergeStaticParts(ring);   // the ring turns as one piece: rims, spokes, hub and cabins ~33 draw calls -> 2-7
     for(const dz of[-4.5,4.5])for(const sx of[-1,1]){const L=Math.hypot(R*0.55,hub),leg=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.9,L,8),wm);leg.position.set(sx*R*0.275,hub/2,dz);leg.rotation.z=sx*Math.atan2(R*0.55,hub);g.add(leg);}
     g.traverse(o=>{o.userData.noBake=true;if(o.isMesh)o.castShadow=true;});(W.anim=W.anim||[]).push(dt=>{ring.rotation.z+=dt*0.035;});occMark(x,z,g.rotation.y,R*2+6,14);(W.lm=W.lm||[]).push(['wheel',x,z,hub]);return g;};
   // -- an observation tower with a canopy of red steel tendons fanning out to the ground (Austin) --
@@ -3830,6 +3832,7 @@ const wm=new THREE.MeshStandardMaterial({color:0xe9edf0,metalness:0.55,roughness
   fitGround(scene,W);
   scene.traverse(o=>{const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>{if(m&&m.polygonOffset&&m.polygonOffsetFactor<0&&!m.polygonOffsetUnits)m.polygonOffsetUnits=m.polygonOffsetFactor*2;});});
   W.batched=batchWorld(scene);
+  try{W.lmMerged=mergeLandmarks(scene,W);}catch(e){console.warn('mergeLandmarks',e);}
   try{bakeGround(scene,renderer,W,opt);}catch(e){console.warn('bakeGround',e);}
   return W;
 }
@@ -4031,6 +4034,23 @@ function tintGeo(geo,col){const q=geo.clone(),n=q.attributes.position.count,c=co
 // grandstands, garage name boards) are marked userData.batch. Once the world is finished (props culled, heights baked in), every
 // set of their meshes sharing one material becomes a single mesh in world space: hundreds of draw calls fewer, same picture.
 // Meshes marked userData.keep (switched on and off later) and hidden ones stay as they are.
+// 10-30: landmarks (casino, towers, wheel, stadium ...) are groups of many small meshes, each its own draw call - a city lap
+// cost up to ~60 more calls where they were in view than elsewhere. Their still parts are merged per material inside each
+// group (it stays one object, culled as before). What the animations move is found by running them once and seeing what changed.
+function mergeLandmarks(scene,W){const cand=scene.children.filter(o=>o.isGroup&&o.userData.noBake&&Object.keys(o.userData).length===1);if(!cand.length)return 0;
+  const st=o=>o.position.toArray().concat(o.quaternion.toArray(),o.scale.toArray()).join()+o.visible+(o.material?o.material.uuid:''),s0=new Map();
+  for(const g of cand)g.traverse(o=>s0.set(o,st(o)));
+  if(W.anim)for(let k=0;k<3;k++)for(const f of W.anim){try{f(0.7);}catch(e){}}
+  const moved=o=>s0.get(o)!==st(o);let n0=0,n1=0;
+  for(const g of cand){g.updateWorldMatrix(true,true);const inv=new THREE.Matrix4().copy(g.matrixWorld).invert(),by=new Map();
+    g.traverse(o=>{if(!o.isMesh||o.isInstancedMesh||Array.isArray(o.material)||o.children.length||Object.keys(o.userData).some(k=>k!=='noBake'))return;
+      for(let a=o;a&&a!==g;a=a.parent)if(moved(a)||!a.visible)return;
+      if(!by.has(o.material))by.set(o.material,[]);by.get(o.material).push(o);});
+    for(const [mat,list] of by){if(list.length<2)continue;
+      const geos=list.map(o=>{const q=o.geometry.clone();q.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld));return q;});
+      const mm=new THREE.Mesh(list.every(o=>o.geometry.attributes.color)?mergeGeosC(geos):mergeGeos(geos),mat);mm.castShadow=list.some(o=>o.castShadow);mm.receiveShadow=list.some(o=>o.receiveShadow);
+      mm.renderOrder=list[0].renderOrder;mm.userData.noBake=true;for(const o of list)o.parent.remove(o);g.add(mm);n0+=list.length;n1++;}}
+  return {n0,n1};}
 function batchWorld(scene){scene.updateMatrixWorld(true);const by=new Map();let nIn=0,nOut=0;
   for(const top of scene.children){if(!top.userData||!top.userData.batch)continue;
     top.traverse(o=>{if(!o.isMesh||o.isInstancedMesh||Array.isArray(o.material)||o.userData.keep||!o.visible)return;let a=o;while(a&&a!==top){if(!a.visible)return;a=a.parent;}
@@ -4411,7 +4431,7 @@ function loadCarModel(kit){if(!THREE.GLTFLoader)return;
     // where the model puts the cockpit, the T-cam and the mirrors (the procedural car's numbers are the zero)
     // v15b: the eye sits 15 cm further back and 2 cm lower than the helmet's offset says: at the old spot it was inside the model's halo (cut by the near plane - jagged black shapes) and the mirrors were out of view
     const c3=b=>[(b.mn[0]+b.mx[0])/2,(b.mn[1]+b.mx[1])/2,(b.mn[2]+b.mx[2])/2];
-    Q.ck={x:0.70,y:-0.07,ex:-0.05,ey:-0.10,fov:52,tx:ex.tcam?c3(ex.tcam)[0]+0.5:0.41,ty:ex.tcam?ex.tcam.mx[1]-1.055:0.075};   // 10-29 (onboard reference): the eye sits lower under the hoop with a narrower view - the blurred hoop frames the top, the wheel is bigger
+    Q.ck={x:0.70,y:-0.07,ex:-0.05,ey:-0.01,fov:54,ly:-1.4,tx:ex.tcam?c3(ex.tcam)[0]+0.5:0.41,ty:ex.tcam?ex.tcam.mx[1]-1.055:0.075};   // 10-29 (onboard reference): the eye sits lower under the hoop with a narrower view - the blurred hoop frames the top, the wheel is bigger   // 10-30 윤택님 (the road was hard to see): the eye 9 cm higher and looking a little down (ly: look height 30 m ahead) - the horizon sits at about a third from the top, the road fills the middle
     Q.mir=[ex.mirrorL,ex.mirrorR].map(b=>b?[b.mn[0]-0.003,(b.mn[1]+b.mx[1])/2,(b.mn[2]+b.mx[2])/2,(b.mx[2]-b.mn[2])/2*0.92,(b.mx[1]-b.mn[1])/2*0.9]:null);
     Q.pylon=wingRod([-1.82,0.42,0],[-2.12,0.8,0],0.06,0.014);
     Q.latLight=mergeGeos(Q.mir.filter(Boolean).map(b=>new THREE.BoxGeometry(0.04,0.02,0.014).translate(b[0]+0.02,b[1],b[2]+Math.sign(b[2])*(b[3]+0.008))));
@@ -4434,7 +4454,7 @@ function buildCarKit(){
   const Phys=THREE.MeshPhysicalMaterial||THREE.MeshStandardMaterial;
   const kit={geo,tyreF:tyreProfile(WHL.hwf),tyreR:tyreProfile(WHL.hwr),ring:new THREE.RingGeometry(0.245,0.345,64),
     // v12h: lighter wheels for what is never seen close: the far-car stand-ins and (below the top setting) the pit crews' loose wheels
-    tyreFlo:tyreProfile(WHL.hwf,24),tyreRlo:tyreProfile(WHL.hwr,24),ringLo:new THREE.RingGeometry(0.245,0.345,24),coverLo:new THREE.CircleGeometry(0.24,16),
+    tyreFlo:tyreProfile(WHL.hwf,24),tyreRlo:tyreProfile(WHL.hwr,24),ringLo:new THREE.RingGeometry(0.245,0.345,24),coverLo:new THREE.CircleGeometry(0.24,16),tyrePit:tyreProfile(WHL.hwr,12),ringPit:new THREE.RingGeometry(0.245,0.345,12),coverPit:new THREE.CircleGeometry(0.24,10),
     // v12h (2026 cars): red LED strips on the rear-wing endplates (they flash with the rear light) and amber lateral lights on the mirror tips
     epLight:mergeGeos([-1,1].map(s=>new THREE.BoxGeometry(0.012,0.15,0.024).translate(-2.476,0.78,s*0.475))),latLight:mergeGeos([-1,1].map(s=>new THREE.BoxGeometry(0.07,0.022,0.014).translate(0.29,0.705,s*0.633))),upright:new THREE.CylinderGeometry(0.2,0.2,0.1,18).rotateX(Math.PI/2),cover:new THREE.CircleGeometry(0.24,40),
     helmet:(()=>{const g=new THREE.SphereGeometry(0.135,24,16);g.scale(1.12,1,0.95);return g;})(),
@@ -4755,6 +4775,7 @@ function buildPitCrew(scene,W,kit){
   const hiW=typeof quality==='undefined'||quality==='high';   // v12h: 176 loose wheels: ~211k triangles at full detail, ~97k with the light wheels
   C.wT=mk(hiW?kit.tyreR:kit.tyreRlo,kit.tyreM,NW,true);C.wR=mk(hiW?kit.ring:kit.ringLo,new THREE.MeshStandardMaterial({map:texFrom(dC),roughness:0.85,polygonOffset:true,polygonOffsetFactor:-2}),NW*2,false);
   C.wC=mk(hiW?kit.cover:kit.coverLo,new THREE.MeshStandardMaterial({color:0x2a2c31,roughness:0.35,metalness:0.7}),NW*2,false);
+  if(hiW){C.geoHi=[kit.tyreR,kit.ring,kit.cover];C.geoLo=[kit.tyrePit,kit.ringPit,kit.coverPit];C.near=true;}   // swapped by distance in pitFx
   C.compCol={};for(const k in COMP)C.compCol[k]=new THREE.Color(COMP[k].col).convertSRGBToLinear();
   const fA=(i,o)=>{const p=P[i],t=T[i];return {x:p[0]-t[1]*o,z:p[1]+t[0]*o,a:Math.atan2(t[1],t[0])};};C.frameAt=fA;
   // release-light gantry at every box (red while the crew works, green = go)
@@ -4936,7 +4957,7 @@ function tileMesh(me,cell){if(!me||!me.parent)return;const g0=me.geometry.index?
   par.remove(me);}
 function initWorld(){
   renderer.shadowMap.enabled=quality!=='low';
-  WORLD=buildWorld(scene,renderer,{shadows:quality!=='low',q:quality,tod});tileMesh(WORLD.ground,700);tileMesh(WORLD.roadMesh,500);applyRL();KIT=buildCarKit();WORLD.crew=buildPitCrew(scene,WORLD,KIT);if(tod==='sunset')renderer.toneMappingExposure=0.8;else if(tod==='night')renderer.toneMappingExposure=0.9;EXPO=renderer.toneMappingExposure;initParticles();
+  WORLD=buildWorld(scene,renderer,{shadows:quality!=='low',q:quality,tod});tileMesh(WORLD.ground,1400);/* 10-30: 1400 m cells (were 700): ~20-30 draw calls fewer in every view, the count swung most with the view direction */tileMesh(WORLD.roadMesh,500);applyRL();KIT=buildCarKit();WORLD.crew=buildPitCrew(scene,WORLD,KIT);if(tod==='sunset')renderer.toneMappingExposure=0.8;else if(tod==='night')renderer.toneMappingExposure=0.9;EXPO=renderer.toneMappingExposure;initParticles();
   setupComposer();resize();initMirror();
 }
 
@@ -6590,7 +6611,7 @@ function sync(dt){
     eye.set(x0+c1*lx-s1*lz,2.9+vib+gy,z0+s1*lx+c1*lz);look.set(x0+c1*tx-s1*tz,0.3+gy,z0+s1*tx+c1*tz);camera.fov=46;camera.near=0.5;chaseInit=false;}
   else if(lookBack){   // hold V: rear-facing onboard from the cockpit views, reverse chase from the outside views
     if(outCam(cm)){L(8.2,2.6+gy+KP*gs*8.2,0,eye,true);if(pitTunSect(pl))pitTunCam(eye);L(-6,0.9+gy-KP*gs*6,0,look,true);camera.fov=60;camera.near=0.3;}else{L(-0.32+pm.ck.tx,1.34+pm.ck.ty+vib+gy,0,eye,true);L(-30,0.6+gy-gs*30,0,look,true);camera.fov=64;camera.near=0.12;}chaseInit=false;}
-  else if(cm==='cockpit'){const ex=-0.36+pm.ck.x+(pm.ck.ex||0)+headLon+JOLT.x;L(ex,0.87+pm.ck.y+(pm.ck.ey||0)+vib+pm.body.position.y+gy+ex*gs,headLat+JOLT.z,eye,true);L(30,0.45-headLon*4+pitch*30+gy+gs*30,pl.st*1.6,look,false);camera.fov=(pm.ck.fov||62)+8*sp;camera.near=0.1;chaseInit=false;}
+  else if(cm==='cockpit'){const ex=-0.36+pm.ck.x+(pm.ck.ex||0)+headLon+JOLT.x;L(ex,0.87+pm.ck.y+(pm.ck.ey||0)+vib+pm.body.position.y+gy+ex*gs,headLat+JOLT.z,eye,true);L(30,(pm.ck.ly??0.45)-headLon*4+pitch*30+gy+gs*30,pl.st*1.6,look,false);camera.fov=(pm.ck.fov||62)+8*sp;camera.near=0.1;chaseInit=false;}
   else if(cm==='tcam'){const Q=TCAMP,by=pm.body.position.y,ah=20,qx=Q.x+pm.ck.tx+JOLT.x*0.5,qy=Q.y+pm.ck.ty;L(qx,qy+by+vib*0.6+gy+qx*gs,Q.z+JOLT.z*0.5,eye,true);   // fixed to the car: it pitches with the road and the body, no look into the corners
     L(qx+ah,qy+by+gy-ah*Math.tan(Q.pitch)+(pitch+gs)*ah,Q.z,look,true);camera.fov=Q.fov+Q.fovS*sp;camera.near=Q.near;chaseInit=false;}
   else if(cm==='tv'&&(tvS=tvPick(pl))){const ey=hXZ(tvS.x,tvS.z)+7.6;eye.set(tvS.x,ey,tvS.z);look.set(PX,0.5+gy,PZ);   // v14b: TV view, zoomed to ~9 m of picture at the car
@@ -6816,7 +6837,9 @@ function pitFx(dt){
   const C=WORLD&&WORLD.crew;if(!C||!race)return null;let dirty=false;if(!C.ready){crewInit(C);dirty=true;}   // v12h: dirty - re-upload the crews' instances only when one moved
   const PS=C.PS,o=CRW.o;let pInfo=null;
   {let dmin=1e9;for(const f of C.boxF){dmin=Math.min(dmin,Math.hypot(f.x-VP().x,f.z-VP().z));}const vis=dmin<190;
-   if(vis!==C.vis){C.vis=vis;for(const k of['torso','head','uarm','farm','thigh','shin','foot','hand','gun','jackB','jackH','wT','wR','wC','lamp','gantry'])C[k].visible=vis;}}
+   if(vis!==C.vis){C.vis=vis;for(const k of['torso','head','uarm','farm','thigh','shin','foot','hand','gun','jackB','jackH','wT','wR','wC','lamp','gantry'])C[k].visible=vis;}
+   /* 10-30: the 176 loose wheels are drawn in full (no culling) - ~160k triangles in the view and as many again in the shadow map, the pit straight cost twice any other part of a lap. From the track (the boxes are 20 m+ away) the light wheels and no wheel shadows - full detail only in the pit lane, where they are a metre or two away */
+   const nr=!!race.player.pit||dmin<15;if(C.geoHi&&nr!==C.near){C.near=nr;const G=nr?C.geoHi:C.geoLo;C.wT.geometry=G[0];C.wR.geometry=G[1];C.wC.geometry=G[2];C.wT.castShadow=nr;}}
   for(let t=0;t<C.NT;t++){const S=C.team[t];
     let car=null,ph='idle';
     for(const c of race.cars){if(c.team!==t||!c.pit||c.gone)continue;const pp=c.pit;
