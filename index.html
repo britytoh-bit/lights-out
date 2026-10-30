@@ -5006,7 +5006,7 @@ function initAudio(){if(AC)return;try{
   {const sc=AC.createGain(),cl=AC.createWaveShaper(),n=4096,c=new Float32Array(n);sc.gain.value=0.5;   // v12: a soft clip on the very end - unity below -1.4 dBFS, rounds off
    for(let i=0;i<n;i++){const x=2*(i/(n-1)*2-1),a=Math.abs(x);c[i]=a<=0.85?x:Math.sign(x)*(0.85+0.15*Math.tanh((a-0.85)/0.15));}   // stacked peaks (up to +6 dB) instead of a hard clip
    cl.curve=c;cl.oversample='none';comp.connect(sc);sc.connect(cl);cl.connect(AC.destination);}
-  SND.master=AC.createGain();SND.master.gain.value=0;SND.master.connect(comp);
+  SND.master=AC.createGain();SND.master.gain.value=0;SND.air=AC.createBiquadFilter();SND.air.type='lowpass';SND.air.frequency.value=20000;SND.air.Q.value=0.5;SND.master.connect(SND.air);SND.air.connect(comp);   // 10-30: distance muffling for the TV view
   const M=SND.master,G=(v)=>{const g=AC.createGain();g.gain.value=v||0;return g;},F=(type,f,q)=>{const b=AC.createBiquadFilter();b.type=type;b.frequency.value=f;if(q!=null)b.Q.value=q;return b;};
   SND.G=G;SND.F=F;
   {const n=40,re=new Float32Array(n),im=new Float32Array(n);for(let k=1;k<n;k++){const odd=k%2?1:0.6,ord=k%3===0?1.5:1;im[k]=odd*ord/Math.pow(k,0.72);re[k]=0.18*im[k]*(((k*7)%5)-2)/2;}SND.wave=AC.createPeriodicWave(re,im);}
@@ -5502,7 +5502,13 @@ function sfx(type){
 function audioUpdate(dt){
   if(!AC||!SND.eng||!race)return;
   const t=AC.currentTime,live=(state==='race'||state==='countdown'||state==='done')&&!muted&&!(CINE&&CINE.ph==='pod');
-  SND.master.gain.setTargetAtTime(live?0.7:0,t,0.1);
+  // 10-30 윤택님 「TV 시점은 멀리서 나는 소리」: in the TV view the listener is the trackside camera, not the driver - the car is
+  // quieter and duller the further it is, sits left/right in the picture, and drops in pitch as it passes (doppler)
+  const tvL=live&&CAMS[camMode]==='tv'&&!key.look?(()=>{const p=race.player,m=camera.matrixWorld.elements,cx=camera.position.x,cz=camera.position.z,dx=p.x-cx,dz=p.z-cz,
+      d=Math.max(2,Math.hypot(dx,dz)),rl=Math.hypot(m[0],m[2])||1,vr=(Math.cos(p.a)*dx+Math.sin(p.a)*dz)/d*p.spd;
+    return {cx,cz,d,rx:m[0]/rl,rz:m[2]/rl,pan:Math.max(-0.8,Math.min(0.8,(m[0]*dx+m[2]*dz)/rl/d)),dop:Math.max(0.75,Math.min(1.3,343/(343+vr))),A:Math.max(0.25,Math.min(1,Math.pow(10/d,0.9)))};})():null;
+  SND.master.gain.setTargetAtTime(live?0.7*(tvL?tvL.A:1):0,t,0.1);
+  if(SND.air)SND.air.frequency.setTargetAtTime(tvL?Math.max(2400,Math.min(20000,22000*10/tvL.d)):20000,t,0.1);
   if(!live)return;
   SND.T+=dt;
   const classic=sndMode==='classic',V=engineVoices(sndMode);SND.eng=V.eng;SND.vox=V.vox;
@@ -5523,7 +5529,8 @@ function audioUpdate(dt){
    const on=!classic&&state==='race'&&!pl.pit&&pl.fin==null&&thr>0.95&&kp>285&&!pl.boost&&SND.acc<3?1:0;SND.clip=(SND.clip||0)+(on-(SND.clip||0))*Math.min(1,dt*(on?2.5:6));}
   if(pl.pit&&pl.pit.state!=='stop'&&sp>18&&pLim){if(sndMode==='v28'||sndMode==='v29'){SND.limT=(SND.limT||0)-dt;if(SND.limT<=0){SND.limOn=!SND.limOn;SND.limT=SND.limOn?0.02+Math.random()*0.04:0.03+Math.random()*0.06;if(SND.limOn&&Math.random()<0.05)SND.popN++;}cut*=SND.limOn?0.22:1;}
     else cut*=(Math.floor(SND.T*13)%2)?0.5:1;}   // pit limiter
-  if(pl.spinR&&thr>0.5)rpm=Math.min(12300,rpm*1.1);                                  // wheelspin: revs flare
+  if(pl.spinR&&thr>0.5)rpm=Math.min(12300,rpm*1.1);
+  if(tvL)rpm*=tvL.dop;   // TV view: the pitch drops as the car passes the camera                                  // wheelspin: revs flare
   const e=SND.eng,inCar=!outCam(CAMS[camMode])&&!key.look;let L,r01;
   if(classic){const f=rpm/60*3,L0=pl.pit&&pl.pit.state==='stop'?0.05:(thr>=1?1:(pl.braking?0.04:0.14));
     SND.load+=(L0-SND.load)*Math.min(1,dt*12);L=SND.load;r01=Math.min(1,rpm/12500);
@@ -5538,7 +5545,7 @@ function audioUpdate(dt){
     {const gn=+g||0,lgT=gn>=1&&gn<=3?[0,1,0.8,0.5][gn]:0;SND.lg=(SND.lg||0)+(lgT-(SND.lg||0))*Math.min(1,dt*5);e.lgw=SND.lg*(inCar?1:0.6);e.lgg=SND.lg;}   // v11f: low-gear rumble
     if(e.v3){const lb=(e.v5?engineLevel5:e.v4?engineLevel4:engineLevel3)(rpm,L,inCar,cut,ck);engineSet(e,t,rpm,L,lb[0]*(1+0.6*bk),lb[1]*(1+0.35*bk));}
     else engineSet(e,t,rpm,L,(0.12+0.3*L)*(0.55+0.45*r01)*cut*(1-0.28*ck)*(inCar?1.05:0.95)*(1+0.6*bk),((inCar?1200:1800)+L*(inCar?2400:3600)+r01*(inCar?1400:1600))*(1-0.2*ck)*(1+0.35*bk));}
-  if(e.pan)e.pan.pan.setTargetAtTime(0,t,0.1);
+  if(e.pan)e.pan.pan.setTargetAtTime(tvL?tvL.pan:0,t,0.1);
   if(e.v2)engineMix2(e,t,inCar);   // new sound: more intake roar from the cockpit, more exhaust from outside
   if(e.v5)engineMix5(e,t,inCar);else if(e.v3)engineMix3(e,t,inCar);
   {const on=sndMode==='v26b'?1:(sndMode==='v27'||sndMode==='v28'||sndMode==='v29')?0.8:0,gm=Math.max(300,rpm/60*((sndMode==='v28'||sndMode==='v29')?(GEAR_TEETH[+g]||21):21));SND.gw.frequency.setTargetAtTime(gm,t,0.03);SND.gwF.frequency.setTargetAtTime(gm,t,0.03);   // gear-mesh frequency (21 teeth: game value)
@@ -5586,8 +5593,8 @@ function audioUpdate(dt){
   // v12i: a voice stays with its car while that car is still among the nearest five (each voice went to whichever car was the n-th
   // nearest this frame, so in a pack - cars a metre apart swapping places - the voices hopped between cars: the engines warbled, the
   // pitch and the side jumped). A voice that changes car fades out, takes the new car's pitch, and fades back in.
-  const ca=Math.cos(pl.a),sa=Math.sin(pl.a),pvx=ca*pl.spd,pvz=sa*pl.spd,NV=SND.vox.length,pool=SND.pool||(SND.pool=[]),near=SND.nearL||(SND.nearL=[]);near.length=0;
-  for(const c of race.cars){if(c===pl||c.gone||c.inGarage||(c.pit&&c.pit.state==='stop'))continue;const dx=c.x-pl.x,dz=c.z-pl.z,d=Math.hypot(dx,dz);if(d>=260)continue;
+  const ca=Math.cos(pl.a),sa=Math.sin(pl.a),pvx=tvL?0:ca*pl.spd,pvz=tvL?0:sa*pl.spd,lx=tvL?tvL.cx:pl.x,lz=tvL?tvL.cz:pl.z,rx=tvL?tvL.rx:-sa,rz=tvL?tvL.rz:ca,kA=tvL?1/tvL.A:1,NV=SND.vox.length,pool=SND.pool||(SND.pool=[]),near=SND.nearL||(SND.nearL=[]);near.length=0;
+  for(const c of race.cars){if(c===pl||c.gone||c.inGarage||(c.pit&&c.pit.state==='stop'))continue;const dx=c.x-lx,dz=c.z-lz,d=Math.hypot(dx,dz);if(d>=260)continue;
     const o=pool[near.length]||(pool[near.length]={});o.c=c;o.dx=dx;o.dz=dz;o.d=d;near.push(o);}
   near.sort((a,b)=>a.d-b.d);
   const rankOf=c=>{for(let k=0;k<near.length;k++)if(near[k].c===c)return k;return 1e9;};
@@ -5603,11 +5610,11 @@ function audioUpdate(dt){
     const c=o.c,d=Math.max(1.5,o.d),ux=-o.dx/d,uz=-o.dz/d,cvx=Math.cos(c.a)*c.spd,cvz=Math.sin(c.a)*c.spd;
     const vs=cvx*ux+cvz*uz,vl=-(pvx*ux+pvz*uz),dop=Math.max(0.6,Math.min(1.6,(343+vl)/(343-vs)));
     const kmh=Math.abs(c.spd)*3.6,[,rr]=classic?gearRpmC(kmh):gearRpm(kmh),rp=c.spd<1?(race.t<c.react?(classic?9000+Math.sin(SND.T*9+i)*900:12400+Math.sin(SND.T*7.3+i*1.7)*420+Math.sin(SND.T*23+i*2.3)*180):(classic?4200:3900)):rr;
-    const att=Math.pow(Math.min(1,7/d),1.15)*v.fade,tcv=snap?0.002:0.03;
+    const att=Math.pow(Math.min(1,7/d),1.15)*v.fade*kA,tcv=snap?0.002:0.03;
     if(classic){const ff=rp/60*3*dop,cl=c.braking?0.12:1;v.o1.frequency.setTargetAtTime(ff,t,0.03);v.o2.frequency.setTargetAtTime(ff/3,t,0.03);v.o3.frequency.setTargetAtTime(ff/2,t,0.03);
       v.lp.frequency.setTargetAtTime(700+2800*Math.min(1,20/d)+cl*800,t,0.05);v.ng.gain.setTargetAtTime(0.05*cl,t,0.05);v.out.gain.setTargetAtTime(0.42*att*(0.45+0.55*cl)*(inCar?0.8:1),t,0.06);}
     else{const hvc=c.braking&&c.spd>22&&!c.pit,cl=hvc?0.6:c.braking?0.05:(c.pit?0.5:(c.spd<1&&race.t<c.react?0.8:1)),rq=hvc?Math.max(rp,10200):rp;engineSet(v,t,rq*dop,cl,0.5*att*(0.4+0.6*cl)*(inCar?0.75:1)*(v.v5?V29.lvlAI:1),v.v3?600+1700*Math.min(1,20/d)+cl*700:800+3000*Math.min(1,20/d)+cl*1200,tcv);}
-    if(v.pan){const right=(-sa*o.dx+ca*o.dz)/d;v.pan.pan.setTargetAtTime(Math.max(-0.9,Math.min(0.9,right)),t,snap?0.002:0.06);}});
+    if(v.pan){const right=(rx*o.dx+rz*o.dz)/d;v.pan.pan.setTargetAtTime(Math.max(-0.9,Math.min(0.9,right)),t,snap?0.002:0.06);}});
 }
 
 // ---- state ----
