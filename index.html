@@ -5908,14 +5908,17 @@ applyMobileClasses();
 // shows as 사용자 설정 (the preset is read back from the settings, so changing them back shows the preset again) =====
 const SKILLS={
   easy:{nm:'초보',sm:'drag',sens:2,as:'high',bas:2,rl:'full',ag:'auto',li:[['손가락으로 끌어서 조향',1],['조향 감도 2 (부드럽게)'],['자동 가속',1],['브레이크 보조 강하게'],['레이싱 라인 항상 보임'],['잠김·스핀 거의 없음']]},
-  mid:{nm:'중급',sm:'tilt',sens:3,as:'normal',bas:1,rl:'corners',ag:'manual',li:[['휴대폰 기울여서 조향',1],['조향 감도 3'],['가속 직접',1],['브레이크 보조 약하게'],['레이싱 라인 코너만'],['가끔 바퀴가 잠겨요']]},
-  pro:{nm:'상급',sm:'tilt',sens:4,as:'off',bas:0,rl:'off',ag:'manual',li:[['휴대폰 기울여서 조향',1],['조향 감도 4 (민감하게)'],['가속 직접',1],['보조 기능 없음'],['레이싱 라인 끔'],['실제처럼 잠기고 스핀']]}};
+  mid:{nm:'중급',sm:'drag',sens:3,as:'normal',bas:1,rl:'corners',ag:'manual',li:[['손가락으로 끌어서 조향',1],['조향 감도 3'],['가속 직접',1],['브레이크 보조 약하게'],['레이싱 라인 코너만'],['가끔 바퀴가 잠겨요']]},
+  // 10-31 윤택님: 상급 is not a preset - it keeps the settings as they are and opens them to set one by one (any non-preset setup reads as 상급)
+  pro:{nm:'상급',custom:1,li:[['조작·보조를 직접 골라요'],['조향 방식·감도',1],['가속·브레이크 보조'],['레이싱 라인·주행 보조']]}};
 const skLines=k=>SKILLS[k].li.filter(l=>isTouch||!l[1]).map(l=>l[0]);
-function curSkill(){for(const k in SKILLS){const s=SKILLS[k];if(sens===s.sens&&assistMode===s.as&&brakeAs===s.bas&&rlMode===s.rl&&(!isTouch||(steerMode===s.sm&&autoGas===(s.ag==='auto'))))return k;}return 'custom';}
+function curSkill(){if(loadLS('lightsout3d-skill')==='pro')return 'pro';for(const k in SKILLS){const s=SKILLS[k];if(!s.custom&&sens===s.sens&&assistMode===s.as&&brakeAs===s.bas&&rlMode===s.rl&&(!isTouch||(steerMode===s.sm&&autoGas===(s.ag==='auto'))))return k;}return 'pro';}
 function skillUI(){if(!skReady)return;const k=curSkill();segPick(['skSel','pSkSel'],k);segPick(['basSel'],brakeAs);
-  const t=k==='custom'?'지금: 사용자 설정 (직접 바꾼 설정으로 달려요)':'지금: '+SKILLS[k].nm+' · '+skLines(k).join(' · ');for(const id of['skNote','pSkNote'])$(id).textContent=t;}
+  const t=k==='pro'?'지금: 상급 · 아래 설정에서 조향·가속·보조를 직접 골라요':'지금: '+SKILLS[k].nm+' · '+skLines(k).join(' · ');for(const id of['skNote','pSkNote'])$(id).textContent=t;}
+function skOpenCustom(){const pz=!$('pause').hidden;if(!$('skill').hidden){$('skill').hidden=true;$('menu').hidden=false;}
+  const t=pz?$('pSmSel'):$(isTouch?'smSel':'sensSel');if(t)setTimeout(()=>t.parentNode.scrollIntoView({block:'start',behavior:'smooth'}),60);}
 function setBrakeAs(v){brakeAs=v;saveLS('lightsout3d-bas',v);if(race)race.bAs=v;skillUI();}
-function applySkill(k){const s=SKILLS[k];if(!s)return;saveLS('lightsout3d-skill',k);
+function applySkill(k){const s=SKILLS[k];if(!s)return;saveLS('lightsout3d-skill',k);if(s.custom){skillUI();skOpenCustom();return;}
   assistMode=s.as;saveLS('lightsout3d-assist',s.as);segPick(['asSel'],s.as);if(race)race.assist=isTouch&&s.as==='off'?'offTouch':s.as;
   brakeAs=s.bas;saveLS('lightsout3d-bas',s.bas);if(race)race.bAs=s.bas;
   rlMode=s.rl;saveLS('lightsout3d-rl',s.rl);segPick(['rlSel'],s.rl);applyRL();
@@ -5938,8 +5941,13 @@ const TUT_STEPS=[
   {h:'피트',t:()=>tk('「PIT」','B 키')+'를 누르면 이번 랩 끝에 피트 레인으로 들어가 고른 타이어로 바꿔요. 피트 레인에선 차가 알아서 달려요. 눌러 보세요.',done:p=>p.pitReq||!!p.pit},
   {h:'ERS · 직선 모드',t:()=>'직선에서 '+tk('「ERS」','Shift 키')+'를 누르면 배터리 힘으로 더 빨라져요. 직선 구간에선 날개도 열려요('+(aeroMode==='auto'?'자동':tk('「직선」 버튼','E 키'))+'). ERS를 한 번 써 보세요.',done:p=>p.boost},
   {h:'끝!',t:()=>'잘했어요. 이제 메뉴에서 레이스를 시작해 보세요. 여기서 계속 연습해도 돼요.'}];
-function tutStart(){if(TRK.id!==TUT_TRK){saveLS('lightsout3d-tutgo','1');saveLS('lightsout3d-tutret',TRK.id);saveLS('lightsout3d-track',TUT_TRK);
+// a race started right after the page loads (tutorial, the performance test) waits up to 10 s for the 3D car model -
+// a race in progress keeps the cars it started with, so without this it ran in the old procedural car
+function whenCar(fn,n=0){if(THREE.GLTFLoader&&!window.__CARGLB&&n<50){$('loading').style.display='flex';$('loading').textContent='차량을 불러오는 중';setTimeout(()=>whenCar(fn,n+1),200);return;}
+  $('loading').style.display='none';fn();}
+function tutStart(force){if(TRK.id!==TUT_TRK){saveLS('lightsout3d-tutgo','1');saveLS('lightsout3d-tutret',TRK.id);saveLS('lightsout3d-track',TUT_TRK);
     $('loading').style.display='flex';$('loading').textContent='튜토리얼 서킷을 불러오는 중';setTimeout(()=>location.reload(),30);return;}
+  if(force!==true){whenCar(()=>tutStart(true));return;}
   const wx=weather;weather='dry';TUT={i:0,ok:0};startRace({mode:'practice'});weather=wx;document.body.classList.add('tutOn');tutShow();}
 function tutShow(){const s=TUT_STEPS[TUT.i],n=TUT_STEPS.length-1,last=TUT.i===n;$('tutH').textContent=(last?'튜토리얼':'튜토리얼 '+(TUT.i+1)+'/'+n)+' · '+s.h;
   $('tutT').textContent=s.t();$('tutNext').textContent=last?'계속 달리기':'다음';$('tutSkip').textContent=last?'메뉴로':'건너뛰기';$('tut').classList.remove('ok');$('tut').hidden=false;
@@ -5957,8 +5965,12 @@ function tutPlace(){const el=$('tut');if(el.hidden)return;const W=innerWidth,H=i
   else{const ht=$('hudTime').getBoundingClientRect();top=ht.width?ht.top:14;right=ht.width?W-ht.right:14;w=320;}
   Object.assign(el.style,{top:Math.round(top)+'px',right:Math.round(right)+'px',width:Math.round(w)+'px',maxHeight:Math.round(bot-top)+'px'});}
 addEventListener('resize',()=>setTimeout(tutPlace,150));
-$('tutNext').addEventListener('click',()=>{if(!TUT)return;if(TUT.i===TUT_STEPS.length-1)tutEnd();else{TUT.ok=0;tutGo();}});
-$('tutSkip').addEventListener('click',()=>{if(TUT&&TUT.i===TUT_STEPS.length-1)toMenu();else tutEnd();});
+// pointerdown, not click: on an iPhone a tap makes no click while another finger is down (holding the pedal or steering) - like the race buttons.
+// A tap on the card's text is 「다음」 too
+const tutNext=()=>{if(!TUT)return;if(TUT.i===TUT_STEPS.length-1)tutEnd();else{TUT.ok=0;tutGo();}};
+const tutSkip=()=>{if(TUT&&TUT.i===TUT_STEPS.length-1)toMenu();else tutEnd();};
+$('tut').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(e.target.closest('#tutSkip'))tutSkip();else tutNext();});
+$('tutNext').addEventListener('click',e=>{if(e.detail===0)tutNext();});$('tutSkip').addEventListener('click',e=>{if(e.detail===0)tutSkip();});   // keyboard (Enter/Space) only
 $('tutBtn').addEventListener('click',tutStart);
 // ===== 10-31: 조작법 (pause): every on-screen control outlined where it really is, with a short label next to it =====
 function ctlHelp(){const M=$('chMarks'),W=innerWidth,H=innerHeight,sa=safeInsets(),placed=[],tg=[];M.innerHTML='';
@@ -6266,9 +6278,11 @@ function layoutTouchHUD(){if(!isTouch)return;
   // note or the pit / strategy line (the note takes the row for a moment). Portrait: a message line above the panels (the race-control
   // pill, or a short note for a moment), the pit / strategy line just above the round buttons by the PIT button, the pit-stop clock
   // and the mirror under the panels.
-  const mr=MM.radar&&mini.style.display!=='none'?R(mini):null,twr={right:sa.l+6+128},htr=R(ht),hsr=R(hs);
+  const mr=MM.radar&&mini.style.display!=='none'?R(mini):null,twr={right:vis(tw)?Math.max(R(tw).right,sa.l+6+128):sa.l+6+128},htr=R(ht),hsr=R(hs);
   const C=(a,b)=>Math.round((a+b)/2)+'px';
-  if(!port){const L=Math.max(twr.right,mr?mr.right:0)+10,Rf=tbr.left-10,Rm=Math.min(htr.left,hsr.top<htr.bottom+80?hsr.left:1e9)-10;
+  // 10-31: the dashboard only bounds the message row when it sits on the right under the timing panel - moved up over the
+  // steering control (left), its left edge became the row's right end and the pit note was squeezed onto the tower
+  if(!port){const L=Math.max(twr.right,mr?mr.right:0)+10,Rf=tbr.left-10,Rm=Math.min(htr.left,hsr.left>W/2&&hsr.top<htr.bottom+80?hsr.left:1e9)-10;
     // v12j: 룸미러를 화면 맨 위 가운데로 올리고(실제 룸미러 자리), 메시지 줄을 그 아래로 내린다.
     // 예전에는 미러가 메시지 아래라서 가로로 든 휴대폰에서는 앞을 보는 자리 한가운데에 걸렸다.
     hc.mirY=sa.t+4;const y0=sa.t+4+mirSize().h+8;
@@ -7588,7 +7602,7 @@ function frame(now){
 function boot(){
   try{initWorld();}catch(e){console.error(e);$('err').style.display='flex';}
   setupRace();updateMenuBest();state='menu';document.body.classList.add('inmenu');$('menu').hidden=false;$('loading').style.display='none';$('fpsBox').hidden=!FPSON;
-  benchBoot();
+  if(benchLoad())whenCar(benchBoot);else benchBoot();
   if(loadLS('lightsout3d-tutgo')==='1'){saveLS('lightsout3d-tutgo','');saveLS('lightsout3d-skill',loadLS('lightsout3d-skill')||'seen');tutStart();}   // 10-31: the tutorial circuit has loaded
   else if(!loadLS('lightsout3d-skill')){$('menu').hidden=true;$('skill').hidden=false;}   // first launch: pick a skill level once
   requestAnimationFrame(frame);
