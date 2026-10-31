@@ -566,6 +566,7 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
         <div><p class="label">엔진 사운드</p><div class="seg" id="sndSel"><button data-v="v29" aria-pressed="true">2026 온보드 V6</button><button data-v="v28" aria-pressed="false">그르릉 V6</button><button data-v="v27" aria-pressed="false">낮은 톤 V6</button><button data-v="v26b" aria-pressed="false">v9.1 V6</button><button data-v="v26" aria-pressed="false">v9.0 V6</button><button data-v="classic" aria-pressed="false">예전 합성음</button></div><button id="sndPrev" type="button" style="width:100%;margin:-8px 0 16px;padding:8px">▶ 선택한 엔진 소리 들어보기</button></div>
         <div><p class="label">그래픽</p><div class="seg" id="qSel"><button data-v="high" aria-pressed="false">높음</button><button data-v="medium" aria-pressed="true">보통</button><button data-v="low" aria-pressed="false">부드럽게</button></div></div>
         <div><p class="label">자동 화질 조절 (프레임이 떨어지면 효과를 하나씩 줄임)</p><div class="seg" id="aqSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔 (고른 그래픽 그대로)</button></div></div>
+        <div><p class="label">관중 표시 (관중석의 사람 그림 · 끄면 조금 가벼워질 수 있어요)</p><div class="seg" id="crowdSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔</button></div></div>
       </div>
       <p class="label">자동 성능 측정 (28개 서킷을 혼자 돌며 프레임을 재요 · 약 15~20분 · 지금 그래픽 설정 그대로 · 휴대폰은 가로로 두고 충전기에 꽂아 두세요)</p>
       <div class="two"><div><p class="label">측정 시점</p><div class="seg" id="bvSel"><button data-v="cur" aria-pressed="true">지금 시점</button><button data-v="cockpit" aria-pressed="false">콕핏</button></div></div>
@@ -2407,7 +2408,7 @@ function buildWorld(scene,renderer,opt){
   scene.fog=new THREE.Fog(SS?0xd9b89a:NT?0x0a0e1a:0xa9c2db,SS?380:NT?240:700,SS?2800:NT?2300:5200);W.fogC=scene.fog.color.clone();if(GRADE_IN_TM)scene.fog.color.convertLinearToSRGB();W.fogN=scene.fog.near;W.fogF=scene.fog.far;
   const hemi=new THREE.HemisphereLight(SS?0xffd2a8:NT?0x3c4c7a:0xcfe3ff,SS?0x3f3a2c:NT?0x17171b:0x56663f,SS?0.46:NT?0.34:0.44);scene.add(hemi);W.hemi=hemi;W.hemiI=hemi.intensity;W.hemiC=hemi.color.clone();W.hemiG=hemi.groundColor.clone();
   const sun=new THREE.DirectionalLight(SS?0xffa45c:NT?0xe8eeff:0xffedd2,NT?1.8:2.9);sun.castShadow=opt.shadows;   // (night: the floodlights - cool white, from high up)
-  if(opt.shadows){const ms=opt.q==='high'?(isTouch?2048:4096):1536;   /* 10-29: a 4096 map on a phone - 7 cm texels over the 140 m box at 2048 still read sharp */sun.shadow.mapSize.set(ms,ms);const sc=sun.shadow.camera;sc.left=-70;sc.right=70;sc.top=70;sc.bottom=-70;sc.near=1;sc.far=500;sun.shadow.bias=-0.0004;sun.shadow.normalBias=0.03;}
+  if(opt.shadows){const ms=opt.q==='high'?(isTouch?(NT?1024:2048):4096):1536;   /* 10-31: phones at night 1024 - the floodlit shadows are faint and soft */   /* 10-29: a 4096 map on a phone - 7 cm texels over the 140 m box at 2048 still read sharp */sun.shadow.mapSize.set(ms,ms);const sc=sun.shadow.camera;sc.left=-70;sc.right=70;sc.top=70;sc.bottom=-70;sc.near=1;sc.far=500;sun.shadow.bias=-0.0004;sun.shadow.normalBias=0.03;}
   // v13k: floodlights come from many towers, so a shadow under one is only partly dark - part of the light casts no shadow (was all of it: the shadows went near-black)
   if(NT){const fl=new THREE.DirectionalLight(0xe8eeff,0.8);fl.position.copy(sunDir);scene.add(fl);W.fill=fl;W.fillI=fl.intensity;sun.intensity=1.0;}
   scene.add(sun);scene.add(sun.target);W.sun=sun;W.sunI=sun.intensity;
@@ -2754,7 +2755,7 @@ mk(ring(2048,256,23,0.08,0.2,[110,125,140],[150,160,170],1),2450,240,80);}
     g.lineWidth=6;for(const y of[94,154]){g.beginPath();g.moveTo(0,y);g.lineTo(512,y);g.stroke();}                              // beams
     g.lineWidth=4;g.beginPath();g.moveTo(256,34);g.lineTo(508,214);g.moveTo(508,34);g.lineTo(256,214);g.stroke();               // one braced bay
     return texFrom(c,true);})();
-  const crowdM=seatedT.map(t=>{const m=new THREE.MeshStandardMaterial({map:t,alphaTest:0.4,transparent:false,roughness:0.9,side:THREE.DoubleSide});if(renderer.capabilities.isWebGL2&&MSAA){m.alphaToCoverage=true;m.alphaTest=0.15;}return m;}),
+  const crowdM=seatedT.map(t=>{const m=new THREE.MeshStandardMaterial({map:t,alphaTest:0.4,transparent:false,roughness:0.9,side:THREE.DoubleSide});if(renderer.capabilities.isWebGL2&&MSAA){m.alphaToCoverage=true;m.alphaTest=0.15;}m.userData.crowd=1;return m;}),
     flagVC=new THREE.MeshStandardMaterial({vertexColors:true,side:THREE.DoubleSide,roughness:0.7});   // v12h: shared by every stand
   function stand(i,side,len,tiers,seatCol,off){off=off||6;   // off: metres behind the barrier
     const g=new THREE.Group(),lim=side>0?TR.LP[i]:TR.LN[i],f=frameAt(i,side*(lim+off));g.position.set(f.x,0,f.z);g.rotation.y=f.rot;g.userData.stand={i,side,len,depth:tiers*1.5+0.5,off};g.userData.batch=true;
@@ -2795,7 +2796,7 @@ mk(ring(2048,256,23,0.08,0.2,[110,125,140],[150,160,170],1),2450,240,80);}
   // other stands at a couple of slow corners
   if(!TRK.gs){const nMax=TRK.real&&TH!=='city'?5:2,cols=['#6c757d','#f5c518','#1f55c8','#b3121f','#2f8f4e'];let placed=0;for(let i=100;i<N-200&&placed<nMax;i+=7){if(TR.K[i]>0.03){const side=TR.KS[i]>0?-1:1,f=frameAt(i,side*(40));if(clearance(f.x,f.z)>35&&!inTun(i)){stand(i,side,70,8,cols[placed%5]);placed++;i+=nMax>2?170:250;}}}}   // v11g: five on the real circuits
   // standing spectators on grass banks behind the fences at some corners
-  {const m=new THREE.MeshStandardMaterial({map:standT,alphaTest:0.4,side:THREE.DoubleSide,roughness:0.9});standT.repeat.set(1/20,1);if(renderer.capabilities.isWebGL2&&MSAA){m.alphaToCoverage=true;m.alphaTest=0.15;}
+  {const m=new THREE.MeshStandardMaterial({map:standT,alphaTest:0.4,side:THREE.DoubleSide,roughness:0.9});m.userData.crowd=1;standT.repeat.set(1/20,1);if(renderer.capabilities.isWebGL2&&MSAA){m.alphaToCoverage=true;m.alphaTest=0.15;}
    const bankM=new THREE.MeshStandardMaterial({color:TH==='city'?0x8a8d92:TH==='desert'?0xb89a72:0x5c7a3e,roughness:1});let placed=0;   // a grass bank; paved in the city, sand in the desert
    // v11g: a bank only runs along the outside of its corner: it stops where the road bends the other way (it folded over on
    // the inside of the next bend), where the pit lane starts, or where another part of the lap comes within reach; and it
@@ -4825,7 +4826,7 @@ const POSES=(()=>{const P={
   for(const k in P)P[k]=Float32Array.from(P[k]);return P;})();
 function buildPitCrew(scene,W,kit){
   const NT=11,CN=CREW_N,NF=NT*CN,PS=PIT.side,Z0=new THREE.Matrix4().makeScale(0,0,0),ims=[];
-  const mk=(geo,mat,cnt,cast)=>{const im=new THREE.InstancedMesh(geo,mat,cnt);ims.push(im);im.frustumCulled=false;
+  const mk=(geo,mat,cnt,cast)=>{const im=new THREE.InstancedMesh(geo,mat,cnt);ims.push(im);im.frustumCulled=false;im.userData.cast0=!!cast;
     {const s0=im.setMatrixAt.bind(im),t4=new THREE.Matrix4();im.setMatrixAt=(i,m)=>{t4.copy(m);t4.elements[13]+=hXZ(t4.elements[12],t4.elements[14]);s0(i,t4);};}im.castShadow=!!cast;im.receiveShadow=true;for(let i=0;i<cnt;i++)im.setMatrixAt(i,Z0);scene.add(im);return im;};
   const limb=(r0,r1,seg)=>{const g=new THREE.CylinderGeometry(r1,r0,1,seg||6,1,true);g.translate(0,0.5,0);return g;};
   const suitM=new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.78}),suitVC=new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.78,vertexColors:true}),
@@ -5046,6 +5047,9 @@ function dropTeamMats(ti){if(!KIT)return;const kill=m=>{if(!m)return;if(m.map)m.
 // 10-29 (phone at 52 fps): the ground (180k triangles, 8 km across) and the road surface (100k) were single meshes, so every
 // pass - the view, and again the mirror looking back - drew all of them. Cut into square tiles they are frustum-culled like
 // everything else. WORLD.ground / roadMesh stay the whole meshes (out of the scene) for anything that reads their geometry.
+// 10-31: 관중 표시 켬/끔 (crowd pictures on the stands and banks). On a phone they are left out of the small wing mirrors either way.
+let crowdOn=loadLS('lightsout3d-crowd')!=='off';
+function applyCrowd(){scene.traverse(o=>{if(o.isMesh&&o.material&&o.material.userData&&o.material.userData.crowd){o.visible=crowdOn;if(isTouch)o.userData.heavy=true;}});if(MIR)MIR.heavy=null;}
 function tileMesh(me,cell){if(!me||!me.parent)return;const g0=me.geometry.index?me.geometry.toNonIndexed():me.geometry,pa=g0.attributes.position,n=pa.count/3,cells=new Map();
   for(let t=0;t<n;t++){const x=(pa.getX(3*t)+pa.getX(3*t+1)+pa.getX(3*t+2))/3,z=(pa.getZ(3*t)+pa.getZ(3*t+1)+pa.getZ(3*t+2))/3,k=Math.floor(x/cell)+','+Math.floor(z/cell);let L=cells.get(k);if(!L)cells.set(k,L=[]);L.push(t);}
   if(cells.size<2)return;const par=me.parent;
@@ -5055,7 +5059,12 @@ function tileMesh(me,cell){if(!me||!me.parent)return;const g0=me.geometry.index?
   par.remove(me);}
 function initWorld(){
   renderer.shadowMap.enabled=quality!=='low';
-  WORLD=buildWorld(scene,renderer,{shadows:quality!=='low',q:quality,tod});tileMesh(WORLD.ground,1400);/* 10-30: 1400 m cells (were 700): ~20-30 draw calls fewer in every view, the count swung most with the view direction */tileMesh(WORLD.roadMesh,500);applyRL();KIT=buildCarKit();WORLD.crew=buildPitCrew(scene,WORLD,KIT);if(tod==='sunset')renderer.toneMappingExposure=0.8;else if(tod==='night')renderer.toneMappingExposure=0.9;EXPO=renderer.toneMappingExposure;initParticles();
+  WORLD=buildWorld(scene,renderer,{shadows:quality!=='low',q:quality,tod});
+  // 10-31 (phone night test): the night fill is a second, shadowless light from the sun's direction in the sun's colour - every lit pixel
+  // worked out two lights. Folded into the sun: 1.8 in all, and a shadow keeps 0.8/1.8 of it - the same picture. Not on circuits with a
+  // tunnel (inside one the fill is dimmed apart from the shadowed sun). Before anything is drawn, so no shader is built twice.
+  if(WORLD.fill&&!WORLD.tunnel&&!WORLD.pitTun){const c=THREE.ShaderChunk.lights_fragment_begin,a='? getShadow( directionalShadowMap[ i ],';
+    if(c.includes(a)){THREE.ShaderChunk.lights_fragment_begin=c.replace(a,'? 0.4444 + 0.5556 * getShadow( directionalShadowMap[ i ],');scene.remove(WORLD.fill);WORLD.fill=null;WORLD.sun.intensity=WORLD.sunI=1.8;}}tileMesh(WORLD.ground,1400);/* 10-30: 1400 m cells (were 700): ~20-30 draw calls fewer in every view, the count swung most with the view direction */tileMesh(WORLD.roadMesh,500);applyCrowd();/* 10-31: cutting the merged props into 400 m cells was tried - +10-60 draw calls, -1 % triangles: not kept */applyRL();KIT=buildCarKit();WORLD.crew=buildPitCrew(scene,WORLD,KIT);if(tod==='sunset')renderer.toneMappingExposure=0.8;else if(tod==='night')renderer.toneMappingExposure=0.9;EXPO=renderer.toneMappingExposure;initParticles();
   setupComposer();resize();initMirror();
 }
 
@@ -5846,6 +5855,7 @@ seg('todSel',v=>{if(v!==tod){tod=v;saveLS('lightsout3d-tod',v);location.reload()
 // v14c: the smoothness governor can be switched off - on High it otherwise takes the effects straight back off on a phone
 let autoQ=loadLS('lightsout3d-autoq')==='off'?'off':'on';
 seg('aqSel',v=>{autoQ=v==='off'?'off':'on';saveLS('lightsout3d-autoq',autoQ);});
+seg('crowdSel',v=>{crowdOn=v==='on';saveLS('lightsout3d-crowd',v);applyCrowd();});segPick(['crowdSel'],crowdOn?'on':'off');
 seg('qSel',v=>{if(v!==quality){quality=v;saveLS('lightsout3d-q2',v);location.reload();}});
 seg('wxSel',v=>{weather=v;saveLS('lightsout3d-wx',v);if(state==='menu')setupRace();});seg('incSel',v=>{incidents=v;saveLS('lightsout3d-inc',v);});seg('dmgSel',v=>{damageMode=v;saveLS('lightsout3d-dmg',v);});seg('stSel',v=>{startMode=v;saveLS('lightsout3d-st',v);});seg('sndSel',v=>{sndMode=['v29','v28','v27','v26b','v26','classic'].includes(v)?v:'v29';saveLS('lightsout3d-snd12',sndMode);previewEngine();});$('sndPrev').addEventListener('click',()=>previewEngine());seg('asSel',v=>{assistMode=v;saveLS('lightsout3d-assist',v);if(state==='menu')setupRace();skillUI();});seg('aeroSel',v=>{aeroMode=v;saveLS('lightsout3d-aero',v);if(state==='menu')setupRace();applyMobileClasses();});seg('rlSel',v=>{rlMode=v;saveLS('lightsout3d-rl',v);applyRL();});
 // ---- livery editor ----
@@ -7044,7 +7054,10 @@ function pitFx(dt){
   {let dmin=1e9;for(const f of C.boxF){dmin=Math.min(dmin,Math.hypot(f.x-VP().x,f.z-VP().z));}const vis=dmin<190;
    if(vis!==C.vis){C.vis=vis;for(const k of['torso','head','uarm','farm','thigh','shin','foot','hand','gun','jackB','jackH','wT','wR','wC','lamp','gantry'])C[k].visible=vis;}
    /* 10-30: the 176 loose wheels are drawn in full (no culling) - ~160k triangles in the view and as many again in the shadow map, the pit straight cost twice any other part of a lap. From the track (the boxes are 20 m+ away) the light wheels and no wheel shadows - full detail only in the pit lane, where they are a metre or two away */
-   const nr=!!race.player.pit||dmin<15;if(C.geoHi&&nr!==C.near){C.near=nr;const G=nr?C.geoHi:C.geoLo;C.wT.geometry=G[0];C.wR.geometry=G[1];C.wC.geometry=G[2];C.wT.castShadow=nr;}}
+   const nr=!!race.player.pit||dmin<15;if(C.geoHi&&nr!==C.near){C.near=nr;const G=nr?C.geoHi:C.geoLo;C.wT.geometry=G[0];C.wR.geometry=G[1];C.wC.geometry=G[2];C.wT.castShadow=nr;}
+   // 10-31 (phone 「high」 test: the slow points sat on the run to the line, with the 198 crew in view): the crews cast shadows only
+   // when I am in the pit lane or within 40 m of a box - from the track their shadows are a few pixels, ~95k triangles in the shadow map
+   const sh=nr||dmin<40;if(sh!==C.sh){C.sh=sh;for(const im of C.ims)if(im!==C.wT||!C.geoHi)im.castShadow=sh&&im.userData.cast0;}}
   for(let t=0;t<C.NT;t++){const S=C.team[t];
     let car=null,ph='idle';
     for(const c of race.cars){if(c.team!==t||!c.pit||c.gone)continue;const pp=c.pit;
@@ -7268,7 +7281,7 @@ function makePS(max,tex,blending,maxF){   // maxF: the largest a particle may ge
   geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('alpha',new THREE.BufferAttribute(alpha,1));geo.setAttribute('size',new THREE.BufferAttribute(size,1));geo.setAttribute('pcol',new THREE.BufferAttribute(col,3));
   const mat=new THREE.ShaderMaterial({uniforms:{map:{value:tex},scale:{value:500},maxF:{value:maxF||1}},transparent:true,depthWrite:false,blending,
     vertexShader:'attribute float alpha;attribute float size;attribute vec3 pcol;varying float vA;varying vec3 vC;uniform float scale;uniform float maxF;void main(){vA=alpha;vC=pcol;vec4 w=modelMatrix*vec4(position,1.0);\n#ifdef HD_ON\nw.y+=hdH(w.xz);\n#endif\nvec4 mv=viewMatrix*w;gl_PointSize=min(min(512.0,maxF*scale),size*scale/max(0.2,-mv.z));gl_Position=projectionMatrix*mv;}',
-    fragmentShader:'uniform sampler2D map;varying float vA;varying vec3 vC;void main(){if(vA<=0.001)discard;vec4 t=texture2D(map,gl_PointCoord);gl_FragColor=vec4(vC*t.rgb,t.a*vA);'+(GRADE_IN_TM?'\n#include <encodings_fragment>\n':'')+'}'});   // v14b: no post chain (phone) - encode for the screen like the post chain's gamma pass did
+    fragmentShader:'uniform sampler2D map;varying float vA;varying vec3 vC;void main(){if(vA<=0.001)discard;vec4 t=texture2D(map,gl_PointCoord);if(t.a*vA<0.02)discard;gl_FragColor=vec4(vC*t.rgb,t.a*vA);'+(GRADE_IN_TM?'\n#include <encodings_fragment>\n':'')+'}'});   // v14b: no post chain (phone) - encode for the screen like the post chain's gamma pass did
   const pts=new THREE.Points(geo,mat);pts.frustumCulled=false;pts.renderOrder=5;scene.add(pts);
   return {pts,geo,mat,pos,alpha,size,col,max,fl:new Float32Array(max),vel:new Float32Array(max*3),life:new Float32Array(max),age:new Float32Array(max),grow:new Float32Array(max),a0:new Float32Array(max),head:0,live:0};
 }
@@ -7365,7 +7378,7 @@ function burst0(x,z,spd,a){for(let k=0;k<22;k++)emit(SPK,x,0.4,z,Math.cos(a)*spd
 let MIR=null,CAMLOOK=false,CAMPIT=false;
 function initMirror(){if(MIR)return;
   const w=quality==='high'?640:quality==='medium'?448:320,h=w/4,rt=new THREE.WebGLRenderTarget(w,h,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat,stencilBuffer:true});if(!composer)rt.texture.encoding=THREE.sRGBEncoding;   // stencil -> 24-bit depth (r128 gives a plain target 16-bit depth). v14b: no post chain - the screen's encoding, so the scene's shaders are the same ones (and the fog and overlays blend as on screen)
-  const cam=new THREE.PerspectiveCamera(28,4,0.5,quality==='high'?(isTouch?200:300):quality==='medium'?170:130);   // 28 deg vertical at 4:1 = ~90 deg horizontal; a shorter view is cheaper (10-30: phones 200 m - in their ~140 px mirror a car at 200 m is a pixel; 5-20 draw calls less, same picture)
+  const cam=new THREE.PerspectiveCamera(28,4,0.5,quality==='high'?(isTouch?120:300):quality==='medium'?170:130);   // 28 deg vertical at 4:1 = ~90 deg horizontal; a shorter view is cheaper (10-30: phones 200 m - in their ~140 px mirror a car at 200 m is a pixel; 5-20 draw calls less, same picture)
   const mat=new THREE.MeshBasicMaterial({map:rt.texture,toneMapped:false});
   const g=new THREE.PlaneGeometry(2,2),uv=g.attributes.uv;for(let i=0;i<uv.count;i++)uv.setX(i,1-uv.getX(i));   // a mirror flips left-right
   const hs=new THREE.Scene(),hc=new THREE.OrthographicCamera(-1,1,1,-1,0,1);hs.add(new THREE.Mesh(g,mat));
@@ -7384,7 +7397,9 @@ function renderMirror(){
   if(!MIR.heavy){MIR.heavy=[];scene.traverse(o=>{if(o.userData&&o.userData.heavy)MIR.heavy.push(o);});}
   // v14c: when only the two small wing mirrors show it (the phone default), the pit crews and their loose wheels - a few pixels there,
   // ~16 draw calls and ~200k triangles on the pit straight - are left out of the picture
-  const hide=[...MIR.faces,...(SW?[SW.g,...SW.arms]:[]),...MIR.heavy,...(!MIR.on&&WORLD.crew&&WORLD.crew.ims||[])].filter(o=>o.visible);hide.forEach(o=>o.visible=false);   // never sample the texture being drawn
+  // 10-31 (phone rain test): spray, smoke and rain streaks are left out of the mirror on a phone - its point sizes are worked out for the main
+  // view, so in the 640x160 mirror a puff from my own car (1.5-2 m behind the mirror camera) covered the whole picture, ~70 of them at speed
+  const hide=[...MIR.faces,...(SW?[SW.g,...SW.arms]:[]),...MIR.heavy,...(!MIR.on&&WORLD.crew&&WORLD.crew.ims||[]),...(isTouch?[SPR&&SPR.pts,SMK&&SMK.pts,RAIN&&RAIN.L]:[])].filter(o=>o&&o.visible);hide.forEach(o=>o.visible=false);   // never sample the texture being drawn
   // v12c: the mirror image is small - other cars in it are drawn at a far level of detail (body, floor and tyres; a bit more when
   // close behind), which roughly halves its draw calls with a pack behind
   const lodS=MIR.lodS||(MIR.lodS=[]);lodS.length=0;
@@ -7471,7 +7486,7 @@ function benchLoad(k){try{return JSON.parse(localStorage.getItem(k||BKEY)||'null
 function benchSave(S){try{localStorage.setItem(BKEY,JSON.stringify(S));return true;}catch(e){return false;}}
 function setLS(k,v){try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){}}
 function benchStart(){if(state!=='menu')return;const q=BQUICK;
-  const S={cfg:{view:benchOpt.view==='cockpit'?'cockpit':CAMS[camMode],wx:benchOpt.wx,pts:q?4:48,ms:q?300:500,quick:q},
+  const S={cfg:{view:benchOpt.view==='cockpit'?'cockpit':CAMS[camMode],wx:benchOpt.wx,pts:q?4:48,pit:q?0:3,ms:q?300:500,quick:q},
     orig:{track:loadLS('lightsout3d-track'),tod:loadLS('lightsout3d-tod')},ids:(q?TRACKS.slice(0,2):TRACKS).map(t=>t.id),k:0,res:[],t0:Date.now()};
   if(!benchSave(S)||!benchLoad()){toast('저장 공간을 쓸 수 없어 측정을 시작할 수 없어요','#ffb347',3);return;}
   benchGo(S);}
@@ -7499,43 +7514,49 @@ function benchCorner(i){let best=null,bd=61;for(const c of CORNERS){const d=wrap
 function benchCar(c,s,lat){const L=N*STEP,q=(((s%L)+L)%L)/STEP,i=Math.floor(q)%N,f=q-Math.floor(q),i2=(i+1)%N,p=P[i],p2=P[i2],t=T[i],hw=Math.max(0,TR.HW[i]-1.2);
   lat=Math.max(-hw,Math.min(hw,lat));c.x=p[0]+(p2[0]-p[0])*f-t[1]*lat;c.z=p[1]+(p2[1]-p[1])*f+t[0]*lat;c.idx=f<0.5?i:i2;c.a=Math.atan2(T[c.idx][1],T[c.idx][0]);
   if(c.va!=null)c.va=c.a;c.lat=lat;c.prog=Math.floor(s/STEP);}
-const BPACK=[[14,-2.5],[22,2.8],[30,-1.4],[38,2.4],[6,3.4]];   // [metres ahead, metres to the side] of the cars round the player
-function benchPlace(j){const B=BENCH,S=B.S,i0=Math.round(j*N/S.cfg.pts)%N,pl=race.player;let k=0;
-  B.j=j;B.s=i0*STEP;B.v=Math.max(20,Math.min(VMAX*0.95,PROF[i0]));B.a.length=0;B.sum=0;B.w=j===0?40:6;   // warm-up frames (more on the first point: shaders, textures)
+const BPACK=[[14,-2.5],[22,2.8],[30,-1.4],[38,2.4],[6,3.4]];
+// 10-31 윤택님: after the 48 track points, 3 in the pit lane (entry, stopped at my box with the crew around, exit) - the pit crews are the
+// heaviest thing on a lap and every dry race has a stop. The car stands still there; the others keep running past on the track.
+const BPIT=['피트 입구','피트 정차','피트 출구'];
+function benchPitCar(c,k){const r=k===0?PIT.RAMP+8:k===2?PIT.Z-PIT.RX-8:null,bi=r==null?WORLD.boxes[c.team]:wrap(PIT.E+r),t=T[bi],lat=r==null?PIT.side*PIT.OFF:pitSideR(r)*pitLatR(r);
+  c.x=P[bi][0]-t[1]*lat;c.z=P[bi][1]+t[0]*lat;c.idx=bi;c.a=Math.atan2(t[1],t[0]);if(c.va!=null)c.va=c.a;c.lat=lat;c.prog=bi;c.spd=0;}   // [metres ahead, metres to the side] of the cars round the player
+function benchPlace(j){const B=BENCH,S=B.S,pk=j>=S.cfg.pts?j-S.cfg.pts:-1,i0=pk>=0?wrap(PIT.E+PIT.RAMP):Math.round(j*N/S.cfg.pts)%N,pl=race.player;let k=0;
+  B.j=j;B.pk=pk;B.pg0=renderer.info.programs?renderer.info.programs.length:0;B.s=i0*STEP;B.v=Math.max(20,Math.min(VMAX*0.95,PROF[i0]));B.a.length=0;B.sum=0;B.w=j===0?40:6;   // warm-up frames (more on the first point: shaders, textures)
   for(const c of race.cars){if(c===pl){c._bd=0;c._bl=0;}else if(k<BPACK.length){c._bd=BPACK[k][0];c._bl=BPACK[k][1];k++;}else{c._bd=-60-(k-BPACK.length)*55;c._bl=k%2?2.6:-2.6;k++;}
     c.spd=B.v;benchCar(c,B.s+c._bd,c._bl);}
+  if(pk>=0)benchPitCar(pl,pk);
   camYaw=pl.a;chaseInit=false;
-  const done=S.k*S.cfg.pts+j,all=S.ids.length*S.cfg.pts,el=Date.now()-S.t0,left=done>3?el/done*(all-done):all*0.75*1000;
-  $('benchTxt').textContent='성능 측정 · 서킷 '+(S.k+1)+'/'+S.ids.length+' '+TRK.name+' · 지점 '+(j+1)+'/'+S.cfg.pts+' · 남은 시간 약 '+Math.max(1,Math.round(left/60000))+'분';}
+  const done=S.k*S.cfg.pts+j,all=S.ids.length*(S.cfg.pts+(S.cfg.pit||0)),el=Date.now()-S.t0,left=done>3?el/done*(all-done):all*0.75*1000;
+  $('benchTxt').textContent='성능 측정 · 서킷 '+(S.k+1)+'/'+S.ids.length+' '+TRK.name+' · 지점 '+(j+1)+'/'+(S.cfg.pts+(S.cfg.pit||0))+' · 남은 시간 약 '+Math.max(1,Math.round(left/60000))+'분';}
 function benchStep(raw,dt){const B=BENCH,S=B.S;
   if(state!=='race'){state='race';$('pause').hidden=true;}   // (a pause key in the middle of the test)
-  B.s+=B.v*dt;for(const c of race.cars)benchCar(c,B.s+c._bd,c._bl);
+  B.s+=B.v*dt;for(const c of race.cars)if(!(B.pk>=0&&c===race.player))benchCar(c,B.s+c._bd,c._bl);
   if(!(raw>0))return;
   if(raw>0.5){B.w=6;B.a.length=0;B.sum=0;return;}   // the app was in the background: this point starts again
   if(B.w>0){B.w--;return;}
   B.a.push(raw*1000);B.sum+=raw*1000;if(B.sum<S.cfg.ms)return;
   const a=B.a.slice().sort((x,y)=>x-y),n=a.length,mx=a[n-1];
-  B.res.pts.push({p:Math.round(B.j/S.cfg.pts*100),c:benchCorner(Math.round(B.j*N/S.cfg.pts)%N),f:Math.round(n*10000/B.sum)/10,lo:Math.round(1000/a[Math.min(n-1,Math.floor(n*0.99))]),mx:Math.round(mx*10)/10});
-  if(B.j+1<S.cfg.pts){benchPlace(B.j+1);return;}
+  B.res.pts.push({p:B.pk>=0?100:Math.round(B.j/S.cfg.pts*100),c:B.pk>=0?null:benchCorner(Math.round(B.j*N/S.cfg.pts)%N),pl:B.pk>=0?BPIT[B.pk]:undefined,w:WET>0?Math.round(WET*100)/100:undefined,pg:renderer.info.programs&&renderer.info.programs.length>B.pg0?renderer.info.programs.length-B.pg0:undefined,sp:WET>0&&SPR?SPR.live:undefined,f:Math.round(n*10000/B.sum)/10,lo:Math.round(1000/a[Math.min(n-1,Math.floor(n*0.99))]),mx:Math.round(mx*10)/10});
+  if(B.j+1<S.cfg.pts+(S.cfg.pit||0)){benchPlace(B.j+1);return;}
   S.res.push(B.res);S.k++;BENCH=null;state='loading';
   if(S.k>=S.ids.length)benchFinish(S,false);else benchGo(S);}
 function benchStop(){const B=BENCH;if(!B)return;if(B.res.pts.length)B.S.res.push(B.res);BENCH=null;state='loading';benchFinish(B.S,true);}
 // the end (or a stop): results saved, the circuit and time of day put back, and the page loads as it was (menu, own settings)
 function benchFinish(S,stopped){
   const R={when:Date.now(),cfg:S.cfg,stopped:!!stopped,res:S.res,min:Math.round((Date.now()-S.t0)/60000),
-    dev:{vw:innerWidth,vh:innerHeight,sw:screen.width,sh:screen.height,dpr:window.devicePixelRatio||1,pr:Math.round(renderer.getPixelRatio()*100)/100,hz:VS.hz,q:quality,touch:isTouch}};
+    dev:{vw:innerWidth,vh:innerHeight,sw:screen.width,sh:screen.height,dpr:window.devicePixelRatio||1,pr:Math.round(renderer.getPixelRatio()*100)/100,hz:VS.hz,q:quality,touch:isTouch,crowd:crowdOn}};
   setLS(BLAST,JSON.stringify(R));setLS(BKEY,null);setLS('lightsout3d-track',S.orig.track);setLS('lightsout3d-tod',S.orig.tod);setLS(BSHOW,'1');
   $('benchBar').hidden=true;$('loading').style.display='flex';$('loading').textContent='측정 끝 · 원래 서킷으로 돌아가는 중';
   setTimeout(()=>location.replace(location.pathname),30);}
 let benchVer='';
 function benchText(R){const C=R.cfg,D=R.dev,all=[];for(const t of R.res)for(const p of t.pts)all.push(Object.assign({nm:t.name},p));
   const L=[],avg=all.length?all.reduce((s,p)=>s+p.f,0)/all.length:0,lo=all.length?Math.min(...all.map(p=>p.lo)):0,u50=all.filter(p=>p.f<50).length;
-  const pos=p=>p.nm+' '+p.p+'%'+(p.c?' T'+p.c:'');
+  const pos=p=>p.nm+' '+(p.pl||p.p+'%'+(p.c?' T'+p.c:''));
   L.push('라이츠 아웃 3D 성능 측정 · '+new Date(R.when).toLocaleString('ko-KR')+(R.stopped?' (중간에 멈춤)':'')+(C.quick?' (빠른 확인)':''));
-  L.push('기기: 화면 '+D.vw+'x'+D.vh+' · 스크린 '+D.sw+'x'+D.sh+' · pixelRatio '+D.dpr+' (그리기 '+D.pr+') · 화면 '+D.hz+'Hz · 그래픽 '+(BQN[D.q]||D.q)+' · 시점 '+(CAMNAME[C.view]||C.view)+' · 날씨 '+(BWXN[C.wx]||C.wx)+' · 버전 '+(benchVer||'?')+' · 소요 '+R.min+'분');
+  L.push('기기: 화면 '+D.vw+'x'+D.vh+' · 스크린 '+D.sw+'x'+D.sh+' · pixelRatio '+D.dpr+' (그리기 '+D.pr+') · 화면 '+D.hz+'Hz · 그래픽 '+(BQN[D.q]||D.q)+' · 시점 '+(CAMNAME[C.view]||C.view)+' · 날씨 '+(BWXN[C.wx]||C.wx)+(D.crowd===false?' · 관중 끔':'')+' · 버전 '+(benchVer||'?')+' · 소요 '+R.min+'분');
   L.push('전체: 서킷 '+R.res.length+'개 · 지점 '+all.length+'곳 · 평균 '+avg.toFixed(1)+'fps · 최저 '+lo+'fps · 50fps 미만 '+u50+'곳');
   L.push('가장 느린 지점 10곳 (평균 fps / 최저 fps / 가장 긴 프레임):');
-  all.slice().sort((a,b)=>a.f-b.f).slice(0,10).forEach((p,i)=>L.push((i+1)+'. '+pos(p)+' · '+p.f+' / '+p.lo+' / '+p.mx+'ms'));
+  all.slice().sort((a,b)=>a.f-b.f).slice(0,10).forEach((p,i)=>L.push((i+1)+'. '+pos(p)+' · '+p.f+' / '+p.lo+' / '+p.mx+'ms'+(p.sp!=null?' · 물보라 '+p.sp:'')+(p.pg?' · 새 셰이더 '+p.pg:'')));
   L.push('서킷별 (평균 / 최저):');
   for(const t of R.res){const f=t.pts.reduce((s,p)=>s+p.f,0)/Math.max(1,t.pts.length);L.push(t.name+' · '+f.toFixed(1)+' / '+Math.min(...t.pts.map(p=>p.lo)));}
   return {L,all};}
