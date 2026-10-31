@@ -10,6 +10,9 @@
 - 서킷 형상: (c) OpenStreetMap contributors - Open Database License (ODbL) 1.0
   https://www.openstreetmap.org/copyright
   (mvoof/F1TrackDownloader 경유 - MIT License, LICENSE-F1TrackDownloader-MIT.txt)
+- 스파(벨기에) 방호벽(벽·펜스·가드레일) 거리, 자갈밭, 관중석 위치: (c) OpenStreetMap contributors - ODbL 1.0
+  (2026-10-31 Overpass API로 받아 가공, 시험 적용)
+- 멕시코시티 출발선~1번 코너 잔디 구간: (c) OpenStreetMap contributors - ODbL 1.0 (2026-10-31 Overpass API)
 - TUMFTM/racetrack-database - LGPL-3.0 (LICENSE-TUM-racetrack-database-LGPL-3.0.txt)
 - bacinger/f1-circuits - MIT License (LICENSE-bacinger-f1-circuits-MIT.txt)
 - 높낮이·출발선·피트 레인 일부: TracingInsights 2025·2026 위치 데이터 - Apache License 2.0 (LICENSE-TracingInsights-Apache-2.0.txt)
