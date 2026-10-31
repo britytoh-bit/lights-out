@@ -292,7 +292,7 @@ body.touch #rev{left:6px; height:4px} body.touch #ersT{font-size:10px; white-spa
 body.touch #hudTop{padding:5px 16px 5px 9px; clip-path:polygon(0 0,100% 0,calc(100% - 8px) 100%,0 100%)} body.touch #hudTime{padding:4px 7px 4px 15px; clip-path:polygon(8px 0,100% 0,100% 100%,0 100%)}
 body.touch #toast{font-size:17px; top:22%} body.touch #steerPad .lbl{display:none}
 body.touch #flag{font-size:12px; padding:3px 8px}
-@media (max-height:420px){ body.touch .pedal{height:96px; width:70px} body.touch .pedal.gas{height:122px} body.touch #miniBtns{bottom:calc(142px + env(safe-area-inset-bottom,0px))} }
+@media (max-height:420px){ body.touch .pedal{height:108px; width:76px} body.touch .pedal.gas{height:108px} body.touch #miniBtns{bottom:calc(142px + env(safe-area-inset-bottom,0px))} }
 /* ===== v12f: phone HUD v2 - a timing tower down the left with a round heading-up map beside it, round icon buttons, the timing
    panel and the car panel on the right, round action buttons, pedals in the corners (layout after the player's reference screenshot;
    own design: no logos, icons or colours copied). Positions that depend on each other are set by layoutTouchHUD() ===== */
@@ -340,21 +340,22 @@ body.touch #flag{top:calc(8px + env(safe-area-inset-top,0px))} body.touch #pitT{
 body.touch #miniBtns{display:grid; grid-template-columns:repeat(2,46px); gap:9px; right:auto; bottom:auto}
 body.touch #miniBtns button{min-width:0; width:46px; height:46px; padding:0; border-radius:50%; font-size:12px; background:rgba(9,11,15,.5); border:2px solid rgba(255,255,255,.32)}
 body.touch #miniBtns button.on{background:var(--yellow); color:#15171b; border-color:var(--yellow)}
-body.touch .pedal{width:76px; height:104px; border-radius:16px; padding:0 0 8px; white-space:nowrap; font-size:11px; background:rgba(9,11,15,.46) repeating-linear-gradient(180deg,transparent 0 9px,rgba(255,255,255,.2) 9px 13px) 10px 12px/calc(100% - 20px) calc(100% - 38px) no-repeat; border:2px solid rgba(255,255,255,.3)}
-body.touch .pedal.gas{height:122px; border-color:rgba(61,220,132,.65)} body.touch .pedal.brk{border-color:rgba(255,80,70,.7)}
+body.touch .pedal{position:relative; width:84px; height:124px; border-radius:16px; padding:0 0 8px; white-space:nowrap; font-size:11px; background:rgba(9,11,15,.46) repeating-linear-gradient(180deg,transparent 0 9px,rgba(255,255,255,.2) 9px 13px) 10px 12px/calc(100% - 20px) calc(100% - 38px) no-repeat; border:2px solid rgba(255,255,255,.3)}
+body.touch .pedal.gas{height:124px; border-color:rgba(61,220,132,.65)} body.touch .pedal.brk{border-color:rgba(255,80,70,.7)}
 body.touch .pedal.on{background-color:rgba(244,244,242,.82); color:#15171b}
 body.sm-tilt #pedals{left:calc(30px + env(safe-area-inset-left,0px)); right:calc(30px + env(safe-area-inset-right,0px)); justify-content:space-between}
 /* v12k: 기울기 모드는 조향 패드가 없어 자리가 남는다. 페달을 키우고 화면 끝에서 띄워 엄지가 닿게 한다 */
-body.sm-tilt .pedal{width:104px; height:124px; font-size:13px; border-width:3px}
-body.sm-tilt .pedal.gas{height:138px}
-body.touch.ph-small.sm-tilt .pedal{width:88px; height:104px; font-size:11px}
-body.touch.ph-small.sm-tilt .pedal.gas{height:118px}
-@media (max-height:420px){ body.sm-tilt .pedal{width:92px; height:100px} body.sm-tilt .pedal.gas{height:112px} }
+body.sm-tilt .pedal{width:110px; height:134px; font-size:13px; border-width:3px}
+body.sm-tilt .pedal.gas{height:134px}
+body.touch.ph-small.sm-tilt .pedal{width:92px; height:114px; font-size:11px}
+body.touch.ph-small.sm-tilt .pedal.gas{height:114px}
+@media (max-height:420px){ body.sm-tilt .pedal{width:98px; height:110px} body.sm-tilt .pedal.gas{height:110px} }
 body.sm-tilt #pedals .pedal.brk{order:-1} body.sm-tilt.autogas #pedals{justify-content:flex-start}
 body.ped-split #pedals .pedal.brk{position:fixed; left:var(--brkL,300px); bottom:calc(14px + env(safe-area-inset-bottom,0px))}   /* v13e: drag / buttons steering, pedals on both sides */
 body.sm-tilt #pedals{pointer-events:none} body.sm-tilt #pedals .pedal{pointer-events:auto}   /* the row spans the screen: only the two pedals take touches */
 body.sm-tilt #tiltGauge{left:50%; transform:translateX(-50%); width:180px; height:12px; bottom:calc(8px + env(safe-area-inset-bottom,0px))}
-@media (max-height:420px){ body.touch .pedal{height:90px; width:70px} body.touch .pedal.gas{height:108px} }
+@media (max-height:420px){ body.touch .pedal{height:108px; width:76px} body.touch .pedal.gas{height:108px} }   /* 10-31 윤택님: both pedals the same height, a little bigger */
+body.touch .pedal::after{content:''; position:absolute; inset:-10px -6px}   /* 10-31: a touch just outside the edge still counts */
 @media (max-height:370px){ body.touch #hudTime .row{line-height:1.22} body.touch #tower .r{height:13px; font-size:10px} body.touch #tower .r .n{font-size:10px} }
 /* ===== v12g: phone HUD v3 - the car's dashboard (speed, gear, tyre, battery) always in view: in landscape a strip at the bottom
    centre between the steering control and the round buttons beside the pedals, in portrait under the timing panel; nothing stays in
@@ -388,7 +389,7 @@ body.touch #tower .hd{pointer-events:auto} body.touch #tower .hd i{font-style:no
 /* smaller controls on short screens (a phone inside an app, small phones) */
 body.touch.ph-small #steerPad{width:214px; height:56px; border-radius:28px} body.touch.ph-small #steerKnob{width:48px; height:48px; margin:-24px 0 0 -24px}
 body.touch.ph-small .rbtn{width:62px; height:62px; font-size:22px}
-body.touch.ph-small .pedal{width:64px; height:82px; font-size:10px} body.touch.ph-small .pedal.gas{height:100px}
+body.touch.ph-small .pedal{width:70px; height:98px; font-size:10px} body.touch.ph-small .pedal.gas{height:98px}
 body.touch.ph-small #miniBtns{grid-template-columns:repeat(2,40px); gap:7px} body.touch.ph-small #miniBtns button{width:40px; height:40px; font-size:11px}
 body.touch.ph-small #topBtns button{width:32px; height:32px; font-size:11px}
 body.touch.ph-small #hudTime{width:164px}
@@ -410,9 +411,11 @@ body.touch.racing #rotate{display:none !important}
 /* 10-31: skill picker, tutorial card (in the timing panel's place, clear of the controls and the road), 조작법 overlay */
 #skill .card{width:min(760px,100%); padding:14px 18px 14px}
 #skill h2{margin:0 0 4px; font-size:22px} #skill .sub{margin:0 0 10px; font-size:14px}
-.skg{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:0 0 12px}
+.skg{display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin:0 0 12px}
 .skg button{display:flex; flex-direction:column; align-items:stretch; text-align:left; gap:2px; padding:8px 12px}
 .skg b{font-size:18px} .skg ul{margin:0; padding-left:16px; font-size:13px; line-height:1.35; font-weight:500}
+.seg button .rec{display:block; margin-top:1px; font-size:11px; font-weight:500; color:var(--yellow)}   /* 10-31: 「중급 추천」 under an option */
+.seg button[aria-pressed="true"] .rec{color:#7a5800}
 .skNote{font-size:13px; color:var(--dim); margin:-8px 0 16px; line-height:1.4}
 #tut{position:absolute; z-index:4; top:120px; right:16px; width:320px; overflow:auto; background:rgba(9,11,15,.88); border:2px solid var(--yellow); border-radius:10px; padding:10px 12px; pointer-events:auto; box-shadow:0 6px 24px rgba(0,0,0,.45)}
 #tut[hidden]{display:none}
@@ -504,7 +507,7 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
   </div>
   <div id="tut" hidden role="status"><p class="th" id="tutH"></p><p class="tt" id="tutT"></p><div class="tb"><button id="tutSkip" type="button">건너뛰기</button><button id="tutNext" type="button" class="go">다음</button></div></div>
   <div id="ctlHelp" hidden><div id="chMarks"></div></div>
-  <div class="overlay" id="skill" hidden><div class="card"><h2>어떻게 달려볼까요?</h2><p class="sub">조작과 보조 기능을 한 번에 맞춰요. 나중에 메뉴·일시정지에서 바꿀 수 있어요.</p>
+  <div class="overlay" id="skill" hidden><div class="card"><h2>어떻게 달려볼까요?</h2><p class="sub">초보는 가장 쉬운 설정으로 한 번에 맞춰요. 직접 설정은 레이싱 라인·보조를 하나씩 골라요(설정마다 중급·상급 추천 표시). 나중에 메뉴·일시정지에서 바꿀 수 있어요.</p>
     <div class="skg" id="skG"></div><div class="row2"><button id="skLater" type="button">메뉴로</button><button class="go" id="skTut" type="button">튜토리얼로 시작</button></div></div></div>
   <div id="rotate"><div class="ph"></div><p style="margin:0;font-size:18px;font-weight:700">휴대폰을 가로로 돌려 주세요</p><p style="margin:0;color:var(--dim);font-size:14px">가로 화면에서 시야가 넓고 조작도 편해요.</p><button id="portraitOk" style="margin-top:6px">세로로 계속하기</button></div>
   <div id="livEd" hidden><div class="lecard">
@@ -530,8 +533,8 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
       <p class="sub keyOnly">22대 그리드, 콕핏 시점. 레이스만 하면 P12 출발, 예선을 하면 예선 순위대로 출발해요. 건조한 레이스에선 2가지 드라이 컴파운드를 써야 해서 최소 한 번은 피트스톱이 필요해요 (인터·웻을 쓰면 면제). 옐로 플래그·VSC·세이프티카·레드 플래그·트랙 리밋 페널티가 적용돼요.</p>
       <p class="label">모드</p>
       <div class="seg" id="modeSel"><button data-v="race" aria-pressed="true">레이스</button><button data-v="quali" aria-pressed="false">예선 → 레이스</button><button data-v="practice" aria-pressed="false">연습 주행</button></div>
-      <p class="label">실력 (조작·보조 기능을 한 번에 맞춰요)</p>
-      <div class="seg" id="skSel"><button data-v="easy">초보</button><button data-v="mid">중급</button><button data-v="pro">상급</button></div><p class="skNote" id="skNote"></p>
+      <p class="label">실력</p>
+      <div class="seg" id="skSel"><button data-v="easy">초보 (가장 쉽게)</button><button data-v="pro">직접 설정</button></div><p class="skNote" id="skNote"></p>
       <button id="tutBtn" type="button" style="width:100%;margin:-6px 0 16px">튜토리얼 · 짧은 연습 주행으로 조작 익히기</button>
       <p class="label">대회 모드 (서킷을 이어 달리며 순위별 점수 합산 · 위 설정 그대로)</p>
       <div id="chBox"></div>
@@ -546,19 +549,19 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
         <div><p class="label">포메이션 랩</p><div class="seg" id="fmlSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔 (바로 출발)</button></div></div>
         <div><p class="label">랩 수</p><div class="seg" id="lapSel"><button data-v="3" aria-pressed="true">3</button><button data-v="5" aria-pressed="false">5</button><button data-v="10" aria-pressed="false">10</button></div></div>
         <div><p class="label">AI 난이도</p><div class="seg" id="difSel"><button data-v="easy" aria-pressed="false">쉬움</button><button data-v="normal" aria-pressed="true">보통</button><button data-v="hard" aria-pressed="false">어려움</button></div></div>
-        <div><p class="label">조향 감도 (1 가장 부드러움)</p><div class="seg" id="sensSel"><button data-v="1" aria-pressed="false">1</button><button data-v="2" aria-pressed="true">2</button><button data-v="3" aria-pressed="false">3</button><button data-v="4" aria-pressed="false">4</button><button data-v="5" aria-pressed="false">5</button></div></div>
+        <div><p class="label">조향 감도 (1 가장 부드러움)</p><div class="seg" id="sensSel"><button data-v="1" aria-pressed="false">1</button><button data-v="2" aria-pressed="true">2</button><button data-v="3" aria-pressed="false">3<span class="rec">중급 추천</span></button><button data-v="4" aria-pressed="false">4<span class="rec">상급 추천</span></button><button data-v="5" aria-pressed="false">5</button></div></div>
         <div><p class="label">스타트 타이어</p><div class="seg" id="scSel"><button data-v="S" aria-pressed="false" style="color:#ff5a4f">소프트</button><button data-v="M" aria-pressed="true" style="color:#f5c518">미디엄</button><button data-v="H" aria-pressed="false">하드</button><button data-v="I" aria-pressed="false" style="color:#3ddc84">인터</button><button data-v="W" aria-pressed="false" style="color:#5b9bff">웻</button></div></div>
         <div><p class="label">시간대</p><div class="seg" id="todSel"><button data-v="day" aria-pressed="true">한낮</button><button data-v="sunset" aria-pressed="false">석양</button><button data-v="night" aria-pressed="false">야간</button></div></div>
         <div class="touchOnly"><p class="label">조향 방식</p><div class="seg" id="smSel"><button data-v="tilt" aria-pressed="false">기울이기</button><button data-v="drag" aria-pressed="true">드래그</button><button data-v="buttons" aria-pressed="false">버튼</button></div></div>
         <div class="touchOnly"><p class="label">페달 위치</p><div class="seg" id="pedSel"><button data-v="split" aria-pressed="true">양쪽 (브레이크 왼쪽)</button><button data-v="right" aria-pressed="false">오른쪽에 모아서</button></div></div>
-        <div class="touchOnly"><p class="label">가속</p><div class="seg" id="agSel"><button data-v="auto" aria-pressed="true">자동 가속</button><button data-v="manual" aria-pressed="false">직접 가속</button></div></div>
+        <div class="touchOnly"><p class="label">가속</p><div class="seg" id="agSel"><button data-v="auto" aria-pressed="true">자동 가속</button><button data-v="manual" aria-pressed="false">직접 가속<span class="rec">중급·상급 추천</span></button></div></div>
         <div><p class="label">날씨</p><div class="seg" id="wxSel"><button data-v="dry" aria-pressed="true">맑음</button><button data-v="mixed" aria-pressed="false">변덕 (도중에 비)</button><button data-v="rain" aria-pressed="false">비</button></div></div>
         <div><p class="label">차량 손상 (벽·접촉·펑처)</p><div class="seg" id="dmgSel"><button data-v="off" aria-pressed="false">끔</button><button data-v="normal" aria-pressed="true">보통</button><button data-v="sim" aria-pressed="false">리얼 (리타이어 가능)</button></div></div>
         <div><p class="label">사고 · 세이프티카</p><div class="seg" id="incSel"><button data-v="off" aria-pressed="false">없음</button><button data-v="real" aria-pressed="false">가끔</button><button data-v="often" aria-pressed="true">자주</button></div></div>
         <div class="keyOnly"><p class="label">스타트</p><div class="seg" id="stSel"><button data-v="manual" aria-pressed="true">수동 (부정 출발 판정)</button><button data-v="auto" aria-pressed="false">자동</button></div></div>
-        <div><p class="label">주행 보조</p><div class="seg" id="asSel"><button data-v="high" aria-pressed="false">높음</button><button data-v="normal" aria-pressed="true">보통</button><button data-v="off" aria-pressed="false">끔</button></div></div>
-        <div><p class="label">브레이크 보조 (너무 빠르면 대신 밟아요)</p><div class="seg" id="basSel"><button data-v="0">끔</button><button data-v="1">약하게</button><button data-v="2">강하게</button></div></div>
-        <div><p class="label">레이싱 라인 가이드 (L 키)</p><div class="seg" id="rlSel"><button data-v="corners" aria-pressed="true">코너만</button><button data-v="full" aria-pressed="false">전체</button><button data-v="off" aria-pressed="false">끔</button></div></div>
+        <div><p class="label">주행 보조</p><div class="seg" id="asSel"><button data-v="high" aria-pressed="false">높음</button><button data-v="normal" aria-pressed="true">보통<span class="rec">중급 추천</span></button><button data-v="off" aria-pressed="false">끔<span class="rec">상급 추천</span></button></div></div>
+        <div><p class="label">브레이크 보조 (너무 빠르면 대신 밟아요)</p><div class="seg" id="basSel"><button data-v="0">끔<span class="rec">상급 추천</span></button><button data-v="1">약하게<span class="rec">중급 추천</span></button><button data-v="2">강하게</button></div></div>
+        <div><p class="label">레이싱 라인 가이드 (L 키)</p><div class="seg" id="rlSel"><button data-v="corners" aria-pressed="true">코너만<span class="rec">중급 추천</span></button><button data-v="full" aria-pressed="false">전체</button><button data-v="off" aria-pressed="false">끔<span class="rec">상급 추천</span></button></div></div>
         <div><p class="label">액티브 에어로 (직선 모드)</p><div class="seg" id="aeroSel"><button data-v="manual" aria-pressed="true">버튼으로 직접</button><button data-v="auto" aria-pressed="false">자동</button></div></div>
         <div><p class="label">엔진 사운드</p><div class="seg" id="sndSel"><button data-v="v29" aria-pressed="true">2026 온보드 V6</button><button data-v="v28" aria-pressed="false">그르릉 V6</button><button data-v="v27" aria-pressed="false">낮은 톤 V6</button><button data-v="v26b" aria-pressed="false">v9.1 V6</button><button data-v="v26" aria-pressed="false">v9.0 V6</button><button data-v="classic" aria-pressed="false">예전 합성음</button></div><button id="sndPrev" type="button" style="width:100%;margin:-8px 0 16px;padding:8px">▶ 선택한 엔진 소리 들어보기</button></div>
         <div><p class="label">그래픽</p><div class="seg" id="qSel"><button data-v="high" aria-pressed="false">높음</button><button data-v="medium" aria-pressed="true">보통</button><button data-v="low" aria-pressed="false">부드럽게</button></div></div>
@@ -597,9 +600,9 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
   <div class="overlay" id="pause" hidden><div class="card"><h1>일시정지</h1><p class="sub">레이스가 멈춰 있어요. 설정을 바꿔도 레이스는 그대로 이어집니다.</p>
     <div class="touchOnly"><p class="label">조향 방식</p><div class="seg" id="pSmSel"><button data-v="tilt">기울이기</button><button data-v="drag" aria-pressed="true">드래그</button><button data-v="buttons">버튼</button></div></div>
     <div class="touchOnly"><p class="label">페달 위치</p><div class="seg" id="pPedSel"><button data-v="split" aria-pressed="true">양쪽 (브레이크 왼쪽)</button><button data-v="right">오른쪽에 모아서</button></div></div>
-    <div><p class="label">조향 감도 (1 가장 부드러움)</p><div class="seg" id="pSensSel"><button data-v="1">1</button><button data-v="2" aria-pressed="true">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button></div></div>
-    <div class="touchOnly"><p class="label">가속</p><div class="seg" id="pAgSel"><button data-v="auto" aria-pressed="true">자동 가속</button><button data-v="manual">직접 가속</button></div></div>
-    <div><p class="label">실력</p><div class="seg" id="pSkSel"><button data-v="easy">초보</button><button data-v="mid">중급</button><button data-v="pro">상급</button></div><p class="skNote" id="pSkNote"></p></div>
+    <div><p class="label">조향 감도 (1 가장 부드러움)</p><div class="seg" id="pSensSel"><button data-v="1">1</button><button data-v="2" aria-pressed="true">2</button><button data-v="3">3<span class="rec">중급 추천</span></button><button data-v="4">4<span class="rec">상급 추천</span></button><button data-v="5">5</button></div></div>
+    <div class="touchOnly"><p class="label">가속</p><div class="seg" id="pAgSel"><button data-v="auto" aria-pressed="true">자동 가속</button><button data-v="manual">직접 가속<span class="rec">중급·상급 추천</span></button></div></div>
+    <div><p class="label">실력</p><div class="seg" id="pSkSel"><button data-v="easy">초보 (가장 쉽게)</button><button data-v="pro">직접 설정</button></div><p class="skNote" id="pSkNote"></p></div>
     <div class="row2"><button class="go" id="resumeBtn">계속 달리기</button><button id="ctlBtn" class="touchOnly" type="button">조작법</button><button id="mirBtn">룸미러</button><button id="haloBtn">헤일로 블러</button><button id="fpsBtn">FPS 표시</button><button id="skipBtn" hidden>건너뛰기</button><button id="quitBtn">메뉴로</button></div><div class="laps" id="pLaps" style="margin-top:12px"></div></div></div>
   <div class="overlay" id="sess" hidden><div class="card"><h1 id="sessTitle">Q1</h1><p class="sub num" id="sessSub"></p><div class="laps" id="sLaps"></div><table class="num" id="sessTable"></table><div class="row2"><button class="go" id="sessGo">다음</button><button id="sessMenu">메뉴로</button></div></div></div>
   <div class="overlay" id="bench" hidden><div class="card"><h1>성능 측정 결과</h1><p class="sub num" id="benchSub"></p>
@@ -5398,8 +5401,8 @@ function crackleBufs(ctx){const sr=ctx.sampleRate,out=[];let sd=4242421;const rn
 function shiftFx(S,g,dt,classic){const o={rpm:1,cut:1,blip:0,click:0,pops:0};   // click: 1 = up, 2 = down
   if(g!==S.lastGear){const a=+S.lastGear,b=+g;if(a&&b){
       if(classic){if(b>a)S.shiftT=0.05;else{S.blipT=0.11;o.pops=2+Math.floor(Math.random()*3);}}
-      else if(b>a){S.upT=0;o.click=1;if(b>3&&Math.random()<0.2)o.pops=1;}
-      else{S.dnT=0;o.click=2;S.dnPops=b<=3?0:(Math.random()<0.5?1:0);S.dnPopT=0.045+Math.random()*0.05;}}
+      else if(b>a){S.upT=0;o.click=1;if(b>3&&Math.random()<0.05)o.pops=1;}
+      else{S.dnT=0;o.click=2;S.dnPops=b<=3?0:(Math.random()<0.15?1:0);S.dnPopT=0.045+Math.random()*0.05;}}
     S.lastGear=g;}
   if(classic){if(S.shiftT>0){S.shiftT-=dt;o.cut=0.22;}if(S.blipT>0){S.blipT-=dt;o.rpm=1.08;}return o;}
   if(S.upT!=null&&S.upT<0.05){const u=S.upT;o.cut=u<0.012?0.12:u<0.035?0.12+0.88*(u-0.012)/0.023:1;S.upT+=dt;}
@@ -5638,12 +5641,12 @@ function audioUpdate(dt){
   const lim=(Math.floor(SND.T*26)%2)===1,hold=!classic&&state==='countdown'&&key.gas;
   if(thr>=1&&rpm>12150&&!hold){rpm=lim?11900:12300;cut*=lim?0.4:1;}
   if(classic&&state==='countdown'&&key.gas){rpm=10400+(lim?-500:300);cut*=lim?0.55:1;}
-  if(hold&&Math.random()<dt*1.5)SND.popN++;   // 2026 grids: crackling and popping while the revs are held
+  if(hold&&Math.random()<dt*0.6)SND.popN++;   // 2026 grids: crackling and popping while the revs are held
   // super clipping (2026): flat out near the end of a long straight with no electric deployment, the MGU-K harvests and the car
   // stops pulling - it sounds like a lift. Here it is a sound cue only (the car's physics are unchanged).
   {const kp=sp*3.6;SND.acc=(SND.acc||0)+((kp-(SND.lk==null?kp:SND.lk))/Math.max(dt,1e-3)-(SND.acc||0))*Math.min(1,dt*3);SND.lk=kp;
    const on=!classic&&state==='race'&&!pl.pit&&pl.fin==null&&thr>0.95&&kp>285&&!pl.boost&&SND.acc<3?1:0;SND.clip=(SND.clip||0)+(on-(SND.clip||0))*Math.min(1,dt*(on?2.5:6));}
-  if(pl.pit&&pl.pit.state!=='stop'&&sp>18&&pLim){if(sndMode==='v28'||sndMode==='v29'){SND.limT=(SND.limT||0)-dt;if(SND.limT<=0){SND.limOn=!SND.limOn;SND.limT=SND.limOn?0.02+Math.random()*0.04:0.03+Math.random()*0.06;if(SND.limOn&&Math.random()<0.05)SND.popN++;}cut*=SND.limOn?0.22:1;}
+  if(pl.pit&&pl.pit.state!=='stop'&&sp>18&&pLim){if(sndMode==='v28'||sndMode==='v29'){SND.limT=(SND.limT||0)-dt;if(SND.limT<=0){SND.limOn=!SND.limOn;SND.limT=SND.limOn?0.02+Math.random()*0.04:0.03+Math.random()*0.06;if(SND.limOn&&Math.random()<0.01)SND.popN++;}cut*=SND.limOn?0.22:1;}
     else cut*=(Math.floor(SND.T*13)%2)?0.5:1;}   // pit limiter
   if(pl.spinR&&thr>0.5)rpm=Math.min(12300,rpm*1.1);
   if(tvL)rpm*=tvL.dop;   // TV view: the pitch drops as the car passes the camera                                  // wheelspin: revs flare
@@ -5668,9 +5671,9 @@ function audioUpdate(dt){
    SND.gwG.gain.setTargetAtTime(on*(0.005+0.013*(1-L))*Math.min(1,sp/8)*(inCar?1:0.55),t,0.05);}
   SND.rdG.gain.setTargetAtTime(Math.min(1,sp/70)*(inCar?0.055:0.03)*(pl.off?0.3:1),t,0.1);
   // overrun crackle
-  if((classic?thr<1:thr<0.1)&&!pl.pit&&rpm>7200&&sp>18&&Math.random()<dt*(classic?7:((sndMode==='v28'||sndMode==='v29')?2:3)*Math.max(0,1-2*(SND.lg||0))))SND.popN++;   // v11g: rarer, none in the low gears (1st-3rd)
+  if((classic?thr<1:thr<0.1)&&!pl.pit&&rpm>(classic?7200:9000)&&sp>18&&Math.random()<dt*(classic?7:((sndMode==='v28'||sndMode==='v29')?0.5:3)*Math.max(0,1-2*(SND.lg||0))))SND.popN++;   // v11g: rarer, none in the low gears (1st-3rd)   // 10-31 윤택님 (「장작 타는 소리」 거슬림): the growl sounds' overrun bangs 4x rarer, high revs only; shift bangs 50→15 % down, 20→5 % up
   while(SND.popN>0){SND.popN--;const tt=t+0.01+Math.random()*0.09,a=0.18+Math.random()*0.45,d=0.035+Math.random()*0.05;
-    if((sndMode==='v28'||sndMode==='v29')&&SND.crk){crackle(tt,a*(inCar?0.8:1));continue;}   // the growl sound: real crackle clusters through the exhaust
+    if((sndMode==='v28'||sndMode==='v29')&&SND.crk){crackle(tt,a*(inCar?0.5:0.65));continue;}   // the growl sound: real crackle clusters through the exhaust
     SND.popG.gain.cancelScheduledValues(tt);SND.popG.gain.setValueAtTime(0.0001,tt);SND.popG.gain.linearRampToValueAtTime(a,tt+0.003);SND.popG.gain.exponentialRampToValueAtTime(0.0008,tt+d);
     SND.popF.frequency.setValueAtTime(600+Math.random()*900,tt);}
   {const pk=pl.dmg&&pl.dmg.pk,p=pk?Math.max(pk[0],pk[1],pk[2],pk[3]):0;   // a flat tyre flaps once per wheel turn; on the rim it scrapes
@@ -5908,13 +5911,13 @@ applyMobileClasses();
 // shows as 사용자 설정 (the preset is read back from the settings, so changing them back shows the preset again) =====
 const SKILLS={
   easy:{nm:'초보',sm:'drag',sens:2,as:'high',bas:2,rl:'full',ag:'auto',li:[['손가락으로 끌어서 조향',1],['조향 감도 2 (부드럽게)'],['자동 가속',1],['브레이크 보조 강하게'],['레이싱 라인 항상 보임'],['잠김·스핀 거의 없음']]},
-  mid:{nm:'중급',sm:'drag',sens:3,as:'normal',bas:1,rl:'corners',ag:'manual',li:[['손가락으로 끌어서 조향',1],['조향 감도 3'],['가속 직접',1],['브레이크 보조 약하게'],['레이싱 라인 코너만'],['가끔 바퀴가 잠겨요']]},
-  // 10-31 윤택님: 상급 is not a preset - it keeps the settings as they are and opens them to set one by one (any non-preset setup reads as 상급)
-  pro:{nm:'상급',custom:1,li:[['조작·보조를 직접 골라요'],['조향 방식·감도',1],['가속·브레이크 보조'],['레이싱 라인·주행 보조']]}};
+  // 10-31 윤택님: only 초보 is a preset (the easiest one). 직접 설정 keeps the settings as they are and opens them to pick one by one -
+  // each option there carries a 「중급 추천」/「상급 추천」 tag (any non-preset setup reads as 직접 설정)
+  pro:{nm:'직접 설정',custom:1,li:[['레이싱 라인·보조를 하나씩 골라요'],['조향 방식·감도·가속',1],['설정마다 중급·상급 추천 표시']]}};
 const skLines=k=>SKILLS[k].li.filter(l=>isTouch||!l[1]).map(l=>l[0]);
 function curSkill(){if(loadLS('lightsout3d-skill')==='pro')return 'pro';for(const k in SKILLS){const s=SKILLS[k];if(!s.custom&&sens===s.sens&&assistMode===s.as&&brakeAs===s.bas&&rlMode===s.rl&&(!isTouch||(steerMode===s.sm&&autoGas===(s.ag==='auto'))))return k;}return 'pro';}
 function skillUI(){if(!skReady)return;const k=curSkill();segPick(['skSel','pSkSel'],k);segPick(['basSel'],brakeAs);
-  const t=k==='pro'?'지금: 상급 · 아래 설정에서 조향·가속·보조를 직접 골라요':'지금: '+SKILLS[k].nm+' · '+skLines(k).join(' · ');for(const id of['skNote','pSkNote'])$(id).textContent=t;}
+  const t=k==='pro'?'지금: 직접 설정 · 아래에서 하나씩 골라요 (노란 글씨가 중급·상급 추천)':'지금: '+SKILLS[k].nm+' · '+skLines(k).join(' · ');for(const id of['skNote','pSkNote'])$(id).textContent=t;}
 function skOpenCustom(){const pz=!$('pause').hidden;if(!$('skill').hidden){$('skill').hidden=true;$('menu').hidden=false;}
   const t=pz?$('pSmSel'):$(isTouch?'smSel':'sensSel');if(t)setTimeout(()=>t.parentNode.scrollIntoView({block:'start',behavior:'smooth'}),60);}
 function setBrakeAs(v){brakeAs=v;saveLS('lightsout3d-bas',v);if(race)race.bAs=v;skillUI();}
@@ -6079,8 +6082,9 @@ const steerCurve=a=>{const s=a<0?-1:1,x=Math.abs(a);return s*((1-STEER_EXPO)*x+S
  z.addEventListener('pointermove',e=>{if(e.pointerId!==pid)return;const w=Math.min(130,innerWidth*0.14);
    const raw=Math.max(-1,Math.min(1,(e.clientX-x0)/w));dragAxis=steerCurve(raw);setK(raw);});
  const end=e=>{if(e.pointerId!==pid)return;pid=null;dragAxis=0;setK(0);};['pointerup','pointercancel','lostpointercapture'].forEach(t=>z.addEventListener(t,end));}
-function holdBtn(el,on,off){el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);el.classList.add('on');on();});
-  const up=()=>{el.classList.remove('on');off();};['pointerup','pointercancel','lostpointercapture'].forEach(t=>el.addEventListener(t,up));}
+// 10-31: held while any finger is on it (a second finger lifting no longer lets go of the pedal)
+function holdBtn(el,on,off){const ids=new Set();el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);ids.add(e.pointerId);el.classList.add('on');on();});
+  const up=e=>{ids.delete(e.pointerId);if(ids.size)return;el.classList.remove('on');off();};['pointerup','pointercancel','lostpointercapture'].forEach(t=>el.addEventListener(t,up));}
 holdBtn(document.querySelector('.pedal.gas'),()=>touchGas=true,()=>touchGas=false);
 holdBtn(document.querySelector('.pedal.brk'),()=>touchBrake=true,()=>touchBrake=false);const BRKP=document.querySelector('.pedal.brk');
 holdBtn($('mErs'),()=>touchErs=true,()=>touchErs=false);
