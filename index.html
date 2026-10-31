@@ -339,8 +339,8 @@ body.touch #flag{top:calc(8px + env(safe-area-inset-top,0px))} body.touch #pitT{
 body.touch #miniBtns{display:grid; grid-template-columns:repeat(2,46px); gap:9px; right:auto; bottom:auto}
 body.touch #miniBtns button{min-width:0; width:46px; height:46px; padding:0; border-radius:50%; font-size:12px; background:rgba(9,11,15,.5); border:2px solid rgba(255,255,255,.32)}
 body.touch #miniBtns button.on{background:var(--yellow); color:#15171b; border-color:var(--yellow)}
-body.touch .pedal{position:relative; width:84px; height:124px; border-radius:16px; padding:0 0 8px; white-space:nowrap; font-size:11px; background:rgba(9,11,15,.46) repeating-linear-gradient(180deg,transparent 0 9px,rgba(255,255,255,.2) 9px 13px) 10px 12px/calc(100% - 20px) calc(100% - 38px) no-repeat; border:2px solid rgba(255,255,255,.3)}
-body.touch .pedal.gas{height:124px; border-color:rgba(61,220,132,.65)} body.touch .pedal.brk{border-color:rgba(255,80,70,.7)}
+body.touch .pedal{position:relative; width:92px; height:134px; border-radius:16px; padding:0 0 8px; white-space:nowrap; font-size:11px; background:rgba(9,11,15,.46) repeating-linear-gradient(180deg,transparent 0 9px,rgba(255,255,255,.2) 9px 13px) 10px 12px/calc(100% - 20px) calc(100% - 38px) no-repeat; border:2px solid rgba(255,255,255,.3)}
+body.touch .pedal.gas{height:134px; border-color:rgba(61,220,132,.65)} body.touch .pedal.brk{border-color:rgba(255,80,70,.7)}
 body.touch .pedal.on{background-color:rgba(244,244,242,.82); color:#15171b}
 body.sm-tilt #pedals{left:calc(30px + env(safe-area-inset-left,0px)); right:calc(30px + env(safe-area-inset-right,0px)); justify-content:space-between}
 /* v12k: 기울기 모드는 조향 패드가 없어 자리가 남는다. 페달을 키우고 화면 끝에서 띄워 엄지가 닿게 한다 */
@@ -353,7 +353,7 @@ body.sm-tilt #pedals .pedal.brk{order:-1} body.sm-tilt.autogas #pedals{justify-c
 body.ped-split #pedals .pedal.brk{position:fixed; left:var(--brkL,300px); bottom:calc(14px + env(safe-area-inset-bottom,0px))}   /* v13e: drag / buttons steering, pedals on both sides */
 body.sm-tilt #pedals{pointer-events:none} body.sm-tilt #pedals .pedal{pointer-events:auto}   /* the row spans the screen: only the two pedals take touches */
 body.sm-tilt #tiltGauge{left:50%; transform:translateX(-50%); width:180px; height:12px; bottom:calc(8px + env(safe-area-inset-bottom,0px))}
-@media (max-height:420px){ body.touch .pedal{height:108px; width:76px} body.touch .pedal.gas{height:108px} }   /* 10-31 윤택님: both pedals the same height, a little bigger */
+@media (max-height:420px){ body.touch .pedal{height:120px; width:86px} body.touch .pedal.gas{height:120px} }   /* 10-31 윤택님: both pedals the same height, a little bigger; 11-01: bigger again (76x108 -> 86x120) */
 body.touch .pedal::after{content:''; position:absolute; inset:-12px -6px -14px -14px} body.touch .pedal.gas::after{inset:-12px -14px -14px -6px}   /* 10-31: a touch just outside the edge still counts; 11-01: wider on the outer sides and down to the screen edge (the inner sides stay at 6 px, half the 12 px gap, so the two never overlap) */
 @media (max-height:370px){ body.touch #hudTime .row{line-height:1.22} body.touch #tower .r{height:13px; font-size:10px} body.touch #tower .r .n{font-size:10px} }
 /* ===== v12g: phone HUD v3 - the car's dashboard (speed, gear, tyre, battery) always in view: in landscape a strip at the bottom
@@ -388,7 +388,7 @@ body.touch #tower .hd{pointer-events:auto} body.touch #tower .hd i{font-style:no
 /* smaller controls on short screens (a phone inside an app, small phones) */
 body.touch.ph-small #steerPad{width:214px; height:56px; border-radius:28px} body.touch.ph-small #steerKnob{width:48px; height:48px; margin:-24px 0 0 -24px}
 body.touch.ph-small .rbtn{width:62px; height:62px; font-size:22px}
-body.touch.ph-small .pedal{width:70px; height:98px; font-size:10px} body.touch.ph-small .pedal.gas{height:98px}
+body.touch.ph-small .pedal{width:76px; height:106px; font-size:10px} body.touch.ph-small .pedal.gas{height:106px}
 body.touch.ph-small #miniBtns{grid-template-columns:repeat(2,40px); gap:7px} body.touch.ph-small #miniBtns button{width:40px; height:40px; font-size:11px}
 body.touch.ph-small #topBtns button{width:32px; height:32px; font-size:11px}
 body.touch.ph-small #hudTime{width:164px}
@@ -940,7 +940,7 @@ const LAPSEC=58, LOADNORM=1.0;
 // as qualifying (which has always used 10) - the same lap felt completely different between the two. One number for both now.
 const TYRE_REF=10;
 function newTyres(comp,temp){return {comp,wear:[0,0,0,0],temp:[temp,temp,temp,temp],dist:0};}
-function wearF(w){return Math.max(0.45,1-0.05*w-(w>0.7?0.9*(w-0.7)*(w-0.7):0)-(w>1?0.25*(w-1):0));}   // worn out: very little grip left, never zero
+function wearF(w){return w>1?Math.max(0.78,0.869-0.3*(w-1)):1-0.05*w-(w>0.7?0.9*(w-0.7)*(w-0.7):0);}   // worn out: less grip, never zero. 11-01 윤택님 (0 % 되면 너무 심하게 느려짐): past 0 % it slides down to 78 % grip (was on to 45 %: a lap +55 % slower at Lusail)
 // grip against tyre temperature: full grip inside the compound's window; a cold tyre is slippery (20 degC under the window
 // about -12 %, 40 under about -29 %), an overheated one loses grip more gently and wears faster (game curve, not Pirelli data)
 function tempF(T,C){if(T<C.win[0]){const d=C.win[0]-T;return Math.max(0.55,1-0.0045*d-0.00007*d*d);}
@@ -971,7 +971,7 @@ function tyreStep(race,c,dt,latA,lonA,slip){
     const front=k<2,left=k%2===0,outside=(right&&left)||(!right&&!left);
     const load=0.25+lat*(outside?1.2:0.6)+(front?brk*0.6:trc*0.35+brk*0.2)+slip*2.5+(c.surf?c.surf.wr*(0.4+0.6*s):(c.off?0.4:0));
     const T=ty.temp[k],hot=Math.max(0,T-C.win[1]),cold=Math.max(0,C.win[0]-T);   // too hot: blistering, too cold: graining
-    if(v>1)ty.wear[k]+=base*load*(1+hot/12+cold/45)*(0.35+0.65*s)*dt*1.25*(C.wet?1+1.5*(1-WET):1)*FORMW;
+    if(v>1)ty.wear[k]+=base*load*(1+hot/12+cold/45)*(0.35+0.65*s)*dt*1.25*(C.wet?1+2.5*Math.max(0,0.6-WET):1)*FORMW;   // 11-01: rain tyres wear extra only on a drying track (under 60 % wet; dry: x2.5 as before) - it was x1.55 in steady rain at 63 %
     const heat=(5.2+3.2*load)*(0.3+s),cool=(T-28)*(0.075*(0.3+s)+0.02)+WET*(T-12)*0.06;
     ty.temp[k]+=(heat-cool)*dt*0.45;   // a tyre takes a good part of a lap to come up to temperature
   }
@@ -1127,7 +1127,7 @@ const AERO=(()=>{const ok=i=>TR.K[i]<0.0025&&PROF[i]>=VMAX*0.93,z=new Uint8Array
   return z;})();
 function aeroState(race,c){if(race.rc.flag!=='green'||!AERO[c.idx]||c.braking||c.pit)return 0;return WET>0.45?1:2;}   // 2 open, 1 partial (wet), 0 corner mode
 function makeWeather(mode,laps,rnd){const dur=laps*LAPSEC,wx={mode,wet:0,rain:0,sched:[]};
-  if(mode==='rain'){wx.rain=0.55+rnd()*0.3;wx.wet=Math.min(1,wx.rain*1.1);wx.sched.push({t:0,to:wx.rain});if(rnd()<0.5)wx.sched.push({t:dur*(0.45+rnd()*0.3),to:0.12+rnd()*0.2});}
+  if(mode==='rain'){wx.rain=0.55+rnd()*0.3;wx.wet=Math.min(1,wx.rain*1.1);wx.sched.push({t:0,to:wx.rain});if(rnd()<0.5)wx.sched.push({t:dur*(0.45+rnd()*0.3),to:0.38+rnd()*0.12});}   // 11-01 윤택님 (비로 해 뒀는데 1랩 뒤 맑아짐): the rain eases but stays rain (was 0.12-0.32: dur counts 58 s laps, so on a long lap it came in lap 1 of 3 and the track dried in ~40 s)
   else if(mode==='mixed'){const t0=dur*(0.12+rnd()*0.3),pk=0.45+rnd()*0.45;wx.sched.push({t:t0,to:pk},{t:t0+dur*(0.28+rnd()*0.25),to:0});}
   return wx;}
 function gripLat(v,off){return (15+0.35*Math.abs(v))*(off?0.45:1);}
@@ -5026,7 +5026,7 @@ function setupComposer(){
 function basePR(){const w=innerWidth,h=innerHeight;let pr=Math.min(quality==='high'?(isTouch?1.75:2):quality==='medium'?(isTouch?1.5:1):(isTouch?1.25:1),window.devicePixelRatio||1);   // v14b: phones a step sharper (smooth 1 -> 1.25, normal 1.25 -> 1.5) with the post passes gone
   if(quality==='low'&&!isTouch)pr=Math.min(pr,Math.max(0.5,Math.sqrt(2.4e6/Math.max(1,w*h))));   // v12h: the lowest setting on a PC draws at most ~1080p worth of pixels (a 1440p or 4K window drew 2-4 times that)
   return pr;}
-function resize(){const w=innerWidth,h=innerHeight;let pr=basePR();
+function resize(){const w=innerWidth,h=innerHeight;let pr=basePR();resize.w=w;resize.h=h;   // 11-01: the size this was done for - frame() redoes it when the window has another size (an iPhone turned sideways can send its resize with one old side: 402x402 canvas, stretched and cut off, mirror in the corner)
   if(typeof PERF!=='undefined'&&PERF.prCap)pr=Math.min(pr,PERF.prCap);   // (and keeps what the smoothness governor took off)
   renderer.setPixelRatio(pr);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
   if(composer){composer.setPixelRatio?composer.setPixelRatio(renderer.getPixelRatio()):0;composer.setSize(w,h);if(fxaa){const pr=renderer.getPixelRatio();fxaa.material.uniforms.resolution.value.set(1/(w*pr),1/(h*pr));}}}
@@ -5850,8 +5850,18 @@ const steerCurve=a=>{const s=a<0?-1:1,x=Math.abs(a);return s*((1-STEER_EXPO)*x+S
 function holdBtn(el,on,off){const ids=new Set();el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);ids.add(e.pointerId);el.classList.add('on');on();});
   const up=e=>{ids.delete(e.pointerId);if(ids.size)return;el.classList.remove('on');off();};['pointerup','pointercancel','lostpointercapture'].forEach(t=>el.addEventListener(t,up));}
 let tapGas=false,tapBrk=false;   // 11-01: set on press, cleared by mobileInput after one frame
-holdBtn(document.querySelector('.pedal.gas'),()=>{touchGas=true;tapGas=true;},()=>touchGas=false);
-holdBtn(document.querySelector('.pedal.brk'),()=>{touchBrake=true;tapBrk=true;},()=>touchBrake=false);const BRKP=document.querySelector('.pedal.brk');
+// 11-01 윤택님 (가속↔브레이크를 번갈아 누르면 가끔 안 먹음): a finger is no longer tied to the pedal it first touched. Pointer capture sent
+// every move to that pedal, so a thumb rolled across onto the brake without lifting still pressed gas (and the brake never came on).
+// Each finger now presses the pedal it is over (it keeps its pedal in the gap or off the edge); a pedal is on while any finger presses it.
+{const P={gas:document.querySelector('.pedal.gas'),brake:document.querySelector('.pedal.brk')},on=new Map();   // pointerId -> 'gas' | 'brake'
+ const sync=()=>{let g=false,b=false;for(const k of on.values())if(k==='gas')g=true;else b=true;
+   if(g&&!touchGas)tapGas=true;if(b&&!touchBrake)tapBrk=true;touchGas=g;touchBrake=b;P.gas.classList.toggle('on',g);P.brake.classList.toggle('on',b);};
+ const over=e=>{const t=document.elementFromPoint(e.clientX,e.clientY),p=t&&t.closest?t.closest('.pedal'):null;return p===P.gas?'gas':p===P.brake?'brake':null;};
+ for(const k in P){const el=P[k];
+   el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);on.set(e.pointerId,k);sync();});
+   el.addEventListener('pointermove',e=>{if(!on.has(e.pointerId))return;const n=over(e);if(n&&n!==on.get(e.pointerId)){on.set(e.pointerId,n);sync();}});
+   const up=e=>{if(on.delete(e.pointerId))sync();};['pointerup','pointercancel','lostpointercapture'].forEach(t=>el.addEventListener(t,up));}}
+const BRKP=document.querySelector('.pedal.brk');
 holdBtn($('mErs'),()=>touchErs=true,()=>touchErs=false);
 holdBtn($('mLook'),()=>{key.look=true;},()=>{key.look=false;});
 holdBtn($('mAero'),()=>{key.sm=true;if(state==='race')key.smTap=true;},()=>key.sm=false);
@@ -6613,7 +6623,7 @@ function syncRaceControl(dt){
       if(col<0&&race.t<(rc.greenAt??-99)+6){col=0x1fa34f;wave=true;}}
     po.mesh.visible=col>=0;if(col>=0){po.m.color.setHex(col);po.mesh.rotation.y=wave?Math.sin(t*9+po.i)*0.55:0.2;}}}
   // weather look: overcast sky, rain, wet asphalt
-  const rain=race.wx.rain,wet=WET;
+  const rain=race.wx.mode==='rain'?Math.max(race.wx.rain,0.55):race.wx.rain,wet=WET;   // 11-01: a rain race keeps its overcast sky and light all race (the falling rain itself follows wx.rain)
   for(const e of W.wet){e.m.color.copy(e.c0).multiplyScalar(1-(1-e.dk)*wet);e.m.roughness=e.r0+(e.r-e.r0)*wet;e.m.envMapIntensity=1-0.45*wet;}
   W.sun.intensity=W.sunI*(1-(W.NT?0.25:0.6)*rain);if(W.bk)W.bk.k.value.x=W.bk.sun*(1-0.85*rain);if(W.fill)W.fill.intensity=W.fillI*(1-0.25*rain);W.hemi.intensity=W.hemiI*(1-0.1*rain);W.hemi.color.copy(W.hemiC).lerp(RAINSKY,rain);W.hemi.groundColor.copy(W.hemiG).lerp(RAINGND,rain);
   scene.fog.color.copy(W.fogC).lerp(RAINFOG,rain);if(GRADE_IN_TM)scene.fog.color.convertLinearToSRGB();   // v14b: (phone, no post chain: fog mixes after the sRGB encode - give it the screen colour)
@@ -7348,7 +7358,7 @@ function vsTick(now){const d=now-VS.lastV;VS.lastV=now;if(!(d>0&&d<100))return;V
   if(VS.i%120===0){const s=Array.from(VS.a).sort((x,y)=>x-y),p=s[12];VS.hz=Math.max(VS.hz,p<9.5?120:p<12.5?90:60);}}   // 10-30: the screen's rate only goes up - a heavy stretch (frames of 17 ms+) used to make a 120 Hz screen read "60Hz"
 function frame(now){
   vsTick(now);if(PERF.lock60&&now-last<12.5){requestAnimationFrame(frame);return;}   // locked: skip the in-between refresh
-  const raw=(now-last)/1000,dt=Math.min(1/30,Math.max(0,raw));last=now;fpsTick(raw);
+  const raw=(now-last)/1000,dt=Math.min(1/30,Math.max(0,raw));last=now;fpsTick(raw);if(innerWidth!==resize.w||innerHeight!==resize.h)resize();
   if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').style.opacity=0;}
   if(flagPulse>0)flagPulse-=dt;
   if(BENCH)benchStep(raw,dt);
