@@ -31,18 +31,20 @@
 :root{
   --ink:#f4f4f2; --dim:#a7acb3; --panel:rgba(12,14,18,.8); --line:rgba(255,255,255,.14);
   --kerb:#d62828; --yellow:#f5c518; --purple:#b16cff; --green:#3ddc84; --bg:#8fb6de;
+  --sat:env(safe-area-inset-top,0px); --sar:env(safe-area-inset-right,0px); --sab:env(safe-area-inset-bottom,0px); --sal:env(safe-area-inset-left,0px);
   box-sizing:border-box;   /* v14b: no safe-area padding here - it shrank the canvas (squashed 3D) and doubled every HUD inset */
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#0e1116; } }
 :root[data-theme="dark"]{ --bg:#0e1116; }
-html{height:100%; scroll-padding-top:env(safe-area-inset-top,0px);
+html{height:100%; scroll-padding-top:var(--sat);
   touch-action:none; -webkit-text-size-adjust:100%; text-size-adjust:100%}
 *,*::before,*::after{box-sizing:inherit}
 body{height:100%; margin:0; background:var(--bg); color:var(--ink); overflow:hidden;
   font-family:"Saira","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
   -webkit-user-select:none; user-select:none; touch-action:none;
   -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent}
-#wrap{position:relative; width:100%; height:100%}
+#wrap{position:relative; width:100%; height:100%; container-type:size}   /* 11-01: the size rules below ask #wrap (@container), not the window - turned sideways (body.rot) the window is upright but #wrap is landscape */
+body.rot{--sat:env(safe-area-inset-right,0px); --sar:env(safe-area-inset-bottom,0px); --sab:env(safe-area-inset-left,0px); --sal:env(safe-area-inset-top,0px)}   /* turned: the screen's top (notch) is #wrap's left */
 #gl{position:absolute; inset:0; width:100%; height:100%; display:block}
 /* v14b: phone smooth / normal - the post chain's vignette as a CSS layer (same curve: 0.22 at the default .6 opacity, darker with speed) */
 #vig{display:none; position:absolute; inset:0; pointer-events:none; opacity:.6; background:radial-gradient(ellipse 72% 90% at 50% 48%,rgba(0,0,0,0) 38.89%,rgba(0,0,0,.0573) 54.17%,rgba(0,0,0,.1833) 69.44%,rgba(0,0,0,.3094) 84.72%,rgba(0,0,0,.3667) 100%)}
@@ -107,7 +109,7 @@ body:not(.touch):not(.q-low) .hud, body:not(.touch):not(.q-low) #mini{-webkit-ba
 #tower .r.me .t{background:#15171c}
 #tower .pit{font-size:11px; background:#1f55c8; color:#fff; border-radius:2px; padding:2px 4px; margin-left:6px}
 body.touch #tyres{bottom:auto; top:210px; width:200px} 
-@media (max-width:640px){ #tyres{top:auto; bottom:94px; right:auto; left:14px; width:190px} }
+@container (max-width:640px){ #tyres{top:auto; bottom:94px; right:auto; left:14px; width:190px} }
 #mini{position:absolute; left:14px; bottom:14px; background:var(--hud); border-radius:2px; box-shadow:0 3px 0 var(--team); pointer-events:none}
 #camTag{position:absolute; left:50%; bottom:16px; transform:translateX(-50%); font-size:12px; color:var(--dim); pointer-events:none; background:rgba(9,11,15,.62); padding:4px 12px; border-radius:2px; letter-spacing:.02em}
 #toast{position:absolute; left:50%; top:24%; transform:translateX(-50%); font-size:32px; font-weight:800; pointer-events:none; opacity:0; transition:opacity .25s; text-shadow:0 2px 14px rgba(0,0,0,.7); white-space:nowrap}
@@ -115,7 +117,7 @@ body.touch #tyres{bottom:auto; top:210px; width:200px}
 .col{display:flex; flex-direction:column; gap:8px}
 .bulb{width:32px; height:32px; border-radius:50%; background:#2a1111; box-shadow:inset 0 0 0 2px #000}
 .bulb.on{background:radial-gradient(circle at 40% 35%,#ff8a8a,#e10600 55%,#8a0400); box-shadow:0 0 18px #e10600}
-.overlay{position:absolute; inset:0; z-index:10; display:flex; align-items:center; justify-content:center; padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px)); background:rgba(8,10,14,.45)}
+.overlay{position:absolute; inset:0; z-index:10; display:flex; align-items:center; justify-content:center; padding:max(16px,var(--sat)) max(16px,var(--sar)) max(16px,var(--sab)) max(16px,var(--sal)); background:rgba(8,10,14,.45)}
 .overlay[hidden]{display:none}
 .card{background:rgba(21,23,27,.94); border-top:6px solid; border-image:repeating-linear-gradient(90deg,var(--kerb) 0 22px,#fff 22px 44px) 6;
   border-radius:4px; padding:22px 24px 20px; width:min(580px,100%); max-height:100%; overflow:auto; box-shadow:0 20px 60px rgba(0,0,0,.5)}
@@ -136,8 +138,8 @@ kbd{font-family:"Saira Condensed",sans-serif; font-weight:700; background:#2b2f3
 .best{font-size:14px; color:var(--dim); margin:12px 0 0; text-align:center}
 #livEd{position:absolute; inset:0; z-index:12; pointer-events:none}
 #livEd[hidden]{display:none}
-#livEd .lecard{pointer-events:auto; position:absolute; left:calc(16px + env(safe-area-inset-left,0px)); top:calc(16px + env(safe-area-inset-top,0px)); bottom:calc(16px + env(safe-area-inset-bottom,0px)); width:min(400px,calc(100% - 32px)); overflow:auto; background:rgba(21,23,27,.94); border-radius:8px; padding:16px 18px; box-shadow:0 20px 60px rgba(0,0,0,.5)}
-@media (max-aspect-ratio:1/1){#livEd .lecard{top:auto; left:8px; right:8px; bottom:calc(8px + env(safe-area-inset-bottom,0px)); width:auto; height:56%}}
+#livEd .lecard{pointer-events:auto; position:absolute; left:calc(16px + var(--sal)); top:calc(16px + var(--sat)); bottom:calc(16px + var(--sab)); width:min(400px,calc(100% - 32px)); overflow:auto; background:rgba(21,23,27,.94); border-radius:8px; padding:16px 18px; box-shadow:0 20px 60px rgba(0,0,0,.5)}
+@container (max-aspect-ratio:1/1){#livEd .lecard{top:auto; left:8px; right:8px; bottom:calc(8px + var(--sab)); width:auto; height:56%}}
 #livEd .lehead{display:flex; justify-content:space-between; align-items:baseline; font-size:18px; margin-bottom:6px} #livEd .lehead span{font-size:14px; color:var(--dim)}
 #livEd .lenote{font-size:13px; color:var(--dim); margin:0 0 12px; line-height:1.4} #livEd #leMsg{color:#ffb347; min-height:0}
 #livEd .sws{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; align-items:center}
@@ -165,7 +167,7 @@ tr.me td{color:var(--yellow)}
 #touch button{width:66px; height:66px; border-radius:50%; background:rgba(20,22,26,.7); font-size:22px; touch-action:none}
 body.touch #touch{display:flex}
 body.touch #hudSpeed{bottom:94px} body.touch #tower{display:none} body.touch #camTag{display:none}
-@media (max-width:640px){ #tower{display:none} #pos{font-size:32px} #spd{font-size:44px} #hudTime{min-width:150px} #hudTime .cur b{font-size:20px} .bulb{width:22px;height:22px} .two{grid-template-columns:1fr} }
+@container (max-width:640px){ #tower{display:none} #pos{font-size:32px} #spd{font-size:44px} #hudTime{min-width:150px} #hudTime .cur b{font-size:20px} .bulb{width:22px;height:22px} .two{grid-template-columns:1fr} }
 @media (prefers-reduced-motion:reduce){ #toast,#lights{transition:none} }
 .badge{display:inline-block; font-size:11px; font-weight:800; padding:1px 6px; border-radius:2px; margin:5px 4px 0 0; background:rgba(255,255,255,.1); color:var(--dim); letter-spacing:.03em}
 .badge.on{background:#3ddc84; color:#0b0d10} .badge.ovt.on{background:#b16cff; color:#fff}
@@ -181,7 +183,7 @@ body.touch #hudSpeed{bottom:94px} body.touch #tower{display:none} body.touch #ca
 #mirFrame{position:absolute; display:none; pointer-events:none; border:4px solid #0d0e11; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.12); z-index:3}
 #pitT{position:absolute; left:50%; top:62px; transform:translateX(-50%); display:none; align-items:baseline; gap:10px; padding:5px 14px 6px; border-radius:4px; background:rgba(12,14,18,.84); border-left:4px solid var(--yellow); pointer-events:none; font-size:15px; color:var(--dim); z-index:4}
 #pitT.show{display:flex} #pitT b{font-size:30px; line-height:1; color:var(--ink); min-width:3.2ch; text-align:right} #pitT.ok b{color:var(--green)} #pitT.slow b{color:#ff5a4f}
-body.touch #pitT{top:calc(92px + env(safe-area-inset-top,0px)); font-size:12px} body.touch #pitT b{font-size:22px}
+body.touch #pitT{top:calc(92px + var(--sat)); font-size:12px} body.touch #pitT b{font-size:22px}
 #flag.y,#flag.sc{background:#f5c518; color:#111} #flag.vsc{background:#f5c518; color:#111; outline:3px solid #111; outline-offset:-6px}
 #flag.g{background:#1f9d4d; color:#fff} #flag.b{background:#1f55c8; color:#fff}
 #flag.r{background:#d3121b; color:#fff} #flag.f{background:rgba(12,14,18,.88); color:#fff; outline:2px solid #fff; outline-offset:-5px}
@@ -190,7 +192,7 @@ body.touch #pitT{top:calc(92px + env(safe-area-inset-top,0px)); font-size:12px} 
 #tower .r .q{margin-left:auto; font-size:13px; color:var(--dim)} #tower .cutl{height:2px; background:#ff5a4f; margin:1px 10px}
 #wxI{color:#8ecae6}
 td.pts{width:4ch; color:var(--yellow)}
-body.touch #flag{top:calc(58px + env(safe-area-inset-top,0px)); font-size:14px; padding:4px 10px}
+body.touch #flag{top:calc(58px + var(--sat)); font-size:14px; padding:4px 10px}
 body.touch .ers{width:100px} body.touch .badge{font-size:10px; padding:0 4px; margin:3px 3px 0 0} body.touch #scSel button{font-size:12px; padding:8px 2px}
 /* ===== mobile ===== */
 .touchOnly{display:none}
@@ -202,7 +204,7 @@ body.inmenu .hud, body.inmenu #mini, body.inmenu #camTag, body.inmenu #pitMsg, b
 /* v11g: finish + podium ceremony */
 body.cine .hud, body.cine #mini, body.cine #camTag, body.cine #flag, body.cine #touch, body.cine #mctl, body.cine #mirFrame, body.cine #tower, body.cine #pitT, body.cine #lights{display:none !important}
 #cineFade{position:absolute; inset:0; background:#000; opacity:0; pointer-events:none; transition:opacity .55s; z-index:30}
-#podCap{position:absolute; left:50%; bottom:calc(5% + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); display:none; align-items:stretch; gap:10px; z-index:31; pointer-events:none}
+#podCap{position:absolute; left:50%; bottom:calc(5% + var(--sab)); transform:translateX(-50%); display:none; align-items:stretch; gap:10px; z-index:31; pointer-events:none}
 body.cine #podCap.on{display:flex}
 #podCap .pc{background:rgba(10,12,16,.82); border-left:4px solid var(--c,#fff); padding:6px 14px 7px; border-radius:4px; min-width:150px; box-shadow:0 6px 24px rgba(0,0,0,.35)}
 #podCap .pc b{display:block; font:800 13px "Saira Condensed",Arial,sans-serif; letter-spacing:.08em; opacity:.8}
@@ -213,7 +215,7 @@ body.cine #podCap.on{display:flex}
 body.cine #podTitle.on{display:block}
 #podTitle h2{margin:0; font:italic 800 40px "Saira Condensed",Arial,sans-serif; letter-spacing:.04em}
 #podTitle p{margin:2px 0 0; font:700 15px "Saira Condensed",Arial,sans-serif; opacity:.85}
-#podSkip{position:absolute; right:calc(14px + env(safe-area-inset-right,0px)); top:calc(12px + env(safe-area-inset-top,0px)); z-index:32; display:none; padding:8px 14px; font-weight:700}
+#podSkip{position:absolute; right:calc(14px + var(--sar)); top:calc(12px + var(--sat)); z-index:32; display:none; padding:8px 14px; font-weight:700}
 body.cine #podSkip.on{display:block}
 #finBanner{position:absolute; left:50%; top:16%; transform:translateX(-50%) scale(.92); z-index:31; opacity:0; transition:opacity .35s, transform .35s; pointer-events:none; text-align:center}
 #finBanner.on{opacity:1; transform:translateX(-50%) scale(1)}
@@ -221,30 +223,26 @@ body.cine #podSkip.on{display:block}
 #finBanner h2{margin:6px 0 4px; font:italic 800 46px "Saira Condensed",Arial,sans-serif; text-shadow:0 3px 18px rgba(0,0,0,.8); white-space:nowrap}
 #finBanner p{margin:0 0 6px; font:700 17px "Saira Condensed",Arial,sans-serif; text-shadow:0 2px 12px rgba(0,0,0,.8); white-space:nowrap}
 body.touch #podTitle h2{font-size:28px} body.touch #finBanner h2{font-size:32px} body.touch #podCap .pc{min-width:0; padding:4px 9px} body.touch #podCap .pc span{font-size:14px}
-@media (max-width:620px){#podTitle h2{font-size:26px} #finBanner h2{font-size:30px} #finBanner p{font-size:14px} #podCap{gap:5px; bottom:calc(3% + env(safe-area-inset-bottom,0px))} #podCap .pc{min-width:0; padding:4px 7px} #podCap .pc span{font-size:13px} #podCap .pc b, #podCap .pc i{font-size:10px}}
+@container (max-width:620px){#podTitle h2{font-size:26px} #finBanner h2{font-size:30px} #finBanner p{font-size:14px} #podCap{gap:5px; bottom:calc(3% + var(--sab))} #podCap .pc{min-width:0; padding:4px 7px} #podCap .pc span{font-size:13px} #podCap .pc b, #podCap .pc i{font-size:10px}}
 #steerZone{position:absolute; left:0; top:22%; bottom:0; width:46%; pointer-events:auto; touch-action:none}
-#steerPad{position:absolute; left:calc(8px + env(safe-area-inset-left,0px)); bottom:calc(14px + env(safe-area-inset-bottom,0px)); width:268px; height:64px; border-radius:32px; background:rgba(12,14,18,.55); border:1px solid var(--line)}
+#steerPad{position:absolute; left:calc(8px + var(--sal)); bottom:calc(14px + var(--sab)); width:268px; height:64px; border-radius:32px; background:rgba(12,14,18,.55); border:1px solid var(--line)}
 #steerKnob{position:absolute; left:50%; top:50%; width:56px; height:56px; margin:-28px 0 0 -28px; border-radius:50%; background:rgba(244,244,242,.85); box-shadow:0 2px 10px rgba(0,0,0,.5)}
 #steerPad .lbl{position:absolute; left:0; right:0; top:-22px; text-align:center; font-size:12px; color:var(--dim)}
-#tiltGauge{position:absolute; left:calc(18px + env(safe-area-inset-left,0px)); bottom:calc(14px + env(safe-area-inset-bottom,0px)); width:210px; height:20px; border-radius:10px; background:rgba(12,14,18,.55); border:1px solid var(--line); display:none}
+#tiltGauge{position:absolute; left:calc(18px + var(--sal)); bottom:calc(14px + var(--sab)); width:210px; height:20px; border-radius:10px; background:rgba(12,14,18,.55); border:1px solid var(--line); display:none}
 #tiltGauge i{position:absolute; top:2px; bottom:2px; left:50%; width:6px; margin-left:-3px; border-radius:3px; background:var(--yellow)}
-#btnSteer{position:absolute; left:calc(14px + env(safe-area-inset-left,0px)); bottom:calc(14px + env(safe-area-inset-bottom,0px)); display:none; gap:12px; pointer-events:auto}
+#btnSteer{position:absolute; left:calc(14px + var(--sal)); bottom:calc(14px + var(--sab)); display:none; gap:12px; pointer-events:auto}
 body.sm-tilt #tiltGauge{display:block} body.sm-tilt #steerPad{display:none}
 body.sm-buttons #btnSteer{display:flex} body.sm-buttons #steerPad{display:none} body.sm-buttons #steerZone{display:none}
-#pedals{position:absolute; right:calc(14px + env(safe-area-inset-right,0px)); bottom:calc(14px + env(safe-area-inset-bottom,0px)); display:flex; gap:12px; align-items:flex-end; pointer-events:auto}
+#pedals{position:absolute; right:calc(14px + var(--sar)); bottom:calc(14px + var(--sab)); display:flex; gap:12px; align-items:flex-end; pointer-events:auto}
 .pedal{width:78px; height:118px; border-radius:14px; font-size:15px; font-weight:800; touch-action:none; display:flex; align-items:flex-end; justify-content:center; padding-bottom:12px; background:rgba(20,22,26,.72)}
 .pedal.gas{height:150px; border-color:rgba(61,220,132,.6)} .pedal.brk{border-color:rgba(225,6,0,.6)}
 .pedal.on{background:rgba(244,244,242,.85); color:#15171b}
 body.autogas .pedal.gas{display:none}
-#miniBtns{position:absolute; right:calc(14px + env(safe-area-inset-right,0px)); bottom:calc(178px + env(safe-area-inset-bottom,0px)); display:flex; gap:8px; pointer-events:auto}
+#miniBtns{position:absolute; right:calc(14px + var(--sar)); bottom:calc(178px + var(--sab)); display:flex; gap:8px; pointer-events:auto}
 #miniBtns button, #topBtns button{min-width:48px; height:44px; padding:0 10px; border-radius:10px; font-size:14px; font-weight:800; background:rgba(20,22,26,.72); touch-action:none}
 #miniBtns button.on{background:var(--yellow); color:#15171b}
-#topBtns{position:absolute; top:calc(8px + env(safe-area-inset-top,0px)); left:50%; transform:translateX(-50%); display:flex; gap:8px; pointer-events:auto}
+#topBtns{position:absolute; top:calc(8px + var(--sat)); left:50%; transform:translateX(-50%); display:flex; gap:8px; pointer-events:auto}
 .rbtn{width:74px; height:74px; border-radius:50%; font-size:26px; background:rgba(20,22,26,.72); touch-action:none}
-#rotate{position:absolute; inset:0; z-index:20; display:none; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:24px; text-align:center; background:rgba(8,10,14,.92)}
-#rotate .ph{width:54px; height:90px; border:4px solid var(--ink); border-radius:10px; animation:rot 1.8s ease-in-out infinite}
-@keyframes rot{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
-@media (orientation:portrait){ body.touch.racing:not(.portraitok) #rotate{display:flex} }
 /* touch menu: compact, start button always visible */
 body.touch .card{padding:14px 16px 0; display:flex; flex-direction:column}
 body.touch #menu .card{width:min(760px,100%)}
@@ -260,13 +258,13 @@ body.touch #menu .best{margin:8px 0 12px}
 body.touch #trkSel b{font-size:13px} body.touch #trkSel span{display:none}
 /* touch in-race HUD */
 body.touch .hud{padding:6px 9px; border-radius:6px}
-body.touch #hudTop{top:calc(8px + env(safe-area-inset-top,0px)); left:calc(8px + env(safe-area-inset-left,0px)); gap:10px}
+body.touch #hudTop{top:calc(8px + var(--sat)); left:calc(8px + var(--sal)); gap:10px}
 body.touch #pos{font-size:26px} body.touch #lap{font-size:18px} body.touch .small{font-size:12px}
-body.touch #hudTime{top:calc(8px + env(safe-area-inset-top,0px)); right:calc(8px + env(safe-area-inset-right,0px)); min-width:0}
+body.touch #hudTime{top:calc(8px + var(--sat)); right:calc(8px + var(--sar)); min-width:0}
 body.touch #hudTime .row{font-size:11px; gap:8px; line-height:1.3} body.touch #hudTime .row b{font-size:13px} body.touch #hudTime .cur b{font-size:16px}
-body.touch #hudSpeed{left:50%; right:auto; transform:translateX(-50%); bottom:calc(8px + env(safe-area-inset-bottom,0px)); gap:10px; padding:5px 10px}
+body.touch #hudSpeed{left:50%; right:auto; transform:translateX(-50%); bottom:calc(8px + var(--sab)); gap:10px; padding:5px 10px}
 body.touch #spd{font-size:34px} body.touch #gear{font-size:28px} body.touch .unit{font-size:11px} body.touch .ers{width:70px}
-body.touch #tyres{top:calc(56px + env(safe-area-inset-top,0px)); bottom:auto; left:calc(8px + env(safe-area-inset-left,0px)); right:auto; width:150px; padding:6px 8px}
+body.touch #tyres{top:calc(56px + var(--sat)); bottom:auto; left:calc(8px + var(--sal)); right:auto; width:150px; padding:6px 8px}
 body.touch .tyhead{font-size:12px; gap:6px; margin-bottom:4px} body.touch .cmp{width:20px; height:20px; border-width:3px; font-size:11px}
 body.touch .tygrid{gap:3px 18px} body.touch .tygrid::before{width:8px; margin-left:-4px}
 body.touch .ty{padding:1px 3px; border-radius:4px} body.touch .tygrid{margin:4px 0 4px} body.touch .ty b{font-size:12px} body.touch .ty i{font-size:10px}
@@ -276,7 +274,7 @@ body.touch #toast{font-size:22px; top:28%}
 body.touch #lights{top:16%; padding:8px 10px; gap:6px} body.touch .bulb{width:20px; height:20px} body.touch .col{gap:5px}
 body.touch #tower, body.touch #camTag{display:none}
 /* phones: compact HUD */
-body.touch #tyres{width:108px; padding:4px 6px; top:calc(50px + env(safe-area-inset-top,0px))}
+body.touch #tyres{width:108px; padding:4px 6px; top:calc(50px + var(--sat))}
 body.touch #tyName, body.touch .ty i{display:none}
 body.touch .tyhead{font-size:11px; margin-bottom:2px} body.touch .cmp{width:17px; height:17px; border-width:2px; font-size:10px}
 body.touch .tygrid{gap:2px 10px; margin:2px 0} body.touch .ty{padding:0 2px} body.touch .ty b{font-size:11px}
@@ -291,14 +289,14 @@ body.touch #rev{left:6px; height:4px} body.touch #ersT{font-size:10px; white-spa
 body.touch #hudTop{padding:5px 16px 5px 9px; clip-path:polygon(0 0,100% 0,calc(100% - 8px) 100%,0 100%)} body.touch #hudTime{padding:4px 7px 4px 15px; clip-path:polygon(8px 0,100% 0,100% 100%,0 100%)}
 body.touch #toast{font-size:17px; top:22%} body.touch #steerPad .lbl{display:none}
 body.touch #flag{font-size:12px; padding:3px 8px}
-@media (max-height:420px){ body.touch .pedal{height:108px; width:76px} body.touch .pedal.gas{height:108px} body.touch #miniBtns{bottom:calc(142px + env(safe-area-inset-bottom,0px))} }
+@container (max-height:420px){ body.touch .pedal{height:108px; width:76px} body.touch .pedal.gas{height:108px} body.touch #miniBtns{bottom:calc(142px + var(--sab))} }
 /* ===== v12f: phone HUD v2 - a timing tower down the left with a round heading-up map beside it, round icon buttons, the timing
    panel and the car panel on the right, round action buttons, pedals in the corners (layout after the player's reference screenshot;
    own design: no logos, icons or colours copied). Positions that depend on each other are set by layoutTouchHUD() ===== */
 #hudTime .row.fast b{color:#b16cff} #hudTime .row.dlt b.neg{color:#2fd06b} #hudTime .row.dlt b.pos{color:#ff5a4f}
 #hudTime .secs i span{display:none} #tyMini{display:none}
 body.touch #hudTop{display:none}
-body.touch #tower{display:block; top:calc(6px + env(safe-area-inset-top,0px)); left:calc(6px + env(safe-area-inset-left,0px)); min-width:0; width:128px; padding:0 0 2px; border-radius:6px; background:rgba(9,11,15,.74); overflow:hidden; pointer-events:none; box-shadow:0 2px 10px rgba(0,0,0,.35)}
+body.touch #tower{display:block; top:calc(6px + var(--sat)); left:calc(6px + var(--sal)); min-width:0; width:128px; padding:0 0 2px; border-radius:6px; background:rgba(9,11,15,.74); overflow:hidden; pointer-events:none; box-shadow:0 2px 10px rgba(0,0,0,.35)}
 body.touch #tower .hd{display:flex; justify-content:space-between; align-items:center; height:21px; padding:0 7px; font-size:11px; font-weight:800; letter-spacing:.03em; color:#fff; background:linear-gradient(90deg,rgba(245,197,24,.95) 0 4px,rgba(255,255,255,.1) 4px); border-bottom:1px solid rgba(255,255,255,.12); margin-bottom:1px}
 body.touch #tower .hd b{color:#f5c518}
 body.touch #tower .r{height:15px; font-size:11px; padding:0 5px 0 0; border-bottom:0}
@@ -311,9 +309,9 @@ body.touch #tower .r .q.pit{color:#6fa8ff; font-weight:800} body.touch #tower .r
 body.touch #tower .r.me{background:#f5c518; color:#111} body.touch #tower .r.me .p, body.touch #tower .r.me .q, body.touch #tower .r.me .n{color:#111}
 body.touch #tower .gap{font-size:9px; line-height:8px; padding:0 0 1px 26px; color:#7d8692}
 body.touch #mini{border-radius:50%; background:rgba(9,11,15,.62); box-shadow:0 0 0 2px rgba(255,255,255,.16),0 2px 10px rgba(0,0,0,.4)}
-body.touch #topBtns{left:auto; transform:none; right:calc(8px + env(safe-area-inset-right,0px)); top:calc(6px + env(safe-area-inset-top,0px)); gap:7px}
+body.touch #topBtns{left:auto; transform:none; right:calc(8px + var(--sar)); top:calc(6px + var(--sat)); gap:7px}
 body.touch #topBtns button{min-width:0; width:36px; height:36px; padding:0; border-radius:50%; font-size:12px; background:rgba(9,11,15,.6); border:2px solid rgba(255,255,255,.28)}
-body.touch #hudTime{left:auto; right:calc(8px + env(safe-area-inset-right,0px)); width:186px; min-width:0; padding:0 0 4px; border:0; border-radius:6px; clip-path:none; background:rgba(9,11,15,.74); display:flex; flex-direction:column; overflow:hidden} body.touch #hudTime .secs{order:-1}
+body.touch #hudTime{left:auto; right:calc(8px + var(--sar)); width:186px; min-width:0; padding:0 0 4px; border:0; border-radius:6px; clip-path:none; background:rgba(9,11,15,.74); display:flex; flex-direction:column; overflow:hidden} body.touch #hudTime .secs{order:-1}
 body.touch #hudTime .secs{display:flex; gap:0; margin:0 0 3px} body.touch #hudTime .secs i{flex:1; height:auto; border-radius:0; background:rgba(255,255,255,.1); border-right:1px solid rgba(0,0,0,.4)}
 body.touch #hudTime .secs i span{display:block; min-height:15px; font-size:11px; font-weight:800; line-height:15px; text-align:center; color:#fff}
 body.touch #hudTime .secs i.pb{background:#2fd06b} body.touch #hudTime .secs i.ob{background:#a050ff} body.touch #hudTime .secs i.sl{background:#f5c518}   /* (the cell rule above would otherwise keep them grey) */
@@ -321,7 +319,7 @@ body.touch #hudTime .secs i.pb span, body.touch #hudTime .secs i.sl span{color:#
 body.touch #hudTime .secs i::before{content:attr(data-s); display:block; font-size:11px; font-weight:800; line-height:13px; text-align:center; color:#111; background:rgba(255,255,255,.55)}
 body.touch #hudTime .row{padding:0 7px; font-size:11px; line-height:1.4; gap:6px} body.touch #hudTime .row b{font-size:12px} body.touch #hudTime .cur b{font-size:14px}
 body.touch #hudTime .row.sp b{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}   /* 10-31: every row shows on phones (last lap, best, fastest, delta) */
-body.touch #hudSpeed{left:auto; right:calc(8px + env(safe-area-inset-right,0px)); bottom:auto; transform:none; width:186px; padding:16px 8px 5px; gap:6px; border-radius:6px; clip-path:none; background:rgba(9,11,15,.74); align-items:center; justify-content:space-between; flex-wrap:wrap}
+body.touch #hudSpeed{left:auto; right:calc(8px + var(--sar)); bottom:auto; transform:none; width:186px; padding:16px 8px 5px; gap:6px; border-radius:6px; clip-path:none; background:rgba(9,11,15,.74); align-items:center; justify-content:space-between; flex-wrap:wrap}
 body.touch #rev{left:8px; right:8px; top:5px; height:7px; background:none} body.touch #rev::before, body.touch #rev::after{display:none}
 body.touch #rev i{display:block; position:absolute; top:0; width:7px; height:7px; border-radius:50%; background:#2a2e35} body.touch #rev i.on{background:var(--c)}
 body.touch #gMeter{display:none}
@@ -332,9 +330,9 @@ body.touch #hudSpeed .ers .bar{flex:1; min-width:60px} body.touch #ersT{order:2;
 body.touch #tyMini{display:flex; order:3; flex-direction:column; align-items:center; gap:1px} body.touch #tyMini i{width:24px; height:24px; border-radius:50%; border:4px solid #ccc; font-style:normal; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; color:#fff; background:rgba(0,0,0,.35)} body.touch #tyMini b{font-size:10px; color:#cfd6df; white-space:nowrap} body.touch #tyMT{margin-right:3px}
 body.touch #tyres{display:none}
 body.touch #pitInfo{display:none}
-body.touch #pitMsg{position:absolute; left:50%; transform:translateX(-50%); top:calc(48px + env(safe-area-inset-top,0px)); max-width:44%; padding:4px 10px; border-radius:6px; background:rgba(9,11,15,.72); font-size:11px; line-height:1.35; text-align:center; pointer-events:none; z-index:3}
+body.touch #pitMsg{position:absolute; left:50%; transform:translateX(-50%); top:calc(48px + var(--sat)); max-width:44%; padding:4px 10px; border-radius:6px; background:rgba(9,11,15,.72); font-size:11px; line-height:1.35; text-align:center; pointer-events:none; z-index:3}
 body.touch #pitMsg:empty{display:none} #pitMsg{display:none} body.touch #pitMsg{display:block} body.touch #pitMsg:empty{display:none}
-body.touch #flag{top:calc(8px + env(safe-area-inset-top,0px))} body.touch #pitT{top:calc(84px + env(safe-area-inset-top,0px))} body.touch #toast{top:34%}
+body.touch #flag{top:calc(8px + var(--sat))} body.touch #pitT{top:calc(84px + var(--sat))} body.touch #toast{top:34%}
 #pitMsg,#flag,#toast,#pitInfo{word-break:keep-all; overflow-wrap:break-word}   /* Korean lines wrap between words, not inside them */
 body.touch #miniBtns{display:grid; grid-template-columns:repeat(2,46px); gap:9px; right:auto; bottom:auto}
 body.touch #miniBtns button{min-width:0; width:46px; height:46px; padding:0; border-radius:50%; font-size:12px; background:rgba(9,11,15,.5); border:2px solid rgba(255,255,255,.32)}
@@ -342,20 +340,20 @@ body.touch #miniBtns button.on{background:var(--yellow); color:#15171b; border-c
 body.touch .pedal{position:relative; width:92px; height:134px; border-radius:16px; padding:0 0 8px; white-space:nowrap; font-size:11px; background:rgba(9,11,15,.46) repeating-linear-gradient(180deg,transparent 0 9px,rgba(255,255,255,.2) 9px 13px) 10px 12px/calc(100% - 20px) calc(100% - 38px) no-repeat; border:2px solid rgba(255,255,255,.3)}
 body.touch .pedal.gas{height:134px; border-color:rgba(61,220,132,.65)} body.touch .pedal.brk{border-color:rgba(255,80,70,.7)}
 body.touch .pedal.on{background-color:rgba(244,244,242,.82); color:#15171b}
-body.sm-tilt #pedals{left:calc(30px + env(safe-area-inset-left,0px)); right:calc(30px + env(safe-area-inset-right,0px)); justify-content:space-between}
+body.sm-tilt #pedals{left:calc(30px + var(--sal)); right:calc(30px + var(--sar)); justify-content:space-between}
 /* v12k: 기울기 모드는 조향 패드가 없어 자리가 남는다. 페달을 키우고 화면 끝에서 띄워 엄지가 닿게 한다 */
 body.sm-tilt .pedal{width:110px; height:134px; font-size:13px; border-width:3px}
 body.sm-tilt .pedal.gas{height:134px}
 body.touch.ph-small.sm-tilt .pedal{width:92px; height:114px; font-size:11px}
 body.touch.ph-small.sm-tilt .pedal.gas{height:114px}
-@media (max-height:420px){ body.sm-tilt .pedal{width:98px; height:110px} body.sm-tilt .pedal.gas{height:110px} }
+@container (max-height:420px){ body.sm-tilt .pedal{width:98px; height:110px} body.sm-tilt .pedal.gas{height:110px} }
 body.sm-tilt #pedals .pedal.brk{order:-1} body.sm-tilt.autogas #pedals{justify-content:flex-start}
-body.ped-split #pedals .pedal.brk{position:fixed; left:var(--brkL,300px); bottom:calc(14px + env(safe-area-inset-bottom,0px))}   /* v13e: drag / buttons steering, pedals on both sides */
+body.ped-split #pedals .pedal.brk{position:fixed; left:var(--brkL,300px); bottom:calc(14px + var(--sab))}   /* v13e: drag / buttons steering, pedals on both sides */
 body.sm-tilt #pedals{pointer-events:none} body.sm-tilt #pedals .pedal{pointer-events:auto}   /* the row spans the screen: only the two pedals take touches */
-body.sm-tilt #tiltGauge{left:50%; transform:translateX(-50%); width:180px; height:12px; bottom:calc(8px + env(safe-area-inset-bottom,0px))}
-@media (max-height:420px){ body.touch .pedal{height:120px; width:86px} body.touch .pedal.gas{height:120px} }   /* 10-31 윤택님: both pedals the same height, a little bigger; 11-01: bigger again (76x108 -> 86x120) */
+body.sm-tilt #tiltGauge{left:50%; transform:translateX(-50%); width:180px; height:12px; bottom:calc(8px + var(--sab))}
+@container (max-height:420px){ body.touch .pedal{height:120px; width:86px} body.touch .pedal.gas{height:120px} }   /* 10-31 윤택님: both pedals the same height, a little bigger; 11-01: bigger again (76x108 -> 86x120) */
 body.touch .pedal::after{content:''; position:absolute; inset:-12px -6px -14px -14px} body.touch .pedal.gas::after{inset:-12px -14px -14px -6px}   /* 10-31: a touch just outside the edge still counts; 11-01: wider on the outer sides and down to the screen edge (the inner sides stay at 6 px, half the 12 px gap, so the two never overlap) */
-@media (max-height:370px){ body.touch #hudTime .row{line-height:1.22} body.touch #tower .r{height:13px; font-size:10px} body.touch #tower .r .n{font-size:10px} }
+@container (max-height:370px){ body.touch #hudTime .row{line-height:1.22} body.touch #tower .r{height:13px; font-size:10px} body.touch #tower .r .n{font-size:10px} }
 /* ===== v12g: phone HUD v3 - the car's dashboard (speed, gear, tyre, battery) always in view: in landscape a strip at the bottom
    centre between the steering control and the round buttons beside the pedals, in portrait under the timing panel; nothing stays in
    the middle of the screen (messages are small pills along the top that fade). Positions: layoutTouchHUD() ===== */
@@ -394,7 +392,7 @@ body.touch.ph-small #topBtns button{width:32px; height:32px; font-size:11px}
 body.touch.ph-small #hudTime{width:164px}
 /* portrait: panels along the top, controls along the bottom, a narrower steering pad */
 body.touch.ph-port #steerPad{width:min(200px,46vw)} body.touch.ph-port #hudTime, body.touch.ph-port #hudSpeed{width:176px}
-#benchBar{position:absolute; left:50%; top:calc(6px + env(safe-area-inset-top,0px)); transform:translateX(-50%); z-index:12; display:flex; align-items:center; gap:10px; padding:6px 6px 6px 12px; border-radius:6px; background:rgba(9,11,15,.85); color:#fff; font-size:13px; max-width:calc(100% - 32px)} #benchBar[hidden]{display:none} #benchBar button{min-height:44px; padding:0 18px; flex:none}   /* 10-30: performance test */
+#benchBar{position:absolute; left:50%; top:calc(6px + var(--sat)); transform:translateX(-50%); z-index:12; display:flex; align-items:center; gap:10px; padding:6px 6px 6px 12px; border-radius:6px; background:rgba(9,11,15,.85); color:#fff; font-size:13px; max-width:calc(100% - 32px)} #benchBar[hidden]{display:none} #benchBar button{min-height:44px; padding:0 18px; flex:none}   /* 10-30: performance test */
 /* 10-31: sector popup - for 3.5 s after a sector line it takes the place of the 'fastest lap' row (same height: the phone layout does not move); diffs to my last lap and my best on this circuit */
 #hudTime .row.sp{display:none !important} #hudTime.spOn .row.sp{display:flex !important} #hudTime.spOn .row.fast{display:none !important}
 #hudTime .row.sp b{font-size:14px} #hudTime .row.sp b.k-ob{color:#b16cff} #hudTime .row.sp b.k-pb{color:#2fd06b} #hudTime .row.sp b.k-sl{color:#f5c518} #hudTime .row.sp i{font-style:normal}
@@ -404,9 +402,8 @@ body.touch #hudTime .row.sp .spt{display:none}   /* the time itself is in the co
 .laps table{font-size:12px; margin:4px 0 6px} .laps td,.laps th{padding:2px 4px; text-align:right; white-space:nowrap} .laps th{color:var(--dim); font-weight:600; border-bottom:1px solid var(--line)}
 .laps td:first-child,.laps th:first-child{text-align:left; width:auto} .laps .lb{color:var(--purple)} .laps .lv{color:#ff8a8a}
 #bench td:first-child{width:auto} #bench td:first-child:empty{display:none} #benchTa{width:100%; height:9em; font-size:12px; margin:0 0 12px}
-#fpsBox{position:absolute; left:50%; bottom:calc(6px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); padding:2px 9px; border-radius:4px; background:rgba(9,11,15,.72); color:#cfe3ff; font-size:12px; pointer-events:none; z-index:5; white-space:nowrap}   /* v12h: F key */
+#fpsBox{position:absolute; left:50%; bottom:calc(6px + var(--sab)); transform:translateX(-50%); padding:2px 9px; border-radius:4px; background:rgba(9,11,15,.72); color:#cfe3ff; font-size:12px; pointer-events:none; z-index:5; white-space:nowrap}   /* v12h: F key */
 body.inmenu #fpsBox{display:none}
-body.touch.racing #rotate{display:none !important}
 /* 10-31: skill picker, tutorial card (in the timing panel's place, clear of the controls and the road), 조작법 overlay */
 #skill .card{width:min(760px,100%); padding:14px 18px 14px}
 #skill h2{margin:0 0 4px; font-size:22px} #skill .sub{margin:0 0 10px; font-size:14px}
@@ -508,7 +505,6 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
   <div id="ctlHelp" hidden><div id="chMarks"></div></div>
   <div class="overlay" id="skill" hidden><div class="card"><h2>어떻게 달려볼까요?</h2><p class="sub">초보는 가장 쉬운 설정으로 한 번에 맞춰요. 직접 설정은 레이싱 라인·보조를 하나씩 골라요(설정마다 중급·상급 추천 표시). 나중에 메뉴·일시정지에서 바꿀 수 있어요.</p>
     <div class="skg" id="skG"></div><div class="row2"><button id="skLater" type="button">메뉴로</button><button class="go" id="skTut" type="button">튜토리얼로 시작</button></div></div></div>
-  <div id="rotate"><div class="ph"></div><p style="margin:0;font-size:18px;font-weight:700">휴대폰을 가로로 돌려 주세요</p><p style="margin:0;color:var(--dim);font-size:14px">가로 화면에서 시야가 넓고 조작도 편해요.</p><button id="portraitOk" style="margin-top:6px">세로로 계속하기</button></div>
   <div id="livEd" hidden><div class="lecard">
     <div class="lehead"><b>리버리 꾸미기</b><span id="leTeam"></span></div>
     <p class="lenote">실제 팀의 디자인·로고는 쓸 수 없어서, 색과 모양을 직접 골라 내 차를 칠하는 방식이에요. 바꾸면 뒤의 차에 바로 보여요.</p>
@@ -4898,6 +4894,15 @@ function lapTable(open){if(!lapLog.length)return '';let bi=-1;lapLog.forEach((l,
   return '<details'+(open?' open':'')+'><summary>내 랩 기록 · '+lapLog.length+'랩'+(bi>=0?' · 베스트 '+fmt(lapLog[bi].t):'')+(bestLap?' · 서킷 베스트 '+fmt(bestLap):'')+'</summary><table class="num"><tr><th>랩</th><th>랩 타임</th><th>S1</th><th>S2</th><th>S3</th><th>차이</th></tr>'+rows+'</table></details>';}
 const isTouch=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 if(isTouch)document.body.classList.add('touch');
+// 11-01: a phone is always played sideways. Held upright, or turned with the rotation lock on (the window stays upright - iOS Safari
+// cannot lock it), #wrap is laid out at the landscape size and turned 90 deg clockwise: right for a phone turned to the left (top of
+// the phone on the left, charging port on the right). Unlocked, the OS turns the window itself and nothing is turned here.
+// Layout code works in #wrap's coordinates: VW() x VH() is its size, bcr() a box in it, ptX() a finger's x along it.
+let ROT=false;const VW=()=>ROT?innerHeight:innerWidth,VH=()=>ROT?innerWidth:innerHeight,ptX=e=>ROT?e.clientY:e.clientX;
+function bcr(e){const r=e.getBoundingClientRect();if(!ROT)return r;const W=innerWidth;return {left:r.top,right:r.bottom,top:W-r.right,bottom:W-r.left,x:r.top,y:W-r.right,width:r.height,height:r.width};}
+function applyRot(){ROT=isTouch&&innerHeight>innerWidth;document.body.classList.toggle('rot',ROT);
+  $('wrap').style.cssText=ROT?'position:fixed;left:0;top:0;width:'+innerHeight+'px;height:'+innerWidth+'px;transform-origin:0 0;transform:translateX('+innerWidth+'px) rotate(90deg)':'';}
+applyRot();
 let quality=loadLS('lightsout3d-q2')||'medium';if(!['high','medium','low'].includes(quality))quality='medium';document.body.classList.add('q-'+quality);let tod=loadLS('lightsout3d-tod')||'day';
 let sens=parseInt(loadLS('lightsout3d-sens'),10)||2;
 const LODD=(quality==='low'?[26,60,120]:[30,70,140]).map(d=>d*d);   // v12h: car detail steps (m); a little closer at the lowest setting
@@ -4999,7 +5004,7 @@ function setupComposer(){
   composer=null;
   if(quality==='low'||GRADE_IN_TM||!THREE.EffectComposer||!THREE.RenderPass||!THREE.UnrealBloomPass||!THREE.GammaCorrectionShader)return;
   try{
-    const w=innerWidth,h=innerHeight,isGL2=renderer.capabilities.isWebGL2;
+    const w=VW(),h=VH(),isGL2=renderer.capabilities.isWebGL2;
     const rt=isGL2&&THREE.WebGLMultisampleRenderTarget?new THREE.WebGLMultisampleRenderTarget(w,h,{format:THREE.RGBAFormat,stencilBuffer:true}):new THREE.WebGLRenderTarget(w,h,{format:THREE.RGBAFormat,stencilBuffer:true});
     composer=new THREE.EffectComposer(renderer,rt);composer.addPass(new THREE.RenderPass(scene,camera));
     // AO was 'high' only, so the default setting ('medium' on a PC) never showed it. It draws at half resolution,
@@ -5023,10 +5028,10 @@ function setupComposer(){
   }catch(e){composer=null;}
 }
 // the full resolution for this quality setting, before the smoothness governor takes anything off
-function basePR(){const w=innerWidth,h=innerHeight;let pr=Math.min(quality==='high'?(isTouch?1.75:2):quality==='medium'?(isTouch?1.5:1):(isTouch?1.25:1),window.devicePixelRatio||1);   // v14b: phones a step sharper (smooth 1 -> 1.25, normal 1.25 -> 1.5) with the post passes gone
+function basePR(){const w=VW(),h=VH();let pr=Math.min(quality==='high'?(isTouch?1.75:2):quality==='medium'?(isTouch?1.5:1):(isTouch?1.25:1),window.devicePixelRatio||1);   // v14b: phones a step sharper (smooth 1 -> 1.25, normal 1.25 -> 1.5) with the post passes gone
   if(quality==='low'&&!isTouch)pr=Math.min(pr,Math.max(0.5,Math.sqrt(2.4e6/Math.max(1,w*h))));   // v12h: the lowest setting on a PC draws at most ~1080p worth of pixels (a 1440p or 4K window drew 2-4 times that)
   return pr;}
-function resize(){const w=innerWidth,h=innerHeight;let pr=basePR();resize.w=w;resize.h=h;   // 11-01: the size this was done for - frame() redoes it when the window has another size (an iPhone turned sideways can send its resize with one old side: 402x402 canvas, stretched and cut off, mirror in the corner)
+function resize(){resize.w=innerWidth;resize.h=innerHeight;applyRot();const w=VW(),h=VH();let pr=basePR();   // 11-01: the size this was done for - frame() redoes it when the window has another size (an iPhone turned sideways can send its resize with one old side: 402x402 canvas, stretched and cut off, mirror in the corner)
   if(typeof PERF!=='undefined'&&PERF.prCap)pr=Math.min(pr,PERF.prCap);   // (and keeps what the smoothness governor took off)
   renderer.setPixelRatio(pr);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
   if(composer){composer.setPixelRatio?composer.setPixelRatio(renderer.getPixelRatio()):0;composer.setSize(w,h);if(fxaa){const pr=renderer.getPixelRatio();fxaa.material.uniforms.resolution.value.set(1/(w*pr),1/(h*pr));}}}
@@ -5722,10 +5727,10 @@ function tutTick(dt){if(!TUT||state!=='race'||TUT.i>=TUT_STEPS.length-1)return;c
   if(TUT.ok){if((TUT.ok-=dt)<=0){TUT.ok=0;tutGo();}return;}
   const pl=!!p.pit;if(pl!==TUT.pl){TUT.pl=pl;$('tutT').textContent=s.t();}
   if(s.done(p,TUT)){TUT.ok=1.1;$('tut').classList.add('ok');$('tutH').textContent='✓ 잘했어요 · '+s.h;}}
-function tutPlace(){const el=$('tut');if(el.hidden)return;const W=innerWidth,H=innerHeight;let top,right,w,bot=H-16;
-  if(isTouch){const tb=$('topBtns').getBoundingClientRect();top=tb.bottom+6;right=W-tb.right;w=Math.min(260,Math.max(200,W*0.3));
-    const mb=$('miniBtns').getBoundingClientRect();if(mb.width&&mb.top>top+120)bot=mb.top-8;}
-  else{const ht=$('hudTime').getBoundingClientRect();top=ht.width?ht.top:14;right=ht.width?W-ht.right:14;w=320;}
+function tutPlace(){const el=$('tut');if(el.hidden)return;const W=VW(),H=VH();let top,right,w,bot=H-16;
+  if(isTouch){const tb=bcr($('topBtns'));top=tb.bottom+6;right=W-tb.right;w=Math.min(260,Math.max(200,W*0.3));
+    const mb=bcr($('miniBtns'));if(mb.width&&mb.top>top+120)bot=mb.top-8;}
+  else{const ht=bcr($('hudTime'));top=ht.width?ht.top:14;right=ht.width?W-ht.right:14;w=320;}
   Object.assign(el.style,{top:Math.round(top)+'px',right:Math.round(right)+'px',width:Math.round(w)+'px',maxHeight:Math.round(bot-top)+'px'});}
 addEventListener('resize',()=>setTimeout(tutPlace,150));
 // pointerdown, not click: on an iPhone a tap makes no click while another finger is down (holding the pedal or steering) - like the race buttons.
@@ -5736,10 +5741,10 @@ $('tut').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation
 $('tutNext').addEventListener('click',e=>{if(e.detail===0)tutNext();});$('tutSkip').addEventListener('click',e=>{if(e.detail===0)tutSkip();});   // keyboard (Enter/Space) only
 $('tutBtn').addEventListener('click',tutStart);
 // ===== 10-31: 조작법 (pause): every on-screen control outlined where it really is, with a short label next to it =====
-function ctlHelp(){const M=$('chMarks'),W=innerWidth,H=innerHeight,sa=safeInsets(),placed=[],tg=[];M.innerHTML='';
+function ctlHelp(){const M=$('chMarks'),W=VW(),H=VH(),sa=safeInsets(),placed=[],tg=[];M.innerHTML='';
   const vis=e=>!!e&&e.offsetWidth>0&&getComputedStyle(e).display!=='none';
   const bk=document.querySelector('.pedal.brk'),gs=document.querySelector('.pedal.gas'),bkL=[bk,'<b>브레이크</b> 꾹 눌러 속도 줄이기'],gsL=[gs,'<b>가속</b> 누르는 동안 가속'],agL=[null,autoGas?'<i>가속은 자동이에요</i>':''];
-  const near=vis(bk)&&vis(gs)&&Math.abs(bk.getBoundingClientRect().right-gs.getBoundingClientRect().left)<60;   // pedals side by side: one label for both
+  const near=vis(bk)&&vis(gs)&&Math.abs(bcr(bk).right-bcr(gs).left)<60;   // pedals side by side: one label for both
   // (the crowded bottom-right first, so its labels get the spots next to their buttons)
   const G=[...(near?[[[bkL,gsL],'above']]:[[[bkL,agL],'above'],[[gsL],'above']]),
     [[['mPit','<b>PIT</b> 이번 랩 끝에 피트인'],['mTyre','<b>타이어</b> 다음에 끼울 타이어'],['mErs','<b>ERS</b> 배터리 부스트'],['mAero','<b>직선</b> 직선에서 날개 열기']],'above'],
@@ -5748,7 +5753,7 @@ function ctlHelp(){const M=$('chMarks'),W=innerWidth,H=innerHeight,sa=safeInsets
     [[['mPause','<b>II</b> 일시정지 · 설정'],['mCam','<b>시점</b> 카메라 바꾸기'],['mCal','<b>영점</b> 지금 기울기를 똑바로로'],['mLook','<b>뒤</b> 누르는 동안 뒤 보기'],['mMap','<b>맵</b> 미니맵 크기']],'below']];
   const ov=(a,b)=>Math.max(0,Math.min(a.r,b.r)-Math.max(a.l,b.l))*Math.max(0,Math.min(a.b,b.b)-Math.max(a.t,b.t));
   const groups=G.map(([items,side])=>{const its=items.map(([e,t])=>[typeof e==='string'?$(e):e,t]).filter(([e,t])=>t&&(e===null||vis(e)));
-    const els=its.map(x=>x[0]).filter(Boolean);if(!els.length)return null;const rs=els.map(e=>e.getBoundingClientRect());
+    const els=its.map(x=>x[0]).filter(Boolean);if(!els.length)return null;const rs=els.map(e=>bcr(e));
     for(const r of rs){const b=document.createElement('div');b.className='box';Object.assign(b.style,{left:r.left-3+'px',top:r.top-3+'px',width:r.width+6+'px',height:r.height+6+'px'});M.appendChild(b);tg.push({l:r.left,t:r.top,r:r.right,b:r.bottom});}
     return {side,lines:its.map(x=>x[1]),R:{l:Math.min(...rs.map(r=>r.left)),t:Math.min(...rs.map(r=>r.top)),r:Math.max(...rs.map(r=>r.right)),b:Math.max(...rs.map(r=>r.bottom))}};}).filter(Boolean);
   const mid=document.createElement('div');mid.className='mid';mid.innerHTML='<b>조작법</b>노란 테두리가 버튼 자리예요<button class="go" type="button">닫기</button>';M.appendChild(mid);
@@ -5813,7 +5818,7 @@ function calibrateTilt(){if(tiltLast!=null){tiltRef=tiltLast;tiltDeg=0;TF.on=fal
 function prepMobile(){document.body.classList.remove('inmenu');document.body.classList.add('racing');
   lockLandscape();
   if(steerMode==='tilt'){tiltRef=null;TF.on=false;tiltAxis=0;enableTilt().then(ok=>{setTimeout(()=>{if(!ok||!tiltOK){steerMode='drag';applyMobileClasses();toast('기울기 센서를 쓸 수 없어 드래그 조향으로 바꿨어요','#ffb347');}},1500);});}
-  if(innerHeight>innerWidth*1.05)setTimeout(()=>toast('휴대폰을 가로로 돌리면 더 넓게 보여요','#fff',3),1600);}   // v12g: a short hint instead of the full-screen panel
+}
 // v12j: 직접 가속에서는 엄지가 가속 페달에 묶여 ERS 버튼을 같이 누를 수 없다. ERS 는 가속 중에만 들어가므로
 // (c.boost 조건에 inp.gas 가 있다) 가스를 떼고 눌러봐야 아무 일도 일어나지 않는다. 그래서 직접 가속일 때는
 // 직선에서 알아서 켠다. 버튼을 직접 누르면 그 입력이 우선한다. 켜고 끄는 기준은 AI 와 같다(0.3 에서 켜고 0.15 까지 유지).
@@ -5836,15 +5841,15 @@ const STEER_EXPO=0.25;   // 11-01 윤택님 「드래그 더 민감하게」: 0.
 const steerCurve=a=>{const s=a<0?-1:1,x=Math.abs(a);return s*((1-STEER_EXPO)*x+STEER_EXPO*x*x*x);};
 {let pid=null,x0=0,raw=0;const z=$('steerZone'),knob=$('steerKnob'),pad=$('steerPad');
  const setK=a=>{knob.style.transform='translateX('+(a*TOUCH_KT).toFixed(1)+'px)';};   // (v12g: the pad is narrower on small screens)
- const W=()=>Math.min(115,innerWidth*0.12);   // finger travel to full lock (px); 11-01: was min(130, 14 % of the width)
+ const W=()=>Math.min(115,VW()*0.12);   // finger travel to full lock (px); 11-01: was min(130, 14 % of the width)
  // 11-01: a new finger always takes over and carries on from the current lock (the zone used to ignore every touch while it still
  // thought an earlier finger was down - one lost pointerup and the steering went deaf)
- z.addEventListener('pointerdown',e=>{pid=e.pointerId;x0=e.clientX-raw*W();z.setPointerCapture(pid);e.preventDefault();});
+ z.addEventListener('pointerdown',e=>{pid=e.pointerId;x0=ptX(e)-raw*W();z.setPointerCapture(pid);e.preventDefault();});
  // v12j: the finger used to map straight onto lock, so even a small nudge was a big steering input and holding a light
  // correction at speed was hard. The first part of the travel is gentler now; the far end is untouched, so full lock is
  // still full lock at the same distance. The knob keeps following the finger 1:1 so it does not feel disconnected.
  z.addEventListener('pointermove',e=>{if(e.pointerId!==pid)return;
-   raw=Math.max(-1,Math.min(1,(e.clientX-x0)/W()));dragAxis=steerCurve(raw);setK(raw);});
+   raw=Math.max(-1,Math.min(1,(ptX(e)-x0)/W()));dragAxis=steerCurve(raw);setK(raw);});
  const end=e=>{if(e.pointerId!==pid)return;pid=null;raw=0;dragAxis=0;setK(0);};['pointerup','pointercancel','lostpointercapture'].forEach(t=>z.addEventListener(t,end));}
 // 10-31: held while any finger is on it (a second finger lifting no longer lets go of the pedal)
 function holdBtn(el,on,off){const ids=new Set();el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);ids.add(e.pointerId);el.classList.add('on');on();});
@@ -5868,7 +5873,6 @@ holdBtn($('mAero'),()=>{key.sm=true;if(state==='race')key.smTap=true;},()=>key.s
 document.querySelectorAll('#btnSteer button').forEach(b=>holdBtn(b,()=>key[b.dataset.k]=true,()=>key[b.dataset.k]=false));
 const tap=(id,fn)=>$(id).addEventListener('pointerdown',e=>{e.preventDefault();fn();});
 tap('mPause',()=>{if(state==='race'||state==='countdown')setPause(true);});tap('mCam',cycleCam);tap('mCal',calibrateTilt);tap('mPit',togglePit);tap('mTyre',cycleNext);tap('mMap',cycleMini);
-$('portraitOk').onclick=()=>document.body.classList.add('portraitok');
 $('podSkip').onclick=()=>podiumEnd(true);$('startBtn').onclick=()=>startRace();$('againBtn').onclick=()=>startRace(lastStart);$('menuBtn').onclick=toMenu;$('resumeBtn').onclick=()=>setPause(false);$('mirBtn').onclick=toggleMirror;$('haloBtn').onclick=toggleHalo;$('fpsBtn').onclick=toggleFps;$('quitBtn').onclick=toMenu;
 $('skipBtn').onclick=()=>{setPause(false);doSkip();};$('sessMenu').onclick=toMenu;
 function updStartBtn(){$('startBtn').firstChild.textContent=gameMode==='quali'?'예선 시작':gameMode==='practice'?'연습 주행 시작':'레이스 시작';}
@@ -5927,20 +5931,20 @@ const MINI_EDGE=TEAMS.map(t=>{const h=t.p.slice(1),l=(0.2126*parseInt(h.slice(0,
 function cycleMini(){const o=['L','S','off'];miniMode=o[(o.indexOf(miniMode)+1)%3];saveLS('lightsout3d-mini',miniMode);MM.qk='';
   toast(miniMode==='L'?'미니맵 크게':miniMode==='S'?'미니맵 작게':'미니맵 끔','#fff');}
 function layoutMini(){
-  const dpr=Math.min(2,window.devicePixelRatio||1),qk=innerWidth+'x'+innerHeight+'|'+dpr+'|'+miniMode+'|'+document.body.className;
+  const dpr=Math.min(2,window.devicePixelRatio||1),qk=VW()+'x'+VH()+'|'+dpr+'|'+miniMode+'|'+document.body.className;
   if(qk===MM.qk)return;MM.qk=qk;
   if(miniMode==='off'){mini.style.display='none';MM.vis=false;placeCamTag(0);if(isTouch)layoutTouchHUD();return;}
   if(isTouch){   // v12f: phones - a round map beside the timing tower, heading up, showing the stretch around the car
-    const big=miniMode==='L',port=innerHeight>innerWidth*1.05,S=port?innerWidth:innerHeight,D=Math.round(big?Math.min(port?100:112,S*(port?0.26:0.29)):Math.min(port?80:86,S*(port?0.21:0.23))),tw=$('tower').getBoundingClientRect(),left=Math.round((tw.width?tw.right:8)+8);   // (v12g: portrait - sized by the width, placed under the tower by layoutTouchHUD)
-    mini.width=Math.round(D*dpr);mini.height=Math.round(D*dpr);Object.assign(mini.style,{left:left+'px',top:'calc(6px + env(safe-area-inset-top,0px))',right:'auto',bottom:'auto',width:D+'px',height:D+'px',display:'block'});
+    const big=miniMode==='L',port=VH()>VW()*1.05,S=port?VW():VH(),D=Math.round(big?Math.min(port?100:112,S*(port?0.26:0.29)):Math.min(port?80:86,S*(port?0.21:0.23))),tw=bcr($('tower')),left=Math.round((tw.width?tw.right:8)+8);   // (v12g: portrait - sized by the width, placed under the tower by layoutTouchHUD)
+    mini.width=Math.round(D*dpr);mini.height=Math.round(D*dpr);Object.assign(mini.style,{left:left+'px',top:'calc(6px + var(--sat))',right:'auto',bottom:'auto',width:D+'px',height:D+'px',display:'block'});
     Object.assign(MM,{vis:true,W:D,H:D,dpr,sc:0,big,cap:0,radar:true});layoutTouchHUD();return;}   // (after the map is placed: the messages sit beside it)
   MM.radar=false;
   const [bx0,bz0,bx1,bz1]=WORLD.bounds,bw=Math.max(1,bx1-bx0),bh=Math.max(1,bz1-bz0),big=miniMode==='L',pad=big?15:9,cap=big?21:17;
   let w,maxH,pos;
-  if(isTouch){w=Math.round(big?Math.min(165,innerWidth*0.2):Math.min(112,innerWidth*0.14));   // phone: top right, under the timing panel (kept small: the screen is small)
-    const ht=$('hudTime').getBoundingClientRect(),mb=$('miniBtns').getBoundingClientRect(),top=Math.round((ht.height?ht.bottom:52)+6);
-    maxH=Math.floor((mb.height?mb.top:innerHeight-130)-6-top);pos={left:'auto',bottom:'auto',top:top+'px',right:'calc(8px + env(safe-area-inset-right,0px))'};}
-  else{w=big?Math.round(Math.max(200,Math.min(300,innerWidth*0.235))):180;maxH=Math.max(100,innerHeight-14-300);pos={left:'14px',bottom:'14px',top:'auto',right:'auto'};}   // desktop: bottom left, below the timing tower
+  if(isTouch){w=Math.round(big?Math.min(165,VW()*0.2):Math.min(112,VW()*0.14));   // phone: top right, under the timing panel (kept small: the screen is small)
+    const ht=bcr($('hudTime')),mb=bcr($('miniBtns')),top=Math.round((ht.height?ht.bottom:52)+6);
+    maxH=Math.floor((mb.height?mb.top:VH()-130)-6-top);pos={left:'auto',bottom:'auto',top:top+'px',right:'calc(8px + var(--sar))'};}
+  else{w=big?Math.round(Math.max(200,Math.min(300,VW()*0.235))):180;maxH=Math.max(100,VH()-14-300);pos={left:'14px',bottom:'14px',top:'auto',right:'auto'};}   // desktop: bottom left, below the timing tower
   let h=Math.round((w-2*pad)*bh/bw+2*pad+cap);h=Math.max(Math.round(w*0.5),Math.min(h,Math.round(w*1.1)));
   if(h>maxH){h=Math.floor(maxH);w=Math.max(isTouch?(big?110:90):(big?170:130),Math.min(w,Math.round((h-2*pad-cap)*bw/bh+2*pad)));}   // short screen: keep the height, narrow the panel to the track
   if(h<64){mini.style.display='none';MM.vis=false;placeCamTag(0);return;}
@@ -5949,8 +5953,8 @@ function layoutMini(){
   Object.assign(MM,{vis:true,W:w,H:h,dpr,sc,big,cap,ox:(w-bw*sc)/2-bx0*sc,oy:pad+(h-2*pad-cap-bh*sc)/2-bz0*sc});
   miniLayer();placeCamTag(isTouch?0:14+w);}
 // the key-hint strip sits between the minimap and the speed panel; it is hidden when it does not fit there
-function placeCamTag(x0){const ct=$('camTag');if(!ct||isTouch)return;ct.style.display='';ct.style.left='';const cw=ct.offsetWidth,hs=$('hudSpeed').getBoundingClientRect(),a=x0+10,b=(hs.width?hs.left:innerWidth)-10;
-  if(!cw)return;if(cw>b-a)ct.style.display='none';else ct.style.left=Math.round(Math.max(a+cw/2,Math.min(b-cw/2,innerWidth/2)))+'px';}
+function placeCamTag(x0){const ct=$('camTag');if(!ct||isTouch)return;ct.style.display='';ct.style.left='';const cw=ct.offsetWidth,hs=bcr($('hudSpeed')),a=x0+10,b=(hs.width?hs.left:VW())-10;
+  if(!cw)return;if(cw>b-a)ct.style.display='none';else ct.style.left=Math.round(Math.max(a+cw/2,Math.min(b-cw/2,VW()/2)))+'px';}
 function miniLayer(){const S=MM,c=S.layer||(S.layer=document.createElement('canvas'));c.width=mini.width;c.height=mini.height;
   const g=c.getContext('2d'),X=x=>x*S.sc+S.ox,Y=z=>z*S.sc+S.oy;g.setTransform(S.dpr,0,0,S.dpr,0,0);g.clearRect(0,0,S.W,S.H);
   g.lineJoin='round';g.lineCap='round';
@@ -6016,16 +6020,16 @@ function drawRadar(){const S=MM,g=mg,pl=race.player,now=performance.now();if(now
 // v12f: phone HUD positions that depend on each other (the right column stacks under the round buttons; the action buttons sit by the
 // thumb that is free; the timing tower stops above whatever is in the bottom-left corner)
 let TOWER_H=300;
-function safeInsets(){let e=$('saProbe');if(!e){e=document.createElement('div');e.id='saProbe';e.style.cssText='position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';document.body.appendChild(e);}
+function safeInsets(){let e=$('saProbe');if(!e){e=document.createElement('div');e.id='saProbe';e.style.cssText='position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:var(--sat) var(--sar) var(--sab) var(--sal)';document.body.appendChild(e);}
   const cs=getComputedStyle(e),f=k=>parseFloat(cs[k])||0;return {t:f('paddingTop'),r:f('paddingRight'),b:f('paddingBottom'),l:f('paddingLeft')};}
 // v12g: phone HUD v3 - every piece placed for the screen at hand. Landscape: the car's dashboard at the bottom centre between the
 // steering control and the round buttons beside the pedals (above the buttons if there is no room), the tower and the round map top
 // left, buttons and timing top right, messages as pills along the top. Portrait (e.g. inside an app that does not turn): panels along
 // the top (tower, map under it; buttons, timing and dashboard on the right), controls along the bottom. The middle stays clear.
 function layoutTouchHUD(){if(!isTouch)return;
-  const W=innerWidth,H=innerHeight,port=H>W*1.05,small=Math.min(W,H)<350,narrow=!port&&W<720,BC=document.body.classList;if(BC.contains('ph-narrow')!==narrow)BC.toggle('ph-narrow',narrow);
+  const W=VW(),H=VH(),port=H>W*1.05,small=Math.min(W,H)<350,narrow=!port&&W<720,BC=document.body.classList;if(BC.contains('ph-narrow')!==narrow)BC.toggle('ph-narrow',narrow);
   if(BC.contains('ph-port')!==port)BC.toggle('ph-port',port);if(BC.contains('ph-land')===port)BC.toggle('ph-land',!port);if(BC.contains('ph-small')!==small)BC.toggle('ph-small',small);
-  const R=e=>e.getBoundingClientRect(),vis=e=>!!e&&e.offsetWidth>0&&getComputedStyle(e).display!=='none',sa=safeInsets();
+  const R=e=>bcr(e),vis=e=>!!e&&e.offsetWidth>0&&getComputedStyle(e).display!=='none',sa=safeInsets();
   const set=(e,o)=>{for(const k in o){const v=o[k];e.style[k]=v==null?'auto':typeof v==='number'?Math.round(v)+'px':v;}};
   const tb=$('topBtns'),ht=$('hudTime'),hs=$('hudSpeed'),mb=$('miniBtns'),tw=$('tower');
   const MSGL=port?24:0;   // v12j: portrait - the message line above the panels
@@ -6078,7 +6082,7 @@ function layoutTouchHUD(){if(!isTouch)return;
   hc.htH=ht.offsetHeight;}
 let TOUCH_KT=72;   // how far the steering knob travels each way (px)
 // v12f: the phone's timing tower - every car if they fit, else the top of the order and the cars around the player; intervals to the car ahead
-function towerTouch(r,pp){const pl=race.player,S=race.sess,rowH=innerHeight<=370?13:15,act=S?r.filter(c=>!c.gone):r;let maxR=Math.max(4,Math.floor((TOWER_H-25-18)/rowH));if(towerMode==='short')maxR=Math.min(maxR,8);   // v12g: tap the header for all rows / fewer / header only
+function towerTouch(r,pp){const pl=race.player,S=race.sess,rowH=VH()<=370?13:15,act=S?r.filter(c=>!c.gone):r;let maxR=Math.max(4,Math.floor((TOWER_H-25-18)/rowH));if(towerMode==='short')maxR=Math.min(maxR,8);   // v12g: tap the header for all rows / fewer / header only
   const hd=S?`<span>${S.kind==='practice'?'연습':'Q'+S.q}</span><b>${S.kind==='practice'?fmtClock(S.t):(S.chq?'체커기':fmtClock(S.len-S.t))}</b>`
     :`<span>${race.form?(race.form.kind==='start'?'포메이션':'재개'):'랩 '+Math.max(1,Math.min(race.laps,Math.floor(pl.prog/N)+1))+'/'+race.laps}</span><b>P${pp}/${race.cars.length}</b>`;
   const n=act.length,me=act.indexOf(pl);let show;
@@ -7220,15 +7224,15 @@ function perfGovernor(dt){if(state!=='race'||autoQ==='off')return;
   // v13j: switching the shadows or the post chain off changes every shader's program key - a full recompile, a freeze of its
   // own in the middle of the race. Shrink the shadow map instead; the post chain stays.
   if(PERF.step===5){const sh=WORLD&&WORLD.sun&&WORLD.sun.shadow;if(renderer.shadowMap.enabled&&sh&&sh.mapSize.x>512){sh.mapSize.set(512,512);if(sh.map){sh.map.dispose();sh.map=null;}say('그림자를 더 가볍게 했어요');return;}}}   // v14b: (nothing to shrink, e.g. no shadows: stay at 5, so the next check is the second resolution step 6 - it was skipped)
-function resize2(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);if(composer){composer.setPixelRatio?composer.setPixelRatio(renderer.getPixelRatio()):0;composer.setSize(w,h);if(fxaa){const pr=renderer.getPixelRatio();fxaa.material.uniforms.resolution.value.set(1/(w*pr),1/(h*pr));}}}
+function resize2(){const w=VW(),h=VH();renderer.setSize(w,h,false);if(composer){composer.setPixelRatio?composer.setPixelRatio(renderer.getPixelRatio()):0;composer.setSize(w,h);if(fxaa){const pr=renderer.getPixelRatio();fxaa.material.uniforms.resolution.value.set(1/(w*pr),1/(h*pr));}}}
 // v12j: 미러 크기를 한 곳에서 정한다. 레이아웃(메시지를 얼마나 내릴지)과 그리기가 같은 값을 써야 한다.
 // 가로로 든 휴대폰(높이 440 이하)에서는 작게 — 앞이 가려진다는 지적이 있었다.
-function mirSize(){const W=innerWidth,H=innerHeight,sm=isTouch&&H<=440,
+function mirSize(){const W=VW(),H=VH(),sm=isTouch&&H<=440,
   w=Math.round(Math.min(sm?230:440,W*(sm?0.17:0.3)));return {w,h:Math.round(w/4)};}
 function drawHudMirror(){const fr=$('mirFrame');
   const show=!!(MIR&&MIR.on&&race&&(state==='race'||state==='done'||state==='countdown')&&!CAMLOOK&&!CAMPIT);
   if(!show){if(fr.style.display!=='none')fr.style.display='none';return;}
-  const W=innerWidth,H=innerHeight,ms=mirSize(),w=ms.w,h=ms.h,x=Math.round((W-w)/2),y=isTouch?(hc.mirY??58):58;
+  const W=VW(),H=VH(),ms=mirSize(),w=ms.w,h=ms.h,x=Math.round((W-w)/2),y=isTouch?(hc.mirY??58):58;
   const key2=x+','+y+','+w+','+h;if(MIR.rect!==key2){MIR.rect=key2;Object.assign(fr.style,{left:(x-4)+'px',top:(y-4)+'px',width:(w+8)+'px',height:(h+8)+'px'});}
   if(fr.style.display!=='block')fr.style.display='block';
   const ac=renderer.autoClear;renderer.autoClear=false;renderer.setScissorTest(true);renderer.setScissor(x,H-y-h,w,h);renderer.setViewport(x,H-y-h,w,h);
@@ -7306,7 +7310,7 @@ function benchStop(){const B=BENCH;if(!B)return;if(B.res.pts.length)B.S.res.push
 // the end (or a stop): results saved, the circuit and time of day put back, and the page loads as it was (menu, own settings)
 function benchFinish(S,stopped){
   const R={when:Date.now(),cfg:S.cfg,stopped:!!stopped,res:S.res,min:Math.round((Date.now()-S.t0)/60000),
-    dev:{vw:innerWidth,vh:innerHeight,sw:screen.width,sh:screen.height,dpr:window.devicePixelRatio||1,pr:Math.round(renderer.getPixelRatio()*100)/100,hz:VS.hz,q:quality,touch:isTouch,crowd:crowdOn}};
+    dev:{vw:VW(),vh:VH(),sw:screen.width,sh:screen.height,dpr:window.devicePixelRatio||1,pr:Math.round(renderer.getPixelRatio()*100)/100,hz:VS.hz,q:quality,touch:isTouch,crowd:crowdOn}};
   setLS(BLAST,JSON.stringify(R));setLS(BKEY,null);setLS('lightsout3d-track',S.orig.track);setLS('lightsout3d-tod',S.orig.tod);setLS(BSHOW,'1');
   $('benchBar').hidden=true;$('loading').style.display='flex';$('loading').textContent='측정 끝 · 원래 서킷으로 돌아가는 중';
   setTimeout(()=>location.replace(location.pathname),30);}
@@ -7379,7 +7383,7 @@ function frame(now){
   if(TEXQ.length&&state!=='race'&&state!=='countdown')while(TEXQ.length)TEXQ.shift()();
   sync(dt);
   if(state==='menu'){orbit+=dt*(LED?0.2:0.12);const pl=race.player;const gy=roadY(pl.x,pl.z,pl.idx),od=LED?6.2:7.5;camera.position.set(pl.x+Math.cos(orbit)*od,(LED?1.9:1.6)+gy,pl.z+Math.sin(orbit)*od);
-    if(LED&&camera.setViewOffset){const w=innerWidth,h=innerHeight,port=w<h;camera.setViewOffset(w,h,port?0:-Math.min(210,w*0.21),port?h*0.26:0,w,h);}camera.fov=45;camera.near=0.25;camera.lookAt(pl.x,0.5+gy,pl.z);camera.updateProjectionMatrix();meshes[race.cars.indexOf(pl)].helmet.visible=true;if(SW)SW.g.visible=false;}
+    if(LED&&camera.setViewOffset){const w=VW(),h=VH(),port=w<h;camera.setViewOffset(w,h,port?0:-Math.min(210,w*0.21),port?h*0.26:0,w,h);}camera.fov=45;camera.near=0.25;camera.lookAt(pl.x,0.5+gy,pl.z);camera.updateProjectionMatrix();meshes[race.cars.indexOf(pl)].helmet.visible=true;if(SW)SW.g.visible=false;}
   if(WORLD.waterTex){WORLD.waterTex.offset.x+=dt*0.004;WORLD.waterTex.offset.y+=dt*0.0025;}
   // v12j: the whole shadow map is redrawn every frame; once the governor decides the device is struggling (PERF.shHalf) it is
   // redrawn every other frame instead - a shadow one frame behind is not visible, and it is a large slice of work.
