@@ -4660,7 +4660,7 @@ function teamMats(kit,ti,num,code,g26){
   const m={podR:tc.podR,podL:tc.podL,decal:tc.decal,flap:tc.flap,gur:tc.gur,endp:tc.endp,rflap:tc.rflap,paint:pm(liveryTex(tm,num,ti,code,g26)),fin:pm(finTex(tm,num,ti)),
     tcam:new THREE.MeshStandardMaterial({color:second?0xd6ff00:0x111214,roughness:0.45,emissive:second?0x2a3300:0x000000}),
     second:new Phys({color:lin(tm.s),roughness:0.45,metalness:0.05,clearcoat:0.35,clearcoatRoughness:0.15,envMapIntensity:0.7}),
-    helmet:new Phys({color:lin(tm.s),roughness:0.25,metalness:0.2,clearcoat:1}),
+    helmet:new Phys({map:helmetTex(tm,num,ti),roughness:0.25,metalness:0.1,clearcoat:1}),
     cover:new THREE.MeshStandardMaterial({map:wt.cover,roughness:0.35,metalness:0.6})};
   kit.cache[key]=m;return m;
 }
@@ -5130,6 +5130,18 @@ let LIVC={};try{LIVC=JSON.parse(loadLS('lightsout3d-liv')||'{}')||{};}catch(e){L
 function applyLivData(ti){const c=LIVC[ti],t=TEAMS[ti];LIV[ti]=Object.assign({},LIV0[ti],c&&c.L?c.L:{});
   t.p=c&&c.L?LIV[ti].D:TEAMS0[ti].p;t.s=c&&c.L?LIV[ti].A:TEAMS0[ti].s;t.short=c&&c.name?c.name:TEAMS0[ti].short;}
 for(let i=0;i<TEAMS.length;i++)applyLivData(i);
+// 11-04: the driver's helmet: team colours, a stripe, the game's own team mark on both sides, the car number and team name on the back.
+// The sphere's seam is at the back (u 0 and 1), the sides at u 0.25 and 0.75, the visor at the front. All original marks, one 256x128 canvas per car.
+const HELM_MARKS=[[[0,-1],[1,0.9],[-1,0.9]],[[0,-1],[1,0],[0,1],[-1,0]],[[-1,-0.7],[0,0.1],[1,-0.7],[1,0.2],[0,1],[-1,0.2]],[[0.25,-1],[-0.7,0.2],[-0.05,0.2],[-0.25,1],[0.7,-0.25],[0.05,-0.25]],[[0,-1],[0.3,-0.3],[1,0],[0.3,0.3],[0,1],[-0.3,0.3],[-1,0],[-0.3,-0.3]],[[-1,-1],[1,-1],[1,-0.4],[-0.2,-0.4],[-0.2,1],[-1,1]],[[-1,1],[-0.4,-1],[0.4,-1],[1,1],[0.4,1],[0,-0.1],[-0.4,1]],[[-1,-0.3],[-0.3,-1],[0.3,-1],[1,-0.3],[1,0.3],[0.3,1],[-0.3,1],[-1,0.3]],[[-1,-1],[1,-1],[0,1]],[[-1,0.6],[0,-1],[1,0.6],[0.5,0.6],[0,-0.2],[-0.5,0.6]],[[-1,-0.25],[-0.25,-0.25],[-0.25,-1],[0.25,-1],[0.25,-0.25],[1,-0.25],[1,0.25],[0.25,0.25],[0.25,1],[-0.25,1],[-0.25,0.25],[-1,0.25]]];
+function helmetTex(tm,num,ti){const c=mkCanvas(256,128),g=c.getContext('2d'),lum=h=>{const n=parseInt(String(h).slice(1),16);return (0.3*(n>>16&255)+0.59*(n>>8&255)+0.11*(n&255))/255;};
+  const base=tm.s,ls=lum(base),acc=Math.abs(lum(tm.p)-ls)>0.22?tm.p:(ls>0.5?'#14161a':'#f4f5f7'),ink=ls>0.55?'#101114':'#ffffff';
+  g.fillStyle=base;g.fillRect(0,0,256,128);
+  g.fillStyle=acc;g.fillRect(0,0,256,13);g.fillRect(0,21,256,4);   // the crown and a thin line under it
+  const mark=(cx,cy,r)=>{g.fillStyle=acc;g.beginPath();g.arc(cx,cy,r,0,7);g.fill();g.strokeStyle=ink;g.lineWidth=2;g.stroke();const P=HELM_MARKS[ti%HELM_MARKS.length],k=r*0.62;g.fillStyle=lum(acc)>0.55?'#101114':'#ffffff';g.beginPath();P.forEach(([x,y],i)=>{i?g.lineTo(cx+x*k,cy+y*k):g.moveTo(cx+x*k,cy+y*k);});g.closePath();g.fill();};
+  mark(64,52,19);mark(192,52,19);
+  g.textAlign='center';g.textBaseline='middle';g.fillStyle=ink;
+  for(const x of[0,256]){g.font='800 32px "Saira Condensed","Arial Narrow",sans-serif';g.fillText(String(num),x,44);g.font='700 10px "Saira Condensed","Arial Narrow",sans-serif';g.fillText(tm.short||'',x,65);}
+  const t=texFrom(c);t.anisotropy=4;t.wrapS=THREE.RepeatWrapping;return t;}
 // forget one team's cached car materials (and free their textures) so the next build uses the new paint
 function dropTeamMats(ti){if(!KIT)return;const kill=m=>{if(!m)return;if(m.map)m.map.dispose();if(m.roughnessMap)m.roughnessMap.dispose();m.dispose();};
   for(const k of Object.keys(KIT.cache||{}))if(+k.split('_')[0]===ti){const m=KIT.cache[k];for(const n of['paint','fin','tcam','second','helmet'])kill(m[n]);if(m.cover){if(m.cover.map)m.cover.map.dispose();m.cover.dispose();}delete KIT.cache[k];}
