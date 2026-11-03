@@ -922,10 +922,11 @@ function sideLimit(i,s){
 }
 
 // ---------------- tyres ----------------
-const COMP={S:{key:'S',name:'소프트',col:'#e10600',grip:1.0,life:0.6,win:[88,110]},M:{key:'M',name:'미디엄',col:'#f5c518',grip:0.972,life:0.95,win:[90,110]},H:{key:'H',name:'하드',col:'#f2f2f2',grip:0.945,life:1.4,win:[95,116]},
-  I:{key:'I',name:'인터미디어',col:'#3ddc84',grip:0.885,life:1.1,win:[55,85],wet:true},W:{key:'W',name:'풀 웻',col:'#3b82f6',grip:0.84,life:1.3,win:[45,78],wet:true}};
+// 11-04: deg = grip lost over a tyre's life, cl/clk = where the cliff starts and how steep, warm = how fast it comes up to temperature
+const COMP={S:{key:'S',name:'소프트',col:'#e10600',grip:1.0,life:0.6,win:[88,110],deg:0.09,cl:0.6,clk:1.1,warm:1.3},M:{key:'M',name:'미디엄',col:'#f5c518',grip:0.96,life:0.95,win:[90,110],deg:0.06,cl:0.7,clk:0.9,warm:1},H:{key:'H',name:'하드',col:'#f2f2f2',grip:0.925,life:1.4,win:[95,116],deg:0.035,cl:0.8,clk:0.7,warm:0.75},
+  I:{key:'I',name:'인터미디어',col:'#3ddc84',grip:0.885,life:1.1,win:[55,85],wet:true,deg:0.05,cl:0.7,clk:0.9,warm:1},W:{key:'W',name:'풀 웻',col:'#3b82f6',grip:0.84,life:1.3,win:[45,78],wet:true,deg:0.05,cl:0.7,clk:0.9,warm:1}};
 // relative grip of each compound vs track wetness 0, .2, .4, .6, .8, 1  (slick->inter crossover ~0.2, inter->wet ~0.75)
-const WGRIP={S:[1,0.86,0.72,0.6,0.5,0.42],M:[0.972,0.84,0.7,0.585,0.49,0.41],H:[0.945,0.815,0.68,0.57,0.475,0.4],I:[0.885,0.86,0.82,0.76,0.68,0.6],W:[0.84,0.8,0.765,0.735,0.71,0.69]};
+const WGRIP={S:[1,0.86,0.72,0.6,0.5,0.42],M:[0.96,0.835,0.7,0.585,0.49,0.41],H:[0.925,0.805,0.68,0.57,0.475,0.4],I:[0.885,0.86,0.82,0.76,0.68,0.6],W:[0.84,0.8,0.765,0.735,0.71,0.69]};
 let WET=0;   // current track wetness (0 dry .. 1 standing water)
 function wetGrip(k,w){const t=WGRIP[k],x=Math.max(0,Math.min(1,w))*5,i=Math.min(4,Math.floor(x)),f=x-i;return t[i]+(t[i+1]-t[i])*f;}
 function usedWet(c){return c.used.has('I')||c.used.has('W');}
@@ -936,7 +937,7 @@ const LAPSEC=58, LOADNORM=1.0;
 // as qualifying (which has always used 10) - the same lap felt completely different between the two. One number for both now.
 const TYRE_REF=10;
 function newTyres(comp,temp){return {comp,wear:[0,0,0,0],temp:[temp,temp,temp,temp],dist:0};}
-function wearF(w){return w>1?Math.max(0.78,0.869-0.3*(w-1)):1-0.05*w-(w>0.7?0.9*(w-0.7)*(w-0.7):0);}   // worn out: less grip, never zero. 11-01 윤택님 (0 % 되면 너무 심하게 느려짐): past 0 % it slides down to 78 % grip (was on to 45 %: a lap +55 % slower at Lusail)
+function wearF(w,C){const e=Math.min(w,1),f=1-C.deg*e-(e>C.cl?C.clk*(e-C.cl)*(e-C.cl):0);return w>1?Math.max(0.78,f-0.3*(w-1)):f;}   // worn out: less grip, never zero. 11-01 윤택님 (0 % 되면 너무 심하게 느려짐): past 0 % it slides down to 78 % grip (was on to 45 %: a lap +55 % slower at Lusail)
 // grip against tyre temperature: full grip inside the compound's window; a cold tyre is slippery (20 degC under the window
 // about -12 %, 40 under about -29 %), an overheated one loses grip more gently and wears faster (game curve, not Pirelli data)
 function tempF(T,C){if(T<C.win[0]){const d=C.win[0]-T;return Math.max(0.55,1-0.0045*d-0.00007*d*d);}
@@ -944,16 +945,18 @@ function tempF(T,C){if(T<C.win[0]){const d=C.win[0]-T;return Math.max(0.55,1-0.0
 // new slicks come off the tyre blankets at about 70 degC (game value; the real set-points are fixed by Pirelli per event),
 // intermediates and wets go on at air temperature
 const BLANKET=70;function tyreT0(comp){return COMP[comp].wet?38:BLANKET;}
-function tyreGrip(c){
-  const ty=c.ty,C=COMP[ty.comp],pk=c.dmg&&c.dmg.pk,f=[0,1,2,3].map(k=>wearF(ty.wear[k])*tempF(ty.temp[k],C)*(pk?1-0.62*pk[k]:1));   // pk: puncture (1 = flat, on the rim)
-  const dirt=1-0.14*(c.dirt||0);for(let k=0;k<4;k++)f[k]*=dirt;
-  const fr=(f[0]+f[1])/2,rr=(f[2]+f[3])/2;
+const wheelS=(ty,C,pk,k)=>wearF(ty.wear[k],C)*(1-(1-tempF(ty.temp[k],C))*0.35)*(pk?1-0.62*pk[k]:1);
+const wheelF=(ty,C,pk,k)=>wearF(ty.wear[k],C)*tempF(ty.temp[k],C)*(pk?1-0.62*pk[k]:1);   // pk: puncture (1 = flat, on the rim)
+function tyreGrip(c){   // (11-04: reuses one object per car, no garbage: it runs for every car every step)
+  const ty=c.ty,C=COMP[ty.comp],pk=c.dmg&&c.dmg.pk,O=c.tgO||(c.tgO={lat:0,brk:0,trc:0,f:0,r:0,kT:0});
+  const dirt=1-0.14*(c.dirt||0);
+  const fr=(wheelF(ty,C,pk,0)+wheelF(ty,C,pk,1))*dirt/2,rr=(wheelF(ty,C,pk,2)+wheelF(ty,C,pk,3))*dirt/2;
   const vv=Math.abs(c.spd)/VMAX,aq=C.wet?1-0.1*WET*WET*vv*vv:1-0.38*WET*vv*vv,wg=wetGrip(ty.comp,WET),G=wg*aq;   // aq: aquaplaning at speed
   // slicks in the rain: they still pull on a straight (only 40 % of the wet loss, no aquaplaning on the drive), but corners and braking stay slippery
   // the same for the drive off the line: slicks go cold fast in the rain, and that cost only 35 % of its grip loss on the drive (the start was 1.7x slower)
-  const wS=!C.wet&&WET>0.2,rT=wS?[2,3].reduce((a,k)=>a+wearF(ty.wear[k])*(1-(1-tempF(ty.temp[k],C))*0.35)*(pk?1-0.62*pk[k]:1)*dirt,0)/2:rr;
+  const wS=!C.wet&&WET>0.2,rT=wS?(wheelS(ty,C,pk,2)+wheelS(ty,C,pk,3))*dirt/2:rr;
   const Gt=C.wet?G:1-(1-wg)*0.4,kT=Gt*rT/Math.max(0.05,G*rr);
-  return {lat:G*(0.5*fr+0.5*rr),brk:G*(0.6*fr+0.4*rr),trc:Gt*rT,f:G*fr,r:G*rr,kT};
+  O.lat=G*(0.5*fr+0.5*rr);O.brk=G*(0.6*fr+0.4*rr);O.trc=Gt*rT;O.f=G*fr;O.r=G*rr;O.kT=kT;return O;
 }
 function tyreStep(race,c,dt,latA,lonA,slip){
   const ty=c.ty,C=COMP[ty.comp],v=Math.abs(c.spd),s=v/VMAX;
@@ -964,12 +967,12 @@ function tyreStep(race,c,dt,latA,lonA,slip){
   const FORMW=(race.form&&!race.form.done)?0.08:1;
   const lat=Math.min(1.6,Math.abs(latA)/40),brk=Math.max(0,-lonA)/40,trc=Math.max(0,lonA)/14,right=latA>0;
   for(let k=0;k<4;k++){
-    const front=k<2,left=k%2===0,outside=(right&&left)||(!right&&!left);
+    const front=k<2,left=k%2===0,outside=(right&&left)||(!right&&!left),dA=(c.dirty||0)*Math.min(1,lat*1.5);   // 11-04: dA - sliding in the wake of a car ahead, mostly at the front
     const load=0.25+lat*(outside?1.2:0.6)+(front?brk*0.6:trc*0.35+brk*0.2)+slip*2.5+(c.surf?c.surf.wr*(0.4+0.6*s):(c.off?0.4:0));
     const T=ty.temp[k],hot=Math.max(0,T-C.win[1]),cold=Math.max(0,C.win[0]-T);   // too hot: blistering, too cold: graining
-    if(v>1)ty.wear[k]+=base*load*(1+hot/12+cold/45)*(0.35+0.65*s)*dt*1.25*(ty.comp==='I'?1+7.5*Math.max(0,0.2-WET):C.wet?1+2.5*Math.max(0,0.6-WET):1)*FORMW;   // 11-01: rain tyres wear extra only on a drying track (full wets under 60 % wet, inters under 20 % - their own range is 20-72 %; dry: x2.5 for both) - inters wore x1.5-2 all through their range (3-4 laps a set)
-    const heat=(5.2+3.2*load)*(0.3+s),cool=(T-28)*(0.075*(0.3+s)+0.02)+WET*(T-12)*0.06;
-    ty.temp[k]+=(heat-cool)*dt*0.45;   // a tyre takes a good part of a lap to come up to temperature
+    if(v>1)ty.wear[k]+=base*load*(1+hot/12+cold/45)*(0.35+0.65*s)*dt*1.25*(1+(front?7:3)*dA)*(ty.comp==='I'?1+7.5*Math.max(0,0.2-WET):C.wet?1+2.5*Math.max(0,0.6-WET):1)*FORMW;   // 11-01: rain tyres wear extra only on a drying track (full wets under 60 % wet, inters under 20 % - their own range is 20-72 %; dry: x2.5 for both) - inters wore x1.5-2 all through their range (3-4 laps a set)
+    const heat=(5.2+3.2*load+(front?40:15)*dA)*(0.3+s),cool=(T-28)*(0.075*(0.3+s)+0.02)+WET*(T-12)*0.06;
+    ty.temp[k]+=(heat-cool)*dt*0.45*C.warm;   // a tyre takes a good part of a lap to come up to temperature
   }
   ty.dist+=v*dt;
 }
@@ -981,6 +984,7 @@ function pickCompound(race,c){
   if(w>0.2||(rain>0.2&&w>0.08))return 'I';
   if(race.sess)return race.sess.kind==='quali'?'S':c.ty.comp;
   const left=lapsLeft(race,c),opts=['S','M','H'].filter(k=>!needsSecond(c)||k!==c.ty.comp);
+  {const q=c.plan,k=q&&q.seq[c.stops+1];if(k&&opts.includes(k)&&(c.stops+2<q.seq.length||COMP[k].life*race.laps>=left*1.02))return k;}   // 11-04: the car's own plan, if the set still reaches the flag
   for(const k of opts)if(COMP[k].life*race.laps>=left*1.02)return k;
   return opts[opts.length-1];
 }
@@ -1128,6 +1132,31 @@ function makeWeather(mode,laps,rnd){const dur=laps*LAPSEC,wx={mode,wet:0,rain:0,
   return wx;}
 function gripLat(v,off){return (15+0.35*Math.abs(v))*(off?0.45:1);}
 
+// 11-04: what a pit stop costs here: the speed-limited lane against the same stretch of track at racing speed, slowing into it, the stop
+function lapRef(){let t=0;for(let i=0;i<N;i++)t+=STEP/Math.max(8,PROF[i]);return t*1.14;}
+let PITLOSS=null;function pitLoss(){if(PITLOSS==null){let tr=0;for(let r=0;r<=PIT.Z;r++)tr+=STEP/Math.max(8,PROF[wrap(PIT.E+r)])*1.14;
+  PITLOSS=(PIT.Z-PIT.RAMP-PIT.RX)*STEP/(80/3.6)+(PIT.RAMP+PIT.RX)*STEP/32-tr+5+2.6;}return PITLOSS;}
+// AI by difficulty: mistakes, how readily it defends, late braking when passing, how often the team reacts to a rival's stop, how far from the best plan it may pick
+const AIK={easy:{err:1.7,def:0.35,late:0.5,react:0.25,noise:10},normal:{err:1,def:0.65,late:0.8,react:0.6,noise:5},hard:{err:0.5,def:0.9,late:1,react:0.9,noise:1.5}};
+// lap time lost over a stint against a new soft (1 % of grip is about 0.25 % of a lap, measured on the AI, 11-04); a stint past its life costs a lot
+function stintCost(comp,laps,race,LT){const C=COMP[comp],wl=0.75/(C.life*race.tyreLaps);let s=0;for(let i=0;i<laps;i++)s+=LT*0.25*(1-C.grip*wearF((i+0.5)*wl,C));return s+(laps*wl>0.98?60:0);}
+// one- and two-stop plans from the tyre the car starts on, the stints split by tyre life; the team's noise makes the field differ
+function makePlan(race,c,noise){const a=c.ty.comp,L=race.laps;if(COMP[a].wet)return null;const D=['S','M','H'],LT=lapRef(),cs=[],rnd=c.rnd;
+  for(const b of D){if(b!==a)cs.push([a,b]);if(L>=5)for(const d of D)if(b!==a||d!==a)cs.push([a,b,d]);}
+  let best=null,bc=1e9;for(const seq of cs){let sum=0;for(const k of seq)sum+=COMP[k].life;let cost=pitLoss()*(seq.length-1)+noise*rnd(),acc=0;const at=[];
+    for(let i=0;i<seq.length;i++){const n=L*COMP[seq[i]].life/sum*(0.9+0.2*rnd());cost+=stintCost(seq[i],n,race,LT);acc+=n;if(i<seq.length-1)at.push(acc);}
+    if(cost<bc){bc=cost;best={seq,at};}}
+  return best;}
+// seconds ahead (+) or behind (-) on the road, whole laps included
+function gapSec(race,c,o){return (o.prog-c.prog)*lapRef0()/N;}
+let LAPR=null;function lapRef0(){return LAPR||(LAPR=lapRef());}
+// where a car would come out if it stopped now
+function rejoinPos(race,c){const L=pitLoss();let n=1;for(const o of race.cars){if(o===c||o.gone||o.dnf||o.inGarage)continue;if(gapSec(race,c,o)>-L)n++;}return n;}
+// rejoins within a moment behind another car: it would sit in that car's wake on its out-lap
+function rejoinTraffic(race,c){const L=pitLoss();for(const o of race.cars){if(o===c||o.gone||o.dnf||o.pit)continue;const g=gapSec(race,c,o)+L;if(g>-0.4&&g<1.3)return true;}return false;}
+// the player's pit window from the wear so far: first lap past the tyre's best, last lap before it is gone; laps a set of compound k would last
+function pitAdvice(race,c){const ty=c.ty,C=COMP[ty.comp],w=avgWear(c),used=ty.dist/(N*STEP);if(used<0.4||C.wet)return null;const r=w/used,lap=Math.floor(c.prog/N)+1;
+  return {loss:pitLoss(),pos:rejoinPos(race,c),from:lap+Math.max(0,Math.round((C.cl-w)/r)),to:lap+Math.max(0,Math.round((1-w)/r)),left:Math.max(0,(1-w)/r),rate:r,life:k=>0.95*COMP[k].life/C.life/r};}
 function makeRace(teamIdx,laps,diff,sens,startComp,rnd,opts){
   rnd=rnd||Math.random;opts=opts||{};
   const wx=makeWeather(opts.weather||'dry',opts.wxLaps||laps,rnd);WET=wx.wet;
@@ -1147,7 +1176,10 @@ function makeRace(teamIdx,laps,diff,sens,startComp,rnd,opts){
   const inc=opts.incidents||'often',st=TRK.theme==='city',pInc=inc==='off'?0:inc==='real'?(st?0.6:0.35)+(wx.mode!=='dry'?0.15:0):1,plan=[];   // v12g: street circuits (walls, no run-off) see more incidents
   if(rnd()<pInc)plan.push({t:laps*LAPSEC*(0.15+rnd()*0.45),red:rnd()<(inc==='real'?(st?0.2:0.1):(st?0.3:0.18))});   // some are big crashes that stop the race (red flag)
   if(inc==='often'&&laps>=5&&rnd()<(st?0.8:0.6))plan.push({t:laps*LAPSEC*(0.62+rnd()*0.25)});
-  return {cars,player:pl,t:0,laps,diff:DIFF[diff]?diff:'normal',gam:gripUse(diff),mode:opts.mode||'race',tyreLaps:opts.tyreLaps||laps,startT:0,inc,dmg:opts.damage||'normal',sens:sens||2,aeroAuto:opts.aeroAuto!==false,assist:opts.assist||'normal',finished:[],EV:[],wx,rc:{flag:'green',yellows:[],vsc:null,sc:null,plan,noPass:null,leaderId:-1,incidents:[]}};
+  const R0={cars,player:pl,t:0,laps,diff:DIFF[diff]?diff:'normal',gam:gripUse(diff),mode:opts.mode||'race',tyreLaps:opts.tyreLaps||laps,startT:0,inc,dmg:opts.damage||'normal',sens:sens||2,aeroAuto:opts.aeroAuto!==false,assist:opts.assist||'normal',finished:[],EV:[],wx,rc:{flag:'green',yellows:[],vsc:null,sc:null,plan,noPass:null,leaderId:-1,incidents:[]}};
+  // 11-04: each AI driver: aggression, defending, consistency; and, in a race, its own tyre plan
+  {const K=AIK[R0.diff];for(const c of cars)if(!c.isP){c.ps={agg:rnd(),def:rnd(),cons:rnd()};c.errN=0;c.defN=0;c.defNext=0;if(R0.mode==='race')c.plan=makePlan(R0,c,K.noise);}}
+  return R0;
 }
 function trackInfo(c){
   let best=1e18,bi=c.idx;
@@ -1385,12 +1417,6 @@ function stepPlayer(race,c,dt,inp){
   const sw=S===SURF.track?1:S===SURF.paint?1-0.35*WET:S===SURF.kerb?1-0.25*WET:S===SURF.runoff?1-0.1*WET:1-0.3*WET;
   const n=Math.max(1,Math.ceil(dt/0.004)),h=dt/n;let slipMax=0,lockT=0;
   const SM=surfMix(ti.i,ti.off);c.kerbW=kerbWheels(ti.i,ti.off);
-  // v12f: the air behind another car - turbulent (less downforce, mostly at the front: the follower understeers) up to ~30 m behind,
-  // and slower (less drag: the slipstream) up to ~60 m; strongest right behind, gone once the cars are a car's width apart sideways.
-  // Game values in the range published for the current cars (front-end loss of ~10-20 % close behind, a tow of up to ~30 % drag).
-  {let dirty=0,tow=0;for(const o of race.cars){if(o===c||o.gone||o.pit||o.dnf||o.inGarage)continue;const dp=gapTo(c,o);if(dp<=0||dp>32)continue;
-     const d=dp*STEP,al=Math.max(0,1-Math.abs(o.lat-c.lat)/2.6);if(al<=0)continue;dirty=Math.max(dirty,0.12*al*Math.max(0,Math.min(1,1-(d-6)/26)));tow=Math.max(tow,0.3*al*Math.max(0,1-d/62));}
-   const k=Math.min(1,dt*4);c.dirty=(c.dirty||0)+(dirty-(c.dirty||0))*k;c.tow=(c.tow||0)+(tow-(c.tow||0))*k;}
   const lt=[0,0,0,0];
   for(let k=0;k<n;k++){const o=carDyn(c,h,SM,sw,tg,asst,inp);slipMax=Math.max(slipMax,o.slip);lockT+=o.lock*h;if(c.lkS){if(c.lkS[0])lt[0]+=h;if(c.lkS[1])lt[1]+=h;}if(c.lockR){lt[2]+=h;lt[3]+=h;}}
   // v12h: flat spots, per tyre: a locked wheel slides on one patch and scrubs it flat - deeper the faster it was going (game scale: half a
@@ -1550,15 +1576,39 @@ function aiWantsPit(race,c){
   const n2=needsSecond(c),wr=avgWear(c);
   if(race.rc.flag!=='green'&&left>0.8&&(wr>0.35||(n2&&COMP[pickCompound(race,c)].life*race.laps>=left*0.95&&(c.id*37+Math.floor(race.rc.since||0)*11)%100<65)))return true;      // cheap stop under SC / VSC - v15b: only if the new set reaches the flag, and on fresh tyres only about two in three take it (the rest keep track position; fixed per car for each neutralisation) - the whole field used to pit on the same lap
   if(n2&&left<1.35)return true;
-  if(n2&&wr>c.pitThr&&COMP[pickCompound(race,c)].life*race.laps>=left*0.95)return true;
+  const q=c.plan;   // 11-04: the plan, moved by what is around the car. Only asked near the pit entry: once a lap
+  if(q&&c.stops<q.at.length){const lap=c.prog/N,at=q.at[c.stops],K=AIK[race.diff],reacts=((c.id*131+Math.floor(lap)*37)%100)/100<K.react;
+    if(lap>=at-1.5&&wr>0.2&&reacts&&race.rc.flag==='green')for(const o of race.cars){if(o===c||o.gone||o.dnf)continue;const g=gapSec(race,c,o);
+      if(g>0&&g<1.4&&!o.pit)return true;                     // stuck behind it: undercut
+      if(Math.abs(g)<2.5&&o.pit&&o.pit.state==='in'&&o.stops===c.stops)return true;}   // a rival next to it is coming in: cover
+    if(lap>=at&&!(lap<at+1&&wr<0.8&&rejoinTraffic(race,c)))return true;}                   // on the planned lap, unless it would come out in traffic (a lap at most)
+  else if(n2&&wr>c.pitThr&&COMP[pickCompound(race,c)].life*race.laps>=left*0.95)return true;
   return wr>0.88&&left>0.7;
 }
+// which side the inside of the next corner is on: +1 towards +lat, -1 the other way
+function cornerSide(i){const q=wrap(i+Math.round(NEXTC[i]/STEP)+20),a=T[wrap(q-20)],b=T[q];return a[0]*b[1]-a[1]*b[0]>0?1:-1;}
 const AI_NEAR=[],AI_LIMA=HALF-0.9;   // cars near an AI car this step; how far over an AI car may go to make room
 // where a car will be at track index i if it keeps its line and offset (the steering keeps it inside the track); the player: where it is
 const pathLat=(c,i)=>{if(c.isP||c.lane==null||c.pit)return c.lat;   // (v13k: a car merging from the pits still holds its lane from before the stop)
 const b=(c.rlw||0)*RLA.lat[i],L=Math.max(TR.HW[i]-0.9,Math.abs(b));return Math.max(-L,Math.min(L,b+c.lane));};
 // how far apart sideways the two paths are where car c would catch car o (o dp samples ahead): two parallel lines can meet at a corner
 const meetDl=(c,o,dp)=>{const tm=Math.min(1.6,Math.max(0,dp*STEP-4)/Math.max(1,c.spd-o.spd)),m=wrap(o.idx+Math.round(o.spd*tm/STEP));return Math.abs(pathLat(o,m)-pathLat(c,m));};
+// 11-04: stepAI's helpers: one set for all the cars (5 new closures per car per step were the biggest source of garbage). AC..: the car being stepped
+let AIC=null,AB0=0,ALM=0,ASP=false;
+const aiNear=o=>!!o&&!o.gone&&(!o.pit||o.pit.state==='join')&&Math.abs(gapTo(AIC,o))<4;   // (v13k: a car merging from the pits is a car beside it too)
+  const aiRel=o=>o.lat-AIC.rlw*RLA.lat[o.idx];
+  // v13: unjam - a car that has stood still for 2 s behind a stopped or broken-down car no longer counts the cars behind it when it looks
+  // for a way round (they wait for it): a queue behind a car that broke down on the racing line used to lock up for over a minute - the
+  // first car waited for room beside the cars queued behind it, and they waited for it (2026-10 regression run, Las Vegas)
+  const aiFree=rel=>{for(const o of AI_NEAR){if(AIC.unjam&&gapTo(AIC,o)<-1.2)continue;if(Math.abs(aiRel(o)-rel)<2.7)return false;}return true;};
+  // and nobody alongside between here and there (the move would cut across that car); x: the car being passed
+  const aiClear=(t,x)=>{const cur=AIC.lat-AB0,a=Math.min(cur,t)-2.2,b=Math.max(cur,t)+2.2;for(const o of AI_NEAR){if(o===x||Math.abs(gapTo(AIC,o))>=3||(AIC.unjam&&gapTo(AIC,o)<-1.2))continue;const r=aiRel(o);if(r>a&&r<b)return false;}return true;};
+  // the side to pass on: a free side beside that car; more room helps up to 2 m, crossing over costs, and a car keeps to the side it
+  // already chose for that car (it used to pick afresh every 1.6 s and weave left-right behind the cars ahead, worst off the start)
+  const aiPick=(o,off)=>{const orl=aiRel(o),bo=AIC.rlw*RLA.lat[o.idx],cur=AIC.lat-AB0;let best=null,bm=-1e9,bs=0;
+    for(const s of[-1,1]){const t=orl+s*off,room=ALM+0.3-Math.abs(bo+t);if(room<0||!aiFree(t)||!aiClear(t,o)||(ASP&&!o.dnf&&!o.fail&&Math.abs(t-cur)>2))continue;
+      const sc=Math.min(room,2)-0.8*Math.abs(t-cur)+(AIC.passO===o.id&&AIC.passS===s?3:0)+(AIC.ps&&NEXTC[AIC.idx]<250&&cornerSide(AIC.idx)===s?1.5*AIC.ps.agg:0);if(sc>bm){bm=sc;best=t;bs=s;}}
+    if(best!=null){AIC.passO=o.id;AIC.passS=bs;}else if(AIC.passO===o.id)AIC.passO=null;return best;};   // (v12i: no room any more: no longer passing that car)
 function stepAI(race,c,dt){
   if(c.gone)return;
   trackInfo(c);
@@ -1578,7 +1628,7 @@ function stepAI(race,c,dt){
   // switching the reference moves no car: the offset takes up the difference, then eases back onto the line when there is room
   {const rlT=(c.fail||c.blue||c.pitAh||rc.flag==='red'||(c.pitReq&&(dPE<280||(r>=0&&r<10)))||startPh)?0:1,old=c.rlw||0;
    const nw=rlT<old?Math.max(rlT,old-3*dt):Math.min(rlT,old+2*dt);if(nw!==old){const d=(nw-old)*RLA.lat[c.idx];c.lane-=d;c.laneT-=d;}c.rlw=nw;}
-  const b0=c.rlw*RLA.lat[c.idx],LA0=Math.max(LIMA,Math.abs(b0));   // the line here; how far over the car may go (the line itself may use the kerbs)
+  const b0=c.rlw*RLA.lat[c.idx],LA0=Math.max(LIMA,Math.abs(b0));AIC=c;AB0=b0;ALM=lim;ASP=startPh;   // the line here; how far over the car may go (the line itself may use the kerbs)
   if(c.fail){const sd=c.lat>=0?1:-1,L=sideLimit(c.idx,sd)-1.8,hw0=TR.HW[c.idx];c.laneT=sd*Math.max(hw0-1,Math.min(hw0+5,L))-b0;}
   else if(c.pitReq&&(dPE<280||(r>=0&&r<10))){c.laneT=PIT.side*lim-b0;}
   else if(rc.flag==='sc'||rc.flag==='vsc'){c.laneT*=Math.exp(-0.5*dt);}                  // single file, on the line
@@ -1586,14 +1636,14 @@ function stepAI(race,c,dt){
   else if(c.giveBack&&!c.fail&&!c.pitReq){const o=race.cars[c.giveBack.ix];if(o){const sd=o.lat>c.lat?-1:1;c.laneT=sd*lim-b0;}}   // v12h: giving back a place taken off the track: move over
   if(!c.fail){if(c.avHi!=null&&c.laneT>c.avHi-b0)c.laneT=c.avHi-b0;if(c.avLo!=null&&c.laneT<c.avLo-b0)c.laneT=c.avLo-b0;   // a car alongside: leave it room, never steer into it
    if(c.avHi!=null&&c.avLo!=null)c.laneT=(c.avHi+c.avLo)/2-b0;c.laneT=Math.max(-LA0-b0,Math.min(LA0-b0,c.laneT));}   // (a broken-down car still pulls off the track)
-  c.lane+=(c.laneT-c.lane)*Math.min(1,(c.fail?1.5:c.avoid?2.6:0.9)*dt);
+  c.lane+=(c.laneT-c.lane)*Math.min(1,(c.fail?1.5:c.avoid?2.6:c.defHold>race.t?1.8:0.9)*dt);
   const la=4+c.spd*0.35,li=wrap(c.idx+Math.round(la/STEP)),p=P[li],tt=T[li],bl=c.rlw*RLA.lat[li],LAl=Math.max(Math.min(LIMA,TR.HW[li]-0.9),Math.abs(bl));
   let tl=c.fail?bl+c.lane:Math.max(-LAl,Math.min(LAl,bl+c.lane));
   const creep=!c.fail&&!c.pit&&c.creepT>race.t&&!!c.obstP&&!c.obstP.gone;   // v13: still stuck 4 s on: creep past it at walking pace, a car's width clear
   if(creep){const o=c.obstP,sg=o.lat>=c.lat?-1:1,l2=TR.HW[li]-1.0;tl=Math.max(-l2,Math.min(l2,o.lat+sg*3.6));}
   // a car alongside (found last step): the aim point keeps a car's width from where that car will be. The lane only eases over and
   // the line itself sweeps across the track in a corner, so the lane alone lets a car close in on the one beside it (or the player)
-  const near=o=>!!o&&!o.gone&&(!o.pit||o.pit.state==='join')&&Math.abs(gapTo(c,o))<4;   // (v13k: a car merging from the pits is a car beside it too)
+  const near=aiNear;
   if(!c.fail&&(near(c.sP)||near(c.sN))){const hi=near(c.sP)?pathLat(c.sP,li)-2.9:1e9,lo=near(c.sN)?pathLat(c.sN,li)+2.9:-1e9;
     if(hi<lo)tl=(hi+lo)/2;else if(tl>hi)tl=hi;else if(tl<lo)tl=lo;tl=Math.max(-LAl,Math.min(LAl,tl));}
   const tx=p[0]-tt[1]*tl,tz=p[1]+tt[0]*tl;
@@ -1602,19 +1652,23 @@ function stepAI(race,c,dt){
   const om=Math.max(-wmax,Math.min(wmax,want))*(c.aiLk>0?0.6:1);c.a+=om*dt;c.st+=(Math.max(-1,Math.min(1,om/Math.max(wmax,0.01)))-c.st)*Math.min(1,8*dt);
   // speed: the racing-line profile on the line, the (slower) centreline profile once the car is well off it (passing, defending);
   // race.gam: the share of the grip the AI uses, by difficulty and circuit (gripUse)
-  const gU=tg.lat*(race.gam||1),paC=profAt(wrap(c.idx+2),gU,0.2),wl=c.rlw*Math.max(0,Math.min(1,1-(Math.abs(c.lane)-0.8)/2)),pa=paC+(profAtRL(wrap(c.idx+2),gU)-paC)*wl;
+  const aeS=PH.kD*c.spd*c.spd/(PH.m*9.81+PH.kD*c.spd*c.spd),gU=tg.lat*(race.gam||1)*(1-1.2*(c.dirty||0)*aeS),paC=profAt(wrap(c.idx+2),gU,0.2),wl=c.rlw*Math.max(0,Math.min(1,1-(Math.abs(c.lane)-0.8)/2)),pa=paC+(profAtRL(wrap(c.idx+2),gU)-paC)*wl;
   let tgt=pa*((c.run&&c.run.ph==='push'&&c.run.sk)||c.skill)*dmgPace(c)*(c.runF||1),lead=null,ld=1e9;   // runF: out-lap / cool-down / in-lap pace in a session
   // v12i: once it brakes for the corner, straight mode stays shut until the car is out of the zone (it reopened the next step: in the end of a zone,
   // where the braking for the corner starts, the target went up 3 % and down again every other step - the car braked and accelerated in turn)
   if(!AERO[c.idx])c.aeLk=false;else if(c.spd>tgt+1)c.aeLk=true;   // (braking for the corner itself: faster than the corner allows without straight mode)
-  const ae=c.aeLk?0:aeroState(race,c);c.aeroOpen=ae;if(ae)tgt*=1+0.015*ae;
-  let obst=null,od=1e9,vSafe=1e9,pitAhead=false,sideP=null,sideN=null,threat=null,tth=1e9,stickD=null;const bA=brakeAcc(c.spd,tg.brk)*0.92;AI_NEAR.length=0;
+  const ae=c.aeLk?0:aeroState(race,c);c.aeroOpen=ae;if(ae)tgt*=1+0.015*ae;if(TR.K[c.idx]<0.002)tgt*=1+0.06*(c.tow||0);   // 11-04: the tow, on a straight
+  if(c.err){if(race.t>c.err.t)c.err=null;else tgt*=c.err.f;}   // 11-04: a mistake: the lost speed
+  if(c.ps&&!race.sess){if(race.t>(c.paT||0)){c.paT=race.t+4+c.rnd()*6;c.paG=(c.rnd()-0.5)*0.008*(1.3-c.ps.cons);}c.paN=(c.paN||0)+((c.paG||0)-(c.paN||0))*Math.min(1,dt);if(!neutral)tgt*=1+c.paN;}   // lap times are not all the same
+  {const x=c.ps&&c.passO!=null?race.cars[c.passO]:null;if(x&&!x.pit&&!x.gone&&!neutral&&Math.abs(gapTo(c,x))<5&&NEXTC[c.idx]<140)tgt*=1+0.02*c.ps.agg*AIK[race.diff].late;}   // alongside into a corner: brakes later
+  let obst=null,od=1e9,vSafe=1e9,pitAhead=false,sideP=null,sideN=null,threat=null,tth=1e9,stickD=null,atk=null,atkD=-1e9;const bA=brakeAcc(c.spd,tg.brk)*0.92;AI_NEAR.length=0;
   for(const o of race.cars){if(o===c||o.gone)continue;
     const ramp=!!o.pit&&(o.pit.state==='join'||o.pit.state==='in'&&zoneR(o.idx)<Math.min(PIT.RAMP,40));   // turning into the pit lane: still next to the track (v13k: and a car merging out of it - the field drove into it blind)
     if(o.pit&&!ramp)continue;if(o.dnf&&Math.abs(o.lat)>TR.HW[o.idx]+0.8)continue;const dp=gapTo(c,o),dl=o.lat-c.lat,dlp=dp>0?Math.min(Math.abs(dl),Math.abs(o.lat-pathLat(c,o.idx)),dp<40?meetDl(c,o,dp):9):Math.abs(dl);   // dlp: also against where this car's line will be, and where both lines meet
     if(dp>-5&&dp<16)AI_NEAR.push(o);   // for picking a free side
     if((!ramp||o.pit.state==='join')&&Math.abs(dp)<3.2&&Math.abs(dl)<3.2){if(dl>=0){if(!sideP||dl<sideP.lat-c.lat)sideP=o;}else if(!sideN||dl>sideN.lat-c.lat)sideN=o;}   // overlapping, side by side
-    if(dp<0&&dp>-16&&Math.abs(dl)<2.4&&!o.dnf&&!ramp){const cl=o.spd-c.spd;if(cl>5){const tc=(-dp*STEP-5.2)/cl;if(tc<1.3&&tc<tth){tth=tc;threat=o;}}}   // about to be hit from behind
+    if(dp<0&&dp>-14&&dp>atkD&&!o.dnf&&!o.pit&&Math.abs(dl)<5){atk=o;atkD=dp;}   // 11-04: the car attacking it
+    if(dp<0&&dp>-16&&Math.abs(dl)<2.4&&!o.dnf&&!ramp){const cl=o.spd-c.spd;if(cl>9){const tc=(-dp*STEP-5.2)/cl;if(tc<1.3&&tc<tth){tth=tc;threat=o;}}}   // about to be hit from behind
     const stopped=o.dnf||(o.fail&&o.spd<4),halted=stopped||(o.spd<3&&race.t>(race.startT||0)+4),slow=halted||(!startPh&&c.spd>14&&o.spd<Math.max(7,c.spd*0.45));   // (off the start a slower launch is followed, not dodged)   // broken down, stopped on track (spun, stalled) or crawling
     if(slow&&dp>0&&dp<40&&dp<od&&dlp<3.4){od=dp;obst=o;}
     if(stopped){if(creep&&o===c.obstP)continue;const dls=c.unjam?Math.abs(o.lat-pathLat(c,o.idx)):dlp;if(dp>0&&dp<40&&dls<(c.unjam?2.4:3.0))vSafe=Math.min(vSafe,Math.sqrt(2*bA*Math.max(0,dp*STEP-(c.unjam?4.5:7))));continue;}   // (v13: unjam - by where its path goes past it, see below)
@@ -1628,19 +1682,7 @@ function stepAI(race,c,dt){
   const sc=rc.sc;if(sc&&sc.on&&sc.phase!=='pit'){const dp=sc.prog-c.prog;if(dp>0&&dp<70){const gap=dp*STEP-14;tgt=Math.min(tgt,Math.sqrt(Math.max(0,sc.spd*sc.spd+2*16*Math.max(0,gap))));if(dp<16&&dp<ld){ld=dp;lead=sc;}}}
   // lanes are offsets from this car's line, so other cars are measured the same way - from the line where each of them is: a car
   // that pulls out to pass then runs parallel to the other car's path, even where the line swings across the track in a chicane
-  const relOf=o=>o.lat-c.rlw*RLA.lat[o.idx];
-  // v13: unjam - a car that has stood still for 2 s behind a stopped or broken-down car no longer counts the cars behind it when it looks
-  // for a way round (they wait for it): a queue behind a car that broke down on the racing line used to lock up for over a minute - the
-  // first car waited for room beside the cars queued behind it, and they waited for it (2026-10 regression run, Las Vegas)
-  const freeAt=rel=>{for(const o of AI_NEAR){if(c.unjam&&gapTo(c,o)<-1.2)continue;if(Math.abs(relOf(o)-rel)<2.7)return false;}return true;};
-  // and nobody alongside between here and there (the move would cut across that car); x: the car being passed
-  const clearTo=(t,x)=>{const cur=c.lat-b0,a=Math.min(cur,t)-2.2,b=Math.max(cur,t)+2.2;for(const o of AI_NEAR){if(o===x||Math.abs(gapTo(c,o))>=3||(c.unjam&&gapTo(c,o)<-1.2))continue;const r=relOf(o);if(r>a&&r<b)return false;}return true;};
-  // the side to pass on: a free side beside that car; more room helps up to 2 m, crossing over costs, and a car keeps to the side it
-  // already chose for that car (it used to pick afresh every 1.6 s and weave left-right behind the cars ahead, worst off the start)
-  const pickSide=(o,off)=>{const orl=relOf(o),bo=c.rlw*RLA.lat[o.idx],cur=c.lat-b0;let best=null,bm=-1e9,bs=0;
-    for(const s of[-1,1]){const t=orl+s*off,room=lim+0.3-Math.abs(bo+t);if(room<0||!freeAt(t)||!clearTo(t,o)||(startPh&&!o.dnf&&!o.fail&&Math.abs(t-cur)>2))continue;
-      const sc=Math.min(room,2)-0.8*Math.abs(t-cur)+(c.passO===o.id&&c.passS===s?3:0);if(sc>bm){bm=sc;best=t;bs=s;}}
-    if(best!=null){c.passO=o.id;c.passS=bs;}else if(c.passO===o.id)c.passO=null;return best;};   // (v12i: no room any more: no longer passing that car)
+  const relOf=aiRel,freeAt=aiFree,clearTo=aiClear,pickSide=aiPick;
   let oSide=null;if(obst&&!c.fail){const hard=obst.dnf||obst.fail||obst.spd<3;oSide=pickSide(obst,hard?3.8:4.0);if(oSide!=null)c.laneT=oSide;if(hard&&(od<14||oSide==null))tgt=Math.min(tgt,Math.max(oSide==null?6:18,pa*0.7));}   // steer round a stopped, spun or crawling car (also under yellow); no room: wait behind it
   // v12i: traffic targets are 'soft': the car lifts off for them (it used to brake as hard as for a corner). Following a car: hold ~9 m
   // centre to centre, closing at most 2.5 m/s - smoothly with the real gap (it switched between +1.5 and -2 m/s at a 2 m-step threshold,
@@ -1649,9 +1691,12 @@ function stepAI(race,c,dt){
   let soft=1e9,needA=0;
   if(lead&&!(lead===obst&&oSide!=null)){const gm=ld*STEP+((lead.al||0)-(c.al||0)),cl=c.spd-lead.spd,atk=c.passO===lead.id&&!neutral;   // atk: pulling out to pass it - closer, and with some speed in hand
     soft=Math.min(soft,lead.spd+Math.max(-3,Math.min(atk?3:2.5,0.35*(gm-(atk?8:9)))));
-    needA=cl>0?cl*cl/(2*Math.max(0.3,gm-6.7)):0;if(!neutral&&race.t>c.passT&&!c.pitReq&&!c.fail&&lead!==sc){const t=pickSide(lead,3.4);if(t!=null)c.laneT=t;else c.laneT=startPh?c.lat-b0:c.laneT*0.5;c.passT=race.t+1.6;}}   // no room to pass: fall in behind, on the line
-  else if(!obst&&race.t>c.passT&&!c.pitReq&&!c.fail&&c.rlw>0.5){c.laneT*=Math.exp(-0.8*dt);if(!neutral&&c.rnd()<0.002&&Math.abs(c.laneT)<0.3){const t=(c.rnd()*2-1)*1.0;if(freeAt(t))c.laneT=t;}}   // (off the start, on plain lanes, a car keeps its lane: the field no longer funnels into the middle)   // back onto the line after a pass or the start; now and then a slightly different line
-  if(threat&&!c.fail&&!c.pitReq){const s=c.lat>=threat.lat?1:-1,tr=relOf(threat);let t=tr+s*3.0;if(Math.abs(b0+t)>LIMA||!freeAt(t))t=tr-s*3.0;if(Math.abs(b0+t)<=LIMA&&freeAt(t))c.laneT=t;}   // a car closing fast from behind: get out of its way
+    needA=cl>0?cl*cl/(2*Math.max(0.3,gm-6.7)):0;if(!neutral&&race.t>c.passT&&!c.pitReq&&!c.fail&&lead!==sc){const t=pickSide(lead,3.4);if(t!=null)c.laneT=t;else c.laneT=startPh?c.lat-b0:c.laneT*0.5;c.passT=race.t+(c.ps?2.4-1.6*c.ps.agg:1.6);}}   // no room to pass: fall in behind, on the line
+  else if(!obst&&race.t>c.passT&&!c.pitReq&&!c.fail&&c.rlw>0.5&&!(c.defHold>race.t)){c.laneT*=Math.exp(-0.8*dt);if(!neutral&&c.rnd()<0.002&&Math.abs(c.laneT)<0.3){const t=(c.rnd()*2-1)*1.0;if(freeAt(t))c.laneT=t;}}   // (off the start, on plain lanes, a car keeps its lane: the field no longer funnels into the middle)   // back onto the line after a pass or the start; now and then a slightly different line
+  if(threat&&!c.fail&&!c.pitReq){const s=c.lat>=threat.lat?1:-1,tr=relOf(threat);let t=tr+s*3.0;if(Math.abs(b0+t)>LIMA||!freeAt(t))t=tr-s*3.0;if(Math.abs(b0+t)<=LIMA&&freeAt(t))c.laneT=t;}   // a car much faster from behind: get out of its way
+  // 11-04: defending: a car attacking from behind into a corner: one move to the inside, before it is alongside, once a straight
+  if(atk&&c.ps&&!threat&&!neutral&&!startPh&&!c.fail&&!c.pitReq&&!c.blue&&!c.giveBack&&!obst&&race.t>c.defNext&&NEXTC[c.idx]<220&&NEXTC[c.idx]>40&&atkD<-1.5){c.defNext=race.t+7;
+    if(c.rnd()<AIK[race.diff].def*(0.5+0.5*c.ps.def)){const t=cornerSide(c.idx)*lim*0.75-b0;if(clearTo(t,atk)){c.laneT=t;c.defHold=race.t+2.6;c.defN++;}}}
   c.sP=sideP;c.sN=sideN;c.avHi=sideP?sideP.lat-2.9:null;c.avLo=sideN?sideN.lat+2.9:null;c.avoid=!!(sideP||sideN||threat);   // room for the car alongside, applied to the lane next step
   {const sq=(sideP&&c.avHi<-LIMA)?sideP:(sideN&&c.avLo>LIMA)?sideN:(sideP&&sideN&&c.avHi-c.avLo<0)?(gapTo(c,sideP)>gapTo(c,sideN)?sideP:sideN):null;
    if(sq&&sq.spd>3){const gq=gapTo(c,sq);if(gq>0.3||(gq>-0.3&&c.id>sq.id))soft=Math.min(soft,Math.max(sq.spd*0.85,sq.spd-1.5));}}   // no room to give: ease off behind the car that is ahead (dead level: one of the two yields)
@@ -1672,14 +1717,17 @@ function stepAI(race,c,dt){
   const wasB=!!c.boost;c.braking=c.spd>hardT+1;c.boost=false;
   // v12h: AI lock-ups - now and then a car locks its inside front wheel at the start of a big stop (more often on cold tyres, in the wet,
   // or when it is fighting a car close ahead): a puff of smoke, the wheel stops, a little less braking and steering (0.6x) for a moment
-  {if(c.aiLk>0){c.aiLk=Math.max(0,c.aiLk-dt);if(c.ty)c.ty.wear[c.aiLkW]+=0.012*dt;}const heavy=c.spd>30&&c.spd>hardT+6;
-   if(heavy&&!c.hvB&&!c.fail&&!c.pit&&rc.flag==='green'&&!(c.aiLk>0)){const pL=0.01*(tg.brk<0.92?2.5:1)*(1+3*Math.min(1,(race.wx&&race.wx.wet)||0))*(lead&&lead!==rc.sc&&ld<12?2:1);
-     if(c.rnd()<pL){const t0=T[c.idx],t1=T[wrap(c.idx+25)];c.aiLk=0.3+c.rnd()*0.45;c.aiLkW=(t0[0]*t1[1]-t0[1]*t1[0])>0?1:0;}}
+  {if(c.aiLk>0){c.aiLk=Math.max(0,c.aiLk-dt);if(c.ty)c.ty.wear[c.aiLkW]+=0.012*dt;}const heavy=c.spd>30&&(c.spd>hardT+6||NEXTC[c.idx]<70);
+   if(heavy&&!c.hvB&&!c.fail&&!c.pit&&rc.flag==='green'&&!(c.aiLk>0)){const pL=0.006*(tg.brk<0.92?2.5:1)*(1+3*Math.min(1,(race.wx&&race.wx.wet)||0))*(lead&&lead!==rc.sc&&ld<12?2:1);
+     if(c.rnd()<pL){const t0=T[c.idx],t1=T[wrap(c.idx+25)];c.aiLk=0.3+c.rnd()*0.45;c.aiLkW=(t0[0]*t1[1]-t0[1]*t1[0])>0?1:0;}
+     // 11-04: other mistakes at the start of a big stop: runs wide, loses the rear on the way out, misses the apex - with worn tyres, in the wet, under pressure
+     if(c.ps&&!race.sess&&!c.err){const wr=(c.ty.wear[0]+c.ty.wear[1]+c.ty.wear[2]+c.ty.wear[3])/4,pE=0.0025*AIK[race.diff].err*(1.6-c.ps.cons)*(1+2*wr*wr)*(1+3*Math.min(1,(race.wx&&race.wx.wet)||0))*(lead&&lead!==rc.sc&&ld<12?1.5:1);
+       if(c.rnd()<pE){const q=c.rnd();c.errN++;if(q<0.45){c.err={k:'wide',t:race.t+1.6,f:0.9};if(!c.avoid)c.laneT-=cornerSide(c.idx)*2.5;}else if(q<0.75){c.err={k:'snap',t:race.t+1,f:0.93};c.ty.wear[2]+=0.01;c.ty.wear[3]+=0.01;}else c.err={k:'slow',t:race.t+1.8,f:0.95};}}}
    c.hvB=heavy;}
   if(c.fail){c.spd=Math.max(0,c.spd-(c.crash?10:5)*dt);c.braking=true;}
   else if(c.spd<tgt){const po=c.passO!=null?race.cars[c.passO]:null,atkB=!!po&&!po.gone&&!po.pit&&po!==lead&&Math.abs(po.lat-c.lat)>1.5&&gapTo(c,po)>-2&&gapTo(c,po)<20;   // v12i: and while it is alongside that car, passing it
-    const wantB=!neutral&&((!!lead&&lead!==sc&&ld<30)||atkB)&&TR.K[c.idx]<0.002&&c.ers>(wasB?0.15:0.3);c.boost=wantB;   // (v12i: once on it stays on to 0.15 MJ - it flickered on and off at 0.3)
-    const gA=9.81*TR.G[c.idx];c.spd=Math.min(Math.min(hardT*(wantB?(c.ovt?1.045:1.025):1),soft),c.spd+Math.max(0.3-gA,driveAcc(c.spd,Math.min(1,tg.trc),wantB?PH.Pb:0,ae===2?0.9:ae===1?0.95:1)-gA)*dt);}   // (v12i: the boost no longer takes it past the car it follows - it then had to brake back)
+    const wantB=!neutral&&((!!lead&&lead!==sc&&ld<30)||atkB||c.defHold>race.t)&&TR.K[c.idx]<0.002&&c.ers>(wasB?0.15:0.3);c.boost=wantB;   // (v12i: once on it stays on to 0.15 MJ - it flickered on and off at 0.3)
+    const gA=9.81*TR.G[c.idx];c.spd=Math.min(Math.min(hardT*(wantB?(c.ovt?1.045:1.025):1),soft),c.spd+Math.max(0.3-gA,driveAcc(c.spd,Math.min(1,tg.trc),wantB?PH.Pb:0,(ae===2?0.9:ae===1?0.95:1)*(1-(c.tow||0)))-gA)*dt);}   // (v12i: the boost no longer takes it past the car it follows - it then had to brake back)
   else if(c.spd>hardT)c.spd=Math.max(tgt,c.spd-Math.max(1,brakeAcc(c.spd,tg.brk)*(c.spd>hardT+5?1.03:0.92)*(c.aiLk>0?0.82:1)+9.81*TR.G[c.idx])*dt);   // a corner, a stopped car, a flag: brakes (closing fast on a car ahead: harder; slope included; a locked wheel brakes less)
   else{const lift=4+0.14*c.spd,dA=Math.min(brakeAcc(c.spd,tg.brk)*0.92,Math.max(lift,needA*1.15));if(dA>lift+3)c.braking=true;   // v12i: traffic only: lift off (drag and engine braking, ~1.6 g at 300 km/h),
     c.spd=Math.max(tgt,c.spd-Math.max(0.5,dA+9.81*TR.G[c.idx])*dt);}                                                         // brakes only as hard as the car ahead needs
@@ -1706,9 +1754,21 @@ function collide(race){
         if((a.isP||b.isP)&&rel>2.5)race.EV.push({type:'contact',rel,x:(ax+bx)/2,z:(az+bz)/2,nx:a.isP?nx:-nx,nz:a.isP?nz:-nz});if(rel>4&&(a.isP||b.isP))contactDmg(race,a,b,sa,sb,rel,nx,nz);/* AI-AI touches in this simple model are mostly traffic overlap, not racing incidents */done=true;break;}}}
   }
 }
+// v12f / 11-04: the air behind another car, for every car (it was the player's only): turbulent (less downforce, mostly at the front:
+// the follower understeers, slides and heats its fronts - tyreStep) and slower (less drag: the slipstream). The reach goes with speed
+// (about a second behind), the wake widens with distance, a train of cars adds a little, a crawling car leaves almost none.
+// Game values in the range published for the current cars (front-end loss of ~10-20 % close behind, a tow of up to ~30 % drag).
+// Each car looks every third step (22 x 22 checks a step otherwise).
+function airStep(race,dt){const cs=race.cars,tick=race.airT=(race.airT||0)+1,k=Math.min(1,dt*12);
+  for(const c of cs){if(c.gone||(c.id+tick)%3)continue;let d1=0,d2=0,tow=0;
+    if(!c.pit&&!c.dnf&&c.spd>8){const R=Math.max(34,Math.min(80,c.spd*0.9)),RT=Math.max(40,Math.min(90,c.spd*1.1));
+      for(const o of cs){if(o===c||o.gone||o.pit||o.dnf||o.inGarage)continue;const dp=gapTo(c,o);if(dp<=0||dp>45)continue;
+        const d=dp*STEP,al=1-Math.abs(o.lat-c.lat)/(2+d*0.025);if(al<=0)continue;const wv=Math.min(1,o.spd/30),x=0.14*al*wv*Math.max(0,Math.min(1,1-(d-6)/(R-6)));
+        if(x>d1){d2=d1;d1=x;}else if(x>d2)d2=x;tow=Math.max(tow,0.3*al*wv*Math.max(0,1-d/RT));}}
+    c.dirty=(c.dirty||0)+(d1+0.25*d2-(c.dirty||0))*k;c.tow=(c.tow||0)+(tow-(c.tow||0))*k;}}
 function stepRace(race,dt,inp){
   if(!race.go){race.go=true;const p=race.player;if(p.jump)addPen(race,p,5,'jump');}
-  race.t+=dt;updWeather(race,dt);
+  race.t+=dt;updWeather(race,dt);airStep(race,dt);
   for(const c of race.cars){if(c.gone)continue;const before=c.prog;
     if(c.pit)stepPit(race,c,dt);
     else if(c.isP){if(c.dnf){c.spd=0;c.vx=c.vy=c.r=0;c.thr=c.bp=0;}
@@ -1824,7 +1884,7 @@ function raceControl(race,dt){
     const cand=race.cars.filter(c=>!c.isP&&c.fin==null&&!c.pit&&!c.dnf&&!c.fail&&!c.gone&&zoneR(c.idx)<0);
     if(cand.length){const v=cand[Math.floor(Math.random()*cand.length)];v.pitReq=false;
       if(ev.red)bigCrash(race,v);else{v.fail=true;race.EV.push({type:'fail',code:v.code,name:v.name});}}}
-  rc.yellows=rc.yellows.filter(z=>race.t<z.until);offTrackYellows(race,dt);
+  if(rc.yellows.length)rc.yellows=rc.yellows.filter(z=>race.t<z.until);offTrackYellows(race,dt);
   if(rc.flag==='red')redControl(race,dt);
   if(rc.flag==='green')for(let q=rc.incidents.length-1;q>=0;q--){const ic=rc.incidents[q];if(ic.recover&&race.t>ic.recover){ic.gone=true;rc.incidents.splice(q,1);}}
   if(rc.flag==='vsc'){const v=rc.vsc;
@@ -2285,8 +2345,9 @@ function roadSurfY(x,z,i0){if(!HD.on)return 0;let j=i0;
 // height at its centre and the slope averaged over ~25 m, so over crests and dips an axle sank into the road or floated - up to 11 cm
 // at Monaco - and every tyre sat 4 cm into the asphalt, which is laid 4 cm above the track height). CAR_SQ: tyre squash.
 const CAR_SQ=0.008;
-function carPose(c,o){const ca=Math.cos(c.a),sa=Math.sin(c.a),ln=!!PIT.tun&&!!(c.pit||c.onLane),h=(fx,rz)=>{const x=c.x+ca*fx-sa*rz,z=c.z+sa*fx+ca*rz;return roadSurfY(x,z,c.idx)+(ln?pitDepXZ(x,z,c.idx):0);};   // all four tyres: pitch and roll (v12d: on the floor of the Yas exit tunnel too)
-  const fl=h(WHL.xf,-WHL.zf),fr=h(WHL.xf,WHL.zf),rl=h(WHL.xr,-WHL.zr),rr=h(WHL.xr,WHL.zr),yf=(fl+fr)/2,yr=(rl+rr)/2;
+function wheelY(c,ca,sa,ln,fx,rz){const x=c.x+ca*fx-sa*rz,z=c.z+sa*fx+ca*rz;return roadSurfY(x,z,c.idx)+(ln?pitDepXZ(x,z,c.idx):0);}
+function carPose(c,o){const ca=Math.cos(c.a),sa=Math.sin(c.a),ln=!!PIT.tun&&!!(c.pit||c.onLane);   // all four tyres: pitch and roll (v12d: on the floor of the Yas exit tunnel too)
+  const fl=wheelY(c,ca,sa,ln,WHL.xf,-WHL.zf),fr=wheelY(c,ca,sa,ln,WHL.xf,WHL.zf),rl=wheelY(c,ca,sa,ln,WHL.xr,-WHL.zr),rr=wheelY(c,ca,sa,ln,WHL.xr,WHL.zr),yf=(fl+fr)/2,yr=(rl+rr)/2;
   o.pp=Math.atan2(yf-yr,WHL.xf-WHL.xr);o.pr=Math.atan2((fl+rl)-(fr+rr),2*(WHL.zf+WHL.zr));o.py=yr+(yf-yr)*(-WHL.xr)/(WHL.xf-WHL.xr)+0.04-CAR_SQ;return o;}
 // bake the height map into the static world once: every vertex (world space) is raised by the ground height under it;
 // instanced props are raised to the lowest ground under their footprint (a building on a slope reaches down to it).
@@ -4898,7 +4959,8 @@ if(isTouch)document.body.classList.add('touch');
 // cannot lock it), #wrap is laid out at the landscape size and turned 90 deg clockwise: right for a phone turned to the left (top of
 // the phone on the left, charging port on the right). Unlocked, the OS turns the window itself and nothing is turned here.
 // Layout code works in #wrap's coordinates: VW() x VH() is its size, bcr() a box in it, ptX() a finger's x along it.
-let ROT=false;const VW=()=>ROT?innerHeight:innerWidth,VH=()=>ROT?innerWidth:innerHeight,ptX=e=>ROT?e.clientY:e.clientX;
+// 11-04: the window size is read once, not on every use (reading innerWidth after the HUD changed forces a layout: 0.2-0.4 ms a frame on this laptop, more on a phone)
+let ROT=false,WINW=innerWidth,WINH=innerHeight;const VW=()=>ROT?WINH:WINW,VH=()=>ROT?WINW:WINH,ptX=e=>ROT?e.clientY:e.clientX;
 function bcr(e){const r=e.getBoundingClientRect();if(!ROT)return r;const W=innerWidth;return {left:r.top,right:r.bottom,top:W-r.right,bottom:W-r.left,x:r.top,y:W-r.right,width:r.height,height:r.width};}
 function applyRot(){ROT=isTouch&&innerHeight>innerWidth;document.body.classList.toggle('rot',ROT);
   $('wrap').style.cssText=ROT?'position:fixed;left:0;top:0;width:'+innerHeight+'px;height:'+innerWidth+'px;transform-origin:0 0;transform:translateX('+innerWidth+'px) rotate(90deg)':'';}
@@ -5031,7 +5093,7 @@ function setupComposer(){
 function basePR(){const w=VW(),h=VH();let pr=Math.min(quality==='high'?(isTouch?1.75:2):quality==='medium'?(isTouch?1.5:1):(isTouch?1.25:1),window.devicePixelRatio||1);   // v14b: phones a step sharper (smooth 1 -> 1.25, normal 1.25 -> 1.5) with the post passes gone
   if(quality==='low'&&!isTouch)pr=Math.min(pr,Math.max(0.5,Math.sqrt(2.4e6/Math.max(1,w*h))));   // v12h: the lowest setting on a PC draws at most ~1080p worth of pixels (a 1440p or 4K window drew 2-4 times that)
   return pr;}
-function resize(){resize.w=innerWidth;resize.h=innerHeight;applyRot();const w=VW(),h=VH();let pr=basePR();   // 11-01: the size this was done for - frame() redoes it when the window has another size (an iPhone turned sideways can send its resize with one old side: 402x402 canvas, stretched and cut off, mirror in the corner)
+function resize(){resize.w=WINW=innerWidth;resize.h=WINH=innerHeight;applyRot();const w=VW(),h=VH();let pr=basePR();   // 11-01: the size this was done for - frame() redoes it when the window has another size (an iPhone turned sideways can send its resize with one old side: 402x402 canvas, stretched and cut off, mirror in the corner)
   if(typeof PERF!=='undefined'&&PERF.prCap)pr=Math.min(pr,PERF.prCap);   // (and keeps what the smoothness governor took off)
   renderer.setPixelRatio(pr);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
   if(composer){composer.setPixelRatio?composer.setPixelRatio(renderer.getPixelRatio()):0;composer.setSize(w,h);if(fxaa){const pr=renderer.getPixelRatio();fxaa.material.uniforms.resolution.value.set(1/(w*pr),1/(h*pr));}}}
@@ -5519,8 +5581,8 @@ function togglePit(){if(!race||state!=='race')return;const p=race.player;if(p.pi
   if(race.form||race.rc.flag==='red'){toast(race.rc.flag==='red'?'레드 플래그 · 모든 차가 피트 레인으로 들어가요':'포메이션 랩에는 피트인할 수 없어요','#fff');return;}
   p.pitReq=!p.pitReq;if(p.pitReq&&!p.nextComp)p.nextComp=pickCompound(race,p);
   if(p.pitReq){const m=race.cars.find(o=>o!==p&&o.team===p.team&&!o.gone);if(m&&m.pitReq&&!m.pit&&wrap(PIT.E-m.idx)*STEP>60&&zoneR(m.idx)<0&&yieldToMate(race,m)){m.pitReq=false;setTimeout(()=>toast('팀메이트는 한 랩 뒤에 들어와요 (더블 스택 대기 없음)','#8ecae6',2.6),900);}}   // v12i
-  toast(p.pitReq?'BOX, BOX · 이번 랩에 피트인':'피트 요청 취소',p.pitReq?'#f5c518':'#fff');}
-function setNext(k){if(!race||state==='menu')return;const p=race.player;if(p.pit&&!['in','red','garage'].includes(p.pit.state))return;p.nextComp=k;toast('다음 타이어: '+COMP[k].name,COMP[k].col);}
+  if(p.pitReq)p.boxPos=rejoinPos(race,p);toast(p.pitReq?'BOX, BOX · 이번 랩에 피트인'+(race.sess?'':' · P'+p.boxPos+' 복귀 예상'):'피트 요청 취소',p.pitReq?'#f5c518':'#fff');}
+function setNext(k){if(!race||state==='menu')return;const p=race.player;if(p.pit&&!['in','red','garage'].includes(p.pit.state))return;p.nextComp=k;const a=!COMP[k].wet&&!race.sess?pitAdvice(race,p):null;toast('다음 타이어: '+COMP[k].name+(a?' · 약 '+Math.round(a.life(k))+'랩':''),COMP[k].col);}
 function cycleNext(){const p=race&&race.player;if(!p)return;const o=['S','M','H','I','W'];setNext(o[(o.indexOf(p.nextComp||p.ty.comp)+1)%5]);}
 let toastHold=0;
 function toast(m,c,d,hold){if(!hold&&performance.now()<toastHold)return;if(hold)toastHold=performance.now()+hold;const t=$('toast');t.textContent=m;t.style.color=c||'#fff';t.style.opacity=1;toastT=d||1.8;}
@@ -6110,7 +6172,7 @@ let curRpm=4200,curGear='N';
 // v12f: G-meter: the car's acceleration as a dot in a circle (rings at 2 and 4 G; braking up, the turn's outside sideways) with a short
 // trail and the total in G - with the downforce a car pulls far more G in fast corners than in slow ones
 const GM={x:0,y:0,tr:[],acc:0,pk:0,pkT:0};
-function drawGMeter(pl,dt){const cv=$('gMeter');if(!cv||!cv.offsetWidth)return;GM.acc+=dt;const k=Math.min(1,dt*10);
+function drawGMeter(pl,dt){if(isTouch)return;const cv=$('gMeter');if(!cv||!cv.offsetWidth)return;GM.acc+=dt;const k=Math.min(1,dt*10);
   GM.x+=(Math.max(-6,Math.min(6,-(pl.latG||0)/9.81))-GM.x)*k;GM.y+=(Math.max(-6,Math.min(6,(pl.lonG||0)/9.81))-GM.y)*k;
   const gt=Math.hypot(GM.x,GM.y);if(gt>GM.pk||race.t-GM.pkT>2){GM.pk=gt;GM.pkT=race.t;}
   if(GM.acc<1/30)return;GM.acc=0;GM.tr.push([GM.x,GM.y]);if(GM.tr.length>14)GM.tr.shift();
@@ -6159,7 +6221,7 @@ function drawHUD(dt){
    if(!!pl.aeroOpen!==!!SND.aero){SND.aero=!!pl.aeroOpen;if(state==='race')sfx(SND.aero?'aeroOpen':'aeroClose');}}if(isTouch)setT('bOVT','OVT');$('bOVT').classList.toggle('on',!!pl.ovt);
   // v12f: slipstream / dirty air, sector lights, G-meter
   {const tw=pl.tow||0,dr=pl.dirty||0,cor=Math.abs(pl.latG||0)>9,el=$('bAir'),cls=dr>0.03&&cor?'badge air on dirty':tw>0.06&&!pl.pit?'badge air on':'badge air';
-   if(el.className!==cls)el.className=cls;setT('bAir',cls.includes('dirty')?(isTouch?'난기류':'더티 에어 -'+Math.round(dr*100)+'%'):cls.includes('on')?(isTouch?'토우':'슬립스트림'):'');}
+   if(el.className!==cls)el.className=cls;setT('bAir',cls.includes('dirty')?(isTouch?'난기류 -'+Math.round(dr*100)+'%':'더티 에어 -'+Math.round(dr*100)+'%'):cls.includes('on')?(isTouch?'토우':'슬립스트림'):'');}
   {const S=pl.sec,els=$('secs').children;for(let k=0;k<3;k++){const x=S&&S.cur[k],c=x?x.cls:'';if(els[k]._c!==c){els[k]._c=c;els[k].className=c;els[k].firstChild.textContent=x?x.t.toFixed(3):'';}}}
   drawGMeter(pl,dt);
   for(let k=0;k<4;k++){const lk=(k<2&&(pl.lkS?pl.lkS[k]:pl.lockF))||(k>=2&&(pl.lockR||pl.spinR)),fs=!!(pl.flatW&&pl.flatW[k]>=0.25),st=lk?2:fs?1:0,el=$('ty'+k);   // v12h: per tyre; orange = flat spot
@@ -6189,13 +6251,16 @@ function drawHUD(dt){
     else if(pl.pitReq&&race.rc.flag==='red')pi='<span class="box">레드 플래그 · 천천히 피트 레인으로</span><br>피트 레인에서 순위대로 정렬 · 수리와 타이어 교체';
     else if(S&&!pl.pitReq)pi=`${isTouch?'PIT 버튼':'B 키'}: 피트인 · 새 타이어 <b style="color:${COMP[pl.nextComp||pl.ty.comp].col}">${COMP[pl.nextComp||pl.ty.comp].name}</b> (${isTouch?'타이어 버튼':'1~5'} 변경)`+(S.kind==='quali'?'<br>타이어가 데워진 뒤(초록) 플라잉 랩':'');
     else if(pl.pitReq&&race.cars.some(o=>o!==pl&&o.team===pl.team&&o.pit&&(o.pit.state==='in'||o.pit.state==='stop')))pi=`<span class="box">BOX BOX · 팀메이트가 지금 피트 중</span><br>들어가면 더블 스택으로 잠깐 대기 · ${isTouch?'PIT 버튼':'B 키'}로 취소 가능`;   // v12i
-    else if(pl.pitReq)pi=`<span class="box">BOX BOX · 이번 랩 피트인</span><br>다음 타이어 <b style="color:${nc.col}">${nc.name}</b> (${isTouch?'타이어 버튼':'1~5'} 변경)`;
+    else if(pl.pitReq)pi=`<span class="box">BOX BOX · 이번 랩 피트인</span>${S?'':' · P'+pl.boxPos+' 복귀 예상'}<br>다음 타이어 <b style="color:${nc.col}">${nc.name}</b> (${isTouch?'타이어 버튼':'1~5'} 변경)`;
     else if(pl.fin!=null)pi='';
     else if(race.form)pi=race.form.kind==='start'?'포메이션 랩 · 타이어 온도를 올려두세요':'세이프티카 뒤 그리드로 · 추월 금지';
     else if(needsSecond(pl))pi=`<span class="warn">2가지 컴파운드 의무 미이행</span> · ${isTouch?'PIT 버튼으':'B 키'}로 요청`;
     else pi='전략: '+pl.stints.join(' → ')+(usedWet(pl)?' · 우천 타이어 사용(2컴파운드 의무 면제)':'');
     if(pl.pen&&pl.fin==null)pi+=`<br><span class="warn">미소화 페널티 ${pl.pen}초 · 피트 정차 때 소화</span>`;
-    if(pi!==hc.pitInfo){hc.pitInfo=pi;$('pitInfo').innerHTML=pi;const pm=pi.startsWith('전략:')?'':pi;$('pitMsg').innerHTML=pm;hc.pmT=pm?6:0;}}
+    if(pi!==hc.pitInfo){hc.pitInfo=pi;$('pitInfo').innerHTML=pi;const pm=pi.startsWith('전략:')?'':pi;$('pitMsg').innerHTML=pm;hc.pmT=pm?6:0;}
+    // 11-04: from one lap before the pit window, once a lap: the window, what a stop costs here, where the car would come out
+    {const lp=Math.floor(pl.prog/N);if(lp!==hc.advL){hc.advL=lp;const a=!S&&!race.form&&!pl.pit&&!pl.pitReq&&pl.fin==null&&race.rc.flag==='green'&&lp+1<race.laps?pitAdvice(race,pl):null;
+      if(a&&lp+1>=a.from-1){const t=(a.to<=lp+1?'타이어 한계':'피트 창 '+a.from+'~'+a.to+'랩')+' · 손실 '+Math.round(a.loss)+'초 · 지금 들어가면 P'+a.pos;$('pitInfo').textContent=t;$('pitMsg').textContent=t;hc.pitInfo=t;hc.pmT=6;}}}}
   if(isTouch){if((hc.htN=(hc.htN||0)+1)%30===0&&$('hudTime').offsetHeight!==hc.htH)layoutTouchHUD();   // v13j: not every frame - reading it forces a layout
     // v13h: the pill used to come back for 4 s on every new lap as well. On a phone it sits over
     // the road ahead, so with the pit window open the same 'new tyres' line blocked the view once
@@ -7155,6 +7220,7 @@ function addMirrorFaces(m){if(!MIR)return;MIR.faces=[];if(quality==='low')return
   for(const s of[-1,1]){const f=m.mirF&&m.mirF[s<0?0:1],g=new THREE.CircleGeometry(1,20);g.scale(f?f[3]:0.066,f?f[4]:0.024,1);const uv=g.attributes.uv;
     for(let i=0;i<uv.count;i++){const um=(s<0?0:0.5)+uv.getX(i)*0.5;uv.setX(i,1-um);}
     g.rotateY(-Math.PI/2);if(f)g.translate(f[0],f[1],f[2]);else g.translate(0.2465,0.675,s*0.56);const me=new THREE.Mesh(g,MIR.mat);m.body.add(me);MIR.faces.push(me);}}
+function mirHide(out,a){for(let i=0;i<a.length;i++){const o=a[i];if(o&&o.visible)out.push(o);}}
 function renderMirror(){
   if(!MIR||!race||!(state==='race'||state==='done'||state==='countdown'))return;const cm=CAMS[camMode];
   const need=!CAMPIT&&!CAMLOOK&&(MIR.on||((cm==='cockpit'||cm==='tcam')&&MIR.faces.length>0));if(!need)return;MIR.frame++;   // every frame: an every-other-frame mirror makes uneven frame times
@@ -7165,7 +7231,7 @@ function renderMirror(){
   // ~16 draw calls and ~200k triangles on the pit straight - are left out of the picture
   // 10-31 (phone rain test): spray, smoke and rain streaks are left out of the mirror on a phone - its point sizes are worked out for the main
   // view, so in the 640x160 mirror a puff from my own car (1.5-2 m behind the mirror camera) covered the whole picture, ~70 of them at speed
-  const hide=[...MIR.faces,...(SW?[SW.g,...SW.arms]:[]),...MIR.heavy,...(!MIR.on&&WORLD.crew&&WORLD.crew.ims||[]),...(isTouch?[SPR&&SPR.pts,SMK&&SMK.pts,RAIN&&RAIN.L]:[])].filter(o=>o&&o.visible);hide.forEach(o=>o.visible=false);   // never sample the texture being drawn
+  const hide=MIR.hide||(MIR.hide=[]);hide.length=0;mirHide(hide,MIR.faces);if(SW){mirHide(hide,SW.arms);if(SW.g.visible)hide.push(SW.g);}mirHide(hide,MIR.heavy);if(!MIR.on&&WORLD.crew&&WORLD.crew.ims)mirHide(hide,WORLD.crew.ims);if(isTouch){if(SPR&&SPR.pts&&SPR.pts.visible)hide.push(SPR.pts);if(SMK&&SMK.pts&&SMK.pts.visible)hide.push(SMK.pts);if(RAIN&&RAIN.L&&RAIN.L.visible)hide.push(RAIN.L);}for(let i=0;i<hide.length;i++)hide[i].visible=false;   // never sample the texture being drawn
   // v12c: the mirror image is small - other cars in it are drawn at a far level of detail (body, floor and tyres; a bit more when
   // close behind), which roughly halves its draw calls with a pack behind
   const lodS=MIR.lodS||(MIR.lodS=[]);lodS.length=0;
@@ -7178,7 +7244,7 @@ function renderMirror(){
     for(const o of mm.lod1)o.visible=false;for(const o of mm.lod2)o.visible=false;if(lv>=3)for(const o of mm.lod3)o.visible=false;if(mm.px&&mm.px.bf&&mm.lodLv<1)pxFar(mm,true,lv>=3);}
     if(isTouch&&d>(PERF.mirLite?30:50)&&mm.px&&mm.px.bf)for(const o of[mm.px.pt,mm.px.pc,mm.px.bf[1]])if(o.visible){o.visible=false;mh.push(o);}}
   // 10-30: nothing has moved since the main view was drawn this frame - the scene's ~2200 matrices are not worked out a second time
-  renderer.setRenderTarget(MIR.rt);const au=scene.autoUpdate;scene.autoUpdate=false;renderer.render(scene,MIR.cam);scene.autoUpdate=au;renderer.setRenderTarget(null);hide.forEach(o=>o.visible=true);for(const o of mh)o.visible=true;
+  renderer.setRenderTarget(MIR.rt);const au=scene.autoUpdate;scene.autoUpdate=false;renderer.render(scene,MIR.cam);scene.autoUpdate=au;renderer.setRenderTarget(null);for(let i=0;i<hide.length;i++)hide[i].visible=true;for(const o of mh)o.visible=true;
   for(const mm of lodS){const lv=mm.lodLv;for(const o of mm.lod1)o.visible=lv<1;for(const o of mm.lod2)o.visible=lv<2;for(const o of mm.lod3)o.visible=lv<3;if(mm.px&&mm.px.bf&&lv<1)pxFar(mm,false,false);}}
 // performance governor: if the frame rate stays low while racing, drop the costliest effects one step at a time
 const PERF={acc:0,n:0,step:0};
@@ -7362,7 +7428,7 @@ function vsTick(now){const d=now-VS.lastV;VS.lastV=now;if(!(d>0&&d<100))return;V
   if(VS.i%120===0){const s=Array.from(VS.a).sort((x,y)=>x-y),p=s[12];VS.hz=Math.max(VS.hz,p<9.5?120:p<12.5?90:60);}}   // 10-30: the screen's rate only goes up - a heavy stretch (frames of 17 ms+) used to make a 120 Hz screen read "60Hz"
 function frame(now){
   vsTick(now);if(PERF.lock60&&now-last<12.5){requestAnimationFrame(frame);return;}   // locked: skip the in-between refresh
-  const raw=(now-last)/1000,dt=Math.min(1/30,Math.max(0,raw));last=now;fpsTick(raw);if(innerWidth!==resize.w||innerHeight!==resize.h)resize();
+  const raw=(now-last)/1000,dt=Math.min(1/30,Math.max(0,raw));last=now;fpsTick(raw);if((frame.n=(frame.n||0)+1)%30===0&&(innerWidth!==resize.w||innerHeight!==resize.h))resize();
   if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').style.opacity=0;}
   if(flagPulse>0)flagPulse-=dt;
   if(BENCH)benchStep(raw,dt);
