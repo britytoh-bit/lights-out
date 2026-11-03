@@ -1892,9 +1892,13 @@ function onDNF(race,c){const rc=race.rc,off=Math.abs(c.lat)-TR.HW[c.idx],r=c.rnd
 function startVSC(race,why){const rc=race.rc;rc.flag='vsc';rc.since=race.t;rc.vsc={end:race.t+20+Math.random()*10,ending:false,over:0,pen:false,why:why||''};race.EV.push({type:'vsc',why:why||''});}
 function startSC(race,why){const rc=race.rc,L=race.cars.find(c=>c.id===rc.leaderId)||race.player;rc.flag='sc';rc.since=race.t;rc.why=why||'';
   rc.go=false;rc.sc={prog:L.prog+75,spd:Math.max(35,L.spd*0.7),on:true,lights:true,phase:'out',clear:race.t+38+Math.random()*14,lat:0,x:0,z:0,a:0,idx:0,relP:null};placeSC(rc.sc);race.EV.push({type:'sc',why:why||''});}
-function placeSC(sc){const f0=Math.floor(sc.prog),i=wrap(f0),j=wrap(f0+1),f=sc.prog-f0,p=P[i],q=P[j],t=T[i],lat=sc.lat||0;
-  sc.idx=i;sc.x=p[0]+(q[0]-p[0])*f-t[1]*lat;sc.z=p[1]+(q[1]-p[1])*f+t[0]*lat;sc.a=Math.atan2(t[1],t[0]);
-  if(sc.onLane&&PIT.tun){const r=zoneR(i);if(r>=0&&r<PIT.Z)sc.a+=Math.atan2(PIT.side*(pitLatR(r+1)-pitLatR(r)),STEP);}}   // v12d: along the lane where it crosses the track (Yas tunnel)
+// 11-04: the heading follows the road smoothly (it was the direction of the current 2 m piece: up to 13 deg in one step at Monaco) plus the angle of its move across the road
+function placeSC(sc,dt){const f0=Math.floor(sc.prog),i=wrap(f0),j=wrap(f0+1),f=sc.prog-f0,p=P[i],q=P[j],a=T[i],b=T[j],tx=a[0]+(b[0]-a[0])*f,tz=a[1]+(b[1]-a[1])*f,lat=sc.lat||0;
+  sc.idx=i;sc.x=p[0]+(q[0]-p[0])*f-tz*lat;sc.z=p[1]+(q[1]-p[1])*f+tx*lat;
+  const dl=dt&&sc.latP!=null?(lat-sc.latP)/dt:0,w=Math.atan2(dl,Math.max(5,sc.spd));sc.latP=lat;
+  let g=Math.atan2(tz,tx)+w;if(dt&&sc.aS!=null){let d=g-sc.aS;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;g=sc.aS+d*Math.min(1,dt*12);}sc.aS=g;sc.a=g;}
+// moves across the road only as fast as a car can (it jumped 6-8 m in one step into the pit lane)
+function scLat(sc,dt,want){const v=Math.max(3,0.3*sc.spd),l=sc.lat||0;sc.lat=l+Math.max(-v,Math.min(v,(want-l)*(sc.onLane?10:4)))*dt;}
 function clearIncident(race){const rc=race.rc;for(const c of rc.incidents)c.gone=true;rc.incidents.length=0;rc.yellows=rc.yellows.filter(z=>z.until<1e8);}
 function raceControl(race,dt){
   const rc=race.rc,p=race.player;
@@ -1920,9 +1924,10 @@ function raceControl(race,dt){
       let tgt=sc.phase==='pit'?PIT.LIMIT:SCPROF[wrap(sc.idx+3)];
       if(sc.phase==='out'&&L&&sc.prog-L.prog>40)tgt*=0.8;
       sc.spd+=Math.max(-8*dt,Math.min(5*dt,tgt-sc.spd));sc.prog+=sc.spd*dt/STEP;
-      sc.onLane=sc.phase==='pit';if(sc.phase==='pit'){const rr=zoneR(wrap(Math.floor(sc.prog)));sc.lat=PIT.side*(rr>=0?pitLatR(rr):HALF);
+      sc.onLane=sc.phase==='pit';if(sc.phase==='pit'){const rr=zoneR(wrap(Math.floor(sc.prog)));scLat(sc,dt,PIT.side*(rr>=0?pitLatR(rr):HALF));
         if(rr<0||rr>PIT.RAMP+70)sc.on=false;}
-      placeSC(sc);
+      else scLat(sc,dt,sc.phase==='in'&&wrap(PIT.E-sc.idx)*STEP<220?PIT.side*(HALF-1.2):0.8*RLA.lat[wrap(sc.idx+6)]);   // the racing line; lining up for the pit entry
+      placeSC(sc,dt);
       if(sc.phase!=='pit'&&sc.on)for(const c of race.cars){if(c.pit||c.gone||c.fin!=null)continue;const dx=c.x-sc.x,dz=c.z-sc.z,d=Math.hypot(dx,dz);   // nobody drives through the SC
         if(d<3.2){const k=(3.2-d)/Math.max(d,0.01);c.x+=dx*k;c.z+=dz*k;c.jx=(c.jx||0)+dx*k;c.jz=(c.jz||0)+dz*k;if(c.prog<sc.prog)c.spd=Math.min(c.spd,sc.spd*0.9);}}
       // the player leading: the restart is his call once the safety car has pitted
@@ -2021,10 +2026,10 @@ function redSC(race,dt){const sc=race.rc.sc,F=race.form;if(!sc||!sc.on)return;
   sc.spd+=Math.max(-8*dt,Math.min(5*dt,tgt-sc.spd));sc.prog+=sc.spd*dt/STEP;
   const r2=zoneR(wrap(Math.floor(sc.prog)));
   sc.onLane=sc.phase==='pit'||(!sc.left&&r2>=0);   // v12d: on the pit lane (the Yas exit tunnel's floor)
-  if(sc.phase==='pit'){sc.lat=PIT.side*(r2>=0?pitLatR(r2):HALF);if(r2<0||r2>PIT.RAMP+70)sc.on=false;}
-  else if(!sc.left&&r2>=0)sc.lat=PIT.side*pitLatR(r2);
-  else sc.lat+=(0-sc.lat)*Math.min(1,dt*1.2);
-  placeSC(sc);}
+  if(sc.phase==='pit'){scLat(sc,dt,PIT.side*(r2>=0?pitLatR(r2):HALF));if(r2<0||r2>PIT.RAMP+70)sc.on=false;}
+  else if(!sc.left&&r2>=0)scLat(sc,dt,PIT.side*pitLatR(r2));
+  else scLat(sc,dt,wrap(PIT.E-sc.idx)*STEP<220&&sc.left?PIT.side*(HALF-1.2):0.8*RLA.lat[wrap(sc.idx+6)]);
+  placeSC(sc,dt);}
 
 // ---------------- formation lap (and the lap to the grid after a red flag) ----------------
 // Cars go round in grid order; overtaking only to get back into order. They weave on the straights to warm the tyres and stop
