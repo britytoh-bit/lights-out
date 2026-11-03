@@ -1386,7 +1386,8 @@ function stepPit(race,c,dt){
   const om=Math.max(-2.5,Math.min(2.5,2*Math.sin(da)/la*Math.max(c.spd,2)));c.a+=om*dt;c.st+=(Math.max(-1,Math.min(1,om*1.2))-c.st)*Math.min(1,6*dt);
   let vt=VMAX;
   const limIn=PIT.RAMP,limOut=PIT.Z-PIT.RX;
-  if(r0<limIn)vt=Math.sqrt(PIT.LIMIT*PIT.LIMIT+2*22*Math.max(0,(limIn-r0)*STEP-ti.along));
+  if(r0<limIn){vt=Math.sqrt(PIT.LIMIT*PIT.LIMIT+2*22*Math.max(0,(limIn-r0)*STEP-ti.along));
+    if(pp.state==='in'&&!pp.redQ){pp.vIn=Math.min(pp.vIn==null?Math.max(c.spd+0.3,PIT.LIMIT):pp.vIn,vt);vt=pp.vIn;}}   // 11-04: on the way in it only slows down (it went to full power for 0.3 s at the entry, then braked at 2.2 g: the car nodded and the view bounced)
   else if(r0<limOut)vt=PIT.LIMIT;
   else vt=Math.min(vt,profAt(wrap(c.idx+3),1)*0.96,pitAheadV(c,ti,tyreGrip(c).lat,0.9));   // pit exit road: no faster than the track allows just ahead, nor than the next corner allows (v11f)
   if(PIT.lrm)vt=Math.min(vt,Math.max(12,Math.sqrt(20*PIT.lrm[Math.max(0,Math.min(PIT.Z,r0))])));   // tight bends in the pit road itself (never a crawl)
@@ -6966,6 +6967,7 @@ function crewInit(C){
   C.ready=true;}
 function crewIdle(C,t,k){const PS=C.PS,bi=WORLD.boxes[t],along=((k%9)-4)*1.05+(k<9?0:0.5),f=C.frameAt(bi,PS*(PIT.OFF+8.5+(k<9?2.3:3.7)));   // waiting inside the garage
   return [f.x+Math.cos(f.a)*along,f.z+Math.sin(f.a)*along,f.a-PS*Math.PI/2];}
+const CREW_VM=[1.6,1.1,1.6,2,4,3,4,4,3,4,6,6,6,6,6,6];   // pose: hips x y z, lean, foot, foot, hand, hand (m/s, rad/s)
 function pitFx(dt){
   const C=WORLD&&WORLD.crew;if(!C||!race)return null;let dirty=false;if(!C.ready){crewInit(C);dirty=true;}   // v12h: dirty - re-upload the crews' instances only when one moved
   const PS=C.PS,o=CRW.o;let pInfo=null;
@@ -7011,11 +7013,11 @@ function pitFx(dt){
       else{crewRole(k,ph,wt,tl,PS,o);tx=fx0+ca*o.lx-sa*o.lz;tz=fz0+sa*o.lx+ca*o.lz;tf=fa+o.rf;}
       const i3=f*3,cx=C.pos[i3],cz=C.pos[i3+2],ddx=tx-cx,ddz=tz-cz,dist=Math.hypot(ddx,ddz);let spd=0,wantF=tf;
       if(ph==='idle'||dist>0.9){const st=Math.min(dist,3.3*dt);if(dist>1e-4){C.pos[i3]+=ddx/dist*st;C.pos[i3+2]+=ddz/dist*st;}spd=st/Math.max(dt,1e-4);if(dist>0.35)wantF=Math.atan2(ddz,ddx);}
-      else{const kk=1-Math.exp(-dt*14);C.pos[i3]+=ddx*kk;C.pos[i3+2]+=ddz*kk;spd=dist*kk/Math.max(dt,1e-4);}
+      else{const kk=Math.min(1-Math.exp(-dt*14),3.3*dt/Math.max(dist,1e-4));C.pos[i3]+=ddx*kk;C.pos[i3+2]+=ddz*kk;spd=dist*kk/Math.max(dt,1e-4);}
       if(ph==='idle'&&S.back&&k<12&&k%3===1&&dist>0.6){o.carry=4+((k/3)|0);o.pa='carry';}
       C.face[f]+=angDiff(wantF,C.face[f])*Math.min(1,dt*10);
       const tp=CRW.tp,pa=POSES[o.pa],pb=o.pb?POSES[o.pb]:null;for(let q=0;q<16;q++)tp[q]=pb?pa[q]+(pb[q]-pa[q])*o.bl:pa[q];
-      const cp=C.pose,kb=Math.min(1,dt*12);let pd=0;for(let q=0;q<16;q++){const d=tp[q]-cp[f*16+q];cp[f*16+q]+=d*kb;pd+=Math.abs(d);}
+      const cp=C.pose,kb=Math.min(1,dt*12);let pd=0;for(let q=0;q<16;q++){const d=tp[q]-cp[f*16+q],vm=CREW_VM[q]*dt;cp[f*16+q]+=Math.max(-vm,Math.min(vm,d*kb));pd+=Math.abs(d);}   // 11-04: joints have a top speed: a change of pose went at full rate in its first frame, the whole body jumped 14-20 cm from one frame to the next
       if(dist>0.02||pd>0.02||spd>0.05)settled=false;
       const wp=CRW.wp;for(let q=0;q<16;q++)wp[q]=cp[f*16+q];
       if(spd>0.25){C.phase[f]+=spd*dt*4.4;const sw=Math.sin(C.phase[f]),cw=Math.cos(C.phase[f]),am=Math.min(1,spd/1.5);
