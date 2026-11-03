@@ -404,6 +404,25 @@ body.touch #hudTime .row.sp .spt{display:none}   /* the time itself is in the co
 #bench td:first-child{width:auto} #bench td:first-child:empty{display:none} #benchTa{width:100%; height:9em; font-size:12px; margin:0 0 12px}
 #fpsBox{position:absolute; left:50%; bottom:calc(6px + var(--sab)); transform:translateX(-50%); padding:2px 9px; border-radius:4px; background:rgba(9,11,15,.72); color:#cfe3ff; font-size:12px; pointer-events:none; z-index:5; white-space:nowrap}   /* v12h: F key */
 body.inmenu #fpsBox{display:none}
+/* 11-04: the menu in five tabs, one starting lamp each; the start button and what it will start always in view */
+#menu{padding:max(6px,var(--sat)) max(10px,var(--sar)) max(6px,var(--sab)) max(10px,var(--sal))}
+#menu .card{display:flex; flex-direction:column; width:min(980px,100%); height:100%; max-height:min(680px,100%); padding:0; overflow:hidden}
+#mTop{display:flex; flex:1; min-height:0}
+#mRail{flex:0 0 156px; display:flex; flex-direction:column; padding:10px 8px 8px 14px; border-right:1px solid var(--line)}
+#mRail h1{font-size:22px; margin:0 0 6px; line-height:1; white-space:nowrap}
+#mTabs{display:flex; flex-direction:column; flex:1; min-height:0; gap:2px}
+#mTabs button{flex:1 1 0; min-height:36px; max-height:64px; display:flex; align-items:center; gap:11px; padding:0 8px; background:none; border:0; border-radius:4px; color:var(--dim); font-size:15px; font-weight:700; text-align:left}
+#mTabs button i{flex:none; width:14px; height:14px; border-radius:50%; background:#3b1212; box-shadow:inset 0 1px 2px rgba(0,0,0,.7)}
+#mTabs button[aria-selected="true"]{color:var(--ink); background:rgba(255,255,255,.07)}
+#mTabs button[aria-selected="true"] i{background:#ff2b1f; box-shadow:0 0 10px 2px rgba(255,43,31,.65)}
+#mTabs button:focus-visible{outline:2px solid #fff; outline-offset:-2px}
+#mPanels{flex:1; min-width:0; overflow-y:auto; padding:12px 14px 4px; touch-action:pan-y; -webkit-overflow-scrolling:touch}
+.mP[hidden]{display:none}
+#mFoot{flex:none; display:flex; align-items:center; gap:14px; padding:8px 12px 8px 14px; border-top:1px solid var(--line)}
+#mSum{flex:1; min-width:0}
+#mSumT{font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+#mSum #bestMenu{margin:1px 0 0; font-size:12px; color:var(--dim); text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+#menu #startBtn{flex:none; position:static; width:auto; min-width:200px; margin:0; padding:12px 24px; font-size:17px; box-shadow:none}
 /* 10-31: skill picker, tutorial card (in the timing panel's place, clear of the controls and the road), 조작법 overlay */
 #skill .card{width:min(760px,100%); padding:14px 18px 14px}
 #skill h2{margin:0 0 4px; font-size:22px} #skill .sub{margin:0 0 10px; font-size:14px}
@@ -5653,7 +5672,23 @@ function setPause(on){if(on){if(state==='paused')return;pausedFrom=state;state='
   else{state=pausedFrom||'race';$('pause').hidden=true;if(AC)AC.resume();}}
 function toMenu(){tutEnd();{const r=loadLS('lightsout3d-tutret');if(r){saveLS('lightsout3d-tutret','');if(r!==TRK.id){saveLS('lightsout3d-track',r);$('loading').style.display='flex';$('loading').textContent='서킷을 불러오는 중';setTimeout(()=>location.reload(),30);}}}   // back from the tutorial circuit
   perfReset();document.body.classList.add('inmenu');document.body.classList.remove('racing');state='menu';FF=false;setupRace();['pause','result','sess'].forEach(id=>$(id).hidden=true);$('menu').hidden=false;$('lights').style.opacity=0;updateMenuBest();}
-function updateMenuBest(){$('bestMenu').innerHTML=TRK.name+' · '+(bestLap?'내 베스트 랩 <b>'+fmt(bestLap)+'</b>':'첫 랩 기록을 남겨보세요');}
+// 11-04: the menu's tabs. The controls keep their ids and handlers; they are only moved into the tab they belong to. Whatever is left goes under 설정.
+const MTABS=[['race','레이스',['modeSel','lapSel','difSel','scSel','wxSel','todSel','fmlSel','incSel','dmgSel','chBox']],['track','서킷',['trkSel','wdSel']],['team','팀',['teamSel','livBtn']],['drive','운전',['skSel','skNote','tutBtn','smSel','pedSel','agSel','asSel','basSel','sensSel','rlSel','aeroSel','stSel']],['set','설정',[]]];
+function menuTab(t){for(const [k] of MTABS){const on=k===t;$('mP_'+k).hidden=!on;document.querySelector(`#mTabs button[data-t="${k}"]`).setAttribute('aria-selected',on?'true':'false');}$('mPanels').scrollTop=0;saveLS('lightsout3d-mtab',t);}
+function menuSum(){const d={easy:'AI 쉬움',normal:'AI 보통',hard:'AI 어려움'}[diff]||'',w={dry:'맑음',mixed:'변덕',rain:'비'}[weather]||'',m=gameMode==='practice',el=$('mSumT');if(el)el.textContent=[TEAMS[teamSel].short,m?'연습':laps+'랩',m?'':d,w].filter(Boolean).join('  /  ');}
+(function menuBuild(){const card=document.querySelector('#menu .card'),h1=card.querySelector('h1'),st=$('startBtn'),be=$('bestMenu');
+  const mk=(tag,id,par)=>{const e=document.createElement(tag);if(id)e.id=id;if(par)par.appendChild(e);return e;};
+  const top=mk('div','mTop'),rail=mk('div','mRail',top),tabs=mk('div','mTabs',rail),pan=mk('div','mPanels',top),foot=mk('div','mFoot');tabs.setAttribute('role','tablist');rail.insertBefore(h1,tabs);
+  card.appendChild(top);for(const [k,nm,ids] of MTABS){const b=mk('button',null,tabs);b.type='button';b.dataset.t=k;b.setAttribute('role','tab');b.innerHTML='<i></i>'+nm;b.onclick=()=>menuTab(k);
+    const p=mk('div','mP_'+k,pan);p.className='mP';let grid=null;
+    for(const id of ids){const e=$(id);if(!e)continue;const par=e.parentElement;
+      if(par.parentElement&&par.parentElement.classList.contains('two')){if(!grid){grid=mk('div',null,p);grid.className='two';}grid.appendChild(par);}   // a label and its control, already together
+      else{const lb=e.previousElementSibling;if(lb&&lb.classList.contains('label'))p.appendChild(lb);p.appendChild(e);}}}
+  const sum=mk('div','mSum',foot);mk('div','mSumT',sum);sum.appendChild(be);foot.appendChild(st);
+  card.appendChild(top);card.appendChild(foot);const rest=$('mP_set');for(const e of [...card.children]){if(e===top||e===foot)continue;rest.appendChild(e);}   // (the sound, graphics and test settings, the key list)
+  $('menu').addEventListener('click',()=>setTimeout(menuSum,0));
+  let t='race';try{const v=localStorage.getItem('lightsout3d-mtab');if(MTABS.some(x=>x[0]===v))t=v;}catch(e){}menuTab(t);})();
+function updateMenuBest(){menuSum();$('bestMenu').innerHTML=TRK.name+' · '+(bestLap?'내 베스트 랩 <b>'+fmt(bestLap)+'</b>':'첫 랩 기록을 남겨보세요');}
 
 // ---- menu ----
 {const btn=t=>`<button data-v="${t.id}" aria-pressed="${t.id===TRK.id}" style="flex-direction:column;align-items:flex-start;gap:2px"><b>${t.name}</b><span style="font-size:12px;opacity:.75;font-weight:400">${t.desc}</span></button>`,
@@ -5745,7 +5780,7 @@ const skLines=k=>SKILLS[k].li.filter(l=>isTouch||!l[1]).map(l=>l[0]);
 function curSkill(){if(loadLS('lightsout3d-skill')==='pro')return 'pro';for(const k in SKILLS){const s=SKILLS[k];if(!s.custom&&sens===s.sens&&assistMode===s.as&&brakeAs===s.bas&&rlMode===s.rl&&(!isTouch||(steerMode===s.sm&&autoGas===(s.ag==='auto'))))return k;}return 'pro';}
 function skillUI(){if(!skReady)return;const k=curSkill();segPick(['skSel','pSkSel'],k);segPick(['basSel'],brakeAs);
   const t=k==='pro'?'지금: 직접 설정 · 아래에서 하나씩 골라요 (노란 글씨가 중급·상급 추천)':'지금: '+SKILLS[k].nm+' · '+skLines(k).join(' · ');for(const id of['skNote','pSkNote'])$(id).textContent=t;}
-function skOpenCustom(){const pz=!$('pause').hidden;if(!$('skill').hidden){$('skill').hidden=true;$('menu').hidden=false;}
+function skOpenCustom(){const pz=!$('pause').hidden;if(!$('skill').hidden){$('skill').hidden=true;$('menu').hidden=false;}if(!pz)menuTab('drive');
   const t=pz?$('pSmSel'):$(isTouch?'smSel':'sensSel');if(t)setTimeout(()=>t.parentNode.scrollIntoView({block:'start',behavior:'smooth'}),60);}
 function setBrakeAs(v){brakeAs=v;saveLS('lightsout3d-bas',v);if(race)race.bAs=v;skillUI();}
 function applySkill(k){const s=SKILLS[k];if(!s)return;saveLS('lightsout3d-skill',k);if(s.custom){skillUI();skOpenCustom();return;}
@@ -6260,7 +6295,7 @@ function drawHUD(dt){
     if(pi!==hc.pitInfo){hc.pitInfo=pi;$('pitInfo').innerHTML=pi;const pm=pi.startsWith('전략:')?'':pi;$('pitMsg').innerHTML=pm;hc.pmT=pm?6:0;}
     // 11-04: from one lap before the pit window, once a lap: the window, what a stop costs here, where the car would come out
     {const lp=Math.floor(pl.prog/N);if(lp!==hc.advL){hc.advL=lp;const a=!S&&!race.form&&!pl.pit&&!pl.pitReq&&pl.fin==null&&race.rc.flag==='green'&&lp+1<race.laps?pitAdvice(race,pl):null;
-      if(a&&lp+1>=a.from-1){const t=(a.to<=lp+1?'타이어 한계':'피트 창 '+a.from+'~'+a.to+'랩')+' · 손실 '+Math.round(a.loss)+'초 · 지금 들어가면 P'+a.pos;$('pitInfo').textContent=t;$('pitMsg').textContent=t;hc.pitInfo=t;hc.pmT=6;}}}}
+      if(a&&lp+1>=a.from-1){const t=(a.to<=lp+1?'타이어 한계':'피트 창 '+a.from+'~'+a.to+'랩')+' · 손실 '+Math.round(a.loss)+'초 · 지금 들어가면 P'+a.pos;$('pitMsg').textContent=t;hc.pmT=6;}}}}
   if(isTouch){if((hc.htN=(hc.htN||0)+1)%30===0&&$('hudTime').offsetHeight!==hc.htH)layoutTouchHUD();   // v13j: not every frame - reading it forces a layout
     // v13h: the pill used to come back for 4 s on every new lap as well. On a phone it sits over
     // the road ahead, so with the pit window open the same 'new tyres' line blocked the view once
