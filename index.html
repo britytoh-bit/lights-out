@@ -215,6 +215,16 @@ body.cine #podCap.on{display:flex}
 body.cine #podTitle.on{display:block}
 #podTitle h2{margin:0; font:italic 800 40px "Saira Condensed",Arial,sans-serif; letter-spacing:.04em}
 #podTitle p{margin:2px 0 0; font:700 15px "Saira Condensed",Arial,sans-serif; opacity:.85}
+/* 11-04: the title lands with a kerb stripe under it; third, second, then the winner come up */
+#podTitle.on h2{animation:podSlam .55s cubic-bezier(.16,1.2,.3,1) .15s both}
+#podTitle.win h2{color:#ffd24a}
+#podTitle h2::after{content:""; display:block; height:5px; margin:4px auto 0; background:repeating-linear-gradient(90deg,var(--kerb) 0 18px,#fff 18px 36px); transform-origin:center; animation:podKerb .45s .55s both}
+#podCap .pc{animation:podRise .45s cubic-bezier(.2,.9,.25,1.1) both}
+#podCap .pc:nth-child(1){order:2; animation-delay:2.8s} #podCap .pc:nth-child(2){order:1; animation-delay:2s} #podCap .pc:nth-child(3){order:3; animation-delay:1.2s}
+@keyframes podSlam{from{opacity:0; transform:scale(1.7) skewX(-8deg)} to{opacity:1; transform:none}}
+@keyframes podKerb{from{transform:scaleX(0)} to{transform:scaleX(1)}}
+@keyframes podRise{from{opacity:0; transform:translateY(22px)} to{opacity:1; transform:none}}
+@media (prefers-reduced-motion:reduce){#podTitle.on h2,#podTitle h2::after,#podCap .pc{animation:none}}
 #podSkip{position:absolute; right:calc(14px + var(--sar)); top:calc(12px + var(--sat)); z-index:32; display:none; padding:8px 14px; font-weight:700}
 body.cine #podSkip.on{display:block}
 #finBanner{position:absolute; left:50%; top:16%; transform:translateX(-50%) scale(.92); z-index:31; opacity:0; transition:opacity .35s, transform .35s; pointer-events:none; text-align:center}
@@ -6437,14 +6447,15 @@ function buildPodium(){if(POD.built&&POD.world===WORLD)return;if(POD.g)scene.rem
   POD.bottles=[0,1,2].map(()=>{const b=new THREE.Group(),body=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.052,0.24,12),M(0x1f3a26,{roughness:0.2,metalness:0.1}));body.position.y=0.12;b.add(body);
     const nk=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.048,0.12,10),body.material);nk.position.y=0.3;b.add(nk);const foil=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.022,0.06,10),M(0xd8b64c,{metalness:0.9,roughness:0.3}));foil.position.y=0.38;b.add(foil);b.visible=false;return b;});
   // spray and confetti
-  {const n=480,pos=new Float32Array(n*3),gm=new THREE.BufferGeometry();gm.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  // 11-04: fixed pools, a phone gets two thirds: spray 320, confetti 280, fireworks 600
+  {const n=isTouch?320:480,pos=new Float32Array(n*3),gm=new THREE.BufferGeometry();gm.setAttribute('position',new THREE.BufferAttribute(pos,3));
    const c=mkCanvas(32,32),x=c.getContext('2d'),gr=x.createRadialGradient(16,16,1,16,16,15);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=gr;x.fillRect(0,0,32,32);POD.dot=texFrom(c);
    const pm=new THREE.PointsMaterial({size:0.2,map:POD.dot,color:0xfff6de,transparent:true,opacity:0.95,depthWrite:false});pm.userData.noHD=true;const pts=new THREE.Points(gm,pm);pts.frustumCulled=false;scene.add(pts);
    POD.spray={pts,pos,v:new Float32Array(n*3),life:new Float32Array(n),n,next:0};}
-  {const n=420,cf=new THREE.InstancedMesh(new THREE.PlaneGeometry(0.11,0.07),new THREE.MeshBasicMaterial({side:THREE.DoubleSide}),n),col=new THREE.Color(),PAL=[0xe10600,0xf5c518,0xffffff,0x1f55c8,0x3ddc84,0xff4fa3];
+  {const n=isTouch?280:420,cf=new THREE.InstancedMesh(new THREE.PlaneGeometry(0.11,0.07),new THREE.MeshBasicMaterial({side:THREE.DoubleSide}),n),col=new THREE.Color(),PAL=[0xe10600,0xf5c518,0xffffff,0x1f55c8,0x3ddc84,0xff4fa3];
    for(let k=0;k<n;k++){col.setHex(PAL[k%PAL.length]);cf.setColorAt(k,col);}cf.frustumCulled=false;cf.visible=false;scene.add(cf);
    POD.conf={m:cf,n,p:new Float32Array(n*3),v:new Float32Array(n*3),r:new Float32Array(n*3),on:false};}
-  {const n=900,pos=new Float32Array(n*3),col=new Float32Array(n*3),gm=new THREE.BufferGeometry();gm.setAttribute('position',new THREE.BufferAttribute(pos,3));gm.setAttribute('color',new THREE.BufferAttribute(col,3));
+  {const n=isTouch?600:900,pos=new Float32Array(n*3),col=new Float32Array(n*3),gm=new THREE.BufferGeometry();gm.setAttribute('position',new THREE.BufferAttribute(pos,3));gm.setAttribute('color',new THREE.BufferAttribute(col,3));
    const pm=new THREE.PointsMaterial({size:1.1,map:POD.dot,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false});const pts=new THREE.Points(gm,pm);pts.frustumCulled=false;scene.add(pts);
    POD.fw={pts,pos,col,v:new Float32Array(n*3),life:new Float32Array(n),c0:new Float32Array(n*3),n,next:0,t:0};}
   // fans on the main straight below, facing the podium (one merged mesh; a few of them jump)
@@ -6473,6 +6484,10 @@ function finishFx(){const pl=race.player,r=ranking(race),pos=r.indexOf(pl)+1;CIN
   const radio=pl.dsq?'무전: 레이스는 끝났지만 규정 위반으로 실격이야.':pos===1?'무전: 우승이야!!! 완벽한 레이스였어!':pos<=3?'무전: 포디움이야! 정말 잘했어!':pos<=10?'무전: P'+pos+', 포인트 획득. 수고했어.':'무전: P'+pos+' 완주. 다음엔 더 위로 가 보자.';
   setTimeout(()=>{if(state==='done'&&!(CINE&&CINE.ph==='pod'))toast(radio,pos<=3&&!pl.dsq?'#ffd24a':'#fff',2.6);},1150);}
 function podiumOK(){return !!race&&!race.sess&&race.player&&race.player.fin!=null&&!race.player.dnf;}
+// 11-04: confetti: a third drifts down from above, the rest is fired up from both sides of the podium
+function podBurst(gold){const C=POD.conf,col=new THREE.Color(),GOLD=[0xffd24a,0xfff1b8,0xe2a820,0xffffff];if(gold||C.gold){for(let k=0;k<C.n;k++){col.setHex(gold?GOLD[k%4]:[0xe10600,0xf5c518,0xffffff,0x1f55c8,0x3ddc84,0xff4fa3][k%6]);C.m.setColorAt(k,col);}C.m.instanceColor.needsUpdate=true;C.gold=gold;}
+  for(let j=0;j<C.n;j++){const r=Math.random,sd=j%2?1:-1;if(j%3===0){C.p[j*3]=(r()-0.5)*24;C.p[j*3+1]=6+r()*9;C.p[j*3+2]=-2+r()*22;C.v[j*3]=(r()-0.5)*0.6;C.v[j*3+1]=-0.6-r()*0.6;C.v[j*3+2]=(r()-0.5)*0.6;}
+    else{C.p[j*3]=sd*3.8;C.p[j*3+1]=0.3;C.p[j*3+2]=0.6;C.v[j*3]=-sd*(0.5+r()*5);C.v[j*3+1]=6+r()*7;C.v[j*3+2]=0.5+r()*5;}}}
 function podFire(n){const F=POD.fw,cx=(Math.random()-0.5)*70,cz=-25-Math.random()*45,cy=24+Math.random()*26,col=new THREE.Color().setHSL(Math.random(),0.9,0.62),g=POD.g;
   const w=new THREE.Vector3(cx,cy,cz).applyMatrix4(g.matrixWorld);
   for(let k=0;k<n;k++){const j=F.next;F.next=(F.next+1)%F.n;const a=Math.random()*6.283,b=Math.acos(2*Math.random()-1),s=9+Math.random()*5;
@@ -6484,7 +6499,7 @@ function podStepFx(dt){const S=POD.spray,F=POD.fw,C=POD.conf;
   {let alive=0;for(let j=0;j<F.n;j++){if(F.life[j]<=0){F.pos[j*3+1]=-1e5;F.col[j*3]=F.col[j*3+1]=F.col[j*3+2]=0;continue;}F.life[j]-=dt;F.v[j*3+1]-=6*dt;const drag=Math.exp(-dt*1.4);
      for(let k=0;k<3;k++){F.v[j*3+k]*=drag;F.pos[j*3+k]+=F.v[j*3+k]*dt;}const f=Math.min(1,F.life[j]/0.8);for(let k=0;k<3;k++)F.col[j*3+k]=F.c0[j*3+k]*f*1.6;alive++;}
    F.pts.geometry.attributes.position.needsUpdate=true;F.pts.geometry.attributes.color.needsUpdate=true;F.pts.visible=alive>0;}
-  if(C.on){const m4=_m4,e=_eb,qq=_q,sc=_s;for(let j=0;j<C.n;j++){C.v[j*3+1]=Math.max(-1.6,C.v[j*3+1]-2.2*dt);C.p[j*3]+=(C.v[j*3]+Math.sin(CINE.t*3+j)*0.6)*dt;C.p[j*3+1]+=C.v[j*3+1]*dt;C.p[j*3+2]+=C.v[j*3+2]*dt;
+  if(C.on){const m4=_m4,e=_eb,qq=_q,sc=_s;for(let j=0;j<C.n;j++){C.v[j*3+1]=Math.max(-1.6,C.v[j*3+1]-(C.v[j*3+1]>0?9:2.2)*dt);{const dr=Math.exp(-dt*1.1);C.v[j*3]*=dr;C.v[j*3+2]*=dr;}C.p[j*3]+=(C.v[j*3]+Math.sin(CINE.t*3+j)*0.6)*dt;C.p[j*3+1]+=C.v[j*3+1]*dt;C.p[j*3+2]+=C.v[j*3+2]*dt;
       if(C.p[j*3+1]<-9){C.p[j*3+1]=14+Math.random()*4;}for(let k=0;k<3;k++)C.r[j*3+k]+=dt*(2+(j%5));
       _v.set(C.p[j*3],C.p[j*3+1],C.p[j*3+2]).applyMatrix4(POD.g.matrixWorld);qq.setFromEuler(e.set(C.r[j*3],C.r[j*3+1],C.r[j*3+2]));sc.set(1,1,1);m4.compose(_v,qq,sc);C.m.setMatrixAt(j,m4);}
     C.m.instanceMatrix.needsUpdate=true;}}
@@ -6501,6 +6516,7 @@ function podAudio(){if(!AC||muted)return null;const t0=AC.currentTime+0.05,out=A
   src.connect(bp);bp.connect(cg);cg.connect(out);cg.gain.setValueAtTime(0,t0);cg.gain.linearRampToValueAtTime(0.32,t0+1.2);for(let k=0;k<14;k++)cg.gain.setTargetAtTime(0.18+0.16*Math.random(),t0+1.2+k,0.4);cg.gain.setTargetAtTime(0,t0+15,0.8);src.start(t0);src.stop(t0+19);
   return out;}
 // ---- the sequence ----
+let podAud1=null,podAud2=null;
 function podiumStart(){try{buildPodium();}catch(e){console.error(e);showResults();return;}const r=ranking(race).filter(c=>!c.dsq),top=r.slice(0,3);if(top.length<3){showResults();return;}
   CINE={ph:'pod',t:0,top,shot:-1,ended:false,audio:null};document.body.classList.add('cine');$('cineFade').style.opacity=1;
   // swap in the three drivers
@@ -6508,9 +6524,13 @@ function podiumStart(){try{buildPodium();}catch(e){console.error(e);showResults(
     const [sx,h]=POD.spots[k];D.g.position.set(sx,h,0.25);D.g.traverse(o=>o.userData.noBake=true);POD.g.add(D.g);const tr=POD.trophies[k];tr.position.set(0,-0.06,0.07);tr.rotation.set(0,0,0);D.R.grip.add(tr);
     const b=POD.bottles[k];b.visible=false;b.position.set(0,0,0.05);D.L.grip.add(b);D.car=c;return D;});
   $('podCap').innerHTML=top.map((c,k)=>`<div class="pc${c.isP?' me':''}" style="--c:${TEAMS[c.team].p}"><b>P${k+1}</b><span>${c.name}</span><i>${TEAMS[c.team].name}</i></div>`).join('');
-  const me=r.indexOf(race.player)+1;$('podT1').textContent=me===1?'우승!':me<=3?'포디움!':'포디움 세리머니';$('podT2').textContent=me>3?'나: P'+me+' · '+EVT_NM:EVT_NM;
-  $('podSkip').classList.add('on');$('podCap').classList.add('on');setTimeout(()=>{if(!CINE||CINE.ph!=='pod')return;POD.g.visible=true;POD.conf.m.visible=false;$('cineFade').style.opacity=0;$('podTitle').classList.add('on');CINE.audio=podAudio();},600);}
+  const me=r.indexOf(race.player)+1;$('podT1').textContent=me===1?'우승!':me<=3?'포디움!':'포디움 세리머니';$('podT2').textContent=me>3?'나: P'+me+' · '+EVT_NM:EVT_NM;$('podTitle').classList.toggle('win',me===1);
+  // 11-04: the last round of a championship: the final table, worked out here (the points are only added on the results screen)
+  if(race.champ&&CH&&CH.rd===CH.list.length-1&&chHere(CH.list[CH.rd])){const pts=Object.assign({},CH.pts),nm={},all=ranking(race);for(const k of Object.keys(CH.nm))nm[k]=CH.nm[k];
+    all.forEach((c,i)=>{pts[c.code]=(pts[c.code]||0)+(c.fin!=null&&!c.dsq&&i<10?POINTS[i]:0);nm[c.code]=[c.name,c.team];});const ks=Object.keys(pts).sort((a,b)=>pts[b]-pts[a]);CINE.champ={ks,pts,nm,idx:top.findIndex(c=>c.code===ks[0])};}
+  $('podSkip').classList.add('on');$('podCap').classList.add('on');setTimeout(()=>{if(!CINE||CINE.ph!=='pod')return;POD.g.visible=true;POD.conf.m.visible=false;$('cineFade').style.opacity=0;$('podTitle').classList.add('on');podAud1=podAudio();},600);}
 function podiumEnd(show){if(!CINE)return;const was=CINE.ph==='pod';CINE=null;document.body.classList.remove('cine');['podCap','podTitle','podSkip'].forEach(id=>$(id).classList.remove('on'));$('cineFade').style.opacity=0;$('finBanner').classList.remove('on');
+  if(AC&&was)for(const a of [podAud1,podAud2])if(a){try{a.gain.setTargetAtTime(0,AC.currentTime,0.25);}catch(e){}}podAud1=podAud2=null;   // (a skip silences it)
   if(POD.g)POD.g.visible=false;if(POD.conf)POD.conf.m.visible=false;if(POD.spray)POD.spray.pts.visible=false;if(POD.fw)POD.fw.pts.visible=false;
   if(was&&show&&state==='done'&&$('result').hidden)showResults();}
 function podiumStep(dt){const C=CINE;if(!C||C.ph!=='pod')return;C.t+=dt;const t=C.t-0.6;if(t<0)return;
@@ -6520,25 +6540,40 @@ function podiumStep(dt){const C=CINE;if(!C||C.ph!=='pod')return;C.t+=dt;const t=
   if(t<3.6){posePerson(D[0],{L:[0.3,2.5,0.2],R:[0.2,0.9+0.1*w,1.2]},k2);posePerson(D[1],{L:[0.2,0.2,0.1],R:[0.4,2.2+0.25*w,0.3]},k2);posePerson(D[2],{L:[0.4,2.1+0.25*w,0.3],R:[0.2,0.2,0.1]},k2);}
   else if(t<7.2){posePerson(D[0],{L:[2.9,0.25,0.35],R:[2.9,0.25,0.35]},k2);for(const k of[1,2])posePerson(D[k],{L:[1.1,0.3,1.6+0.35*w],R:[1.1,0.3,1.6-0.35*w]},k2);
     const tr=POD.trophies[0];if(tr.parent!==D[0].R.grip)D[0].R.grip.add(tr);}
-  else if(t<12.6){if(!C.spr){C.spr=true;D.forEach(d=>{const b=POD.bottles[D.indexOf(d)];b.visible=true;});POD.conf.on=true;POD.conf.m.visible=true;const cf=POD.conf;for(let j=0;j<cf.n;j++){cf.p[j*3]=(Math.random()-0.5)*24;cf.p[j*3+1]=6+Math.random()*9;cf.p[j*3+2]=-2+Math.random()*22;cf.v[j*3]=(Math.random()-0.5)*0.6;cf.v[j*3+1]=-0.6-Math.random()*0.6;cf.v[j*3+2]=(Math.random()-0.5)*0.6;}}
+  else if(t<12.6){if(!C.spr){C.spr=true;D.forEach(d=>{const b=POD.bottles[D.indexOf(d)];b.visible=true;});POD.conf.on=true;POD.conf.m.visible=true;podBurst(false);}
     const sh=Math.sin(C.t*23)*0.12;posePerson(D[0],{L:[1.9+sh,0.35,0.5],R:[0.5,0.5,0.9]},k2);posePerson(D[1],{L:[1.7+sh,0.6,0.4],R:[0.3,0.3,0.6]},k2);posePerson(D[2],{L:[1.8+sh,0.1,0.5],R:[0.3,0.3,0.6]},k2);
     POD.g.updateMatrixWorld(true);const dirs=[[0,0.45,1],[0.55,0.45,0.75],[-0.55,0.45,0.75]];D.forEach((d,k)=>{const b=POD.bottles[k],dv=new THREE.Vector3(...dirs[k]).normalize().transformDirection(POD.g.matrixWorld);
       setWorldQuat(b,new THREE.Quaternion().setFromUnitVectors(_up,dv));podSprayFrom(b,dv,Math.round(170*dt*(1+Math.random())));});}
   else{posePerson(D[0],{L:[0.4,2.8,0.2],R:[0.4,2.8,0.2]},k2);posePerson(D[1],{L:[0.2,2.4+0.2*w,0.2],R:[0.2,0.3,0.4]},k2);posePerson(D[2],{L:[0.2,0.3,0.4],R:[0.2,2.4-0.2*w,0.2]},k2);
     const tr=POD.trophies[0];if(tr.parent!==D[0].R.grip)D[0].R.grip.add(tr);}
   POD.g.updateMatrixWorld(true);POD.g.getWorldQuaternion(_qb);for(const tr of POD.trophies)if(tr.parent)setWorldQuat(tr,_qb);
-  if(t>9.5){POD.fw.t-=dt;if(POD.fw.t<=0){podFire(90+Math.floor(Math.random()*60));POD.fw.t=0.35+Math.random()*0.5;}}
+  if(t>3.6&&!C.named){C.named=true;if(!C.top[0].isP)$('podT2').textContent=C.top[0].name+' 우승 · '+EVT_NM;}
+  if(t>9.5){POD.fw.t-=dt;if(POD.fw.t<=0){podFire(90+Math.floor(Math.random()*60));POD.fw.t=(C.chOn?0.2:0.35)+Math.random()*0.5;}}
+  if(t>12.6&&!C.sal){C.sal=true;podFire(130);podFire(130);podBurst(false);}   // the crane shot opens with a salvo
+  // 11-04: the season's champion, after the last round: gold, the final table, the camera on the champion if on this podium
+  if(C.champ&&t>15.6&&!C.chOn){C.chOn=true;const H=C.champ,c0=H.ks[0],isMe=c0==='YOU',T=$('podTitle');podBurst(true);podFire(150);podFire(150);podAud2=podAudio();
+    $('podT1').textContent=isMe?'시즌 챔피언!':'시즌 챔피언';$('podT2').textContent=H.nm[c0][0]+' · '+H.pts[c0]+'점';T.classList.toggle('win',true);T.classList.remove('on');void T.offsetWidth;T.classList.add('on');
+    $('podCap').innerHTML=H.ks.slice(0,3).map((k,i)=>`<div class="pc${k==='YOU'?' me':''}" style="--c:${(TEAMS[H.nm[k][1]]||TEAMS[0]).p}"><b>시즌 ${i+1}위</b><span>${H.nm[k][0]}</span><i>${H.pts[k]}점</i></div>`).join('');}
+  if(C.chOn&&C.champ.idx>=0)posePerson(D[C.champ.idx],{L:[0.3,2.9+0.12*w,0.2],R:[0.3,2.9-0.12*w,0.2]},k2);
   podStepFx(dt);
-  if(t>15.6&&!C.ended){C.ended=true;$('cineFade').style.opacity=1;setTimeout(()=>{podiumEnd(true);},600);}}
+  if(t>(C.champ?23:15.6)&&!C.ended){C.ended=true;$('cineFade').style.opacity=1;setTimeout(()=>{podiumEnd(true);},600);}}
+// 11-04: the ceremony's shots, in the podium's own frame: [camera x y z, target x y z, fov]. Wide pass over the crowd, low push-in on the winner, orbit in the champagne
+// with a kick when the corks go, crane up to the fireworks, then the champion
+function podShot(C,k,t){const ez=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);},zb=PIT.OFF+8.5-1.6+HALF+3;
+  if(k===0){const a=ez(t/3.6);return [-5+7*a,-5.7,zb+1-2*a,0,-0.6+0.8*a,0,46];}
+  if(k===1){const a=ez((t-3.6)/3.6);return [1.8-1.2*a,1.6+0.5*a,8.2-2.6*a,0,2.5+0.35*a,0,36-4*a];}
+  if(k===2){const a=(t-7.2)/5.4,an=-0.55+1.1*a,r=9.5-1.5*ez(a),kick=Math.max(0,1-(t-7.2)/0.5)*0.06;return [Math.sin(an)*r+Math.sin(t*61)*kick,1.9+Math.sin(t*47)*kick,Math.cos(an)*r+0.5,0,1.9,0.3,44];}
+  if(k===3){const a=ez((t-12.6)/3);return [0,-5+3*a,zb+2+10*a,0,4+8*a,-12,52];}
+  const a=ez((t-15.6)/2.2),i=C.champ?C.champ.idx:-1;
+  if(i>=0){const [sx,h]=POD.spots[i],an=0.5-0.25*(t-15.6)/7.4;return [sx+Math.sin(an)*4.6,h+0.9,0.25+Math.cos(an)*4.6,sx,h+1.75,0.25,34];}
+  return [Math.sin((t-15.6)*0.1)*6,-3+2*a,zb+6,0,8,-12,56];}
 // camera for the ceremony (world position, target, fov), or null to keep the normal camera
 function cineCam(dt){const C=CINE;if(!C)return null;
   if(C.ph==='flag'){C.t+=dt;if(C.t>3.4){CINE=null;document.body.classList.remove('cine');$('finBanner').classList.remove('on');return null;}const pl=race.player,i=wrap(C.i0+30),sd=-PIT.side,q=P0f(i,sd*Math.max(HALF+0.6,(sd>0?TR.LP[i]:TR.LN[i])-0.9)),y=roadY(q.x,q.z,i)+3.2;
     return {pos:new THREE.Vector3(q.x,y,q.z),look:new THREE.Vector3(pl.x,roadY(pl.x,pl.z,pl.idx)+0.9,pl.z),fov:38,focus:[pl.x,pl.z]};}
-  if(C.ph==='pod'&&POD.g){const t=Math.max(0,C.t-0.6),g=POD.g,L=(x,y,z)=>new THREE.Vector3(x,y,z).applyMatrix4(g.matrixWorld);let pos,look,fov;
-    if(t<3.6){const a=t/3.6,zb=PIT.OFF+8.5-1.6+HALF+3;pos=L(-5+7*a,-5.7,zb+1-2*a);look=L(0,-0.6+0.8*a,0);fov=46;}
-    else if(t<7.2){const a=(t-3.6)/3.6;pos=L(1.8-0.8*a,2.2,8.2-1.5*a);look=L(0,2.6+0.3*a,0);fov=36;}
-    else if(t<12.6){const a=(t-7.2)/5.4,an=-0.55+1.1*a;pos=L(Math.sin(an)*9.5,1.9,Math.cos(an)*9.5+0.5);look=L(0,1.9,0.3);fov=44;}
-    else{const a=Math.min(1,(t-12.6)/3),zb=PIT.OFF+8.5-1.6+HALF+3;pos=L(0,-5+3*a,zb+2+10*a);look=L(0,4+8*a,-12);fov=52;}
+  if(C.ph==='pod'&&POD.g){const t=Math.max(0,C.t-0.6),g=POD.g,L=(x,y,z)=>new THREE.Vector3(x,y,z).applyMatrix4(g.matrixWorld),ST=[0,3.6,7.2,12.6,15.6],k=t>=15.6&&C.champ?4:t>=12.6?3:t>=7.2?2:t>=3.6?1:0;
+    const A=podShot(C,k,t),w=k?Math.min(1,(t-ST[k])/0.8):1,e=w*w*(3-2*w),B=e<1?podShot(C,k-1,ST[k]):A,mx=i=>B[i]+(A[i]-B[i])*e;   // each shot grows out of the end of the last one
+    const pos=L(mx(0),mx(1),mx(2)),look=L(mx(3),mx(4),mx(5)),fov=mx(6);
     return {pos,look,fov,focus:[g.position.x,g.position.z]};}
   return null;}
 function flagPanel(){const rc=race.rc,p=race.player,el=$('flag');let cls='',txt='';
