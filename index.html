@@ -365,7 +365,8 @@ body.ped-split #pedals .pedal.brk{position:fixed; left:var(--brkL,300px); bottom
 body.sm-tilt #pedals{pointer-events:none} body.sm-tilt #pedals .pedal{pointer-events:auto}   /* the row spans the screen: only the two pedals take touches */
 body.sm-tilt #tiltGauge{left:50%; transform:translateX(-50%); width:180px; height:12px; bottom:calc(8px + var(--sab))}
 @container (max-height:420px){ body.touch .pedal{height:120px; width:86px} body.touch .pedal.gas{height:120px} }   /* 10-31 윤택님: both pedals the same height, a little bigger; 11-01: bigger again (76x108 -> 86x120) */
-body.touch .pedal::after{content:''; position:absolute; inset:-12px -6px -14px -14px} body.touch .pedal.gas::after{inset:-12px -14px -14px -6px}   /* 10-31: a touch just outside the edge still counts; 11-01: wider on the outer sides and down to the screen edge (the inner sides stay at 6 px, half the 12 px gap, so the two never overlap) */
+body.touch .pedal::after{content:''; position:absolute; inset:-12px -6px -14px -14px} body.touch .pedal.gas::after{inset:-12px -14px -14px -6px}
+body.touch:not(.sm-tilt):not(.ph-small) .pedal.gas{width:128px; height:156px}   /* 11-04 윤택님: the gas pedal bigger */   /* 10-31: a touch just outside the edge still counts; 11-01: wider on the outer sides and down to the screen edge (the inner sides stay at 6 px, half the 12 px gap, so the two never overlap) */
 @container (max-height:370px){ body.touch #hudTime .row{line-height:1.22} body.touch #tower .r{height:13px; font-size:10px} body.touch #tower .r .n{font-size:10px} }
 /* ===== v12g: phone HUD v3 - the car's dashboard (speed, gear, tyre, battery) always in view: in landscape a strip at the bottom
    centre between the steering control and the round buttons beside the pedals, in portrait under the timing panel; nothing stays in
@@ -6230,21 +6231,24 @@ let tapGas=false,tapBrk=false,pedLast=null;   // 11-01: set on press, cleared by
 // 11-01 윤택님 (가속↔브레이크를 번갈아 누르면 가끔 안 먹음): a finger is no longer tied to the pedal it first touched. Pointer capture sent
 // every move to that pedal, so a thumb rolled across onto the brake without lifting still pressed gas (and the brake never came on).
 // Each finger now presses the pedal it is over (it keeps its pedal in the gap or off the edge); a pedal is on while any finger presses it.
-{const P={gas:document.querySelector('.pedal.gas'),brake:document.querySelector('.pedal.brk')},on=new Map();   // pointerId -> 'gas' | 'brake'
- const sync=()=>{let g=false,b=false;for(const k of on.values())if(k==='gas')g=true;else b=true;
+{const P={gas:document.querySelector('.pedal.gas'),brake:document.querySelector('.pedal.brk')},on=new Map();   // touch id -> 'gas' | 'brake' | 'free' (from an empty spot) | 'no' (a button or the steering)
+ const sync=()=>{let g=false,b=false;for(const k of on.values())if(k==='gas')g=true;else if(k==='brake')b=true;
    if(g&&!touchGas)tapGas=true;if(b&&!touchBrake)tapBrk=true;touchGas=g;touchBrake=b;P.gas.classList.toggle('on',g&&!(b&&pedLast==='brake'));P.brake.classList.toggle('on',b&&!(g&&pedLast==='gas'));};
- // 11-04 윤택님 (모나코에서 잘 안 눌림): a thumb that lands near a pedal counts. 10-20 px off used to do nothing, or next to the brake it took over the
- // steering. Buttons and the steering pad keep their own touches; a finger from an empty spot picks up a pedal when it slides onto one.
- const PED_M=34,near=(x,y)=>{let k0=null,d0=PED_M;for(const k in P){const r=P[k].getBoundingClientRect();if(!r.width)continue;const d=Math.hypot(Math.max(r.left-x,0,x-r.right),Math.max(r.top-y,0,y-r.bottom));if(d<=d0){d0=d;k0=k;}}return k0;};
- const press=(e,k)=>{P[k].setPointerCapture(e.pointerId);on.set(e.pointerId,k);pedLast=k;sync();},free=new Set();
- for(const k in P){const el=P[k];
-   el.addEventListener('pointerdown',e=>{e.preventDefault();press(e,k);});
-   el.addEventListener('pointermove',e=>{if(!on.has(e.pointerId))return;const n=near(e.clientX,e.clientY);if(n&&n!==on.get(e.pointerId)){on.set(e.pointerId,n);pedLast=n;sync();}});
-   const up=e=>{if(on.delete(e.pointerId))sync();};['pointerup','pointercancel','lostpointercapture'].forEach(t=>el.addEventListener(t,up));}
- document.addEventListener('pointerdown',e=>{if(!isTouch||(state!=='race'&&state!=='countdown'))return;const t=e.target;if(!t.closest||t.closest('button,.overlay,#steerPad,#tut,#benchBar,#livEd'))return;
-   const k=near(e.clientX,e.clientY);if(k){e.preventDefault();e.stopPropagation();press(e,k);}else if(!t.closest('#steerZone'))free.add(e.pointerId);},true);
- document.addEventListener('pointermove',e=>{if(!free.has(e.pointerId))return;const k=near(e.clientX,e.clientY);if(k){free.delete(e.pointerId);press(e,k);}});
- ['pointerup','pointercancel'].forEach(t=>document.addEventListener(t,e=>free.delete(e.pointerId)));}
+ // 11-04 윤택님 (자꾸 터치가 안 먹음): the pedals read the browser's own list of fingers at every touch event, not pointer events: a pointer the phone cancels (or one lost up) left a finger
+ // on the glass doing nothing. Whatever lands in a pedal's zone presses it at once: the gas zone runs to the screen's right and bottom edges (the safe area beside it was dead), the brake's
+ // down to the bottom edge and well past its sides. Buttons and the steering pad keep their own touches; the nearest pedal wins where zones meet.
+ const EX='button,.overlay,#steerPad,#tut,#benchBar,#livEd';let Z=[];
+ const zones=()=>{Z=[];for(const k in P){const r=P[k].getBoundingClientRect();if(!r.width)continue;Z.push({k,r,l:r.left-(k==='gas'?20:60),t:r.top-80,R:k==='gas'?1e5:r.right+90,B:1e5});}};
+ const zoneAt=(x,y)=>{let k0=null,d0=1e9;for(const z of Z){if(x<z.l||x>z.R||y<z.t||y>z.B)continue;const d=Math.hypot(Math.max(z.r.left-x,0,x-z.r.right),Math.max(z.r.top-y,0,y-z.r.bottom));if(d<d0){d0=d;k0=z.k;}}return k0;};
+ const purge=e=>{for(const id of [...on.keys()]){let live=false;for(const t of e.touches)if(t.identifier===id){live=true;break;}if(!live)on.delete(id);}};
+ document.addEventListener('pointerdown',e=>{if(!isTouch||(state!=='race'&&state!=='countdown'))return;const t=e.target;if(!t.closest||t.closest(EX))return;zones();if(zoneAt(e.clientX,e.clientY)){e.preventDefault();e.stopPropagation();}},true);   // (the steering zone under a pedal's zone must not take this finger)
+ document.addEventListener('touchstart',e=>{if(!isTouch||(state!=='race'&&state!=='countdown'))return;zones();
+   for(const t of e.changedTouches){const el=t.target,pe=el.closest&&el.closest('.pedal');let k=pe?(pe===P.gas?'gas':'brake'):null;
+     if(!k){if(!el.closest||el.closest(EX)){on.set(t.identifier,'no');continue;}k=zoneAt(t.clientX,t.clientY);if(!k){on.set(t.identifier,el.closest('#steerZone')?'no':'free');continue;}}
+     on.set(t.identifier,k);pedLast=k;}
+   purge(e);sync();},{capture:true,passive:true});
+ document.addEventListener('touchmove',e=>{if(!on.size)return;let ch=false;for(const t of e.changedTouches){const o=on.get(t.identifier);if(!o||o==='no')continue;const n=zoneAt(t.clientX,t.clientY);if(n&&n!==o){on.set(t.identifier,n);pedLast=n;ch=true;}}if(ch)sync();},{capture:true,passive:true});
+ const end=e=>{for(const t of e.changedTouches)on.delete(t.identifier);purge(e);sync();};document.addEventListener('touchend',end,{capture:true,passive:true});document.addEventListener('touchcancel',end,{capture:true,passive:true});}
 const BRKP=document.querySelector('.pedal.brk');
 holdBtn($('mErs'),()=>touchErs=true,()=>touchErs=false);
 holdBtn($('mLook'),()=>{key.look=true;},()=>{key.look=false;});
