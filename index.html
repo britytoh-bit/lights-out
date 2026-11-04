@@ -1403,10 +1403,11 @@ function boxBusy(race,c){return race.cars.some(o=>o!==c&&!o.gone&&o.team===c.tea
 // v11f: the corner speeds ahead (a little under the racing line's), reachable with firm braking (14 m/s2) - the pit autopilot
 // uses it on the exit road and while joining so it never arrives at a corner too fast
 function pitAheadV(c,ti,g,fac){let v=VMAX;for(let k=0;k<=50;k+=2){const vk=profAt(wrap(ti.i+k),g)*fac,d=Math.max(0,k*STEP-ti.along);v=Math.min(v,Math.sqrt(vk*vk+2*14*d));}return v;}
+const HAND_T=0.6;   // 11-05: seconds the autopilot's steering takes to fade out under the driver's. It let go at once: up to full lock and 63 deg/s gone in a frame, mid-corner
 // v11f: joining the track. Some pit exits feed straight into a corner (Monaco's: the pit-exit line runs on through turn 1), so the car
 // is not handed back at the end of the exit road: it keeps driving itself on the pit side of the track, at a speed that makes the
 // next corner, until it is on the track, lined up with it and not about to brake (at most 8 s).
-function joinStep(race,c,dt){
+function joinStep(race,c,dt,inp){
   const pp=c.pit,ti=trackInfo(c),v0=c.spd,g=tyreGrip(c).lat;pp.jT=(pp.jT||0)+dt;
   // v13k: give way - while a car on the track is alongside or up to 30 m behind on the pit side, hold the edge instead of
   // steering into its line (it merged blind and got hit)
@@ -1426,14 +1427,16 @@ function joinStep(race,c,dt){
   const t=T[ti.i];let hd=Math.atan2(t[1],t[0])-c.a;while(hd>Math.PI)hd-=2*Math.PI;while(hd<-Math.PI)hd+=2*Math.PI;
   let need=false;const K=Math.min(90,Math.round(c.spd*1.5/STEP));for(let k=0;k<=K;k+=3)if(profAt(wrap(ti.i+k),g)*0.9<c.spd*0.85){need=true;break;}   // hard braking needed soon
   const t2=T[wrap(ti.i+Math.max(15,Math.min(60,Math.round(c.spd*1.5/STEP))))];let bend=Math.atan2(t2[1],t2[0])-Math.atan2(t[1],t[0]);while(bend>Math.PI)bend-=2*Math.PI;while(bend<-Math.PI)bend+=2*Math.PI;   // the road ahead must be nearly straight
-  if(pp.jT>8||(pp.jT>0.25&&!yl&&Math.abs(c.lat)<HALF-0.8&&Math.abs(hd)<0.09&&(Math.abs(bend)<0.17||pp.jT>2.5)&&!need&&!c.braking)){
-    c.pit=null;c.lane=c.laneT=Math.max(-HALF+1.6,Math.min(HALF-1.6,c.lat));c.rlw=0;c.passT=race.t+2;if(c.r!=null)c.r=0;if(c.isP)race.EV.push({type:'pitOut'});}}
-function stepPit(race,c,dt){
+  // 11-05: the driver steering takes the car back at once, once it is on the track: on 10 of the 28 circuits the input did nothing for over 2 s out on the track
+  const human=!!inp&&(inp.left||inp.right||Math.abs(inp.axis||0)>0.12);
+  if(pp.jT>8||(pp.jT>0.25&&Math.abs(c.lat)<HALF-0.8&&(human||(!yl&&Math.abs(hd)<0.09&&(Math.abs(bend)<0.17||pp.jT>2.5)&&!need&&!c.braking)))){
+    c.pit=null;c.lane=c.laneT=Math.max(-HALF+1.6,Math.min(HALF-1.6,c.lat));c.rlw=0;c.passT=race.t+2;if(c.r!=null)c.r=om;if(c.isP){c.vx=c.spd;c.vy=0;c.bp=0;c.handT=HAND_T;c.handSt=c.st;race.EV.push({type:'pitOut'});}}}   // (no step: it keeps the turn it was in, and neither the brake pedal nor the speed left from the pit entry comes back)
+function stepPit(race,c,dt,inp){
   // 11-04: the pit road is paved. stepPlayer no longer runs in here, so whatever it saw on its last step stayed for the whole stop: one wheel on the grass
   // beside the entry froze c.off, and the camera's off-track shake ran at 7 Hz all down the lane (chase 47 mm rms, cockpit 16 mm; 1.8 and 0.6 without it)
   c.off=false;c.kerbW=0;c.surf=SURF.track;
   if(c.va!=null)c.va=c.a;
-  if(c.pit.state==='join'){joinStep(race,c,dt);return;}
+  if(c.pit.state==='join'){joinStep(race,c,dt,inp);return;}
   const ti=trackInfo(c),r0=zoneR(ti.i);
   if(r0<0){c.pit=null;c.lane=c.laneT=Math.max(-HALF+1.6,Math.min(HALF-1.6,c.lat));c.rlw=0;return;}
   const pp=c.pit,v0=c.spd;
@@ -1507,7 +1510,8 @@ function stepPlayer(race,c,dt,inp){
   if(race.bAs&&!c.pit&&c.vx>12){const i=wrap(c.idx+Math.round(c.vx*0.25/STEP)),L=profAt(i,tg.lat);
     c.bAs=race.bAs>1?c.vx>L*0.97+(c.bAs?0:0.5):c.vx>L*(c.bAs?1.08:1.15)+(c.bAs?0:1);}else c.bAs=false;
   // steering: keyboard ramps towards full lock, analogue input (drag/tilt) is followed directly
-  const dig=(inp.right?1:0)-(inp.left?1:0),ana=!dig&&!!inp.axis,tgt=dig!==0?dig:(inp.axis?Math.max(-1,Math.min(1,inp.axis)):0),si=Math.max(0,Math.min(4,race.sens-1));
+  const dig=(inp.right?1:0)-(inp.left?1:0),ana=!dig&&!!inp.axis,si=Math.max(0,Math.min(4,race.sens-1));let tgt=dig!==0?dig:(inp.axis?Math.max(-1,Math.min(1,inp.axis)):0);
+  if(c.handT>0){c.handT-=dt;tgt=Math.max(-1,Math.min(1,tgt+c.handSt*Math.max(0,c.handT)/HAND_T));}
   const ramp=ana?SENS_RAMP_A[si]:SENS_RAMP[si]*(1.2-0.35*Math.min(1,Math.abs(c.spd)/85)),back=ana?2.4:3;   // centring and reversing are quicker than turning in
   const rate=tgt===0?ramp*back:(c.st!==0&&Math.sign(tgt)!==Math.sign(c.st)?ramp*back:ramp);
   const dst=tgt-c.st,stepMax=rate*dt;c.st+=Math.max(-stepMax,Math.min(stepMax,dst));
@@ -1895,7 +1899,7 @@ function stepRace(race,dt,inp){
   if(!race.go){race.go=true;const p=race.player;if(p.jump)addPen(race,p,5,'jump');}
   race.t+=dt;updWeather(race,dt);airStep(race,dt);
   for(const c of race.cars){if(c.gone)continue;const before=c.prog;
-    if(c.pit)stepPit(race,c,dt);
+    if(c.pit)stepPit(race,c,dt,c.isP?inp:null);
     else if(c.isP){if(c.dnf){c.spd=0;c.vx=c.vy=c.r=0;c.thr=c.bp=0;}
       else{stepPlayer(race,c,dt,c.wreck?{gas:false,brake:true,left:false,right:false,ers:false}:c.fin==null?inp:pilot(race,c,0.55));   // after the flag: cool-down lap on autopilot (not parked on the racing line)
         if(c.wreck&&Math.abs(c.spd)<0.4){c.dnf=true;c.spd=0;onDNF(race,c);race.EV.push({type:'pdnf'});}}}
