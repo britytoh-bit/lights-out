@@ -64,7 +64,7 @@ body:not(.touch):not(.q-low) .hud, body:not(.touch):not(.q-low) #mini{-webkit-ba
 #tower .r:last-child{border-bottom:0}
 #tower .r .p{width:30px; align-self:stretch; display:flex; align-items:center; justify-content:center; font-weight:800; color:var(--ink); background:rgba(255,255,255,.07); margin-right:8px}
 #tower .r .c{width:3px; height:15px; border-radius:0; margin-right:8px; box-shadow:0 0 0 1px rgba(255,255,255,.22)}
-#tower .r .n{font-weight:700; letter-spacing:.06em}
+#tower .r .n{font-weight:700; letter-spacing:.06em} #tower .r .n .pn{color:#e8730c; font-style:normal; font-weight:700; margin-left:3px; font-size:.85em}
 #tower .r.me{background:#f2f3f5; color:#0d0f13} #tower .r.me .n{color:#0d0f13} #tower .r.me .p{background:var(--team); color:#0b0c0f}
 #tower .r.me .q{color:#3a3f47}
 #tower .gap{padding:0 12px; color:var(--dim); font-size:12px; line-height:1.1}
@@ -1298,17 +1298,18 @@ function wallHit(race,c,hit,into,side){
 // pk: puncture per tyre (same corner order), 0 = fine .. 1 = fully deflated, running on the rim; pkR = how fast it goes down (1/s).
 // How much breaks per m/s of impact speed is a game tuning for feel, not measured crash data.
 const Z4=[0,0,0,0];
-function newDmg(){return {fp:0,fn:0,rw:0,sus:[0,0,0,0],pk:[0,0,0,0],pkR:[0,0,0,0]};}
+function newDmg(){return {fp:0,fn:0,rw:0,sus:[0,0,0,0],pk:[0,0,0,0],pkR:[0,0,0,0],sd:[0,0],cool:0};}   // 11-04: sd: sidepod and floor edge on the -z / +z side: torn bodywork, less downforce, less cooling
 const pch=(x,x0,span,mx)=>Math.max(0,Math.min(mx,(x-x0)/span));   // chance of a puncture for an impact of size x
 function impactInc(hit,into,side){const e=Math.max(0,hit-3),F=side>0?'fp':'fn',O=side>0?'fn':'fp',sI=side>0?1:0,inc={sus:[0,0,0,0],pk:[0,0,0,0]};
   if(into>0.45){inc[F]=e*0.14;if(into>0.85)inc[O]=e*0.1;inc.sus[sI]=Math.max(0,hit-9)*0.045;inc.pk[sI]=pch(hit,12,25,0.5);}   // nose first
   else if(into<-0.45){inc.rw=e*0.11;inc.sus[2+sI]=Math.max(0,hit-8)*0.05;inc.pk[2+sI]=pch(hit,10,20,0.55);}                     // spun round, tail first
-  else{inc[F]=e*0.08;inc.sus[sI]=Math.max(0,hit-6)*0.045;inc.sus[2+sI]=Math.max(0,hit-6)*0.04;inc.pk[sI]=pch(hit,8,20,0.6);inc.pk[2+sI]=pch(hit,8,22,0.5);}   // side on: endplate, then the wheels
+  else{inc[F]=e*0.08;inc.sus[sI]=Math.max(0,hit-6)*0.045;inc.sus[2+sI]=Math.max(0,hit-6)*0.04;inc.pk[sI]=pch(hit,8,20,0.6);inc.pk[2+sI]=pch(hit,8,22,0.5);inc.sd=sI?[0,e*0.07]:[e*0.07,0];}   // side on: endplate, the wheels, the sidepod
   if(hit>20){inc.sus[sI]+=0.5;inc.sus[2+sI]+=0.3;}
   return inc;}
 function contactDmg(race,a,b,sa,sb,rel,nx,nz){const e=rel-4;
   const one=(c,sc,so,dx,dz)=>{const side=(-Math.sin(c.a)*dx+Math.cos(c.a)*dz)>0?1:-1,F=side>0?'fp':'fn',sI=side>0?1:0,inc={sus:[0,0,0,0],pk:[0,0,0,0]};
-    if(sc>0&&so<0){inc[F]=e*0.1;inc.pk[sI]=pch(rel,10,24,0.15);}                        // our nose into their rear wheel: front wing
+    if(sc===0){const k=e*(so>0?0.14:0.09);inc.sd=sI?[0,k]:[k,0];}                        // 11-04: hit in the side: the sidepod (harder from a nose than rubbing wheels)
+    else if(sc>0&&so<0){inc[F]=e*0.1;inc.pk[sI]=pch(rel,10,24,0.15);}                        // our nose into their rear wheel: front wing
     else if(sc>0){inc[F]=e*0.05;inc.sus[sI]=e*0.02;inc.pk[sI]=pch(rel,9,24,0.2);}      // side by side, front wheels touching
     else if(so>0){inc.rw=e*0.03;inc.sus[2+sI]=e*0.015;inc.pk[2+sI]=pch(rel,8,22,0.35);} // hit from behind: their wing cuts our rear tyre
     else inc.sus[2+sI]=e*0.02;
@@ -1317,19 +1318,24 @@ function contactDmg(race,a,b,sa,sb,rel,nx,nz){const e=rel-4;
 function applyDmg(race,c,inc,hit,kind){
   if(race.dmg==='off'||!c.dmg||c.dnf||c.gone||c.pit)return;
   if(race.form&&c.fk!=null&&(!c.isP||c.fAuto))return;   // v12h: a formation lap driven automatically (the AI, or the player's car after a skip / auto line-up) never damages a car
-  const d=c.dmg,snap=()=>[d.fp,d.fn,d.rw,d.sus[0],d.sus[1],d.sus[2],d.sus[3],d.pk[0],d.pk[1],d.pk[2],d.pk[3]],b0=snap();
+  const d=c.dmg,snap=()=>[d.fp,d.fn,d.rw,d.sus[0],d.sus[1],d.sus[2],d.sus[3],d.pk[0],d.pk[1],d.pk[2],d.pk[3],d.sd[0],d.sd[1]],b0=snap();
   d.fp=Math.min(1,d.fp+(inc.fp||0));d.fn=Math.min(1,d.fn+(inc.fn||0));d.rw=Math.min(1,d.rw+(inc.rw||0));
   for(let k=0;k<4;k++)d.sus[k]=Math.min(1,d.sus[k]+((inc.sus&&inc.sus[k])||0));
+  if(inc.sd)for(let k=0;k<2;k++)d.sd[k]=Math.min(1,d.sd[k]+inc.sd[k]);
   // punctures: a cut tyre goes down in a couple of seconds, a slow puncture over ~15 s
   if(inc.pk)for(let k=0;k<4;k++){const p=inc.pk[k]||0;if(p>0&&d.pk[k]<0.05){const q=c.rnd();if(q<p){d.pk[k]=0.12;d.pkR[k]=q<p*0.55?0.45+0.9*c.rnd():0.04+0.05*c.rnd();}}}
-  if(c.isP&&race.dmg!=='sim'){for(let k=0;k<4;k++)d.sus[k]=Math.min(0.85,d.sus[k]);d.rw=Math.min(0.9,d.rw);}   // standard: the player's car always limps on
+  // 11-04: an impact no car survives ends the race whatever the setting, the player's car and the others alike (108 km/h square into something on 리얼, 130 on 보통). Below that 보통 keeps the player limping on
+  if(hit>=(race.dmg==='sim'?DMG_BIG[0]:DMG_BIG[1])){d.sus[hit%2<1?0:1]=1;wreck(race,c);}
+  if(c.isP&&race.dmg!=='sim'&&!c.wreck){for(let k=0;k<4;k++)d.sus[k]=Math.min(0.85,d.sus[k]);d.rw=Math.min(0.9,d.rw);}   // standard: the player's car always limps on
   const ch=snap().map((v,k)=>v-b0[k]);
   if(ch.reduce((a,v)=>a+v,0)<0.02)return;
   const lost=[b0[0]<1&&d.fp>=1,b0[1]<1&&d.fn>=1,b0[2]<1&&d.rw>=1];race.EV.push({type:'dmg',id:c.id,isP:!!c.isP,hit,kind,ch,lost});
-  if(lost[0]||lost[1]||lost[2])debrisHazard(race,c,true);else if((b0[0]<0.55&&d.fp>=0.55)||(b0[1]<0.55&&d.fn>=0.55))debrisHazard(race,c,false);   // v12g: parts on the road
+  if((b0[11]<0.55&&d.sd[0]>=0.55)||(b0[12]<0.55&&d.sd[1]>=0.55))debrisHazard(race,c,false);if(lost[0]||lost[1]||lost[2])debrisHazard(race,c,true);else if((b0[0]<0.55&&d.fp>=0.55)||(b0[1]<0.55&&d.fn>=0.55))debrisHazard(race,c,false);   // v12g: parts on the road
   if(d.rw>=1||d.sus.some(v=>v>=1))wreck(race,c);}
 // a punctured tyre keeps going down; the AI heads for the pits on a puncture
 function dmgStep(race,c,dt){const d=c.dmg;if(!d||c.dnf||c.gone||c.pit)return;
+  // 11-04: 리얼: a sidepod torn wide open lets the cooling go: about 90 s, then the engine is done
+  if(race.dmg==='sim'&&Math.max(d.sd[0],d.sd[1])>=0.8&&!c.wreck&&(d.cool+=dt)>90)wreck(race,c);
   for(let k=0;k<4;k++)if(d.pk[k]>0&&d.pk[k]<1){const was=d.pk[k];d.pk[k]=Math.min(1,was+d.pkR[k]*dt*(0.3+0.7*Math.min(1,Math.abs(c.spd)/30)));
     if(was<0.9&&d.pk[k]>=0.9&&c.isP)race.EV.push({type:'flat',k});}
   if(!c.isP&&!c.fail&&!c.pitReq&&c.fin==null&&(d.pk[0]+d.pk[1]+d.pk[2]+d.pk[3])>0.25&&lapsLeft(race,c)>0.15)c.pitReq=true;}
@@ -1340,13 +1346,17 @@ function repairPlan(c,rnd){const d=c.dmg,R={fw:0,rw:0,sus:[0,0,0,0],t:0,n:0};if(
   if(fw>=0.1){R.fw=5.4+1.6*Math.min(1,fw)+j(1.2);R.n++;}                                  // new nose + front wing
   if(d.rw>=0.1){R.rw=6.5+3*Math.min(1,d.rw)+j(1.5);R.n++;}                                // rear-wing assembly
   for(let k=0;k<4;k++)if(d.sus[k]>=0.1){R.sus[k]=1.2+9*Math.min(1,d.sus[k])+j(1);R.n++;} // wishbones / pushrod at that corner, wheel off
-  if(R.n)R.t=Math.max(R.fw,R.rw,Math.max(R.sus[0],R.sus[1],R.sus[2],R.sus[3])+1.4)+0.5*(R.n-1);
+  {const sd=Math.max(d.sd[0],d.sd[1]);if(sd>=0.1){R.sd=3+8*sd+j(1);R.n++;}}   // 11-04: sidepod panel
+  if(R.n)R.t=Math.max(R.fw,R.rw,R.sd||0,Math.max(R.sus[0],R.sus[1],R.sus[2],R.sus[3])+1.4)+0.5*(R.n-1);
   return R;}
-function dmgAny(d){return !!d&&(d.fp+d.fn+d.rw+d.sus[0]+d.sus[1]+d.sus[2]+d.sus[3]+d.pk[0]+d.pk[1]+d.pk[2]+d.pk[3])>0.005;}
+function dmgAny(d){return !!d&&(d.fp+d.fn+d.rw+d.sus[0]+d.sus[1]+d.sus[2]+d.sus[3]+d.pk[0]+d.pk[1]+d.pk[2]+d.pk[3]+d.sd[0]+d.sd[1])>0.005;}
+const DMG_BIG=[30,36];   // impact speed (m/s) that cannot be survived: 리얼, 보통
+// 11-04: 리얼: a stop changes noses, wings and bent parts. A broken-up corner or a torn-open sidepod is garage work for many laps, so the team retires the car at the box
+function dmgFatal(race,d){return race.dmg==='sim'&&(Math.max(d.sus[0],d.sus[1],d.sus[2],d.sus[3])>=0.6||Math.max(d.sd[0],d.sd[1])>=0.8);}
 function wreck(race,c){if(c.wreck)return;c.wreck=true;
   if(c.isP)race.EV.push({type:'wreck'});
   else{c.fail=true;c.crash=true;c.pitReq=false;race.EV.push({type:'crash',code:c.code,name:c.name});}}
-function dmgPace(c){const d=c.dmg;if(!d)return 1;return 1-0.045*(d.fp+d.fn)/2-0.08*d.rw-0.05*Math.max(d.sus[0],d.sus[1],d.sus[2],d.sus[3])-0.25*Math.max(d.pk[0],d.pk[1],d.pk[2],d.pk[3]);}
+function dmgPace(c){const d=c.dmg;if(!d)return 1;return 1-0.045*(d.fp+d.fn)/2-0.08*d.rw-0.05*Math.max(d.sus[0],d.sus[1],d.sus[2],d.sus[3])-0.25*Math.max(d.pk[0],d.pk[1],d.pk[2],d.pk[3])-0.04*Math.max(d.sd[0],d.sd[1]);}
 function enterPit(race,c){
   c.pit={state:'in',box:PIT.box(c.team),lat0:Math.max(-HALF,c.lat*PIT.side),t:0,entryT:race.t};c.pitReq=false;if(c.r!=null){c.r=0;c.lockF=c.lockR=c.spinR=false;if(c.lkS)c.lkS[0]=c.lkS[1]=false;}
   if(!c.nextComp)c.nextComp=pickCompound(race,c);
@@ -1442,6 +1452,7 @@ function stepPit(race,c,dt){
     if(pp.redQ){pp.stuckT=c.spd<0.3?(pp.stuckT||0)+dt:0;if((d<1.2&&c.spd<1.2)||pp.stuckT>2.5){redHold(race,c);return;}}
     else if(race.sess&&!c.isP&&d<1.2&&c.spd<1.2){pp.state='garage';pp.t=1e9;pp.hideT=race.t+2.5;pp.stopT=null;c.spd=0;if(c.run){c.run.ph='garage';c.run.k++;}return;}   // session: back into the garage
     else if(d<1.2&&c.spd<1.2&&!boxBusy(race,c)){pp.state='stop';pp.stopT=race.t;const slow=c.rnd()<0.08;pp.service=slow?4+c.rnd()*3:2.1+c.rnd()*0.9;c.spd=0;
+      if(c.dmg&&dmgFatal(race,c.dmg)){c.spd=0;c.pitReq=false;if(c.isP){c.wreck=true;c.dnf=true;race.EV.push({type:'pitRet'},{type:'pdnf'});}else{c.dnf=true;c.gone=true;race.EV.push({type:'pitRetAI',code:c.code,name:c.name});}return;}
       pp.rep=repairPlan(c,c.rnd);pp.nose=pp.rep.fw>0;pp.service=Math.max(pp.service,pp.rep.t);   // repairs (see repairPlan)
       pp.pen=c.pen||0;if(pp.pen>0){c.served+=pp.pen;c.pen=0;}pp.t=pp.service+pp.pen;   // time penalties are served stationary before work starts
       if(c.isP)race.EV.push({type:'pitStop',pen:pp.pen});return;}}
@@ -1535,7 +1546,7 @@ function carDyn(c,h,S,sw,tg,asst,inp){
   const dm=c.dmg,fwE=dm?(dm.fp+dm.fn)/2:0,rwE=dm?dm.rw:0,sF=dm?Math.max(dm.sus[0],dm.sus[1]):0,sR=dm?Math.max(dm.sus[2],dm.sus[3]):0,pk=dm&&dm.pk?dm.pk:Z4;
   // aero balance moves forward under braking (the nose dives towards the ground) and back a little under power
   const abE=PH.ab+Math.max(-0.02,Math.min(0.05,-(c.axL||0)/9.81*PH.abP));
-  const wd=c.dirty||0,D=PH.kD*v*v*(1-0.25*ao),drag=PH.kDrag*v*v*(1-0.1*ao)*(1-(c.tow||0))*(1-0.04*fwE-0.1*rwE)+600*(pk[0]+pk[1]+pk[2]+pk[3])*Math.min(1,v/10),Df=D*abE*(1-0.6*fwE)*(1-1.3*wd),Dr=D*(1-abE)*(1-0.55*rwE)*(1-0.7*wd);   // a flat tyre drags
+  const wd=c.dirty||0,sdE=dm?Math.max(dm.sd[0],dm.sd[1]):0,D=PH.kD*v*v*(1-0.25*ao)*(1-0.15*sdE),drag=PH.kDrag*v*v*(1-0.1*ao)*(1-(c.tow||0))*(1-0.04*fwE-0.1*rwE+0.05*sdE)+600*(pk[0]+pk[1]+pk[2]+pk[3])*Math.min(1,v/10),Df=D*abE*(1-0.6*fwE)*(1-1.3*wd),Dr=D*(1-abE)*(1-0.55*rwE)*(1-0.7*wd);   // a flat tyre drags
   // v13: on a banked turn the road carries cos(bank) of the weight plus BANK_F of the cornering load pressed into it (turning towards the low side)
   const gy=c.gy||0,cbk=gy?1/Math.sqrt(1+gy*gy):1,We=gy?Math.max(0.3*W,W*cbk-BANK_F*m*(c.latG||0)*gy*cbk):W;
   let Fzf=We*PH.wf+Df-m*(c.axL||0)*PH.h/PH.L;Fzf=Math.max(0.12*We,Fzf);const Fzr=Math.max(0.12*We,We+Df+Dr-Fzf);
@@ -1634,7 +1645,7 @@ function trackLimits(race,c,ti,dt){
   else addPen(race,c,k===4?5:10,'tlpen',{reset:k===5});
 }
 // v12i: a stop the car cannot put off (repairs, a puncture, the wrong tyres for the weather)
-function aiPitUrgent(race,c){const d=c.dmg;if(d&&(Math.max(d.fp,d.fn)>=0.35||d.rw>=0.3||Math.max(d.sus[0],d.sus[1],d.sus[2],d.sus[3])>=0.3||d.pk[0]+d.pk[1]+d.pk[2]+d.pk[3]>0.25))return true;
+function aiPitUrgent(race,c){const d=c.dmg;if(d&&(Math.max(d.fp,d.fn)>=0.35||d.rw>=0.3||Math.max(d.sd[0],d.sd[1])>=0.4||Math.max(d.sus[0],d.sus[1],d.sus[2],d.sus[3])>=0.3||d.pk[0]+d.pk[1]+d.pk[2]+d.pk[3]>0.25))return true;
   const w=race.wx.wet,cur=c.ty.comp,isW=COMP[cur].wet;return (!isW&&w>c.wxThr)||(cur==='I'&&w>0.8)||(cur==='W'&&w<0.55)||(cur==='I'&&w<0.1+c.wxThr*0.25&&race.wx.rain<0.1);}
 // v12i: no needless double stack - the player's team-mate stays out a lap when the player has been called in on this lap and is close
 // behind it (both would reach the box within ~12 s), unless its stop cannot wait
@@ -1819,6 +1830,18 @@ function stepAI(race,c,dt){
    if(c.jamT>4&&!(c.creepT>race.t)){c.creepT=race.t+6;c.obstP=obst;}if(!(c.creepT>race.t))c.obstP=null;}
 }
 const onRamp=c=>!!c.pit&&(c.pit.state==='join'||c.pit.state==='in'&&zoneR(c.idx)<Math.min(PIT.RAMP,40)&&Math.abs(c.lat)<HALF+2.5);   // v13j: 'join' is back on the track while c.pit is still set - it drove through the field
+// 11-04: stewarding of car-to-car contact, the same for every car. FIA 2026 Sporting Regulations B1.9.3: no penalty unless a driver is wholly or predominantly to blame; B1.9.5 / B1.9.6: 5 or 10 s, served at the
+// next stop before any work, or added to the race time. Stewards' decisions: 10 s is the standard for causing a collision, 5 s where it is mitigated (opening lap, a light touch). The thresholds are game values.
+const COL={rear:7,side:5.5,ratio:2.5,hard:12,cool:8,lateT:3};
+function colJudge(race,a,b,sa,sb,rel,clo,ua,ub,nx,nz){if(race.sess||race.form||race.rc.flag!=='green'||a.fin!=null||b.fin!=null||a.pit||b.pit||a.fail||b.fail||race.t-(race.startT||0)<COL.lateT)return;
+  const t=T[a.idx],al=Math.abs(nx*t[0]+nz*t[1]),fr=gapTo(a,b)>0?b:a,bk=fr===a?b:a,sf=fr===a?sa:sb,sB=fr===a?sb:sa;let who=null,kind,v;
+  if(al>0.7&&sf<0&&sB>=0){v=bk.spd-fr.spd;if(v>=COL.rear){who=bk;kind='rear';}}   // into the back of a car
+  else if(al<0.7&&clo>=COL.side){v=clo;if(ua>=COL.ratio*Math.max(ub,0.3)){who=a;kind='side';}else if(ub>=COL.ratio*Math.max(ua,0.3)){who=b;kind='side';}}   // moved across into a car alongside (a lock-up that slides in counts too: it is the car's own motion)
+  if(!who)return;const vc=who===a?b:a;
+  if(vc.spd<14||Math.abs(vc.lat)>TR.HW[vc.idx]+1.2||Math.abs(vc.slideAng||0)>0.35)return;   // the other car was off line already: crawling, off the road or sideways
+  const key=Math.min(a.id,b.id)*64+Math.max(a.id,b.id),M=race.colM||(race.colM={});if(race.t-(M[key]??-99)<COL.cool)return;M[key]=race.t;
+  const lap1=Math.floor(Math.max(0,who.prog)/N)===0,sec=!lap1&&v>=COL.hard?10:5;who.colN=(who.colN||0)+1;
+  addPen(race,who,sec,'colPen',{me:true,name:vc.name,kind,v});if(!who.isP)race.EV.push({type:'colPen',s:sec,me:false,name:who.name,code:who.code,vic:vc.isP,kind,v});if(race.colLog)race.colLog.push({t:race.t,who:who.id,vc:vc.id,kind,v,sec,ua,ub,al,sa,sb,lat:who.lat,hurt:dmgAny(vc.dmg)});}
 function collide(race){
   const cs=race.cars;
   for(let i=0;i<cs.length;i++)for(let j=i+1;j<cs.length;j++){
@@ -1828,8 +1851,8 @@ function collide(race){
     for(const sa of[-1.6,0,1.6]){if(done)break;for(const sb of[-1.6,0,1.6]){
       const ax=a.x+Math.cos(a.a)*sa,az=a.z+Math.sin(a.a)*sa,bx=b.x+Math.cos(b.a)*sb,bz=b.z+Math.sin(b.a)*sb,dx=bx-ax,dz=bz-az,d=Math.hypot(dx,dz);
       if(d>0.001&&d<2.1){const nx=dx/d,nz=dz/d,ov=(2.1-d)/2;a.x-=nx*ov;a.z-=nz*ov;b.x+=nx*ov;b.z+=nz*ov;a.jx=(a.jx||0)-nx*ov;a.jz=(a.jz||0)-nz*ov;b.jx=(b.jx||0)+nx*ov;b.jz=(b.jz||0)+nz*ov;a.px-=nx*2.5;a.pz-=nz*2.5;b.px+=nx*2.5;b.pz+=nz*2.5;
-        const rel=Math.abs(a.spd-b.spd),back=gapTo(a,b)>0?a:b,front=back===a?b:a;back.spd=Math.min(back.spd,front.spd*0.97);a.spd*=0.99;b.spd*=0.99;
-        if((a.isP||b.isP)&&rel>2.5)race.EV.push({type:'contact',rel,x:(ax+bx)/2,z:(az+bz)/2,nx:a.isP?nx:-nx,nz:a.isP?nz:-nz});if(rel>4&&(a.isP||b.isP))contactDmg(race,a,b,sa,sb,rel,nx,nz);/* AI-AI touches in this simple model are mostly traffic overlap, not racing incidents */done=true;break;}}}
+        const ha=a.va!=null?a.va:a.a,hb=b.va!=null?b.va:b.a,ta=T[a.idx],tb=T[b.idx],sg=b.lat>=a.lat?1:-1,ua=(Math.sin(ha)*ta[0]-Math.cos(ha)*ta[1])*a.spd*sg,ub=-(Math.sin(hb)*tb[0]-Math.cos(hb)*tb[1])*b.spd*sg,clo=Math.max(0,ua+ub),rel=Math.max(Math.abs(a.spd-b.spd),Math.abs(nx*T[a.idx][0]+nz*T[a.idx][1])<0.7?clo:0),back=gapTo(a,b)>0?a:b,front=back===a?b:a;colJudge(race,a,b,sa,sb,rel,clo,ua,ub,nx,nz);back.spd=Math.min(back.spd,front.spd*0.97);a.spd*=0.99;b.spd*=0.99;
+        if((a.isP||b.isP)&&rel>2.5)race.EV.push({type:'contact',rel,x:(ax+bx)/2,z:(az+bz)/2,nx:a.isP?nx:-nx,nz:a.isP?nz:-nz});if(rel>4&&(a.isP||b.isP||rel>=COL.rear))contactDmg(race,a,b,sa,sb,rel,nx,nz);/* AI-AI touches below that are mostly traffic overlap in this simple model, not racing incidents */done=true;break;}}}
   }
 }
 // v12f / 11-04: the air behind another car, for every car (it was the player's only): turbulent (less downforce, mostly at the front:
@@ -1887,6 +1910,8 @@ function ranking(race){
   return fin.concat(run,out,dq);
 }
 const POINTS=[25,18,15,12,10,8,6,4,2,1];   // top 10; no fastest-lap point since 2025
+// 11-04: a car that stopped after 90 % of the laps (rounded down) is still classified and can score (FIA 2026 Sporting Regulations, Race Classification)
+function classed(race,c){return c.fin!=null&&!c.dsq||(!c.dsq&&(c.dnf||c.fail)&&!race.sess&&Math.floor(c.prog/N)>=Math.floor(race.laps*0.9));}
 
 // ---------------- weather ----------------
 function updWeather(race,dt){const wx=race.wx;
@@ -4763,6 +4788,14 @@ function ghostMat(kit){const gm=kit.ghostM=new THREE.MeshBasicMaterial({color:0x
       gm.onBeforeCompile=sh=>{sh.vertexShader='varying vec3 vGN;varying vec3 vGV;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\nvGN=normalize(normalMatrix*normal);vGV=-mvPosition.xyz;');
         sh.fragmentShader='varying vec3 vGN;varying vec3 vGV;\n'+sh.fragmentShader.replace('#include <alphamap_fragment>','#include <alphamap_fragment>\n{float q=abs(dot(normalize(vGN),normalize(vGV)));diffuseColor.a*=smoothstep(0.0,0.55,q);'+(GRADE_IN_TM?'diffuseColor.a=1.0-pow(1.0-diffuseColor.a,0.4545);':'')+'}');};kit.ghostS=gm.clone();kit.ghostS.opacity=0.28;kit.ghostS.onBeforeCompile=gm.onBeforeCompile;}   // dark in the middle, fading out to its edges: a blurred pillar. 10-30 윤택님 (blur on, the centre was still blocked): the pillar much fainter (ghostS) - the hoop keeps ghostM
       // v14b: (no post chain on a phone: it blends straight onto the sRGB screen, not in linear light - the same see-through needs less opacity)
+// 11-04: a side hit tears the sidepod open: a dark jagged hole and bent shards of the skin, drawn only on a damaged car (one mesh per torn side, none on an intact car; the 3D model's sidepod runs at z 0.59-0.67 here)
+function tearGeo(s){const CX=0.08,CY=0.46,R=[1,0.72,1.08,0.66,0.94,1.16,0.7,1.02,0.78,1.12,0.64,0.98,0.8,1.1],n=R.length,zAt=x=>{const q=Math.max(0,Math.min(1,(x+0.4)/0.6));return 0.59+0.08*q*(2-q);};
+  const pos=[],col=[],tri=(a,b,c,k)=>{for(const p of[a,b,c]){pos.push(p[0]-CX,p[1]-CY,s*p[2]);col.push(k,k,k*1.06);}},rim=[];for(let i=0;i<n;i++){const a=i/n*Math.PI*2,x=CX+Math.cos(a)*0.36*R[i],y=CY+Math.sin(a)*0.115*R[i];rim.push([x,y,zAt(x)+0.008]);}
+  const ctr=[CX,CY,zAt(CX)+0.008];for(let i=0;i<n;i++){tri(ctr,rim[i],rim[(i+1)%n],0.012);}
+  for(let i=0;i<n;i+=2){const p=rim[i],q=rim[(i+1)%n],ox=(p[0]-CX)*0.3+(i%4?0.05:-0.04),oy=(p[1]-CY)*0.7+(i%3?-0.03:0.02),t=[(p[0]+q[0])/2+ox,(p[1]+q[1])/2+oy,Math.max(p[2],q[2])+0.05+0.012*(i%3)];tri(p,q,t,i%4?0.1:0.24);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.computeVertexNormals();g.userData.c=[CX,CY];return g;}
+function tearMesh(kit,m,k){if(!kit.tear){kit.tear=[tearGeo(-1),tearGeo(1)];kit.tearM=new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.7,side:THREE.DoubleSide});}
+  const g=kit.tear[k],me=new THREE.Mesh(g,kit.tearM);me.position.set(g.userData.c[0],g.userData.c[1],0);me.castShadow=false;m.body.add(me);return me;}
 function buildCar(kit,scene,c){
   const M=teamMats(kit,c.team,c.num,c.isP?null:c.code,!!kit.glb),root=new THREE.Group(),body=new THREE.Group(),G=kit.geo;root.add(body);
   const add=(g,m,par,cast)=>{const me=new THREE.Mesh(g,m);me.castShadow=!!cast;me.receiveShadow=true;(par||body).add(me);return me;};
@@ -5622,7 +5655,7 @@ function audioUpdate(dt){
   {const kp=sp*3.6;SND.acc=(SND.acc||0)+((kp-(SND.lk==null?kp:SND.lk))/Math.max(dt,1e-3)-(SND.acc||0))*Math.min(1,dt*3);SND.lk=kp;
    const on=state==='race'&&!pl.pit&&pl.fin==null&&thr>0.95&&kp>285&&!pl.boost&&SND.acc<3?1:0;SND.clip=(SND.clip||0)+(on-(SND.clip||0))*Math.min(1,dt*(on?2.5:6));}
   if(pl.pit&&pl.pit.state!=='stop'&&sp>18&&pLim){SND.limT=(SND.limT||0)-dt;if(SND.limT<=0){SND.limOn=!SND.limOn;SND.limT=SND.limOn?0.02+Math.random()*0.04:0.03+Math.random()*0.06;}cut*=SND.limOn?0.22:1;}   // pit limiter
-  if(pl.spinR&&thr>0.5)rpm=Math.min(12300,rpm*1.1);
+  if(pl.spinR&&thr>0.5)rpm=Math.min(12700,rpm*1.1);
   if(tvL)rpm*=tvL.dop;   // TV view: the pitch drops as the car passes the camera                                  // wheelspin: revs flare
   const e=SND.eng,inCar=!outCam(CAMS[camMode])&&!key.look;let L,r01;
   {const ck=SND.clip||0,L0=pl.pit&&pl.pit.state==='stop'?0.06:hold?0.8:Math.max(thr>0.05?0.25+0.75*thr:0.04,0.65*(SND.hv||0))-0.3*ck;   // harvesting: the engine stays under load off throttle ("full-throttle mode when braking and cornering")
@@ -5793,7 +5826,7 @@ let mMode=loadLS('lightsout3d-mmode')||(CH?'champ':'normal'),chLen=+loadLS('ligh
 // 11-04: the menu: a short list at home, one topic per page. The controls keep their ids and handlers; they are only moved to their row.
 const MPAGES={track:[[null,[['chBox','대회','서킷을 이어 달리며 순위별 점수를 합산해요'],['chTrkNote'],['trkSel']]],['도로',[['wdSel','도로 폭']]]],
   team:[[null,[['teamSel'],['livBtn']]]],
-  race:[['레이스',[['modeSel','진행 방식'],['lapSel','랩 수'],['difSel','AI 난이도'],['scSel','스타트 타이어']]],['날씨와 시간',[['wxSel','날씨','변덕은 도중에 비가 와요'],['todSel','시간대']]],['규칙',[['fmlSel','포메이션 랩','출발 전에 한 바퀴 돌아요'],['incSel','사고와 세이프티카'],['dmgSel','차량 손상','리얼은 리타이어할 수 있어요']]]],
+  race:[['레이스',[['modeSel','진행 방식'],['lapSel','랩 수'],['difSel','AI 난이도'],['scSel','스타트 타이어']]],['날씨와 시간',[['wxSel','날씨','변덕은 도중에 비가 와요'],['todSel','시간대']]],['규칙',[['fmlSel','포메이션 랩','출발 전에 한 바퀴 돌아요'],['incSel','사고와 세이프티카'],['dmgSel','차량 손상','보통: 내 차는 크게 부딪혀도 대부분 피트에서 고쳐요 · 리얼: 부러진 서스펜션·큰 충격·찢어진 사이드포드는 리타이어 · 끔: 손상 없음']]]],
   drive:[[null,[['skSel','실력'],['skNote'],['tutBtn']]],['조작',[['smSel','조향 방식'],['sensSel','조향 감도','1이 가장 부드러워요'],['pedSel','페달 위치','양쪽은 브레이크가 왼쪽이에요'],['agSel','가속'],['stSel','스타트','수동은 부정 출발을 판정해요']]],['보조',[['asSel','주행 보조','잠김과 스핀을 잡아줘요'],['basSel','브레이크 보조','너무 빠르면 대신 밟아요. 늦게 밟고 싶으면 끄세요'],['rlSel','레이싱 라인'],['aeroSel','직선 모드 날개']]]],
   set:[['그래픽',[['qSel','그래픽'],['aqSel','자동 화질 조절','프레임이 떨어지면 효과를 줄여요'],['crowdSel','관중 표시','끄면 조금 가벼워져요']]],['소리',[['sndPrev','엔진 소리']]],['성능 측정',[['bvSel','측정 시점'],['bwSel','측정 날씨'],['benchBtn','자동 성능 측정','28개 서킷을 돌며 재요. 15~20분 걸리니 충전기에 꽂아 두세요']]],['도움말',[['touchHelp'],['mKeys']]]]};
 const MNAMES={track:'서킷',team:'팀',race:'레이스 설정',drive:'운전',set:'그래픽과 기타'};
@@ -6341,7 +6374,7 @@ function towerTouch(r,pp){const pl=race.player,S=race.sess,rowH=VH()<=370?13:15,
     else if(c.dnf||c.fail||c.gone){q='OUT';qc='out';}else if(c.pit){q='PIT';qc='pit';}
     else if(i===0){q=c.fin!=null?'체커':'리더';qc='ld';}
     else{const a=act[i-1],dl=a.prog-c.prog;if(dl>=N)q='+'+Math.floor(dl/N)+'랩';else q='+'+(dl*STEP/Math.max(20,(c.spd+a.spd)/2)).toFixed(1);}
-    h+=`<div class="r ${c.isP?'me':''}"><span class="p">${i+1}</span><span class="c" style="background:${TEAMS[c.team].p}"></span><span class="n">${c.code}</span><span class="q ${qc}">${q}</span></div>`;});
+    h+=`<div class="r ${c.isP?'me':''}"><span class="p">${i+1}</span><span class="c" style="background:${TEAMS[c.team].p}"></span><span class="n">${c.code}${c.pen&&!S?`<em class="pn">+${c.pen}</em>`:''}</span><span class="q ${qc}">${q}</span></div>`;});
   return h;}
 let towerMode=['auto','short','off'].includes(loadLS('lightsout3d-tower'))?loadLS('lightsout3d-tower'):'auto';
 $('tower').addEventListener('pointerdown',e=>{if(!isTouch||!e.target.closest('.hd'))return;e.preventDefault();e.stopPropagation();towerMode=towerMode==='auto'?'short':towerMode==='short'?'off':'auto';saveLS('lightsout3d-tower',towerMode);hc.tw=null;towerT=0;toast(towerMode==='auto'?'순위표: 전체':towerMode==='short'?'순위표: 줄임':'순위표: 숨김','#fff',1.2);});
@@ -6387,7 +6420,7 @@ function drawHUD(dt){
   const kmh=Math.round(Math.abs(pl.spd)*3.6);setT('spd',String(kmh));
   let [g,rpm]=gearRpm(Math.abs(pl.spd)*3.6,hudGear);
   hudShT+=dt;if(g!==hudGear){const d=g>hudGear?1:-1,r0=kmh*GR[hudGear-1];
-      if(d!==hudShD&&hudShT<(d<0?0.8:0.5)&&(d<0?r0>8900:r0<12350)){g=hudGear;rpm=Math.max(3900,Math.min(12300,r0));}   // no hunting in fast sweeps: a shift straight back is held off briefly unless the revs force it
+      if(d!==hudShD&&hudShT<(d<0?0.8:0.5)&&(d<0?r0>8900:r0<12350)){g=hudGear;rpm=Math.max(3900,Math.min(12700,r0));}   // no hunting in fast sweeps: a shift straight back is held off briefly unless the revs force it
       else{hudShT=0;hudShD=d;}}
   hudGear=g;
   {const hv=state==='race'&&!pl.pit&&pl.fin==null&&(pl.thr||0)<0.15&&kmh>80?1:0;SND.hv=(SND.hv||0)+(hv-(SND.hv||0))*Math.min(1,dt*(hv?4:6));   // harvesting off throttle (a 2026 car recharges in every braking zone)
@@ -6463,7 +6496,7 @@ function drawHUD(dt){
         h+=`<div class="r ${c.isP?'me':''}"><span class="p">${i+1}</span><span class="c" style="background:${TEAMS[c.team].p}"></span><span class="n">${c.code}</span><span class="q">${c.best!=null?fmt(c.best):(c.pit?'PIT':'-')}</span></div>`;});}
     $('tower').innerHTML=h;}
   else if(towerT<=0){towerT=0.3;const show=new Set([0,1,2,pp-3,pp-2,pp-1,pp]);let h='',last=-1;
-    r.forEach((c,i)=>{if(!show.has(i))return;if(last>=0&&i>last+1)h+='<div class="gap">⋯</div>';last=i;h+=`<div class="r ${c.isP?'me':''}"><span class="p">${i+1}</span><span class="c" style="background:${TEAMS[c.team].p}"></span><span class="n">${c.code}</span><span class="t" style="color:${COMP[c.ty.comp].col}">${c.ty.comp}</span>${(c.dnf||c.gone||c.fail)?'<span class="pit" style="background:#555">OUT</span>':c.pit?'<span class="pit">PIT</span>':''}</div>`;});
+    r.forEach((c,i)=>{if(!show.has(i))return;if(last>=0&&i>last+1)h+='<div class="gap">⋯</div>';last=i;h+=`<div class="r ${c.isP?'me':''}"><span class="p">${i+1}</span><span class="c" style="background:${TEAMS[c.team].p}"></span><span class="n">${c.code}${c.pen?`<em class="pn">+${c.pen}</em>`:''}</span><span class="t" style="color:${COMP[c.ty.comp].col}">${c.ty.comp}</span>${(c.dnf||c.gone||c.fail)?'<span class="pit" style="background:#555">OUT</span>':c.pit?'<span class="pit">PIT</span>':''}</div>`;});
     $('tower').innerHTML=h;}}
   // steering wheel: shift lights (all flash at the shift point) and the screen (redrawn at most 20x a second, at once on a gear change)
   if(SW){const f=(curRpm-9000)/3300,lim=f>=0.9&&state==='race',fl=lim&&(performance.now()%140<70);
@@ -6498,12 +6531,12 @@ function dmgHud(pl){const d=pl.dmg,m=meshes[race.cars.indexOf(pl)],st=pl.pit&&pl
   const box=$('dmgBox');if(box.hidden===show)box.hidden=!show;if(tx!==hc.dmgTxt){hc.dmgTxt=tx;$('dmgTxt').innerHTML=tx;}}
 function showResults(){
   const r=ranking(race),pl=race.player,pp=r.indexOf(pl)+1,lead=r[0],tot=c=>c.fin+(c.pen||0);
-  const pts=c=>{const i=r.indexOf(c);return c.fin!=null&&!c.dsq&&i<10?POINTS[i]:0;};
+  const pts=c=>{const i=r.indexOf(c);return classed(race,c)&&i<10?POINTS[i]:0;};
   $('resTitle').textContent=pl.dnf?'리타이어 (DNF)':pl.dsq?'실격 (DSQ)':'P'+pp+(pp===1?' 우승!':(pp<=3?' 포디움!':' 완주'))+(pts(pl)?' · '+pts(pl)+'점':'');
   $('resSub').textContent=pl.dnf?'사고로 레이스를 끝내지 못했어요 · 레이스 베스트 '+fmt(pl.best):pl.dsq?'실격: 우천 타이어 없이 2가지 드라이 컴파운드를 쓰지 않았어요':('그리드 P'+pl.grid+' → P'+pp+'   레이스 베스트 '+fmt(pl.best)+'   전략 '+pl.stints.join('→')+(pl.penTot?'   페널티 '+pl.penTot+'초 (피트 소화 '+pl.served+'초)':''));
   $('resTable').innerHTML=r.map((c,i)=>{let gap;
     if(c.fin!=null)gap=c.dsq?'DSQ':(i===0?fmt(tot(c)):'+'+(tot(c)-tot(lead)).toFixed(3))+(c.pen?' (+'+c.pen+'초)':'');
-    else if(c.dnf||c.gone||c.fail)gap='DNF';
+    else if(c.dnf||c.gone||c.fail)gap=classed(race,c)?'DNF · 완주 인정':'DNF';
     else{const d=Math.floor((race.laps*N-c.prog)/N);gap=d>=1?'+'+d+'랩':'주행 중';}
     const pt=pts(c);
     return `<tr class="${c.isP?'me':''}"><td>P${i+1}</td><td><span class="sw" style="display:inline-block;vertical-align:middle;margin-right:8px;background:${TEAMS[c.team].p}"></span>${c.name} <span style="color:var(--dim)">${TEAMS[c.team].name} · ${c.stints.join('→')}</span></td><td>${gap}</td><td class="pts">${pt?'+'+pt:''}</td></tr>`;}).join('');
@@ -6652,7 +6685,7 @@ function podiumStart(){try{buildPodium();}catch(e){console.error(e);showResults(
   const me=r.indexOf(race.player)+1;$('podT1').textContent=me===1?'우승!':me<=3?'포디움!':'포디움 세리머니';$('podT2').textContent=me>3?'나: P'+me+' · '+EVT_NM:EVT_NM;$('podTitle').classList.toggle('win',me===1);
   // 11-04: the last round of a championship: the final table, worked out here (the points are only added on the results screen)
   if(race.champ&&CH&&CH.rd===CH.list.length-1&&chHere(CH.list[CH.rd])){const pts=Object.assign({},CH.pts),nm={},all=ranking(race);for(const k of Object.keys(CH.nm))nm[k]=CH.nm[k];
-    all.forEach((c,i)=>{pts[c.code]=(pts[c.code]||0)+(c.fin!=null&&!c.dsq&&i<10?POINTS[i]:0);nm[c.code]=[c.name,c.team];});const ks=Object.keys(pts).sort((a,b)=>pts[b]-pts[a]);CINE.champ={ks,pts,nm,idx:top.findIndex(c=>c.code===ks[0])};}
+    all.forEach((c,i)=>{pts[c.code]=(pts[c.code]||0)+(classed(race,c)&&i<10?POINTS[i]:0);nm[c.code]=[c.name,c.team];});const ks=Object.keys(pts).sort((a,b)=>pts[b]-pts[a]);CINE.champ={ks,pts,nm,idx:top.findIndex(c=>c.code===ks[0])};}
   $('podSkip').classList.add('on');$('podCap').classList.add('on');setTimeout(()=>{if(!CINE||CINE.ph!=='pod')return;POD.g.visible=true;POD.conf.m.visible=false;$('cineFade').style.opacity=0;$('podTitle').classList.add('on');podAud1=podAudio();},600);}
 function podiumEnd(show){if(!CINE)return;const was=CINE.ph==='pod';CINE=null;document.body.classList.remove('cine');['podCap','podTitle','podSkip'].forEach(id=>$(id).classList.remove('on'));$('cineFade').style.opacity=0;$('finBanner').classList.remove('on');
   if(AC&&was)for(const a of [podAud1,podAud2])if(a){try{a.gain.setTargetAtTime(0,AC.currentTime,0.25);}catch(e){}}podAud1=podAud2=null;   // (a skip silences it)
@@ -6720,7 +6753,7 @@ function flagPanel(){const rc=race.rc,p=race.player,el=$('flag');let cls='',txt=
   el.className=cls?'show '+cls:'';if(cls)setT('flag',txt);}
 // v12j: on phones these race-control notes would only repeat the pill at the top: the pill flashes instead of a second line
 const FLAG_EV=new Set(['sc','vsc','vscEnding','scIn','restart','scGo','red','redResume','green']);let flagPulse=0;
-const MSG={wall:()=>[race.dmg==='off'?'월 히트! 타이어 손상':'월 히트!','#ff8a8a'],crash:e=>[e.name+' 크래시! 벽과 충돌','#ff8a8a'],wreck:()=>['크래시! 차가 크게 부서졌어요 · 리타이어','#ff3b30'],pitIn:()=>['피트 레인 진입 · 리미터 80','#f5c518'],pitStop:e=>e.pen?['정차 · 페널티 '+e.pen+'초 먼저 소화','#fff']:null,   // the stop timer shows a normal stop
+const MSG={colPen:e=>[e.me?'충돌 유발 페널티 +'+e.s+'초 · '+e.name+'와 접촉':e.name+' 충돌 유발 +'+e.s+'초'+(e.vic?' · 내 차와 접촉':''),e.me?'#ff8a8a':'#f5c518'],pitRet:()=>['수리할 수 없는 손상 · 차고에서 리타이어','#ff3b30'],pitRetAI:e=>[e.name+' 수리 불가 · 리타이어','#ff8a8a'],wall:()=>[race.dmg==='off'?'월 히트! 타이어 손상':'월 히트!','#ff8a8a'],crash:e=>[e.name+' 크래시! 벽과 충돌','#ff8a8a'],wreck:()=>['크래시! 차가 크게 부서졌어요 · 리타이어','#ff3b30'],pitIn:()=>['피트 레인 진입 · 리미터 80','#f5c518'],pitStop:e=>e.pen?['정차 · 페널티 '+e.pen+'초 먼저 소화','#fff']:null,   // the stop timer shows a normal stop
   pitGo:e=>['GO! '+(e.rep?'수리 완료 + ':'')+COMP[e.comp].name+' '+e.t.toFixed(1)+'초',e.rep?'#ffb347':e.t>3.5?'#ff8a8a':'#3ddc84'],flat:()=>['타이어가 완전히 주저앉았어요 · 피트로!','#ff3b30'],pitOut:()=>{const p=race.player,C=COMP[p.ty.comp],T=(p.ty.temp[0]+p.ty.temp[1]+p.ty.temp[2]+p.ty.temp[3])/4;return T<C.win[0]-8?['피트 아웃 · 타이어가 차가워요 (그립 ↓, 한 바퀴 안에 데워져요)','#8ecae6']:['피트 아웃','#fff'];},
   tl:e=>['트랙 리밋 위반 '+e.n+'회 · 이번 랩 기록 삭제','#ffb347'],bw:()=>['흑백기 · 다음 위반부터 시간 페널티','#ffb347'],tlpen:e=>['트랙 리밋 페널티 +'+e.s+'초'+(e.reset?' · 위반 카운트 초기화':''),'#ff5a4f'],
   cut:e=>['코스 밖으로 나가 이득 · +'+e.s+'초','#ff5a4f'],lastChance:()=>['마지막 랩! 두 번째 컴파운드를 아직 안 썼어요','#ffb347'],
@@ -7189,8 +7222,9 @@ let IMPACT=0,FLATPH=0;   // FLATPH: a flat spot's phase, summed (time x speed we
 // During a stop, m.fixV (from the stop timeline) marks the parts the crew has already replaced.
 function dmgVis(m,c){const d=c.dmg;if(!d||!m.fw)return;if(!c.pit){m.noseAnim=null;m.rwAnim=null;m.fixV=null;}const na=m.noseAnim,ra=m.rwAnim,fx=m.fixV,pk=d.pk||Z4;
   const clean=!na&&!ra&&!fx&&!dmgAny(d);if(clean&&m.dmgKey==='clean')return;   // intact car: nothing to do (and no garbage every frame)
-  const key=clean?'clean':(na?na.ph+na.u.toFixed(2):'-')+(ra?ra.ph+ra.u.toFixed(2):'-')+(fx?fx.key:'-')+d.fp.toFixed(2)+d.fn.toFixed(2)+d.rw.toFixed(2)+d.sus.map(v=>v.toFixed(2)).join()+pk.map(v=>v.toFixed(2)).join();
+  const key=clean?'clean':(na?na.ph+na.u.toFixed(2):'-')+(ra?ra.ph+ra.u.toFixed(2):'-')+(fx?fx.key:'-')+d.fp.toFixed(2)+d.fn.toFixed(2)+d.rw.toFixed(2)+d.sus.map(v=>v.toFixed(2)).join()+pk.map(v=>v.toFixed(2)).join()+d.sd[0].toFixed(2)+d.sd[1].toFixed(2);
   if(key===m.dmgKey)return;m.dmgKey=key;
+  for(let k=0;k<2;k++){const v=d.sd[k],t=m.tear||(m.tear=[null,null]);if(v>=0.12&&!t[k])t[k]=tearMesh(KIT,m,k);if(t[k]){t[k].visible=v>=0.12;const q=0.35+0.65*Math.min(1,v);t[k].scale.set(q,q,1);}}
   const fresh=!!na&&(na.ph==='on'||na.ph==='new');
   for(const g of m.fw){const sd=g.sd,h=fresh?0:Math.min(1,sd>0?d.fp:d.fn);
     g.visible=h<1&&!(na&&(na.ph==='gone'||na.ph==='on'));
@@ -7306,6 +7340,7 @@ function onDamage(e){const c=race.cars[e.id],m=meshes[e.id];if(!c||!m)return;
     if(e.lost[0]||e.lost[1])parts.push('프런트 윙 파손');else if(ch[0]+ch[1]>0.04)parts.push('프런트 윙 손상');
     if(e.lost[2])parts.push('리어 윙 파손');else if(ch[2]>0.04)parts.push('리어 윙 손상');
     if(ch[3]+ch[4]+ch[5]+ch[6]>0.04)parts.push('서스펜션 손상');
+    if(ch[11]+ch[12]>0.04)parts.push(Math.max(d.sd[0],d.sd[1])>=0.8&&race.dmg==='sim'?'사이드포드 크게 찢어짐 · 냉각 손실':'사이드포드 손상');
     for(let k=0;k<4;k++)if((ch[7+k]||0)>0)parts.push(TYN[k]+' 타이어 펑처');
     if(parts.length&&!c.wreck){const fix=!c.pit&&c.fin==null;toast(parts.join(' · ')+(fix?' · '+(isTouch?'PIT':'B')+'로 피트 수리':''),'#ff8a8a',2.4,1600);}}
   else if(dist<140)sfxCrash((0.25+0.5*sev)*Math.max(0.1,1-dist/140),false);}
