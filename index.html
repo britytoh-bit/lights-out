@@ -5464,7 +5464,7 @@ function initAudio(){if(AC)return;try{
   SND.rdF=F('lowpass',240,0.7);SND.rdG=G();mkNoise().connect(SND.rdF);SND.rdF.connect(SND.rdG);SND.rdG.connect(M);
   // wind
   SND.wF=F('lowpass',600,0.5);SND.wG=G();mkNoise().connect(SND.wF);SND.wF.connect(SND.wG);SND.wG.connect(M);
-  SND.shb=shiftBufs(AC);   // 11-01 윤택님 「타닥소린빼줘」: no exhaust crackle / pops any more (generation and playback removed)
+  // 11-01 윤택님 「타닥소린빼줘」: no exhaust crackle / pops. 11-04 「변속할 때마다 똑딱이 소리」: no gearbox click either
   SND.rnF=F('highpass',1700,0.4);SND.rnG=G();mkNoise().connect(SND.rnF);SND.rnF.connect(SND.rnG);SND.rnG.connect(M);
   SND.hsF=F('bandpass',3300,0.8);SND.hsG=G();mkNoise().connect(SND.hsF);SND.hsF.connect(SND.hsG);SND.hsG.connect(M);
 }catch(e){console.warn(e);AC=null;}}
@@ -5475,24 +5475,11 @@ function tvHear(d,vr,rear){const dd=Math.max(4,d),A=Math.max(0.045,Math.min(1,Ma
   return {A,cut:Math.max(1500,Math.min(16000,(7000+7000*rear)*Math.pow(40/dd,0.55))),dop:Math.max(0.72,Math.min(1.38,343/(343+vr))),wet:Math.min(0.5,0.06+dd/320),lag:0.06};}
 // voices (the player's car + three nearby cars) are built on first use
 function engineVoices(){if(!SND.vs)SND.vs={eng:EngineSound.create(AC,SND.eM),vox:[0,1,2].map(()=>EngineSound.createLite(AC,SND.master))};return SND.vs;}
-// engagement sounds: a metallic click (~3-4 kHz), a clack (~1 kHz) and a low clunk (~85 Hz), each a decaying resonance
-function shiftBufs(ctx){const sr=ctx.sampleRate;
-  const mk=(heavy,seed)=>{let sd=seed;const rnd=()=>{sd=(sd*16807)%2147483647;return sd/2147483647;};const n=Math.round(sr*0.14),b=new Float32Array(n);
-    const res=(f,tau,amp,exc)=>{const r=Math.exp(-1/(tau*sr)),c=2*r*Math.cos(2*Math.PI*f/sr);let y1=0,y2=0;for(let i=0;i<n;i++){const x=i<exc.length?exc[i]:0,y=x+c*y1-r*r*y2;y2=y1;y1=y;b[i]+=amp*y;}};
-    const burst=m=>{const e=new Float32Array(m);for(let i=0;i<m;i++)e[i]=(rnd()*2-1)*(1-i/m);return e;};
-    const j=0.9+0.2*rnd();
-    res(2900*j,0.0025,0.06,burst(Math.round(sr*0.0006)));res(4300*j,0.002,0.04,burst(Math.round(sr*0.0005)));   // click
-    res(950*j,0.009,heavy?0.05:0.035,burst(Math.round(sr*0.001)));res(1450*j,0.006,heavy?0.03:0.02,burst(Math.round(sr*0.001)));   // clack
-    res(85*j,0.03,heavy?0.0032:0.0016,[1,0.6,0.3]);   // clunk through the chassis
-    let pk=1e-9;for(let i=0;i<n;i++)pk=Math.max(pk,Math.abs(b[i]));const buf=ctx.createBuffer(1,n,sr),d=buf.getChannelData(0);for(let i=0;i<n;i++)d[i]=b[i]/pk*Math.min(1,(n-i)/(sr*0.01));return buf;};
-  return {up:[mk(false,11),mk(false,23),mk(false,37)],dn:[mk(true,41),mk(true,53),mk(true,67)]};}
-function shiftClick(down,inCar,t,dest){if(!SND.shb)return;const l=down?SND.shb.dn:SND.shb.up,s=AC.createBufferSource();s.buffer=l[(Math.random()*l.length)|0];s.playbackRate.value=0.94+Math.random()*0.12;
-  const g=AC.createGain();g.gain.value=(down?0.15:0.09)*(inCar?1:0.35);s.connect(g);g.connect(dest||SND.master);s.start(t);s.onended=()=>{try{g.disconnect();}catch(e){}};}
 // menu: hear the engine (the grid, a launch, upshifts, a lift, downshifts, idle) without starting a race
 let PREV=null;
 function previewEngine(){initAudio();if(!AC)return;if(AC.state!=='running')AC.resume();
   if(PREV){PREV.stop();PREV=null;}
-  const me=EngineSound.preview(AC,AC.destination,(s,t)=>shiftClick(s===2,true,t+0.005,AC.destination),()=>{if(PREV===me)PREV=null;});PREV=me;}
+  const me=EngineSound.preview(AC,AC.destination,()=>{if(PREV===me)PREV=null;});PREV=me;}
 function sfxBurst(o){ // one-shot filtered noise burst
   if(!AC||muted)return;const t=AC.currentTime+(o.delay||0),s=AC.createBufferSource();s.buffer=SND.nb;
   const f=SND.F(o.type||'bandpass',o.f||1000,o.q==null?1:o.q),g=SND.G(0);s.connect(f);f.connect(g);g.connect(SND.master);
@@ -5546,7 +5533,7 @@ function audioUpdate(dt){
   const e=SND.eng,inCar=!outCam(CAMS[camMode])&&!key.look;let rpm=curRpm;
   if(pl.pit&&sp>0.3&&pl.pit.state!=='stop')rpm=Math.max(rpm,8000);   // slow in the pit lane the clutch holds the revs (sound only)
   if(pl.spinR&&thr>0.5)rpm=Math.min(12700,rpm*1.1);   // wheelspin: revs flare
-  {const sh=EngineSound.update(e,{t,dt,rpm,thr,gear:curGear,inCar,dop:tvL?tvL.dop:1,grid:state==='countdown',pitLim:pLim&&sp>18});if(sh)shiftClick(sh===2,inCar,t+0.005);}
+  EngineSound.update(e,{t,dt,rpm,thr,gear:curGear,inCar,dop:tvL?tvL.dop:1,grid:state==='countdown',pitLim:pLim&&sp>18});
   if(e.pan)e.pan.pan.setTargetAtTime(tvL?tvL.pan:0,t,0.1);
   SND.rdG.gain.setTargetAtTime(tvL?0:Math.min(1,sp/70)*(inCar?0.055:0.03)*(pl.off?0.3:1),t,0.1);
   {const pk=pl.dmg&&pl.dmg.pk,p=pk?Math.max(pk[0],pk[1],pk[2],pk[3]):0;   // a flat tyre flaps once per wheel turn; on the rim it scrapes

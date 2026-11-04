@@ -72,9 +72,9 @@ const EngineSound=(()=>{
     for(const o of [v.oA,v.oB,v.oC,v.oD])go(o.detune,B.c,0);go(v.bp.detune,B.c,0);go(v.shift.gain,Math.max(1.1,B.abs/lerp(M.offVol*OFFK,1,Math.pow(thr,0.7))),1);go(v.bark.gain,B.dr,1);
     go(v.lp.detune,1200*Math.log2(LP_OPEN/(M.offLP*Math.pow(LP_OPEN/M.offLP,thr))),0);}
 
-  // o: {t, dt, rpm (the game's), thr 0..1, gear, inCar, dop (doppler), grid (on the start lights), pitLim}. Returns 1 at an upshift, 2 at a downshift.
-  function update(v,o){const S=v.S,M=MODES[P.mode],t=o.t,dt=o.dt;let shifted=0;
-    if(o.gear!==S.gear){const a=+S.gear,b=+o.gear;if(a&&b){if(b>a){shifted=1;upshift(v,t);}else{shifted=2;downshift(v,t,M,S.thr);}}S.gear=o.gear;}
+  // o: {t, dt, rpm (the game's), thr 0..1, gear, inCar, dop (doppler), grid (on the start lights), pitLim}.
+  function update(v,o){const S=v.S,M=MODES[P.mode],t=o.t,dt=o.dt;
+    if(o.gear!==S.gear){const a=+S.gear,b=+o.gear;if(a&&b){if(b>a)upshift(v,t);else downshift(v,t,M,S.thr);}S.gear=o.gear;}
     let r=mapRpm(o.rpm),th=o.thr;
     if(M.grid&&o.grid){   // 2026: the revs held high on the grid, wandering; they do not wait for the pedal
       if(!S.onGrid){S.onGrid=true;S.gT=0;S.gR=lerp(P.gridLo,P.gridHi,Math.random());S.go=-1;}
@@ -96,8 +96,7 @@ const EngineSound=(()=>{
     v.vol.gain.setTargetAtTime(lerp(M.offVol*OFFK,1,Math.pow(T,0.7)),t,0.02);
     v.oG.frequency.setTargetAtTime(lerp(P.whLo,P.whHi,S.tv),t,0.05);v.gG.gain.setTargetAtTime(P.whistle*lerp(0.05,0.08,S.tv)*Math.min(1,S.tv/0.25),t,0.05);
     if(S.inCar!==o.inCar){S.inCar=o.inCar;v.shLow.gain.setTargetAtTime(o.inCar?2:0,t,0.1);v.shTop.gain.setTargetAtTime(o.inCar?0:2,t,0.1);}   // the cockpit a little more low end, outside a little more top
-    const d=o.thr>=0.99&&o.rpm>12650&&!o.grid?0.9:o.pitLim?0.3:0;v.limD.gain.setTargetAtTime(d/2,t,0.005);v.limG.gain.setTargetAtTime(1-d/2,t,0.005);
-    return shifted;}
+    const d=o.thr>=0.99&&o.rpm>12650&&!o.grid?0.9:o.pitLim?0.3:0;v.limD.gain.setTargetAtTime(d/2,t,0.005);v.limG.gain.setTargetAtTime(1-d/2,t,0.005);}
 
   // ---- other cars: one oscillator holding layers A-C, a low-pass and a level (distance, doppler and the choice of three cars are the game's) ----
   function createLite(ctx,dest){const G=x=>{const g=ctx.createGain();g.gain.value=x;return g;};
@@ -107,7 +106,7 @@ const EngineSound=(()=>{
   function setLite(v,t,rpm,dop,level,cut,tc){v.o.frequency.setTargetAtTime(mapRpm(rpm)*dop/20,t,tc||0.03);v.lp.frequency.setTargetAtTime(cut,t,0.03);v.out.gain.setTargetAtTime(level,t,0.008);}
 
   // ---- hear it without a race: the grid, a launch, three upshifts, a lift, three downshifts, idle. Runs on a timer, so the sliders are heard as they move ----
-  function preview(ctx,dest,onShift,onEnd){const v=create(ctx,dest),t0=ctx.currentTime,PULL=0.72,END=6.6;let r=4000,last=t0,done=false,fade=false;v.out.gain.value=0;v.out.gain.setTargetAtTime(1,t0,0.02);
+  function preview(ctx,dest,onEnd){const v=create(ctx,dest),t0=ctx.currentTime,PULL=0.72,END=6.6;let r=4000,last=t0,done=false,fade=false;v.out.gain.value=0;v.out.gain.setTargetAtTime(1,t0,0.02);
     const stopIt=()=>{if(done)return;done=true;clearInterval(iv);stop(v);};
     const tick=()=>{const now=ctx.currentTime,T=now-t0,dt=Math.max(0.001,now-last);last=now;if(T>=END){stopIt();if(onEnd)onEnd();return;}if(T>=END-0.12&&!fade){fade=true;v.out.gain.setTargetAtTime(0,now,0.03);}
       let tg=4000,thr=0,g='N',grid=false;
@@ -116,7 +115,7 @@ const EngineSound=(()=>{
       else if(T<4.2){g='4';tg=10600-(T-3.66)*900;}
       else if(T<5.0){const n=Math.floor((T-4.2)/0.26);g=String(Math.max(1,3-n));tg=11000-((T-4.2)%0.26)*3800;}
       else g='1';
-      r+=(tg-r)*Math.min(1,dt*(tg<r-250?38:18));const sh=update(v,{t:now,dt,rpm:r,thr,gear:g,inCar:true,dop:1,grid});if(sh&&onShift)onShift(sh,now);};
+      r+=(tg-r)*Math.min(1,dt*(tg<r-250?38:18));update(v,{t:now,dt,rpm:r,thr,gear:g,inCar:true,dop:1,grid});};
     const iv=setInterval(tick,20);tick();
     return {stop:stopIt};}
 
