@@ -1078,17 +1078,17 @@ function pickCompound(race,c){
 
 // ---------------- teams ----------------
 const TEAMS=[
- {name:'오로라 레이싱',short:'AURORA',p:'#3a1fb8',s:'#3dffc0',d:[['에릭 솔베르','SOL'],['루카 페라즈','FRZ']]},
- {name:'반타 GP',short:'VANTA',p:'#f2f4f7',s:'#ff5a1f',d:[['니코 할스텐','HAL'],['테오 마르셀','MRC']]},
- {name:'크림슨 아크',short:'CRIMSON',p:'#101c3f',s:'#d9824a',d:[['다리오 벤투리','VEN'],['쥘 로랑','LRN']]},
- {name:'타이드워터',short:'TIDEWATER',p:'#dcc9a2',s:'#14c8ff',d:[['오웬 크레인','CRN'],['사샤 이바노','IVA']]},
- {name:'케스트럴',short:'KESTREL',p:'#ffd014',s:'#1d1e22',d:[['파블로 오르테가','ORT'],['카이 닐센','NIL']]},
- {name:'솔스티스',short:'SOLSTICE',p:'#e2185b',s:'#ff9a1f',d:[['라파 코스타','COS'],['위고 베른','BRN']]},
- {name:'노르하운',short:'NORDHAVN',p:'#cfd5dc',s:'#ff4d6d',d:[['아르네 달','DAL'],['미로 칼리오','KAL']]},
- {name:'엠버 웍스',short:'EMBER',p:'#6a1030',s:'#e3b448',d:[['토비 렌','REN'],['야누 사리','SAR']]},
- {name:'메리디안',short:'MERIDIAN',p:'#5f6e26',s:'#ff7a1a',d:[['엘리아스 폰테','FON'],['이안 로크','ROK']]},
- {name:'하보크',short:'HAVOC',p:'#123fb8',s:'#f0c419',d:[['제이 오카베','OKA'],['도윤 서','SEO']]},
- {name:'아이언바크',short:'IRONBARK',p:'#2b2e34',s:'#ff2d95',d:[['벤 애쉬포드','ASH'],['레미 뒤발','DUV']]}
+ {name:'알펜 레이싱',short:'ALPEN',p:'#0f3f9e',s:'#ea4aa0',d:[['에릭 솔베르','SOL'],['루카 페라즈','FRZ']]},
+ {name:'레이싱 버팔로',short:'R-BUFFALO',p:'#eef0f4',s:'#1b3a8c',d:[['니코 할스텐','HAL'],['테오 마르셀','MRC']]},
+ {name:'윌럼스',short:'WILLEMS',p:'#0a2a9c',s:'#36b3fc',d:[['다리오 벤투리','VEN'],['쥘 로랑','LRN']]},
+ {name:'하우스',short:'HAUSS',p:'#f0f0ee',s:'#c7242d',d:[['오웬 크레인','CRN'],['사샤 이바노','IVA']]},
+ {name:'맥클레인',short:'MCCLAIN',p:'#fc7a12',s:'#15151a',d:[['파블로 오르테가','ORT'],['카이 닐센','NIL']]},
+ {name:'페라로',short:'FERRARO',p:'#d4121f',s:'#f0efed',d:[['라파 코스타','COS'],['위고 베른','BRN']]},
+ {name:'메르세도',short:'MERCEDO',p:'#141516',s:'#2fa09a',d:[['아르네 달','DAL'],['미로 칼리오','KAL']]},
+ {name:'아우덴',short:'AUDEN',p:'#b9b8b6',s:'#fc2232',d:[['토비 렌','REN'],['야누 사리','SAR']]},
+ {name:'애쉬턴 마틴',short:'ASHTON',p:'#0b7a73',s:'#cedc00',d:[['엘리아스 폰테','FON'],['이안 로크','ROK']]},
+ {name:'레드 버팔로',short:'BUFFALO',p:'#0f2560',s:'#d01a14',d:[['제이 오카베','OKA'],['도윤 서','SEO']]},
+ {name:'캐딜런',short:'CADILLON',p:'#eceef0',s:'#111318',d:[['벤 애쉬포드','ASH'],['레미 뒤발','DUV']]}
 ];
 const DIFF={easy:[0.80,0.90],normal:[0.87,0.965],hard:[0.93,1.0]};
 // AI pace on the racing line: a lap this fraction of the old (v9.1, centreline) AI lap at the same skill - game values
@@ -4502,18 +4502,32 @@ function brandBlit(dst,sp,cx,cy,w,h,col,flipH,flipV,sx){const c=mkCanvas(Math.ce
 // and a fluorescent-yellow T-cam on the team's second car.
 // D dominant, W second colour (and where it goes), K black / anthracite, A accent keyline, M repeating texture,
 // flap / endp / rflap wing colours (front flaps, endplates, rear flap), fin finish.
-const LIV=[   // v11: new colours and designs for every team (no real team's name or marks)
- {D:'#3a1fb8',W:null,wt:null,K:'#0a0916',A:'#3dffc0',M:'aurora',cut:'fade',flap:'#3a1fb8',endp:'#3a1fb8',rflap:'#0a0916',fin:'gloss',spine:1},     // AURORA: violet melting into black, mint ribbons
- {D:'#f2f4f7',W:'#ff5a1f',wt:'nose',K:'#15171c',A:'#ff5a1f',M:'speed',cut:'arrow',flap:'#ff5a1f',endp:'#f2f4f7',rflap:'#ff5a1f',fin:'gloss'},     // VANTA: white, a black arrowhead, signal-orange nose
- {D:'#101c3f',W:'#d9824a',wt:'engine',K:'#07090f',A:'#d9824a',M:'topo',cut:'late',flap:'#101c3f',endp:'#101c3f',rflap:'#101c3f',fin:'metal'},     // CRIMSON: midnight metallic, copper engine cover
- {D:'#dcc9a2',W:null,wt:null,K:'#1b1c1f',A:'#14c8ff',M:'tri',cut:'step',flap:'#dcc9a2',endp:'#1b1c1f',rflap:'#dcc9a2',fin:'satin',KC:1},           // TIDEWATER: sand, bare carbon below, cyan
- {D:'#ffd014',W:'#ffffff',wt:'cockpit',K:'#1d1e22',A:'#1d1e22',M:'hatch',cut:'slash',flap:'#ffd014',endp:'#ffd014',rflap:'#1d1e22',fin:'gloss'},  // KESTREL: signal yellow and graphite
- {D:'#e2185b',W:'#ff9a1f',wt:null,K:'#1c0b16',A:'#ffe066',M:'rays',cut:'sunset',flap:'#e2185b',endp:'#e2185b',rflap:'#1c0b16',fin:'gloss',spine:1}, // SOLSTICE: raspberry turning orange
- {D:'#cfd5dc',W:null,wt:null,K:'#121418',A:'#ff4d6d',M:'diamonds',cut:'rise',flap:'#cfd5dc',endp:'#121418',rflap:'#cfd5dc',fin:'metal'},          // NORDHAVN: frost silver, coral
- {D:'#6a1030',W:'#e3b448',wt:'engine',K:'#12070b',A:'#e3b448',M:'pin',cut:'split',flap:'#6a1030',endp:'#6a1030',rflap:'#6a1030',fin:'satin'},     // EMBER: burgundy and gold
- {D:'#5f6e26',W:null,wt:null,K:'#16180f',A:'#ff7a1a',M:'chevrons',cut:'solid',flap:'#5f6e26',endp:'#16180f',rflap:'#5f6e26',fin:'matte',KC:1},    // MERIDIAN: matte olive, orange details
- {D:'#123fb8',W:null,wt:null,K:'#0a0c12',A:'#e3142a',M:'none',cut:'late',flap:'#15171c',endp:'#e9ecf1',rflap:'#17191e',fin:'gloss',art:'cobalt'},   // HAVOC: pearl white band, cobalt flames, gold nose, red and gold sidepod panel (art: painted by cobaltBody / cobaltPod, no marks of any real team)
- {D:'#2b2e34',W:null,wt:null,K:'#0c0d10',A:'#ff2d95',M:'weave',cut:'rise',flap:'#2b2e34',endp:'#2b2e34',rflap:'#ff2d95',fin:'satin',spine:1}];     // IRONBARK: graphite, hot-pink details
+// 11-04: each team's scheme in bands, sampled off pictures of this season's cars (no marks, no sponsors). B: body, P: sidepod, each [u from, u to, top from, top to, bottom from, bottom to, colour]; u 0 nose .. 1 tail, h 0 lower edge .. 1 top line. Fd: darkening towards the tail [u from, u to, colour]
+const LIV=[
+ {D:'#0f3f9e',W:null,wt:null,K:'#0a1020',A:'#ea4aa0',M:'none',cut:'solid',flap:'#0a1020',endp:'#ea4aa0',rflap:'#0a1020',fin:'gloss',art:'tbl',Fd:[0.5,0.97,'#0a1838'],
+  B:[[0.03,0.32,0.66,0.56,0.14,0.2,'#ea4aa0'],[0.72,0.88,0.92,0.84,0.42,0.48,'#ea4aa0'],[0.03,0.99,0.13,0.2,0,0,'#0a1020']],P:[[0.5,0.9,0.72,0.66,0.26,0.32,'#ea4aa0'],[0,1,0.2,0.28,0,0,'#0a1020']]},
+ {D:'#eef0f4',W:null,wt:null,K:'#101521',A:'#1b3a8c',M:'none',cut:'solid',flap:'#eef0f4',endp:'#eef0f4',rflap:'#101521',fin:'gloss',art:'tbl',
+  B:[[0.3,0.92,0.52,0.72,0.08,0.1,'#1b3a8c'],[0,0.1,1.03,1.03,0,0,'#ffd505'],[0.1,0.16,1.03,1.03,0,0,'#e46511'],[0.16,0.22,0.86,0.72,0.26,0.32,'#db1921'],[0.03,0.99,0.1,0.18,0,0,'#101521']],P:[[0,1,0.62,0.56,0,0,'#1b3a8c'],[0,1,0.24,0.3,0,0,'#101521']]},
+ {D:'#0a2a9c',W:null,wt:null,K:'#071138',A:'#36b3fc',M:'none',cut:'solid',flap:'#0a2a9c',endp:'#265fcf',rflap:'#f2f4f8',fin:'gloss',art:'tbl',
+  B:[[0.58,0.99,1.03,1.03,0.62,0.5,'#f2f4f8'],[0.03,0.56,0.86,0.86,0.82,0.82,'#265fcf'],[0.03,0.99,0.13,0.2,0,0,'#071138']],P:[[0.04,0.96,0.84,0.8,0.24,0.3,'#36b3fc'],[0,1,0.2,0.26,0,0,'#071138']]},
+ {D:'#f0f0ee',W:null,wt:null,K:'#17171a',A:'#c7242d',M:'none',cut:'solid',flap:'#17171a',endp:'#c7242d',rflap:'#c7242d',fin:'gloss',art:'tbl',
+  B:[[0,0.16,1.03,1.03,0,0,'#c7242d'],[0.16,0.22,0.8,0.6,0.1,0.2,'#c7242d'],[0.72,0.92,1.03,1.03,0.56,0.62,'#c7242d'],[0.1,0.99,0.26,0.44,0,0,'#17171a']],P:[[0,1,0.5,0.62,0,0,'#17171a'],[0.1,0.7,0.66,0.7,0.62,0.66,'#c7242d']]},
+ {D:'#fc7a12',W:null,wt:null,K:'#15151a',A:'#15151a',M:'none',cut:'solid',flap:'#fc7a12',endp:'#fc7a12',rflap:'#15151a',fin:'gloss',art:'tbl',
+  B:[[0.03,0.99,1.03,1.03,0.9,0.86,'#15151a'],[0.28,0.99,0.3,0.74,0,0,'#15151a']],P:[[0,1,0.42,0.72,0,0,'#15151a']]},
+ {D:'#d4121f',W:null,wt:null,K:'#15171c',A:'#1a58ae',M:'none',cut:'solid',flap:'#15171c',endp:'#d4121f',rflap:'#15171c',fin:'gloss',art:'tbl',
+  B:[[0.42,0.82,1.03,1.03,0.74,0.68,'#f0efed'],[0.84,0.88,0.72,0.72,0.6,0.6,'#1a58ae'],[0.03,0.99,0.12,0.16,0,0,'#15171c']],P:[[0,0.55,1.03,1.03,0.86,0.9,'#f0efed'],[0,1,0.16,0.22,0,0,'#15171c']]},
+ {D:'#141516',W:null,wt:null,K:'#0a0a0b',A:'#2fa09a',M:'none',cut:'solid',flap:'#141516',endp:'#141516',rflap:'#141516',fin:'gloss',art:'tbl',
+  B:[[0.03,0.3,1.03,1.03,0.88,0.8,'#c9d0d2'],[0.34,0.92,0.99,0.99,0.92,0.88,'#c9d0d2'],[0.05,0.62,0.54,0.74,0.47,0.69,'#2fa09a'],[0.1,0.5,0.46,0.6,0.43,0.57,'#c9d0d2']],P:[[0,0.86,0.72,0.78,0.65,0.71,'#2fa09a'],[0,0.7,0.62,0.66,0.59,0.63,'#c9d0d2']]},
+ {D:'#b9b8b6',W:null,wt:null,K:'#141414',A:'#fc2232',M:'none',cut:'solid',flap:'#8f8785',endp:'#141414',rflap:'#141414',fin:'metal',art:'tbl',
+  B:[[0.64,0.99,1.03,1.03,0,0,'#141414'],[0.6,0.66,1.03,1.03,0.68,0.68,'#fc2232'],[0.03,0.64,0.14,0.28,0,0,'#141414']],P:[[0.66,1,1.03,1.03,0,0,'#141414'],[0.58,0.84,0.95,0.86,0.2,0.32,'#fc2232'],[0,0.66,0.22,0.3,0,0,'#141414']]},
+ {D:'#0b7a73',W:null,wt:null,K:'#0a1f20',A:'#cedc00',M:'none',cut:'solid',flap:'#0b7a73',endp:'#0b7a73',rflap:'#0d9c97',fin:'gloss',art:'tbl',
+  B:[[0.05,0.33,0.62,0.66,0.58,0.62,'#cedc00'],[0.74,0.9,0.86,0.8,0.82,0.76,'#cedc00'],[0.24,0.99,0.22,0.38,0,0,'#0a1f20']],P:[[0.08,0.92,0.82,0.78,0.76,0.72,'#cedc00'],[0,1,0.3,0.38,0,0,'#0a1f20']]},
+ {D:'#0f2560',W:null,wt:null,K:'#0b1020',A:'#d01a14',M:'none',cut:'solid',flap:'#0f2560',endp:'#0f2560',rflap:'#0b1020',fin:'satin',art:'tbl',
+  B:[[0,0.1,1.03,1.03,0,0,'#f2a40e'],[0.1,0.16,1.03,1.03,0,0,'#e56a0c'],[0.16,0.21,0.84,0.74,0.3,0.34,'#d01a14'],[0.6,0.7,1.03,1.03,0.76,0.76,'#f2a40e'],[0.7,0.87,1.03,1.03,0.68,0.64,'#d01a14'],[0.28,0.99,0.14,0.22,0,0,'#0b1020']],P:[[0.1,0.86,0.5,0.56,0.44,0.5,'#d01a14'],[0,1,0.22,0.28,0,0,'#0b1020']]},
+ {D:'#eceef0',W:null,wt:null,K:'#111318',A:'#d23c35',M:'none',cut:'solid',flap:'#111318',endp:'#111318',rflap:'#111318',fin:'gloss',art:'tbl',
+  B:[[0.03,0.99,0.3,0.42,0,0,'#111318'],[0.56,0.99,1.03,1.03,0.88,0.84,'#111318'],[0.2,0.56,0.46,0.5,0.44,0.48,'#d23c35']],P:[[0,1,0.42,0.5,0,0,'#111318'],[0.1,0.8,0.56,0.58,0.53,0.55,'#d23c35']]}];
+const artTbl=(g,X,V,W,H,L,list)=>{for(const s of[1,-1]){if(L.Fd&&list===L.B){const [u0,u1,c]=L.Fd,y0=Math.min(V(s,0),V(s,1.03)),hh=Math.abs(V(s,1.03)-V(s,0)),gr=g.createLinearGradient(X(u0),0,X(u1),0);gr.addColorStop(0,c+'00');gr.addColorStop(1,c);g.fillStyle=gr;g.fillRect(X(u0),y0,X(1)-X(u0),hh);}
+    for(const b of list||[])artBand(g,X,V,s,u=>b[2]+(b[3]-b[2])*(u-b[0])/(b[1]-b[0]),u=>b[4]+(b[5]-b[4])*(u-b[0])/(b[1]-b[0]),b[0],b[1],b[6]);}};
 // KC: the dark areas are bare carbon (a twill weave) instead of paint - many 2026 cars leave carbon showing to save weight
 let CARBON_PAT=null;
 function kFill(g,L){if(!L.KC)return L.K;if(!CARBON_PAT){const c=mkCanvas(4,4),x=c.getContext('2d');for(let r=0;r<4;r++)for(let q=0;q<4;q++){x.fillStyle=(q+r)%4<2?'#16171b':'#25272c';x.fillRect(q,r,1,1);}CARBON_PAT=c;}return g.createPattern(CARBON_PAT,'repeat');}   // v12: a finer 2/2 twill (about 2 cm a repeat on the car)
@@ -4606,7 +4620,7 @@ function liveryTex(tm,num,ti,code,g26){
   const V=(s,h)=>(1-(s>0?0.07+0.43*h:0.93-0.43*h))*H,X=u=>u*W;
   const bnd=(LIV_CUT[L.cut]||LIV_CUT.rise)[0];   // where the colour ends: black rises towards the back
   g.fillStyle=D;g.fillRect(0,0,W,H);
-  if(L.art)cobaltBody(g,X,V,W,H,L);else for(const s of[1,-1]){
+  if(L.art==='cobalt')cobaltBody(g,X,V,W,H,L);else if(L.art)artTbl(g,X,V,W,H,L,L.B);else for(const s of[1,-1]){
     const kp=new Path2D();kp.moveTo(0,V(s,0));for(let k=0;k<=60;k++){const u=k/60;kp.lineTo(X(u),V(s,bnd(u)));}kp.lineTo(W,V(s,0));kp.closePath();g.fillStyle=kFill(g,L);g.fill(kp);if(R&&L.KC){R.g.fillStyle=R.carbon;R.g.fill(kp);}
     if(L.cut==='sunset'){const SW=L.W||L.A,y0=Math.min(V(s,bnd(0.5)+0.01),V(s,1.02)),hh=Math.abs(V(s,1.02)-V(s,bnd(0.5)+0.01)),gr=g.createLinearGradient(X(0.26),0,X(0.8),0);gr.addColorStop(0,SW+'00');gr.addColorStop(1,SW);g.fillStyle=gr;g.fillRect(X(0.26),y0,X(1)-X(0.26),hh);
       const gk=g.createLinearGradient(X(0.86),0,X(1),0);gk.addColorStop(0,K+'00');gk.addColorStop(1,K);g.fillStyle=gk;g.fillRect(X(0.86),y0,X(1)-X(0.86),hh);}
@@ -4628,7 +4642,7 @@ function liveryTex(tm,num,ti,code,g26){
   const noseBg=L.wt==='nose'&&L.W?L.W:D,numC=L.art?A:lumOf(A)>0.5&&lumOf(noseBg)<0.5?A:inkOn(noseBg);
   const nS=L.art?84:g26?150:108,nU=L.art?0.235:0.19;txt(String(num),nU*W,V(1,0.62),nS,true,false,numC);txt(String(num),nU*W,V(-1,0.62),nS,false,true,numC);   // race number on the nose
   txt(String(num),(L.art?0.2:0.12)*W,0.5*H,L.art?64:g26?104:74,false,false,numC);
-  const onD=L.art?'#101218':inkOn(D);txt(tm.short,0.3*W,V(1,0.42),34,true,false,onD,260);txt(tm.short,0.3*W,V(-1,0.42),34,false,true,onD,260);   // maker's name on the nose
+  const onD=L.art==='cobalt'?'#101218':inkOn(D);txt(tm.short,0.3*W,V(1,0.42),34,true,false,onD,260);txt(tm.short,0.3*W,V(-1,0.42),34,false,true,onD,260);   // maker's name on the nose
   if(code){const cb=L.wt==='cockpit'&&L.W?L.W:D;const cs=g26?44:30;txt(code,0.47*W,V(1,0.86),cs,true,false,inkOn(cb),120,700);txt(code,0.47*W,V(-1,0.86),cs,false,true,inkOn(cb),120,700);}   // driver on the cockpit side
   if(ti!=null&&L.art){const sp=TEAM_SP[ti],two=(q,u,h,w,hh,col)=>{bb(SPONSORS[q],u*W,V(1,h),w,hh,col,true,false,0.5);bb(SPONSORS[q],u*W,V(-1,h),w,hh,col,false,true,0.5);};   // on the white band in dark, on the blue in white
     two(sp[0],0.64,0.62,210,32,'#101218');two(sp[2],0.35,0.36,190,34,'#101218');two(sp[1],0.235,0.28,130,26,'#101218');two(sp[3],0.88,0.72,110,20,'#101218');two(sp[3],0.5,0.8,130,24,'#ffffff');
@@ -4666,7 +4680,7 @@ function podTex(tm,ti){   // sidepods: u 0 (inlet) .. 1 (rear), v around the sec
   const W=512,H=256,c=mkCanvas(W,H),g=c.getContext('2d'),L=LIV[ti],D=L.D,K=L.K,A=L.A,R=matMap(L,W,H);
   const V=(s,h)=>(1-(s>0?0.06+0.44*h:0.94-0.44*h))*H,X=u=>u*W,bnd=(LIV_CUT[L.cut]||LIV_CUT.rise)[1];   // black lower sidepod, rising towards the back
   g.fillStyle=D;g.fillRect(0,0,W,H);
-  if(L.art)cobaltPod(g,X,V,W,H,L);else for(const s of[1,-1]){const kp=new Path2D();kp.moveTo(0,V(s,0));for(let k=0;k<=30;k++){const u=k/30;kp.lineTo(X(u),V(s,bnd(u)));}kp.lineTo(W,V(s,0));kp.closePath();g.fillStyle=kFill(g,L);g.fill(kp);if(R&&L.KC){R.g.fillStyle=R.carbon;R.g.fill(kp);}
+  if(L.art==='cobalt')cobaltPod(g,X,V,W,H,L);else if(L.art)artTbl(g,X,V,W,H,L,L.P);else for(const s of[1,-1]){const kp=new Path2D();kp.moveTo(0,V(s,0));for(let k=0;k<=30;k++){const u=k/30;kp.lineTo(X(u),V(s,bnd(u)));}kp.lineTo(W,V(s,0));kp.closePath();g.fillStyle=kFill(g,L);g.fill(kp);if(R&&L.KC){R.g.fillStyle=R.carbon;R.g.fill(kp);}
     if(L.cut==='sunset'){const SW=L.W||L.A,y0=Math.min(V(s,0.12),V(s,1.02)),hh=Math.abs(V(s,1.02)-V(s,0.12)),gr=g.createLinearGradient(0,0,W,0);gr.addColorStop(0,SW+'55');gr.addColorStop(1,SW);g.fillStyle=gr;g.fillRect(0,y0,W,hh);}
     if(L.cut!=='solid'&&L.cut!=='fade'&&L.cut!=='sunset'){g.beginPath();for(let k=0;k<=30;k++){const u=k/30,y=V(s,bnd(u)+0.016);k?g.lineTo(X(u),y):g.moveTo(X(u),y);}g.strokeStyle=A;g.lineWidth=3;g.stroke();}
     if(L.cut==='fade'){const y0=Math.min(V(s,0),V(s,1.02)),hh=Math.abs(V(s,1.02)-V(s,0)),gr=g.createLinearGradient(X(0.15),0,X(1),0);gr.addColorStop(0,K+'00');gr.addColorStop(1,K);g.fillStyle=gr;g.fillRect(0,y0,W,hh);}
@@ -5320,7 +5334,7 @@ let WORLD,KIT;
 // ---- livery editor: the player's own paint for a team (colours, layout, texture, finish, number, name), kept in this browser ----
 const LIV0=LIV.map(l=>Object.assign({},l)),TEAMS0=TEAMS.map(t=>({p:t.p,s:t.s,short:t.short}));
 let LIVC={};try{LIVC=JSON.parse(loadLS('lightsout3d-liv')||'{}')||{};}catch(e){LIVC={};}
-function applyLivData(ti){const c=LIVC[ti],t=TEAMS[ti];LIV[ti]=Object.assign({},LIV0[ti],c&&c.L?c.L:{});if(c&&c.L)LIV[ti].art=null;
+function applyLivData(ti){const c=LIVC[ti],t=TEAMS[ti];LIV[ti]=Object.assign({},LIV0[ti],c&&c.L?c.L:{});if(c&&c.L)LIV[ti].art=c.L.art||null;
   t.p=c&&c.L?LIV[ti].D:TEAMS0[ti].p;t.s=c&&c.L?LIV[ti].A:TEAMS0[ti].s;t.short=c&&c.name?c.name:TEAMS0[ti].short;}
 for(let i=0;i<TEAMS.length;i++)applyLivData(i);
 // 11-04: the driver's helmet: team colours, a stripe, the game's own team mark on both sides, the car number and team name on the back.
@@ -5952,6 +5966,7 @@ seg('wxSel',v=>{weather=v;saveLS('lightsout3d-wx',v);if(state==='menu')setupRace
 const LE_SW=['#ffffff','#f2f4f7','#cfd5dc','#dcc9a2','#2b2e34','#3a1fb8','#3dffc0','#101c3f','#d9824a','#e2185b','#ff9a1f','#ff4d6d','#6a1030','#e3b448','#5f6e26','#00b7ff','#ff2d95','#ffd014','#e9edf1','#9aa3ad','#4a4f57','#131417','#c40d20','#e8321e','#ff6a13','#ff8200','#ffb000','#f2d600','#b5e61d','#86c20a','#2eaf4a','#1a4d33','#0b817e','#1fc7c1','#34d1ff','#1f5fd6','#15285e','#0b1a3a','#5a2ca0','#8b3fd9','#e5287f','#ff4fa3','#b8662e','#d9ae48','#c7a15a','#e8dcb5'];
 // v12: ready-made schemes (original designs: colour pairs picked to stay clear of the real teams' schemes, built from the editor's own layouts and textures)
 const LIV_PRESETS=[
+ {name:'콘셉트',L:{D:'#123fb8',W:null,wt:null,K:'#0a0c12',KC:0,A:'#e3142a',M:'none',cut:'late',fin:'gloss',spine:0,flap:'#15171c',endp:'#e9ecf1',rflap:'#17191e',art:'cobalt'}},   // the pearl and cobalt concept scheme
  {name:'블라썸',L:{D:'#e48dad',W:null,wt:null,K:'#1e1c22',KC:0,A:'#d8b65a',M:'dots',cut:'late',fin:'satin',spine:1}},       // dusty rose, charcoal, gold; satin
  {name:'머스터드',L:{D:'#d99a1e',W:null,wt:null,K:'#2a1430',KC:0,A:'#ffffff',M:'circuit',cut:'dive',fin:'gloss',spine:0}},   // mustard and plum, white circuit traces
  {name:'코퍼',L:{D:'#b25d2b',W:'#f2e6d2',wt:'nose',K:'#141518',KC:0,A:'#f2e6d2',M:'speed',cut:'arrow',fin:'metal',spine:0}}, // copper metallic, cream nose and streaks
@@ -5972,7 +5987,7 @@ let leT=0;function leApply(){if(!LED)return;const {ti,L}=LED;
   const n=Math.round(+$('leNum').value)||0,used=new Set(TEAMS.flatMap((t,i)=>[i*2+2,i*2+3]).filter(x=>x!==ti*2+2));
   let msg='';if(n>=1&&n<=99&&!used.has(n))LED.num=n;else if($('leNum').value!=='')msg='번호는 1~99 중 다른 차가 쓰지 않는 번호만 돼요.';
   LED.name=($('leName').value||'').toUpperCase().replace(/[^A-Z0-9 \-]/g,'').slice(0,10).trim();$('leMsg').textContent=msg;
-  LIVC[ti]={L:{D:L.D,W:L.wt==='none'?null:L.W,wt:L.wt==='none'?null:L.wt,K:L.K,KC:L.KC?1:0,A:L.A,M:L.M,cut:L.cut,fin:L.fin,spine:+L.spine,flap:L.flap,endp:L.endp,rflap:L.rflap},num:LED.num,name:LED.name};
+  LIVC[ti]={L:{D:L.D,W:L.wt==='none'?null:L.W,wt:L.wt==='none'?null:L.wt,K:L.K,KC:L.KC?1:0,A:L.A,M:L.M,cut:L.cut,fin:L.fin,spine:+L.spine,flap:L.flap,endp:L.endp,rflap:L.rflap,art:L.art==='cobalt'?'cobalt':null},num:LED.num,name:LED.name};
   saveLS('lightsout3d-liv',JSON.stringify(LIVC));applyLivData(ti);
   clearTimeout(leT);leT=setTimeout(()=>{dropTeamMats(ti);if(state==='menu')setupRace();refreshTeamButtons();},120);}
 function refreshTeamButtons(){document.querySelectorAll('#teamSel button').forEach(b=>{const t=TEAMS[+b.dataset.v],sw=b.querySelector('.sw');if(sw)sw.style.background=`linear-gradient(90deg,${t.p} 0 60%,${t.s} 60%)`;});}
@@ -5984,7 +5999,7 @@ document.querySelectorAll('#livEd .lseg').forEach(d=>{const k=d.dataset.k;d.addE
   if(k==='spine')v=+v;if(k==='K'){if(v==='carbon'){LED.L.KC=1;LED.L.K='#141518';leSync();leApply();return;}LED.L.KC=0;}if(k==='wt'){if(v==='none'){LED.L.wt='none';LED.L.W=null;}else{LED.L.wt=v;if(!LED.L.W)LED.L.W='#ffffff';}}else LED.L[k]=v;leSync();leApply();});});
 $('leNum').addEventListener('change',leApply);$('leName').addEventListener('change',leApply);
 $('lePre').innerHTML=LIV_PRESETS.map((p,i)=>`<button type="button" data-p="${i}"><span class="chip" style="background:linear-gradient(90deg,${p.L.D} 0 56%,${p.L.KC?'#2a2c31':p.L.K} 56% 80%,${p.L.A} 80%)"></span>${p.name}</button>`).join('');
-$('lePre').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!LED)return;const P=LIV_PRESETS[+b.dataset.p].L;Object.assign(LED.L,P,{W:P.W,wt:P.W?P.wt:'none'});leSync();leApply();});
+$('lePre').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!LED)return;const P=LIV_PRESETS[+b.dataset.p].L;Object.assign(LED.L,P,{W:P.W,wt:P.W?P.wt:'none',art:P.art||null});leSync();leApply();});
 $('livBtn').addEventListener('click',leOpen);$('leDone').addEventListener('click',leClose);
 $('leReset').addEventListener('click',()=>{if(!LED)return;const ti=LED.ti;delete LIVC[ti];saveLS('lightsout3d-liv',JSON.stringify(LIVC));applyLivData(ti);dropTeamMats(ti);if(state==='menu')setupRace();refreshTeamButtons();leOpen();});
 $('leRand').addEventListener('click',()=>{if(!LED)return;const pick=a=>a[Math.floor(Math.random()*a.length)],L=LED.L;
