@@ -8,7 +8,8 @@
 - `lib-*.js`: three.js r128과 예제 스크립트(원본 그대로, 수정하지 않음).
 - `font-*.woff2`: Saira / Saira Condensed 글꼴(index.html 안의 @font-face가 불러옴).
 - `car-f1.glb`: 차량 차체 3D 모델(CC BY 4.0, CREDITS.txt). 바퀴·날개·헬멧은 index.html의 코드로 만듭니다. 못 불러오면 코드로 만든 예전 차체가 나옵니다.
-- `engineSound.js`: 엔진 소리 전부(Web Audio로 코드에서 합성, 오디오 파일 없음). 튜닝 패널도 여기 있습니다. T 키, 폰은 그래픽과 기타 > 소리의 「엔진 소리」 글자를 5번 탭.
+- `engineSound.js`: 엔진 소리 재생과 튜닝 패널. T 키, 폰은 그래픽과 기타 > 소리의 「엔진 소리」 글자를 5번 탭.
+- `engine-pu*.bin`: 내 차 엔진 소리 루프(파워유닛 5종, 16비트). 외부 녹음에서 잘라 낸 것으로 권리 미확인. 앱스토어 출시 전에 교체해야 합니다.
 - `tex-*.jpg|png`: 텍스처. 코드에서는 `TEXDIR='tex-'` + 이름으로 불러옵니다.
 - `icon-*.png`, `manifest.webmanifest`: 홈 화면·바탕화면 설치용.
 - `sw.js`: 오프라인 저장과 자동 업데이트. 직접 고치지 말고 `make-sw.py`로 다시 만듭니다.

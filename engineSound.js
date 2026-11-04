@@ -1,80 +1,85 @@
-// 라이츠 아웃 3D - the engine sound, made in code with Web Audio (no audio files). The game only calls EngineSound.update() and setLite().
-// Layers, all following the revs (f = rpm / 20, the firing frequency of a 4-stroke V6):
-//   A sawtooth f (1.0), B 2f (0.5), C 3f (0.3), D 4f-6f (0.15, grows with the throttle), E rpm/120 Hz shaking A by +-10 %,
-//   F exhaust noise band-passed at 2f, Q 1.5, G the turbo whistle (a sine, follows a lagging turbo value).
-// Chain: layers -> soft distortion (harder with the throttle) -> EQ -> compressor -> limiter -> out.
-// The values are 윤택님's specification (11-04); the whistle range has no measured basis, so it and the tone are on the tuning panel (T key; on a phone: 그래픽과 기타 > 소리, tap the words 「엔진 소리」 5 times).
+// 라이츠 아웃 3D - the engine sound. The game only calls EngineSound.update() and setLite().
+// It plays loops cut from a recording of the five 2026 power units (engine-pu0..4.bin, 16-bit; chosen by ear, three versions made purely in code did not pass). Third-party audio, rights not cleared: replace before any store release.
+// Each loop is the recording laid out by crank angle, so one engine cycle (720 degrees) is always CY samples: at any rev all the loops are in step and a crossfade keeps the firing note.
+// Stretches with a shift bang in them were left out, and revs the recording lacks were filled from the nearest long loop with each order's level changed so that the tone stays at the same Hz (slowed as it was, the low gears sounded like a cave).
+// On loading, the air between the orders is taken down (울림 줄이기) and stretches of each loop are dealt in random order into a much longer one (repeated as it was, a steady rev was heard as a pattern).
+// Chain: loops -> EQ -> low-pass (closes off the throttle) -> limiter -> out. Tuning panel: T key; on a phone 그래픽과 기타 > 소리, tap the words 「엔진 소리」 5 times.
 const EngineSound=(()=>{
-  const LS='lightsout3d-engsnd',DEF={mode:'2025',master:1,lowmid:4,high:3,dist:1,whistle:1,noise:1,whLo:4000,whHi:8000,gridLo:8000,gridHi:11000};
+  // [rpm, cycles] of each loop, in file order
+  const LOOPS=[{"on":[[5000,64],[6000,64],[7500,64],[9000,64],[10500,64],[12000,16]]},{"on":[[5000,32],[6000,32],[7500,32],[9000,32],[10500,32],[12000,32]]},{"on":[[5000,32],[6000,32],[7500,32],[9000,64],[10500,32],[12000,16]]},{"on":[[5000,16],[6000,16],[7500,16],[9000,64],[10500,64],[12000,64]]},{"on":[[5000,16],[6000,16],[7500,16],[9000,64],[10500,32],[12000,32]]}];
+  const CY=512,LONG=384,LS='lightsout3d-engsnd2',DEF={mode:'2025',master:1,clean:0.5,lowmid:0,high:0,gridLo:8000,gridHi:11000};
   const pct=v=>Math.round(v*100)+'%',db=v=>(v>0?'+':'')+v+' dB',num=v=>Math.round(v).toLocaleString('en-US');
   // key(s), name, min, max, step, how it reads
-  const SLIDERS=[['master','마스터 볼륨',0,1.5,0.05,pct],['lowmid','250~700Hz 증폭',0,10,0.5,db],['high','1~2.5kHz 증폭',0,8,0.5,db],['dist','디스토션 강도',0,2,0.05,pct],
-    ['whistle','터보 휘슬 볼륨',0,3,0.05,pct],['noise','배기 노이즈 볼륨',0,3,0.05,pct],[['whLo','whHi'],'터보 휘슬 주파수',2000,12000,100,v=>num(v)+' Hz'],[['gridLo','gridHi'],'출발 대기 RPM',6000,12000,100,v=>num(v)+' rpm']];
-  // 2025: as with the MGU-H, even and smooth. 2026: turbo lag, a big change off the throttle, revs held on the grid, a sharper downshift.
-  // up, dn: seconds for the turbo value to rise / fall across its range. offLP, offVol: low-pass and volume with the throttle closed. blip: pitch (cents), the level it reaches (2026 1.5 x 2025 as heard, whatever the volume before it), drive, then its time constants
-  const MODES={'2025':{up:0.1,dn:0.3,offLP:5000,offVol:0.7,noise:0.12,grid:false,tc:0.03,blip:{c:68,abs:1.35,dr:1.3,up:0.012,hold:0.036,dn:0.06}},
-    '2026':{up:0.4,dn:0.8,offLP:2500,offVol:0.4,noise:0.2,grid:true,tc:0.02,blip:{c:102,abs:2.45,dr:1.45,up:0.005,hold:0.015,dn:0.03}}};
-  const OUTK=0.5,LP_OPEN=12000,OFFK=1.38;   // OUTK: the level at 100 % (RMS about 0.2 flat out). OFFK: the softer drive and the closed low-pass already take this much off, so that the closed-throttle volume comes out as asked
+  const SLIDERS=[['master','마스터 볼륨',0,1.5,0.05,pct],['clean','울림 줄이기',0,1,0.05,pct],['lowmid','250~700Hz',-6,6,0.5,db],['high','1~2.5kHz',-6,6,0.5,db],[['gridLo','gridHi'],'출발 대기 RPM',6000,12000,100,v=>num(v)+' rpm']];
+  // 2025: even and smooth. 2026: a big change off the throttle, revs held on the grid, a sharper downshift.
+  // offLP, offVol: low-pass and volume with the throttle closed. blip: pitch (cents), the level it reaches (2026 1.5 x 2025 as heard, whatever the volume before it), how far the low-pass opens, then its time constants
+  const MODES={'2025':{offLP:5000,offVol:0.7,grid:false,tc:0.03,blip:{c:68,abs:0.77,lp:6000,up:0.015,hold:0.045,dn:0.09}},
+    '2026':{offLP:2500,offVol:0.4,grid:true,tc:0.02,blip:{c:102,abs:1.25,lp:6000,up:0.006,hold:0.018,dn:0.035}}};
+  const OUTK=1.6,LP_OPEN=12000,OFFK=1;   // OUTK: the level at 100 %. OFFK: makes the closed-throttle volume come out as asked once the low-pass has taken its part
   const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),lerp=(a,b,f)=>a+(b-a)*f;
   // the game's revs run to 12 700 and its gears shift up at up to 12 500. Only the sound is scaled: 11 500 and below as they are, the top squeezed so that the limiter sits at 12 000
   const mapRpm=r=>{r=Math.max(4000,r);return r<=11500?r:Math.min(12000,11500+(r-11500)*500/1200);};
+  const levelAt=r=>Math.min(1,0.55+0.45*r/7500)*(0.72+0.28*clamp((r-7000)/4000,0,1));   // the low gears a little quieter, idle quieter still
 
   const P=(()=>{const o=Object.assign({},DEF);let s=null;try{s=JSON.parse(localStorage.getItem(LS));}catch(e){}
     if(s&&typeof s==='object'){if(MODES[s.mode])o.mode=s.mode;for(const q of SLIDERS)for(const k of [].concat(q[0]))if(Number.isFinite(s[k]))o[k]=clamp(s[k],q[2],q[3]);}
-    if(o.whLo>o.whHi)o.whLo=o.whHi;if(o.gridLo>o.gridHi)o.gridLo=o.gridHi;return o;})();
+    if(o.gridLo>o.gridHi)o.gridLo=o.gridHi;return o;})();
   const save=()=>{try{localStorage.setItem(LS,JSON.stringify(P));}catch(e){}};
   const live=new Set();
   const applyP=v=>{const t=v.ctx.currentTime;v.pkMid.gain.setTargetAtTime(P.lowmid,t,0.02);v.pkHigh.gain.setTargetAtTime(P.high,t,0.02);v.master.gain.setTargetAtTime(OUTK*P.master,t,0.02);};
 
-  // ---- curves ----
-  // the input's -1..1 stands for -4..4: the drive is a gain in front, up to where it flattens
-  const softCurve=(()=>{const n=4097,c=new Float32Array(n);for(let i=0;i<n;i++)c[i]=Math.tanh(4*(i/(n-1)*2-1));return c;})();
-  // the output never goes over -1 dBFS (0.891); the compressor-limiter before it lets the fastest edges through
+  // the output never goes over -1 dBFS (0.891); the limiter before it lets the fastest edges through
   const ceilCurve=(()=>{const n=4097,c=new Float32Array(n);for(let i=0;i<n;i++){const x=i/(n-1)*2-1,a=Math.abs(x);c[i]=a<=0.8?x:Math.sign(x)*(0.8+0.091*Math.tanh((a-0.8)/0.091));}return c;})();
-  // The layers are locked in frequency, so their phases never drift: started together, a sawtooth at 2f cancels the even harmonics of the one at f (its second harmonic has the opposite sign), and what is left depends on the start.
-  // So the phases are set: A and C are plain sawtooths, B the same shifted half a period, and all the layers add. D is one wave holding harmonics 4, 5, 6 with the signs that add to the others.
-  const WAVES=ctx=>ctx._esV||(ctx._esV=(()=>{const n=128,mk=f=>{const re=new Float32Array(n),im=new Float32Array(n);for(let k=1;k<n;k++)im[k]=f(k);return ctx.createPeriodicWave(re,im);};
-    return {saw:mk(k=>(k%2?1:-1)/k),sawB:mk(k=>-1/k),d:mk(k=>k===4||k===6?-1:k===5?1:0)};})());
-  const DK=(()=>{let pk=0;for(let i=0;i<2048;i++){const x=i/2048*2*Math.PI;pk=Math.max(pk,Math.abs(Math.sin(5*x)-Math.sin(4*x)-Math.sin(6*x)));}return 0.0866*pk;})();   // the wave comes normalised to 1: this gives 0.0866 each (three together weigh as one sine at 0.15)
-  const noiseBuf=ctx=>ctx._esN||(ctx._esN=(()=>{const b=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;return b;})());
+
+  // ---- the loops ----
+  const FILES={};
+  function puLoad(pu){return FILES[pu]||(FILES[pu]=(function get(){return fetch('engine-pu'+pu+'.bin').then(r=>{if(!r.ok)throw 0;return r.arrayBuffer();}).then(b=>new Int16Array(b)).catch(()=>new Promise(w=>setTimeout(w,3000)).then(get));})());}   // the file is in the offline cache; if the net is down it keeps trying, the engine stays quiet until then
+  function fft(re,im,sign){const n=re.length;for(let i=1,j=0;i<n;i++){let b=n>>1;for(;j&b;b>>=1)j^=b;j^=b;if(i<j){let t=re[i];re[i]=re[j];re[j]=t;t=im[i];im[i]=im[j];im[j]=t;}}
+    for(let l=2;l<=n;l<<=1){const a=sign*2*Math.PI/l,wr=Math.cos(a),wi=Math.sin(a);for(let i=0;i<n;i+=l){let cr=1,ci=0;for(let j=0,h=l>>1;j<h;j++){const p=i+j,q=p+h,xr=re[q]*cr-im[q]*ci,xi=re[q]*ci+im[q]*cr;re[q]=re[p]-xr;im[q]=im[p]-xi;re[p]+=xr;im[p]+=xi;const t=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=t;}}}}
+  // the orders stay, what lies between them (the recording's room and wind) goes down: more below 400 Hz, where a distant recording booms. A wide pass round each order, or the sound rings and turns artificial
+  function tidy(x,nc,rpm){const n=x.length,re=Float64Array.from(x),im=new Float64Array(n),H=n>>1;fft(re,im,-1);
+    for(let k=1;k<=H;k++){const m=k%nc;let u=(Math.min(m,nc-m)/nc-0.12)/0.18;u=u<0?0:u>1?1:u;u=u*u*(3-2*u);const g=Math.pow(10,(k/nc/2*rpm/60<400?-10:-6)*P.clean*u/20);re[k]*=g;im[k]*=g;if(k<H){re[n-k]*=g;im[n-k]*=g;}}
+    fft(re,im,1);const o=new Float32Array(n);for(let i=0;i<n;i++)o[i]=re[i]/n;return o;}
+  // stretches of 8-20 cycles in random order. They join on cycle boundaries, over two cycles (shorter, each join ticked and the top orders fluttered), with a straight fade: the orders are in phase across a join, an equal-power fade would swell at every one
+  function deal(x,nc,rnd){const n=x.length,X=CY*2,L=LONG*CY,tmp=new Float32Array(L+X);let pos=0,last=-1;
+    while(pos<L){let c=(rnd()*nc)|0;if(c===last)c=(c+1)%nc;last=c;const seg=Math.min(nc,8+((rnd()*13)|0))*CY,st=c*CY;
+      for(let i=0;i<seg+X&&pos+i<L+X;i++){const v=x[(st+i)%n];if(i<X&&pos>0){const f=i/X;tmp[pos+i]=tmp[pos+i]*(1-f)+v*f;}else tmp[pos+i]=v;}pos+=seg;}
+    for(let i=0;i<X;i++){const f=i/X;tmp[i]=tmp[i]*f+tmp[L+i]*(1-f);}
+    return tmp.subarray(0,L);}
+  let BANK=null;   // the one set kept in memory: the power unit in use
+  function bank(ctx,pu,D){const key=pu+'|'+P.clean+'|'+ctx.sampleRate;if(BANK&&BANK.key===key)return BANK;let sd=4242+pu,o=0;const rnd=()=>{sd=(sd*16807)%2147483647;return sd/2147483647;};
+    const on=LOOPS[pu].on.map(q=>{const nc=q[1],n=nc*CY,x=new Float32Array(n);for(let i=0;i<n;i++)x[i]=D[o+i]/32768;o+=n;const y=deal(P.clean>0?tidy(x,nc,q[0]):x,nc,rnd),buf=ctx.createBuffer(1,y.length,ctx.sampleRate);buf.getChannelData(0).set(y);return {rpm:q[0],buf};});
+    return BANK={key,on};}
 
   // ---- the player's engine ----
-  function create(ctx,dest){
+  function attach(v,bk){const ctx=v.ctx,G=x=>{const g=ctx.createGain();g.gain.value=x;return g;},t0=ctx.currentTime+0.01,k=CY/120/ctx.sampleRate;for(const a of v.on){try{a.s.stop();}catch(e){}try{a.g.disconnect();}catch(e){}}
+    v.on=bk.on.map(q=>{const s=ctx.createBufferSource();s.buffer=q.buf;s.loop=true;s.playbackRate.value=(v.R||9000)*k;const g=G(0);s.connect(g);g.connect(v.mix);s.start(t0);return {rpm:q.rpm,s,g,k};});}   // all at the same moment: in step
+  function create(ctx,dest,pu){
     const G=x=>{const g=ctx.createGain();g.gain.value=x;return g;},F=(ty,f,q,gn)=>{const b=ctx.createBiquadFilter();b.type=ty;b.frequency.value=f;if(q!=null)b.Q.value=q;if(gn!=null)b.gain.value=gn;return b;};
-    const W=WAVES(ctx),osc=(ty,to)=>{const o=ctx.createOscillator();if(typeof ty==='string')o.type=ty;else o.setPeriodicWave(ty);o.connect(to);o.start();return o;},chain=(...n)=>{for(let i=1;i<n.length;i++)n[i-1].connect(n[i]);return n[n.length-1];};
-    const mix=G(1),gA=G(1),gB=G(0.5),gC=G(0.3),gD=G(0),gF=G(0),gG=G(0),lfoG=G(0.1);
-    gA.connect(mix);gB.connect(mix);gC.connect(mix);gD.connect(mix);gF.connect(mix);
-    const oA=osc(W.saw,gA),oB=osc(W.sawB,gB),oC=osc(W.saw,gC),oD=osc(W.d,gD),oE=osc('sine',lfoG),oG=osc('sine',gG);lfoG.connect(gA.gain);
-    oA.frequency.value=200;oB.frequency.value=400;oC.frequency.value=600;oD.frequency.value=200;oE.frequency.value=33;   // idle, until the first update
-    const ns=ctx.createBufferSource();ns.buffer=noiseBuf(ctx);ns.loop=true;const bp=F('bandpass',1000,1.5);ns.connect(bp);bp.connect(gF);ns.start();
-    const drive=G(0.1),bark=G(1),sh=ctx.createWaveShaper();sh.curve=softCurve;sh.oversample='2x';
-    const hp=F('highpass',40,-3),pkLow=F('peaking',110,1.57,2),pkMid=F('peaking',418,0.93,P.lowmid),pkHigh=F('peaking',1581,1.05,P.high),pkHarsh=F('peaking',3873,1.94,-3),lp=F('lowpass',LP_OPEN,-3),shLow=F('lowshelf',160,null,0),shTop=F('highshelf',8000,null,0);   // (for high-pass and low-pass Q is in dB: -3 is no resonance. pkHarsh -3: the 1-2.5 kHz bell's skirt gives some back, so 3-5 kHz comes out at about -2)
-    const comp=ctx.createDynamicsCompressor();comp.threshold.value=-18;comp.knee.value=6;comp.ratio.value=4;comp.attack.value=0.005;comp.release.value=0.1;
+    const chain=(...n)=>{for(let i=1;i<n.length;i++)n[i-1].connect(n[i]);};
+    const mix=G(1),hp=F('highpass',40,-3),pk200=F('peaking',200,1.2,1.5),pk500=F('peaking',500,1.5,-1),pkMid=F('peaking',418,0.93,P.lowmid),pkHigh=F('peaking',1581,1.05,P.high),top=F('highshelf',2500,null,2),lp=F('lowpass',LP_OPEN,-3),shLow=F('lowshelf',160,null,0),shTop=F('highshelf',3000,null,0);   // (for high-pass and low-pass Q is in dB: -3 is no resonance. pk200, pk500, top: a little closer to onboard. Game values)
     const lim=ctx.createDynamicsCompressor();lim.threshold.value=-1;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=0.001;lim.release.value=0.05;
     const master=G(OUTK*P.master),ceil=ctx.createWaveShaper();ceil.curve=ceilCurve;
     const shift=G(1),limG=G(1),vol=G(0.5),out=G(1);
     // the rev limiter cuts in and out 15 times a second, whatever the frame rate
-    const lf=F('lowpass',200,-3),limO=osc('square',lf),limD=G(0);limO.frequency.value=15;lf.connect(limD);limD.connect(limG.gain);
-    const v={v6:true,ctx,oA,oB,oC,oD,oE,oG,ns,limO,bp,gD,gF,gG,drive,bark,pkMid,pkHigh,lp,shLow,shTop,master,shift,limG,limD,vol,out,eq:[hp,pkLow,pkMid,pkHigh,pkHarsh,lp,shLow,shTop],S:{gear:'N',thr:0,tv:0,onGrid:false,gT:0,gTg:9500,gR:9500,go:-1,go0:0,inCar:null}};
-    chain(mix,drive,bark,sh,hp,pkLow,pkMid,pkHigh,pkHarsh,lp,shLow,shTop,comp,master,lim,ceil,shift,limG,vol,out);
-    gG.connect(comp);   // the whistle joins behind the low-pass and the distortion: otherwise a closed throttle would cut it at once (it should fade), and it would ring against the sawtooth
+    const limO=ctx.createOscillator(),lf=F('lowpass',200,-3),limD=G(0);limO.type='square';limO.frequency.value=15;limO.connect(lf);lf.connect(limD);limD.connect(limG.gain);limO.start();
+    const v={v6:true,ctx,pu,mix,limO,lp,pkMid,pkHigh,shLow,shTop,master,shift,limG,limD,vol,out,on:[],eq:[hp,pk200,pk500,pkMid,pkHigh,top,lp,shLow,shTop],S:{gear:'N',thr:0,onGrid:false,gT:0,gTg:9500,gR:9500,go:-1,go0:0,inCar:null}};
+    chain(mix,hp,pk200,pk500,pkMid,pkHigh,top,lp,shLow,shTop,master,lim,ceil,shift,limG,vol,out);
     if(ctx.createStereoPanner){v.pan=ctx.createStereoPanner();out.connect(v.pan);v.pan.connect(dest);}else out.connect(dest);
-    live.add(v);return v;}
-
-  function stop(v){v.dead=true;live.delete(v);for(const o of [v.oA,v.oB,v.oC,v.oD,v.oE,v.oG,v.ns,v.limO])try{o.stop();}catch(e){}try{v.out.disconnect();if(v.pan)v.pan.disconnect();}catch(e){}}
+    live.add(v);v.ready=puLoad(pu).then(D=>{if(v.dead)return;v.D=D;attach(v,bank(ctx,pu,D));});return v;}
+  function stop(v){v.dead=true;live.delete(v);for(const a of v.on)try{a.s.stop();}catch(e){}try{v.limO.stop();}catch(e){}try{v.out.disconnect();if(v.pan)v.pan.disconnect();}catch(e){}}
   // a new race: nothing of the last one's start lights carries over (left during the countdown, the first frame read as lights out)
   function reset(v){v.S.onGrid=false;v.S.go=-1;v.S.gear='N';}
 
-  // a 50 ms dip at an upshift (the revs themselves drop with the game's gear ratios)
-  function upshift(v,t){const g=v.shift.gain;g.cancelScheduledValues(t);g.setTargetAtTime(0.5,t,0.004);g.setTargetAtTime(1,t+0.05,0.012);}
-  // a downshift: a blip of the revs, louder, harder and brighter for a moment. Scheduled, so that it is as short at 30 fps as at 60
-  function downshift(v,t,M,thr){const B=M.blip,go=(p,peak,rest)=>{p.cancelScheduledValues(t);p.setTargetAtTime(peak,t,B.up);p.setTargetAtTime(rest,t+B.hold,B.dn);};
-    for(const o of [v.oA,v.oB,v.oC,v.oD])go(o.detune,B.c,0);go(v.bp.detune,B.c,0);go(v.shift.gain,Math.max(1.1,B.abs/lerp(M.offVol*OFFK,1,Math.pow(thr,0.7))),1);go(v.bark.gain,B.dr,1);
-    go(v.lp.detune,1200*Math.log2(LP_OPEN/(M.offLP*Math.pow(LP_OPEN/M.offLP,thr))),0);}
+  // an upshift: a short, slight dip (measured on the recording about 1 dB; the revs themselves drop with the game's gear ratios)
+  function upshift(v,t){const g=v.shift.gain;g.cancelScheduledValues(t);g.setTargetAtTime(0.85,t,0.006);g.setTargetAtTime(1,t+0.05,0.03);}
+  // a downshift: a blip of the revs, louder and brighter for a moment. Scheduled, so that it is as short at 30 fps as at 60
+  function downshift(v,t,M,thr,lv){const B=M.blip,go=(p,peak,rest)=>{p.cancelScheduledValues(t);p.setTargetAtTime(peak,t,B.up);p.setTargetAtTime(rest,t+B.hold,B.dn);};
+    for(const a of v.on)if(a.s.detune)go(a.s.detune,B.c,0);go(v.shift.gain,Math.max(1.1,B.abs/(lv*lerp(M.offVol*OFFK,1,Math.pow(thr,0.7)))),1);
+    go(v.lp.detune,Math.max(0,1200*Math.log2(B.lp/(M.offLP*Math.pow(LP_OPEN/M.offLP,thr)))),0);}
 
-  // o: {t, dt, rpm (the game's), thr 0..1, gear, inCar, dop (doppler), grid (on the start lights), pitLim}.
+  // o: {t, dt, rpm (the game's), thr 0..1, gear, inCar, dop (doppler), grid (on the start lights), pitLim}
   function update(v,o){const S=v.S,M=MODES[P.mode],t=o.t,dt=o.dt;
-    if(o.gear!==S.gear){const a=+S.gear,b=+o.gear;if(a&&b){if(b>a)upshift(v,t);else downshift(v,t,M,S.thr);}S.gear=o.gear;}
     let r=mapRpm(o.rpm),th=o.thr;
     if(M.grid&&o.grid){   // 2026: the revs held high on the grid, wandering; they do not wait for the pedal
       if(!S.onGrid){S.onGrid=true;S.gT=0;S.gR=lerp(P.gridLo,P.gridHi,Math.random());S.go=-1;}
@@ -83,30 +88,24 @@ const EngineSound=(()=>{
     else if(S.onGrid){S.onGrid=false;S.go=0;S.go0=S.gR;}   // lights out
     if(S.go>=0){   // the revs fall a little as the clutch bites, then the game's revs (the launch) take over
       S.go+=dt;const u=S.go,low=S.go0-900;if(u>=0.42)S.go=-1;else if(u<0.12)r=lerp(S.go0,low,u/0.12);else{const f=(u-0.12)/0.3;r=lerp(low,r,f*f*(3-2*f));}}
-    S.thr+=(th-S.thr)*Math.min(1,dt*14);const T=S.thr;
-    // the turbo value: its target rises with the throttle and the revs, and it takes its time (no MGU-H in 2026)
-    {const tg=th*(0.35+0.65*clamp((r-4000)/7500,0,1));S.tv=tg>S.tv?Math.min(tg,S.tv+dt/M.up):Math.max(tg,S.tv-dt/M.dn);}
-    const f=r*(o.dop||1)/20,k=M.tc;
-    v.oA.frequency.setTargetAtTime(f,t,k);v.oB.frequency.setTargetAtTime(2*f,t,k);v.oC.frequency.setTargetAtTime(3*f,t,k);v.oD.frequency.setTargetAtTime(f,t,k);
-    v.oE.frequency.setTargetAtTime(r/120,t,k);v.bp.frequency.setTargetAtTime(2*f,t,k);
-    v.gD.gain.setTargetAtTime(DK*(0.15+0.85*T),t,0.03);
-    v.gF.gain.setTargetAtTime(M.noise*P.noise,t,0.05);
-    v.drive.gain.setTargetAtTime((0.4+P.dist*(0.1+T))/4,t,0.03);   // (/4: softCurve)
-    v.lp.frequency.setTargetAtTime(M.offLP*Math.pow(LP_OPEN/M.offLP,T),t,0.03);
-    v.vol.gain.setTargetAtTime(lerp(M.offVol*OFFK,1,Math.pow(T,0.7)),t,0.02);
-    v.oG.frequency.setTargetAtTime(lerp(P.whLo,P.whHi,S.tv),t,0.05);v.gG.gain.setTargetAtTime(P.whistle*lerp(0.05,0.08,S.tv)*Math.min(1,S.tv/0.25),t,0.05);
+    S.thr+=(th-S.thr)*Math.min(1,dt*14);const T=S.thr,lv=levelAt(r);
+    if(o.gear!==S.gear){const a=+S.gear,b=+o.gear;if(a&&b){if(b>a)upshift(v,t);else downshift(v,t,M,T,lv);}S.gear=o.gear;}
+    const R=r*(o.dop||1)*(1+0.002*Math.sin(t*9.1)+0.0015*Math.sin(t*3.7)),l=v.on;v.R=R;   // the revs never sit dead still
+    if(l.length){let i=0;while(i<l.length-2&&l[i+1].rpm<=R)i++;const f=l.length<2?0:clamp(Math.log(R/l[i].rpm)/Math.log(l[i+1].rpm/l[i].rpm),0,1);
+      for(let j=0;j<l.length;j++){l[j].s.playbackRate.setTargetAtTime(R*l[j].k,t,M.tc);l[j].g.gain.setTargetAtTime(j===i?Math.pow(1-f,0.75):j===i+1?Math.pow(f,0.75):0,t,0.03);}}   // between equal-power and straight: the orders add in phase, the air does not
+    // off the throttle it is the same engine at the same revs, quieter and darker (the recording's off-throttle stretches are full of shift bangs; looped, they read as the sound breaking up). Full throttle stays full throttle while the speed falls
+    v.vol.gain.setTargetAtTime(lv*lerp(M.offVol*OFFK,1,Math.pow(T,0.7)),t,0.012);v.lp.frequency.setTargetAtTime(M.offLP*Math.pow(LP_OPEN/M.offLP,T),t,0.04);
     if(S.inCar!==o.inCar){S.inCar=o.inCar;v.shLow.gain.setTargetAtTime(o.inCar?2:0,t,0.1);v.shTop.gain.setTargetAtTime(o.inCar?0:2,t,0.1);}   // the cockpit a little more low end, outside a little more top
     const d=o.thr>=0.99&&o.rpm>12650&&!o.grid?0.9:o.pitLim?0.3:0;v.limD.gain.setTargetAtTime(d/2,t,0.005);v.limG.gain.setTargetAtTime(1-d/2,t,0.005);}
 
-  // ---- other cars: one oscillator holding layers A-C, a low-pass and a level (distance, doppler and the choice of three cars are the game's) ----
-  function createLite(ctx,dest){const G=x=>{const g=ctx.createGain();g.gain.value=x;return g;};
-    const w=ctx._esW||(ctx._esW=(()=>{const n=40,re=new Float32Array(n),im=new Float32Array(n);for(let i=1;i<n;i++){im[i]=1/i;if(i%2===0)im[i]+=0.5/(i/2);if(i%3===0)im[i]+=0.3/(i/3);}return ctx.createPeriodicWave(re,im);})());
-    const o=ctx.createOscillator();o.setPeriodicWave(w);const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1500;lp.Q.value=-3;const out=G(0),v={lite:true,o,lp,out};o.connect(lp);lp.connect(out);o.start();
-    if(ctx.createStereoPanner){v.pan=ctx.createStereoPanner();out.connect(v.pan);v.pan.connect(dest);}else out.connect(dest);return v;}
-  function setLite(v,t,rpm,dop,level,cut,tc){v.o.frequency.setTargetAtTime(mapRpm(rpm)*dop/20,t,tc||0.03);v.lp.frequency.setTargetAtTime(cut,t,0.03);v.out.gain.setTargetAtTime(level,t,0.008);}
+  // ---- other cars: one loop of the same set, a low-pass and a level (distance, doppler and the choice of three cars are the game's) ----
+  function createLite(ctx,dest,pu){const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1500;lp.Q.value=-3;const out=ctx.createGain();out.gain.value=0;const v={lite:true,lp,out,s:null,k:CY/120/ctx.sampleRate};lp.connect(out);
+    if(ctx.createStereoPanner){v.pan=ctx.createStereoPanner();out.connect(v.pan);v.pan.connect(dest);}else out.connect(dest);
+    v.ready=puLoad(pu).then(D=>{const on=bank(ctx,pu,D).on,q=on.find(a=>a.rpm===10500)||on[on.length-1],s=ctx.createBufferSource();s.buffer=q.buf;s.loop=true;s.playbackRate.value=10000*v.k;s.connect(lp);s.start(ctx.currentTime,Math.random()*q.buf.duration);v.s=s;});return v;}
+  function setLite(v,t,rpm,dop,level,cut,tc){if(v.s)v.s.playbackRate.setTargetAtTime(mapRpm(rpm)*dop*v.k,t,tc||0.03);v.lp.frequency.setTargetAtTime(cut,t,0.03);v.out.gain.setTargetAtTime(level,t,0.008);}
 
   // ---- hear it without a race: the grid, a launch, three upshifts, a lift, three downshifts, idle. Runs on a timer, so the sliders are heard as they move ----
-  function preview(ctx,dest,onEnd){const v=create(ctx,dest),t0=ctx.currentTime,PULL=0.72,END=6.6;let r=4000,last=t0,done=false,fade=false;v.out.gain.value=0;v.out.gain.setTargetAtTime(1,t0,0.02);
+  function preview(ctx,dest,pu,onEnd){const v=create(ctx,dest,pu),PULL=0.72,END=6.6;let t0=0,r=4000,last=0,done=false,fade=false,iv=0;v.out.gain.value=0;
     const stopIt=()=>{if(done)return;done=true;clearInterval(iv);stop(v);};
     const tick=()=>{const now=ctx.currentTime,T=now-t0,dt=Math.max(0.001,now-last);last=now;if(T>=END){stopIt();if(onEnd)onEnd();return;}if(T>=END-0.12&&!fade){fade=true;v.out.gain.setTargetAtTime(0,now,0.03);}
       let tg=4000,thr=0,g='N',grid=false;
@@ -116,7 +115,7 @@ const EngineSound=(()=>{
       else if(T<5.0){const n=Math.floor((T-4.2)/0.26);g=String(Math.max(1,3-n));tg=11000-((T-4.2)%0.26)*3800;}
       else g='1';
       r+=(tg-r)*Math.min(1,dt*(tg<r-250?38:18));update(v,{t:now,dt,rpm:r,thr,gear:g,inCar:true,dop:1,grid});};
-    const iv=setInterval(tick,20);tick();
+    v.ready.then(()=>{if(done)return;t0=last=ctx.currentTime;v.out.gain.setTargetAtTime(1,t0,0.02);iv=setInterval(tick,20);tick();});
     return {stop:stopIt};}
 
   // ---- the tuning panel ----
@@ -145,7 +144,7 @@ const EngineSound=(()=>{
 #engTune .etA .etGo{background:#f5c518;color:#15161a}
 #engTune .etA .etGo:active{background:#dcb015}
 @media (max-width:540px){#engTune .etB{grid-template-columns:1fr}#engTune .etH{flex-wrap:wrap}#engTune .etSeg{order:3;flex-basis:100%}#engTune .etX{margin-left:auto}}`;
-  function slider(host,q,onMove){const keys=[].concat(q[0]),[,,lo,hi,step,fmt]=q,el=document.createElement('div');el.className='etR';
+  function slider(host,q,onMove,onEnd){const keys=[].concat(q[0]),[,,lo,hi,step,fmt]=q,el=document.createElement('div');el.className='etR';
     el.innerHTML=`<div class="etL">${q[1]}<span></span></div><div class="etS"><div class="etT"></div><div class="etF"></div>${keys.map(()=>'<div class="etK"></div>').join('')}</div>`;host.appendChild(el);
     const S=el.querySelector('.etS'),Fl=el.querySelector('.etF'),Ks=[...el.querySelectorAll('.etK')],R=el.querySelector('.etL span');
     const inset=11,pos=v=>`calc(${inset}px + (100% - ${2*inset}px) * ${(v-lo)/(hi-lo)})`;
@@ -157,22 +156,24 @@ const EngineSound=(()=>{
       if(keys.length>1&&P[keys[0]]===P[keys[1]]){act=null;pick=x;return;}   // the two handles on top of each other: the first move decides which one
       act=keys.reduce((a,k)=>Math.abs(P[k]-x)<Math.abs(P[a]-x)?k:a,keys[0]);set(act,x);});
     S.addEventListener('pointermove',e=>{if(e.pointerId!==pid)return;const x=at(e);if(pick!=null){if(Math.abs(x-pick)<step/2)return;act=x<pick?keys[0]:keys[1];pick=null;}if(act)set(act,x);});
-    const end=e=>{if(e.pointerId!==pid)return;pid=null;act=null;pick=null;save();};S.addEventListener('pointerup',end);S.addEventListener('pointercancel',end);S.addEventListener('lostpointercapture',end);
+    const end=e=>{if(e.pointerId!==pid)return;pid=null;act=null;pick=null;save();onEnd();};S.addEventListener('pointerup',end);S.addEventListener('pointercancel',end);S.addEventListener('lostpointercapture',end);
     return draw;}
+  // 울림 줄이기 changes the loops themselves: they are made again when the finger lifts, not while it moves
+  const rebuild=()=>{for(const v of live)if(v.D&&!v.dead)attach(v,bank(v.ctx,v.pu,v.D));};
   function build(){const st=document.createElement('style');st.textContent=CSS;document.head.appendChild(st);box=document.createElement('div');box.id='engTune';box.hidden=true;
     box.innerHTML=`<div class="etC"><div class="etH"><b>엔진 소리 튜닝</b><div class="etSeg"><button type="button" data-m="2025">2025 스타일</button><button type="button" data-m="2026">2026 실제 스타일</button></div><button type="button" class="etX">닫기</button></div><div class="etB"></div><div class="etA"><button type="button" class="etGo">소리 듣기</button><button type="button" class="etD">기본값으로</button></div></div>`;document.body.appendChild(box);
-    const body=box.querySelector('.etB'),apply=()=>{for(const v of live)applyP(v);},draws=SLIDERS.map(q=>slider(body,q,apply)),seg=[...box.querySelectorAll('.etSeg button')],drawSeg=()=>seg.forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===P.mode?'true':'false'));
+    const body=box.querySelector('.etB'),apply=()=>{for(const v of live)applyP(v);},draws=SLIDERS.map(q=>slider(body,q,apply,rebuild)),seg=[...box.querySelectorAll('.etSeg button')],drawSeg=()=>seg.forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===P.mode?'true':'false'));
     const redraw=()=>{draws.forEach(d=>d());drawSeg();};box._redraw=redraw;
     seg.forEach(b=>b.addEventListener('click',()=>{P.mode=b.dataset.m;save();drawSeg();}));
     box.querySelector('.etX').addEventListener('click',()=>{box.hidden=true;});
     box.querySelector('.etGo').addEventListener('click',()=>{if(hooks.preview)hooks.preview();});
-    box.querySelector('.etD').addEventListener('click',()=>{Object.assign(P,DEF);save();apply();redraw();});
+    box.querySelector('.etD').addEventListener('click',()=>{Object.assign(P,DEF);save();apply();rebuild();redraw();});
     box.addEventListener('click',e=>{if(e.target===box)box.hidden=true;});}
   function openPanel(){if(!box)build();box._redraw();box.hidden=false;}
   // hooks: {preview, hidden (the element tapped 5 times to open the panel on a phone), ctx (the AudioContext, once there is one), mayResume}
   function setup(h){hooks=h;
     addEventListener('keydown',e=>{if(e.code!=='KeyT'||e.repeat||/^(INPUT|TEXTAREA)$/.test(e.target.tagName||''))return;if(box&&!box.hidden)box.hidden=true;else openPanel();});
-    if(h.hidden){let n=0,last=0;h.hidden.addEventListener('pointerup',e=>{n=e.timeStamp-last<800?n+1:1;last=e.timeStamp;if(n>=5){n=0;setTimeout(openPanel,320);}});}
+    if(h.hidden){let n=0,last=0;h.hidden.addEventListener('pointerup',e=>{n=e.timeStamp-last<800?n+1:1;last=e.timeStamp;if(n>=5){n=0;setTimeout(openPanel,320);}});}   // (opens a moment later: the tap's click must not land on the panel)
     // phones hold an AudioContext until a touch starts it, and a call leaves it interrupted
     const wake=()=>{const c=h.ctx&&h.ctx();if(c&&c.state!=='running'&&c.state!=='closed'&&(!h.mayResume||h.mayResume()))c.resume();};
     for(const ty of['touchend','pointerdown','keydown'])addEventListener(ty,wake,{capture:true,passive:true});}

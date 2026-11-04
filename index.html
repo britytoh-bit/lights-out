@@ -1085,11 +1085,11 @@ function pickCompound(race,c){
 const TEAMS=[
  {name:'알펜 레이싱',short:'ALPEN',p:'#0f3f9e',s:'#ea4aa0',d:[['에릭 솔베르','SOL'],['루카 페라즈','FRZ']]},
  {name:'레이싱 버팔로',short:'R-BUFFALO',p:'#eef0f4',s:'#1b3a8c',d:[['니코 할스텐','HAL'],['테오 마르셀','MRC']]},
- {name:'윌럼스',short:'WILLEMS',p:'#0a2a9c',s:'#36b3fc',d:[['다리오 벤투리','VEN'],['쥘 로랑','LRN']]},
+ {name:'윌럼스',short:'WILLEMS',p:'#1459c0',s:'#36b3fc',d:[['다리오 벤투리','VEN'],['쥘 로랑','LRN']]},
  {name:'하우스',short:'HAUSS',p:'#f0f0ee',s:'#c7242d',d:[['오웬 크레인','CRN'],['사샤 이바노','IVA']]},
  {name:'맥클레인',short:'MCCLAIN',p:'#fc7a12',s:'#15151a',d:[['파블로 오르테가','ORT'],['카이 닐센','NIL']]},
  {name:'페라로',short:'FERRARO',p:'#d4121f',s:'#f0efed',d:[['라파 코스타','COS'],['위고 베른','BRN']]},
- {name:'메르세도',short:'MERCEDO',p:'#141516',s:'#2fa09a',d:[['아르네 달','DAL'],['미로 칼리오','KAL']]},
+ {name:'메르세도',short:'MERCEDO',p:'#141516',s:'#22c4b4',d:[['아르네 달','DAL'],['미로 칼리오','KAL']]},
  {name:'아우덴',short:'AUDEN',p:'#b9b8b6',s:'#fc2232',d:[['토비 렌','REN'],['야누 사리','SAR']]},
  {name:'애쉬턴 마틴',short:'ASHTON',p:'#0b7a73',s:'#cedc00',d:[['엘리아스 폰테','FON'],['이안 로크','ROK']]},
  {name:'레드 버팔로',short:'BUFFALO',p:'#1a3c96',s:'#d01a14',d:[['제이 오카베','OKA'],['도윤 서','SEO']]},
@@ -4509,28 +4509,28 @@ function brandBlit(dst,sp,cx,cy,w,h,col,flipH,flipV,sx){const c=mkCanvas(Math.ce
 // flap / endp / rflap wing colours (front flaps, endplates, rear flap), fin finish.
 // 11-04: each team's scheme in bands, sampled off pictures of this season's cars (no marks, no sponsors). B: body, P: sidepod, each [u from, u to, top from, top to, bottom from, bottom to, colour]; u 0 nose .. 1 tail, h 0 lower edge .. 1 top line. Fd: darkening towards the tail [u from, u to, colour]
 const LIV=[
- {D:'#0f3f9e',W:null,wt:null,K:'#0a1020',A:'#ea4aa0',M:'none',cut:'solid',flap:'#0a1020',endp:'#ea4aa0',rflap:'#0a1020',fin:'gloss',art:'tbl',Fd:[0.5,0.97,'#0a1838'],
-  B:[[0.03,0.32,0.66,0.56,0.14,0.2,'#ea4aa0'],[0.72,0.88,0.92,0.84,0.42,0.48,'#ea4aa0'],[0.03,0.99,0.13,0.2,0,0,'#0a1020']],P:[[0.5,0.9,0.72,0.66,0.26,0.32,'#ea4aa0'],[0,1,0.2,0.28,0,0,'#0a1020']]},
- {D:'#eef0f4',W:null,wt:null,K:'#101521',A:'#1b3a8c',M:'none',cut:'solid',flap:'#eef0f4',endp:'#eef0f4',rflap:'#101521',fin:'gloss',art:'tbl',
-  B:[[0.3,0.92,0.52,0.72,0.08,0.1,'#1b3a8c'],[0,0.1,1.03,1.03,0,0,'#ffd505'],[0.1,0.16,1.03,1.03,0,0,'#e46511'],[0.16,0.22,0.86,0.72,0.26,0.32,'#db1921'],[0.03,0.99,0.1,0.18,0,0,'#101521']],P:[[0,1,0.62,0.56,0,0,'#1b3a8c'],[0,1,0.24,0.3,0,0,'#101521']]},
- {D:'#0a2a9c',W:null,wt:null,K:'#071138',A:'#36b3fc',M:'none',cut:'solid',flap:'#0a2a9c',endp:'#265fcf',rflap:'#f2f4f8',fin:'gloss',art:'tbl',
-  B:[[0.58,0.99,1.03,1.03,0.62,0.5,'#f2f4f8'],[0.03,0.56,0.86,0.86,0.82,0.82,'#265fcf'],[0.03,0.99,0.13,0.2,0,0,'#071138']],P:[[0.04,0.96,0.84,0.8,0.24,0.3,'#36b3fc'],[0,1,0.2,0.26,0,0,'#071138']]},
- {D:'#f0f0ee',W:null,wt:null,K:'#17171a',A:'#c7242d',M:'none',cut:'solid',flap:'#17171a',endp:'#c7242d',rflap:'#c7242d',fin:'gloss',art:'tbl',
-  B:[[0,0.16,1.03,1.03,0,0,'#c7242d'],[0.16,0.22,0.8,0.6,0.1,0.2,'#c7242d'],[0.72,0.92,1.03,1.03,0.56,0.62,'#c7242d'],[0.1,0.99,0.26,0.44,0,0,'#17171a']],P:[[0,1,0.5,0.62,0,0,'#17171a'],[0.1,0.7,0.66,0.7,0.62,0.66,'#c7242d']]},
- {D:'#fc7a12',W:null,wt:null,K:'#15151a',A:'#15151a',M:'none',cut:'solid',flap:'#fc7a12',endp:'#fc7a12',rflap:'#15151a',fin:'gloss',art:'tbl',
-  B:[[0.03,0.99,1.03,1.03,0.9,0.86,'#15151a'],[0.28,0.99,0.3,0.74,0,0,'#15151a']],P:[[0,1,0.42,0.72,0,0,'#15151a']]},
- {D:'#d4121f',W:null,wt:null,K:'#15171c',A:'#1a58ae',M:'none',cut:'solid',flap:'#15171c',endp:'#d4121f',rflap:'#15171c',fin:'gloss',art:'tbl',
+ {D:'#0f3f9e',W:null,wt:null,K:'#0a1020',A:'#ec6ab6',M:'none',cut:'solid',flap:'#ec6ab6',endp:'#ec6ab6',rflap:'#ec6ab6',fin:'gloss',art:'tbl',Fd:[0.5,0.97,'#0a1838'],
+  B:[[0.09,0.42,1.03,1.03,0.62,0.6,'#ec6ab6'],[0.56,0.72,0.5,0.46,0.22,0.26,'#ec6ab6'],[0.74,0.88,0.92,0.84,0.46,0.5,'#ec6ab6'],[0.03,0.99,0.13,0.2,0,0,'#0a1020']],P:[[0.5,0.9,0.72,0.66,0.26,0.32,'#ea4aa0'],[0,1,0.2,0.28,0,0,'#0a1020']]},
+ {D:'#eef0f4',W:null,wt:null,K:'#101521',A:'#12307c',M:'none',cut:'solid',flap:'#eef0f4',endp:'#eef0f4',rflap:'#101521',fin:'gloss',art:'tbl',
+  B:[[0.6,0.7,1.03,1.03,0.76,0.76,'#fcb206'],[0.7,0.87,1.03,1.03,0.68,0.64,'#db1921'],[0.52,0.92,0.46,0.58,0.4,0.48,'#12307c'],[0.36,0.54,0.44,0.3,0,0,'#101521'],[0,0.1,1.03,1.03,0,0,'#ffd505'],[0.1,0.16,1.03,1.03,0,0,'#e46511'],[0.16,0.22,0.86,0.72,0.26,0.32,'#db1921'],[0.03,0.99,0.1,0.18,0,0,'#101521']],P:[[0,1,0.62,0.56,0,0,'#1b3a8c'],[0,1,0.24,0.3,0,0,'#101521']]},
+ {D:'#1459c0',W:null,wt:null,K:'#071138',A:'#f2f4f8',M:'none',cut:'solid',flap:'#071138',endp:'#0a1a70',rflap:'#071138',fin:'gloss',art:'tbl',
+  B:[[0.42,0.62,0.58,0.56,0.36,0.34,'#36b3fc'],[0.6,0.84,0.52,0.4,0.22,0.24,'#f2f4f8'],[0.34,0.99,0.24,0.2,0,0,'#071138'],[0.03,0.34,0.2,0.22,0,0,'#071138']],P:[[0.04,0.96,0.84,0.8,0.24,0.3,'#36b3fc'],[0,1,0.2,0.26,0,0,'#071138']]},
+ {D:'#f0f0ee',W:null,wt:null,K:'#17171a',A:'#c7242d',M:'none',cut:'solid',flap:'#f0f0ee',endp:'#c7242d',rflap:'#c7242d',fin:'gloss',art:'tbl',
+  B:[[0.1,0.42,0.72,0.8,0.66,0.74,'#c7242d'],[0.58,0.72,1.03,1.03,0.62,0.62,'#c7242d'],[0.1,0.99,0.2,0.3,0,0,'#17171a']],P:[[0,1,0.5,0.62,0,0,'#17171a'],[0.1,0.7,0.66,0.7,0.62,0.66,'#c7242d']]},
+ {D:'#fc7a12',W:null,wt:null,K:'#26282b',A:'#26282b',M:'none',cut:'solid',flap:'#fc7a12',endp:'#fc7a12',rflap:'#26282b',fin:'gloss',art:'tbl',
+  B:[[0.52,0.99,1.03,1.03,0.86,0.84,'#26282b'],[0.28,0.99,0.3,0.74,0,0,'#26282b']],P:[[0,1,0.42,0.72,0,0,'#15151a']]},
+ {D:'#d4121f',W:null,wt:null,K:'#15171c',A:'#f0efed',M:'none',cut:'solid',flap:'#15171c',endp:'#15171c',rflap:'#15171c',fin:'gloss',art:'tbl',
   B:[[0.42,0.82,1.03,1.03,0.74,0.68,'#f0efed'],[0.84,0.88,0.72,0.72,0.6,0.6,'#1a58ae'],[0.03,0.99,0.12,0.16,0,0,'#15171c']],P:[[0,0.55,1.03,1.03,0.86,0.9,'#f0efed'],[0,1,0.16,0.22,0,0,'#15171c']]},
- {D:'#141516',W:null,wt:null,K:'#0a0a0b',A:'#2fa09a',M:'none',cut:'solid',flap:'#141516',endp:'#141516',rflap:'#141516',fin:'gloss',art:'tbl',
-  B:[[0.03,0.3,1.03,1.03,0.88,0.8,'#c9d0d2'],[0.34,0.92,0.99,0.99,0.92,0.88,'#c9d0d2'],[0.05,0.62,0.54,0.74,0.47,0.69,'#2fa09a'],[0.1,0.5,0.46,0.6,0.43,0.57,'#c9d0d2']],P:[[0,0.86,0.72,0.78,0.65,0.71,'#2fa09a'],[0,0.7,0.62,0.66,0.59,0.63,'#c9d0d2']]},
+ {D:'#141516',W:null,wt:null,K:'#0a0a0b',A:'#22c4b4',M:'none',cut:'solid',flap:'#141516',endp:'#141516',rflap:'#141516',fin:'gloss',art:'tbl',
+  B:[[0.03,0.44,1.03,1.03,0.86,0.78,'#c9d0d2'],[0.46,0.74,0.84,0.8,0.66,0.64,'#c9d0d2'],[0.05,0.62,0.54,0.74,0.47,0.69,'#22c4b4'],[0.1,0.5,0.46,0.6,0.43,0.57,'#c9d0d2']],P:[[0,0.86,0.72,0.78,0.65,0.71,'#2fa09a'],[0,0.7,0.62,0.66,0.59,0.63,'#c9d0d2']]},
  {D:'#b9b8b6',W:null,wt:null,K:'#141414',A:'#fc2232',M:'none',cut:'solid',flap:'#8f8785',endp:'#141414',rflap:'#141414',fin:'metal',art:'tbl',
-  B:[[0.64,0.99,1.03,1.03,0,0,'#141414'],[0.6,0.66,1.03,1.03,0.68,0.68,'#fc2232'],[0.03,0.64,0.14,0.28,0,0,'#141414']],P:[[0.66,1,1.03,1.03,0,0,'#141414'],[0.58,0.84,0.95,0.86,0.2,0.32,'#fc2232'],[0,0.66,0.22,0.3,0,0,'#141414']]},
- {D:'#0b7a73',W:null,wt:null,K:'#0a1f20',A:'#cedc00',M:'none',cut:'solid',flap:'#0b7a73',endp:'#0b7a73',rflap:'#0d9c97',fin:'gloss',art:'tbl',
-  B:[[0.05,0.33,0.62,0.66,0.58,0.62,'#cedc00'],[0.74,0.9,0.86,0.8,0.82,0.76,'#cedc00'],[0.24,0.99,0.22,0.38,0,0,'#0a1f20']],P:[[0.08,0.92,0.82,0.78,0.76,0.72,'#cedc00'],[0,1,0.3,0.38,0,0,'#0a1f20']]},
- {D:'#1a3c96',W:null,wt:null,K:'#0b1020',A:'#d01a14',M:'none',cut:'solid',flap:'#1a3c96',endp:'#1a3c96',rflap:'#14296e',fin:'gloss',art:'tbl',
+  B:[[0.64,0.99,1.03,1.03,0,0,'#141414'],[0.6,0.66,1.03,1.03,0.68,0.68,'#fc2232'],[0.03,0.64,0.14,0.28,0,0,'#141414'],[0.56,0.8,0.54,0.44,0.12,0.14,'#fc2232']],P:[[0.66,1,1.03,1.03,0,0,'#141414'],[0.58,0.84,0.95,0.86,0.2,0.32,'#fc2232'],[0,0.66,0.22,0.3,0,0,'#141414']]},
+ {D:'#0b7a73',W:null,wt:null,K:'#0a1f20',A:'#cedc00',M:'none',cut:'solid',flap:'#101314',endp:'#0b7a73',rflap:'#2f86d6',fin:'satin',art:'tbl',
+  B:[[0.05,0.33,0.62,0.66,0.58,0.62,'#cedc00'],[0.74,0.9,0.86,0.8,0.82,0.76,'#cedc00'],[0.5,0.74,0.62,0.6,0.58,0.56,'#cedc00'],[0.24,0.99,0.22,0.38,0,0,'#0a1f20']],P:[[0.08,0.92,0.82,0.78,0.76,0.72,'#cedc00'],[0,1,0.3,0.38,0,0,'#0a1f20']]},
+ {D:'#1a3c96',W:null,wt:null,K:'#0b1020',A:'#d01a14',M:'none',cut:'solid',flap:'#0b1020',endp:'#1a3c96',rflap:'#0b1020',fin:'gloss',art:'tbl',
   B:[[0,0.1,1.03,1.03,0,0,'#f2a40e'],[0.1,0.16,1.03,1.03,0,0,'#e56a0c'],[0.16,0.21,0.84,0.74,0.3,0.34,'#d01a14'],[0.6,0.7,1.03,1.03,0.76,0.76,'#f2a40e'],[0.7,0.87,1.03,1.03,0.68,0.64,'#d01a14'],[0.28,0.99,0.14,0.22,0,0,'#14296e']],P:[[0.1,0.86,0.5,0.56,0.44,0.5,'#d01a14'],[0,1,0.22,0.28,0,0,'#14296e']]},
- {D:'#eceef0',W:null,wt:null,K:'#111318',A:'#d23c35',M:'none',cut:'solid',flap:'#111318',endp:'#111318',rflap:'#111318',fin:'gloss',art:'tbl',
-  B:[[0.03,0.99,0.3,0.42,0,0,'#111318'],[0.56,0.99,1.03,1.03,0.88,0.84,'#111318'],[0.2,0.56,0.46,0.5,0.44,0.48,'#d23c35']],P:[[0,1,0.42,0.5,0,0,'#111318'],[0.1,0.8,0.56,0.58,0.53,0.55,'#d23c35']]}];
+ {D:'#eceef0',W:null,wt:null,K:'#111318',A:'#111318',M:'none',cut:'solid',flap:'#111318',endp:'#111318',rflap:'#111318',fin:'gloss',art:'tbl',
+  B:[[0.03,0.99,0.3,0.42,0,0,'#111318'],[0.56,0.99,1.03,1.03,0.88,0.84,'#111318'],[0.2,0.56,0.46,0.5,0.44,0.48,'#8a8f96']],P:[[0,1,0.42,0.5,0,0,'#111318'],[0.1,0.8,0.56,0.58,0.53,0.55,'#d23c35']]}];
 const artTbl=(g,X,V,W,H,L,list)=>{for(const s of[1,-1]){if(L.Fd&&list===L.B){const [u0,u1,c]=L.Fd,y0=Math.min(V(s,0),V(s,1.03)),hh=Math.abs(V(s,1.03)-V(s,0)),gr=g.createLinearGradient(X(u0),0,X(u1),0);gr.addColorStop(0,c+'00');gr.addColorStop(1,c);g.fillStyle=gr;g.fillRect(X(u0),y0,X(1)-X(u0),hh);}
     for(const b of list||[])artBand(g,X,V,s,u=>b[2]+(b[3]-b[2])*(u-b[0])/(b[1]-b[0]),u=>b[4]+(b[5]-b[4])*(u-b[0])/(b[1]-b[0]),b[0],b[1],b[6]);}};
 // KC: the dark areas are bare carbon (a twill weave) instead of paint - many 2026 cars leave carbon showing to save weight
@@ -5445,7 +5445,7 @@ function initAudio(){if(AC)return;try{
    for(let i=0;i<n;i++){const x=2*(i/(n-1)*2-1),a=Math.abs(x);c[i]=a<=0.8?x:Math.sign(x)*(0.8+0.091*Math.tanh((a-0.8)/0.091));}   // stacked peaks (up to +6 dB) instead of a hard clip
    cl.curve=c;cl.oversample='none';comp.connect(sc);sc.connect(cl);cl.connect(AC.destination);}
   SND.master=AC.createGain();SND.master.gain.value=0;SND.air=AC.createBiquadFilter();SND.air.type='lowpass';SND.air.frequency.value=20000;SND.air.Q.value=0.5;SND.master.connect(SND.air);SND.out=comp;SND.lagD=AC.createDelay(0.3);SND.lagD.delayTime.value=0;SND.air.connect(SND.lagD);SND.lagD.connect(comp);   // 10-30: distance muffling for the TV view
-  SND.eM=AC.createGain();SND.eM.gain.value=0;SND.eAir=AC.createBiquadFilter();SND.eAir.type='lowpass';SND.eAir.frequency.value=20000;SND.eAir.Q.value=0.5;SND.eLag=AC.createDelay(0.3);SND.eLag.delayTime.value=0;SND.eM.connect(SND.eAir);SND.eAir.connect(SND.eLag);SND.eLag.connect(SND.sc);   // 11-04: the player's engine has its own compressor and limiter: through the game's as well, a closed throttle would be squeezed back up. Muting and the TV view's distance still apply
+  SND.eM=AC.createGain();SND.eM.gain.value=0;SND.eAir=AC.createBiquadFilter();SND.eAir.type='lowpass';SND.eAir.frequency.value=20000;SND.eAir.Q.value=0.5;SND.eLag=AC.createDelay(0.3);SND.eLag.delayTime.value=0;SND.eM.connect(SND.eAir);SND.eAir.connect(SND.eLag);SND.eLag.connect(SND.sc);   // 11-04: the player's engine has its own limiter: through the game's compressor as well, a closed throttle would be squeezed back up. Muting and the TV view's distance still apply
   const M=SND.master,G=(v)=>{const g=AC.createGain();g.gain.value=v||0;return g;},F=(type,f,q)=>{const b=AC.createBiquadFilter();b.type=type;b.frequency.value=f;if(q!=null)b.Q.value=q;return b;};
   SND.G=G;SND.F=F;
   {const V=engineVoices();SND.eng=V.eng;SND.vox=V.vox;}
@@ -5473,13 +5473,17 @@ function mkNoise(){const s=AC.createBufferSource();s.buffer=SND.nb;s.loop=true;s
 // 11-04 the sound at a trackside camera, from the geometry only (no recording of it to go by): d metres away, closing at vr (+ away), rear 0..1 how much the tail points at it. Level falls with distance (a broadcast's mix keeps it from falling all the way), the air and the distance take the top off, the exhaust side is louder and brighter, a little echo off the stands grows with distance, the sound arrives a fixed 60 ms late (20 m; a delay following d would add to the Doppler pitch).
 function tvHear(d,vr,rear){const dd=Math.max(4,d),A=Math.max(0.045,Math.min(1,Math.pow(14/dd,0.85)))*(0.72+0.28*rear);
   return {A,cut:Math.max(1500,Math.min(16000,(7000+7000*rear)*Math.pow(40/dd,0.55))),dop:Math.max(0.72,Math.min(1.38,343/(343+vr))),wet:Math.min(0.5,0.06+dd/320),lag:0.06};}
-// voices (the player's car + three nearby cars) are built on first use
-function engineVoices(){if(!SND.vs)SND.vs={eng:EngineSound.create(AC,SND.eM),vox:[0,1,2].map(()=>EngineSound.createLite(AC,SND.master))};return SND.vs;}
+// voices (the player's car + three nearby cars) are built on first use. TEAM_PU: which power unit each team has (0 Ford, 1 Honda, 2 Mercedes, 3 Audi, 4 Ferrari: Ferrari, Haas and Cadillac share 4)
+const TEAM_PU=[2,0,2,4,2,4,2,3,1,0,4];
+function engineVoices(){const pu=TEAM_PU[typeof teamSel==='number'?teamSel:0]||0;
+  if(!SND.vs)SND.vs={eng:EngineSound.create(AC,SND.eM,pu),vox:[0,1,2].map(()=>EngineSound.createLite(AC,SND.master,pu)),pu};
+  else if(SND.vs.pu!==pu){EngineSound.stop(SND.vs.eng);SND.vs.eng=EngineSound.create(AC,SND.eM,pu);SND.vs.pu=pu;}   // the team was changed in the menu
+  return SND.vs;}
 // menu: hear the engine (the grid, a launch, upshifts, a lift, downshifts, idle) without starting a race
 let PREV=null;
 function previewEngine(){initAudio();if(!AC)return;if(AC.state!=='running')AC.resume();
   if(PREV){PREV.stop();PREV=null;}
-  const me=EngineSound.preview(AC,AC.destination,()=>{if(PREV===me)PREV=null;});PREV=me;}
+  const me=EngineSound.preview(AC,AC.destination,TEAM_PU[teamSel]||0,()=>{if(PREV===me)PREV=null;});PREV=me;}
 function sfxBurst(o){ // one-shot filtered noise burst
   if(!AC||muted)return;const t=AC.currentTime+(o.delay||0),s=AC.createBufferSource();s.buffer=SND.nb;
   const f=SND.F(o.type||'bandpass',o.f||1000,o.q==null?1:o.q),g=SND.G(0);s.connect(f);f.connect(g);g.connect(SND.master);
@@ -5585,7 +5589,7 @@ function audioUpdate(dt){
     const vs=cvx*ux+cvz*uz,vl=-(pvx*ux+pvz*uz),dop=Math.max(0.6,Math.min(1.6,(343+vl)/(343-vs)));
     const kmh=Math.abs(c.spd)*3.6,[,rr]=gearRpm(kmh),rp=c.spd<1?(race.t<c.react?12400+Math.sin(SND.T*7.3+i*1.7)*420+Math.sin(SND.T*23+i*2.3)*180:3900):rr;
     const att=Math.pow(Math.min(1,7/d),1.15)*v.fade*kA,tcv=snap?0.002:0.03;
-    {const hvc=c.braking&&c.spd>22&&!c.pit,cl=hvc?0.6:c.braking?0.05:(c.pit?0.5:(c.spd<1&&race.t<c.react?0.8:1)),rq=hvc?Math.max(rp,10200):rp;EngineSound.setLite(v,t,rq,dop,0.3*att*(0.4+0.6*cl)*(inCar?0.75:1),600+1700*Math.min(1,20/d)+cl*700,tcv);}
+    {const hvc=c.braking&&c.spd>22&&!c.pit,cl=hvc?0.6:c.braking?0.05:(c.pit?0.5:(c.spd<1&&race.t<c.react?0.8:1)),rq=hvc?Math.max(rp,10200):rp;EngineSound.setLite(v,t,rq,dop,0.6*att*(0.4+0.6*cl)*(inCar?0.75:1),600+1700*Math.min(1,20/d)+cl*700,tcv);}
     if(v.pan){const right=(rx*o.dx+rz*o.dz)/d;v.pan.pan.setTargetAtTime(Math.max(-0.9,Math.min(0.9,right)),t,snap?0.002:0.06);}});
 }
 
