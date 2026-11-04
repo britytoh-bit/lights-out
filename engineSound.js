@@ -161,12 +161,17 @@ const EngineSound=(()=>{
     const draw=()=>{keys.forEach((k,i)=>{Ks[i].style.left=pos(P[k]);});Fl.style.left=keys.length>1?pos(P[keys[0]]):pos(lo);Fl.style.width=`calc((100% - ${2*inset}px) * ${(P[keys[keys.length-1]]-(keys.length>1?P[keys[0]]:lo))/(hi-lo)})`;R.textContent=keys.length>1?fmt(P[keys[0]]).replace(/ .*/,'')+'~'+fmt(P[keys[1]]):fmt(P[keys[0]]);};
     let act=null;const at=e=>{const b=S.getBoundingClientRect();return lo+clamp((e.clientX-b.left-inset)/(b.width-2*inset),0,1)*(hi-lo);};
     const set=(k,x)=>{x=Math.round(x/step)*step;x=+x.toFixed(4);if(k===keys[0]&&keys.length>1)x=Math.min(x,P[keys[1]]);if(k===keys[1])x=Math.max(x,P[keys[0]]);P[k]=clamp(x,lo,hi);draw();onMove();};
-    let pid=null,pick=null;
-    S.addEventListener('pointerdown',e=>{if(pid!=null)return;e.preventDefault();e.stopPropagation();pid=e.pointerId;try{S.setPointerCapture(pid);}catch(er){}const x=at(e);
-      if(keys.length>1&&P[keys[0]]===P[keys[1]]){act=null;pick=x;return;}   // the two handles on top of each other: the first move decides which one
-      act=keys.reduce((a,k)=>Math.abs(P[k]-x)<Math.abs(P[a]-x)?k:a,keys[0]);set(act,x);});
-    S.addEventListener('pointermove',e=>{if(e.pointerId!==pid)return;const x=at(e);if(pick!=null){if(Math.abs(x-pick)<step/2)return;act=x<pick?keys[0]:keys[1];pick=null;}if(act)set(act,x);});
-    const end=e=>{if(e.pointerId!==pid)return;pid=null;act=null;pick=null;save();onEnd();};S.addEventListener('pointerup',end);S.addEventListener('pointercancel',end);S.addEventListener('lostpointercapture',end);
+    let pid=null,tid=null,pick=null;
+    const begin=x=>{if(keys.length>1&&P[keys[0]]===P[keys[1]]){act=null;pick=x;return;}   // the two handles on top of each other: the first move decides which one
+        act=keys.reduce((a,k)=>Math.abs(P[k]-x)<Math.abs(P[a]-x)?k:a,keys[0]);set(act,x);},
+      drag=x=>{if(pick!=null){if(Math.abs(x-pick)<step/2)return;act=x<pick?keys[0]:keys[1];pick=null;}if(act)set(act,x);},done=()=>{act=null;pick=null;save();onEnd();};
+    // a finger goes by touch events, as the pedals do: an iPhone can cancel a pointer as soon as it moves (a tap set the value, a drag did nothing). A new finger always takes over: one slid off the screen may never send its end
+    S.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();const t=e.changedTouches[0];tid=t.identifier;begin(at(t));},{passive:false});
+    S.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.changedTouches)if(t.identifier===tid)drag(at(t));},{passive:false});
+    const tEnd=e=>{for(const t of e.changedTouches)if(t.identifier===tid){tid=null;done();}};S.addEventListener('touchend',tEnd);S.addEventListener('touchcancel',tEnd);
+    S.addEventListener('pointerdown',e=>{if(e.pointerType==='touch')return;e.preventDefault();e.stopPropagation();pid=e.pointerId;try{S.setPointerCapture(pid);}catch(er){}begin(at(e));});
+    S.addEventListener('pointermove',e=>{if(e.pointerId===pid)drag(at(e));});
+    const end=e=>{if(e.pointerId!==pid)return;pid=null;done();};S.addEventListener('pointerup',end);S.addEventListener('pointercancel',end);S.addEventListener('lostpointercapture',end);
     return draw;}
   // 울림 줄이기 changes the loops themselves: they are made again when the finger lifts, not while it moves
   const rebuild=()=>{for(const v of live)if(v.D&&!v.dead)puLoad(v.pu).then(D=>{if(v.dead)return;v.D=D;attach(v,bank(v.ctx,v.pu,D));});};
