@@ -1092,7 +1092,7 @@ const TEAMS=[
  {name:'메르세도',short:'MERCEDO',p:'#141516',s:'#22c4b4',d:[['아르네 달','DAL'],['미로 칼리오','KAL']]},
  {name:'아우덴',short:'AUDEN',p:'#b9b8b6',s:'#fc2232',d:[['토비 렌','REN'],['야누 사리','SAR']]},
  {name:'애쉬턴 마틴',short:'ASHTON',p:'#0b7a73',s:'#cedc00',d:[['엘리아스 폰테','FON'],['이안 로크','ROK']]},
- {name:'레드 버팔로',short:'BUFFALO',p:'#1a3c96',s:'#d01a14',d:[['제이 오카베','OKA'],['도윤 서','SEO']]},
+ {name:'레드 버팔로',short:'BUFFALO',p:'#2450c4',s:'#d01a14',d:[['제이 오카베','OKA'],['도윤 서','SEO']]},
  {name:'캐딜런',short:'CADILLON',p:'#eceef0',s:'#111318',d:[['벤 애쉬포드','ASH'],['레미 뒤발','DUV']]}
 ];
 const DIFF={easy:[0.80,0.90],normal:[0.87,0.965],hard:[0.93,1.0]};
@@ -1748,7 +1748,7 @@ function stepAI(race,c,dt){
   else if(c.giveBack&&!c.fail&&!c.pitReq){const o=race.cars[c.giveBack.ix];if(o){const sd=o.lat>c.lat?-1:1;c.laneT=sd*lim-b0;}}   // v12h: giving back a place taken off the track: move over
   if(!c.fail){if(c.avHi!=null&&c.laneT>c.avHi-b0)c.laneT=c.avHi-b0;if(c.avLo!=null&&c.laneT<c.avLo-b0)c.laneT=c.avLo-b0;   // a car alongside: leave it room, never steer into it
    if(c.avHi!=null&&c.avLo!=null)c.laneT=(c.avHi+c.avLo)/2-b0;c.laneT=Math.max(-LA0-b0,Math.min(LA0-b0,c.laneT));}   // (a broken-down car still pulls off the track)
-  c.lane+=(c.laneT-c.lane)*Math.min(1,(c.fail?1.5:c.avoid?2.6:c.defHold>race.t?1.8:0.9)*dt);
+  c.lane+=(c.laneT-c.lane)*Math.min(1,(c.fail?1.5:c.avoid?2.6:c.ygb?2.2:c.defHold>race.t?1.8:0.9)*dt);
   const la=4+c.spd*0.35,li=wrap(c.idx+Math.round(la/STEP)),p=P[li],tt=T[li],bl=c.rlw*RLA.lat[li],LAl=Math.max(Math.min(LIMA,TR.HW[li]-0.9),Math.abs(bl));
   let tl=c.fail?bl+c.lane:Math.max(-LAl,Math.min(LAl,bl+c.lane));
   const creep=!c.fail&&!c.pit&&c.creepT>race.t&&!!c.obstP&&!c.obstP.gone;   // v13: still stuck 4 s on: creep past it at walking pace, a car's width clear
@@ -1801,9 +1801,10 @@ function stepAI(race,c,dt){
   // so cars in a train braked at ~3.5 g on the straights a few times a second: the pack looked jerky at speed)
   // needA: the deceleration it takes to close the gap no further than ~1.5 m - then it brakes (a car ahead that brakes hard: vSafe)
   let soft=1e9,needA=0;
+  c.ygb=!!lead&&!!lead.isP&&!!lead.giveBack&&race.cars[lead.giveBack.ix]===c;   // 11-05: the player is giving this car its place back: it goes by at once (it used to settle in 9 m behind, and the player took the penalty)
   if(lead&&!(lead===obst&&oSide!=null)){const gm=ld*STEP+((lead.al||0)-(c.al||0)),cl=c.spd-lead.spd,atk=c.passO===lead.id&&!neutral;   // atk: pulling out to pass it - closer, and with some speed in hand
-    soft=Math.min(soft,lead.spd+Math.max(-3,Math.min(atk?3:2.5,0.35*(gm-(atk?8:9)))));
-    needA=cl>0?cl*cl/(2*Math.max(0.3,gm-6.7)):0;if(!neutral&&race.t>c.passT&&!c.pitReq&&!c.fail&&lead!==sc){const t=pickSide(lead,3.4);if(t!=null)c.laneT=t;else c.laneT=startPh?c.lat-b0:c.laneT*0.5;c.passT=race.t+(c.ps?2.4-1.6*c.ps.agg:1.6);}}   // no room to pass: fall in behind, on the line
+    soft=Math.min(soft,c.ygb?lead.spd+Math.max(-2,Math.min(6,0.5*(gm-6))):lead.spd+Math.max(-3,Math.min(atk?3:2.5,0.35*(gm-(atk?8:9)))));
+    needA=cl>0?cl*cl/(2*Math.max(0.3,gm-6.7)):0;if(!neutral&&(c.ygb||race.t>c.passT)&&!c.pitReq&&!c.fail&&lead!==sc){const t=pickSide(lead,c.ygb?2.8:3.4);if(t!=null)c.laneT=t;else c.laneT=startPh?c.lat-b0:c.laneT*0.5;c.passT=race.t+(c.ps?2.4-1.6*c.ps.agg:1.6);}}   // no room to pass: fall in behind, on the line
   else if(!obst&&race.t>c.passT&&!c.pitReq&&!c.fail&&c.rlw>0.5&&!(c.defHold>race.t)){c.laneT*=Math.exp(-0.8*dt);if(!neutral&&c.rnd()<0.002&&Math.abs(c.laneT)<0.3){const t=(c.rnd()*2-1)*1.0;if(freeAt(t))c.laneT=t;}}   // (off the start, on plain lanes, a car keeps its lane: the field no longer funnels into the middle)   // back onto the line after a pass or the start; now and then a slightly different line
   if(threat&&!c.fail&&!c.pitReq){const s=c.lat>=threat.lat?1:-1,tr=relOf(threat);let t=tr+s*3.0;if(Math.abs(b0+t)>LIMA||!freeAt(t))t=tr-s*3.0;if(Math.abs(b0+t)<=LIMA&&freeAt(t))c.laneT=t;}   // a car much faster from behind: get out of its way
   // 11-04: defending: a car attacking from behind into a corner: one move to the inside, before it is alongside, once a straight
@@ -2056,7 +2057,9 @@ function raceControl(race,dt){
   if(p.giveBack){const g=p.giveBack,o=race.cars[g.ix];if(rc.flag!=='green')g.until+=dt;   // (the clock stops under SC / VSC)
     if(!o||o.gone||o.dnf||o.pit||o.fin!=null||p.pit||p.fin!=null)p.giveBack=null;
     else if(o.prog-p.prog>1.5){p.giveBack=null;race.EV.push({type:'givenBack',code:o.code,name:o.name});}
-    else if(race.t>g.until){p.giveBack=null;addPen(race,p,g.lap1?5:10,'giveBackPen',{code:o.code,name:o.name});}}
+    else{if(p.prog-o.prog<10&&p.spd<profAt(wrap(p.idx+2),1)*0.75){g.until+=dt;g.y=(g.y||0)+dt;}   // 11-05: slowed with that car within 20 m behind: the clock stops, and if it still has no room to get by the place counts as given back
+      if((g.y||0)>7){p.giveBack=null;race.EV.push({type:'givenBack',code:o.code,name:o.name});}
+      else if(race.t>g.until){p.giveBack=null;addPen(race,p,g.lap1?5:10,'giveBackPen',{code:o.code,name:o.name});}}}
   // illegal overtakes by the player: under SC/VSC, in a yellow sector, or before the control line after a restart
   if(p.fin==null&&!p.pit){const yz=rc.yellows.find(z=>wrap(p.idx-z.i0)<=z.len);
     const restricted=(rc.flag!=='green'&&race.t-rc.since>2)||(yz&&race.t-yz.since>1)||(rc.noPass&&rc.noPass[p.id]!=null&&p.prog<rc.noPass[p.id]);
@@ -4527,8 +4530,8 @@ const LIV=[
   B:[[0.64,0.99,1.03,1.03,0,0,'#141414'],[0.6,0.66,1.03,1.03,0.68,0.68,'#fc2232'],[0.03,0.64,0.14,0.28,0,0,'#141414'],[0.56,0.8,0.54,0.44,0.12,0.14,'#fc2232']],P:[[0.66,1,1.03,1.03,0,0,'#141414'],[0.58,0.84,0.95,0.86,0.2,0.32,'#fc2232'],[0,0.66,0.22,0.3,0,0,'#141414']]},
  {D:'#0b7a73',W:null,wt:null,K:'#0a1f20',A:'#cedc00',M:'none',cut:'solid',flap:'#101314',endp:'#0b7a73',rflap:'#2f86d6',fin:'satin',art:'tbl',
   B:[[0.05,0.33,0.62,0.66,0.58,0.62,'#cedc00'],[0.74,0.9,0.86,0.8,0.82,0.76,'#cedc00'],[0.5,0.74,0.62,0.6,0.58,0.56,'#cedc00'],[0.24,0.99,0.22,0.38,0,0,'#0a1f20']],P:[[0.08,0.92,0.82,0.78,0.76,0.72,'#cedc00'],[0,1,0.3,0.38,0,0,'#0a1f20']]},
- {D:'#1a3c96',W:null,wt:null,K:'#0b1020',A:'#d01a14',M:'none',cut:'solid',flap:'#0b1020',endp:'#1a3c96',rflap:'#0b1020',fin:'gloss',art:'tbl',
-  B:[[0,0.1,1.03,1.03,0,0,'#f2a40e'],[0.1,0.16,1.03,1.03,0,0,'#e56a0c'],[0.16,0.21,0.84,0.74,0.3,0.34,'#d01a14'],[0.6,0.7,1.03,1.03,0.76,0.76,'#f2a40e'],[0.7,0.87,1.03,1.03,0.68,0.64,'#d01a14'],[0.28,0.99,0.14,0.22,0,0,'#14296e']],P:[[0.1,0.86,0.5,0.56,0.44,0.5,'#d01a14'],[0,1,0.22,0.28,0,0,'#14296e']]},
+ {D:'#2450c4',W:null,wt:null,K:'#0f1c46',A:'#d01a14',M:'none',cut:'solid',flap:'#2450c4',endp:'#2450c4',rflap:'#1f44ac',fin:'gloss',art:'tbl',
+  B:[[0,0.1,1.03,1.03,0,0,'#f2a40e'],[0.1,0.16,1.03,1.03,0,0,'#e56a0c'],[0.16,0.21,0.84,0.74,0.3,0.34,'#d01a14'],[0.6,0.7,1.03,1.03,0.76,0.76,'#f2a40e'],[0.7,0.87,1.03,1.03,0.68,0.64,'#d01a14'],[0.28,0.99,0.14,0.22,0,0,'#1a3c96']],P:[[0.1,0.86,0.5,0.56,0.44,0.5,'#d01a14'],[0,1,0.22,0.28,0,0,'#1a3c96']]},
  {D:'#eceef0',W:null,wt:null,K:'#111318',A:'#111318',M:'none',cut:'solid',flap:'#111318',endp:'#111318',rflap:'#111318',fin:'gloss',art:'tbl',
   B:[[0.03,0.99,0.3,0.42,0,0,'#111318'],[0.56,0.99,1.03,1.03,0.88,0.84,'#111318'],[0.2,0.56,0.46,0.5,0.44,0.48,'#8a8f96']],P:[[0,1,0.42,0.5,0,0,'#111318'],[0.1,0.8,0.56,0.58,0.53,0.55,'#d23c35']]}];
 const artTbl=(g,X,V,W,H,L,list)=>{for(const s of[1,-1]){if(L.Fd&&list===L.B){const [u0,u1,c]=L.Fd,y0=Math.min(V(s,0),V(s,1.03)),hh=Math.abs(V(s,1.03)-V(s,0)),gr=g.createLinearGradient(X(u0),0,X(u1),0);gr.addColorStop(0,c+'00');gr.addColorStop(1,c);g.fillStyle=gr;g.fillRect(X(u0),y0,X(1)-X(u0),hh);}
@@ -5336,6 +5339,7 @@ let WORLD,KIT;
 // ---- livery editor: the player's own paint for a team (colours, layout, texture, finish, number, name), kept in this browser ----
 const LIV0=LIV.map(l=>Object.assign({},l)),TEAMS0=TEAMS.map(t=>({p:t.p,s:t.s,short:t.short}));
 let LIVC={};try{LIVC=JSON.parse(loadLS('lightsout3d-liv')||'{}')||{};}catch(e){LIVC={};}
+{const OLD={2:['#0a2a9c'],9:['#0f2560','#1a3c96']};for(const k in OLD){const c=LIVC[k];if(c&&c.L&&OLD[k].includes(c.L.D))delete c.L;}}   // 11-05: paint saved in the editor is kept for good; saved under a default that has since changed, it hid the new colours (the blue car stayed dark)
 function applyLivData(ti){const c=LIVC[ti],t=TEAMS[ti];LIV[ti]=Object.assign({},LIV0[ti],c&&c.L?c.L:{});if(c&&c.L)LIV[ti].art=c.L.art||null;
   t.p=c&&c.L?LIV[ti].D:TEAMS0[ti].p;t.s=c&&c.L?LIV[ti].A:TEAMS0[ti].s;t.short=c&&c.name?c.name:TEAMS0[ti].short;}
 for(let i=0;i<TEAMS.length;i++)applyLivData(i);
@@ -5539,7 +5543,7 @@ function audioUpdate(dt){
   if(pl.spinR&&thr>0.5)rpm=Math.min(12700,rpm*1.1);   // wheelspin: revs flare
   EngineSound.update(e,{t,dt,rpm,thr,gear:curGear,inCar,dop:tvL?tvL.dop:1,grid:state==='countdown',pitLim:pLim&&sp>18});
   if(e.pan)e.pan.pan.setTargetAtTime(tvL?tvL.pan:0,t,0.1);
-  SND.rdG.gain.setTargetAtTime(tvL?0:Math.min(1,sp/70)*(inCar?0.055:0.03)*(pl.off?0.3:1),t,0.1);
+  SND.rdG.gain.setTargetAtTime(tvL?0:Math.min(1,sp/70)*(EngineSound.P.old?(inCar?0.055:0.03):(inCar?0.02:0.03))*(pl.off?0.3:1),t,0.1);   // 11-05: back to what 23157f3 had: the recording's air and road are already in the engine loops (a3adb99 raised these for its synthesised engine and they stayed. .old: temporary A/B)
   {const pk=pl.dmg&&pl.dmg.pk,p=pk?Math.max(pk[0],pk[1],pk[2],pk[3]):0;   // a flat tyre flaps once per wheel turn; on the rim it scrapes
    if(p>0.35&&sp>2&&!pl.pit){SND.pkT=(SND.pkT||0)-dt;if(SND.pkT<=0){SND.pkT=Math.max(0.07,2.26/sp);sfxBurst({type:'lowpass',f:160+sp*2.5,q:0.9,amp:0.2*p*Math.min(1,sp/12),att:0.002,dur:0.055});
      if(p>0.85&&sp>5)sfxBurst({type:'bandpass',f:2800+Math.random()*1600,q:2.2,amp:0.045*Math.min(1,sp/30),att:0.002,dur:0.08});}}}
@@ -5566,7 +5570,7 @@ function audioUpdate(dt){
   SND.grG.gain.setTargetAtTime(off&&sp>2?Math.min(0.35,0.08+sp*0.006):0,t,0.05);
   // wind
   SND.rnG.gain.setTargetAtTime(race.wx.rain*(inCar?0.09:0.06),t,0.3);SND.hsG.gain.setTargetAtTime(WET*Math.min(1,sp/50)*0.07,t,0.1);
-  SND.wF.frequency.setTargetAtTime(300+sp*15,t,0.1);SND.wG.gain.setTargetAtTime(tvL?0:Math.min(inCar?0.075:0.05,sp*sp*0.00001),t,0.15);   // v12b: softer and lower - at full speed it read as hiss over the engine
+  SND.wF.frequency.setTargetAtTime(300+sp*15,t,0.1);SND.wG.gain.setTargetAtTime(tvL?0:Math.min(EngineSound.P.old?(inCar?0.075:0.05):(inCar?0.02:0.025),sp*sp*0.00001),t,0.15);   // v12b: softer and lower - at full speed it read as hiss over the engine. 11-05: 윤택님 「풍절음」: as the road above; it no longer goes through a compressor with the engine, so nothing ducks it
   // other cars (nearest four) with distance, pan and doppler
   // v12i: a voice stays with its car while that car is still among the nearest five (each voice went to whichever car was the n-th
   // nearest this frame, so in a pack - cars a metre apart swapping places - the voices hopped between cars: the engines warbled, the
@@ -5725,7 +5729,7 @@ function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={ea
  document.addEventListener('click',e=>{if(e.isTrusted&&(dragged||e.timeStamp<noClick)){dragged=false;e.preventDefault();e.stopPropagation();}},true);document.addEventListener('visibilitychange',()=>{mDraw=Math.max(mDraw,10);});}
 EngineSound.setup({preview:()=>previewEngine(),ctx:()=>AC,mayResume:()=>state!=='paused'&&!document.hidden});$('sndTune').addEventListener('click',()=>EngineSound.openPanel());   // the tuning panel (T key, or this button. 11-04: 5 taps on the words did not open it on an iPhone)
 function updateMenuBest(){menuSum();const ch=mMode==='champ',fin=CH&&CH.rd>=CH.list.length;$('mN_track').textContent=ch?'대회':'서킷';
-  $('bestMenu').textContent=!ch?TRK.name+(bestLap?', 베스트 '+fmt(bestLap):''):fin?'대회가 끝났어요':CH?'라운드 '+(CH.rd+1)+'/'+CH.list.length+', '+chTrk(CH.list[CH.rd]).name:chLen+'라운드, '+TRK.name+'에서 시작';}
+  $('bestMenu').textContent=!ch?TRK.name+(bestLap?', 베스트 '+fmt(bestLap):''):fin?'대회가 끝났어요':CH?'라운드 '+(CH.rd+1)+'/'+CH.list.length+', '+chTrk(CH.list[CH.rd]).name:chLen+'라운드, '+(chLen>=TRACKS.length?TRACKS[0]:TRK).name+'에서 시작';}
 
 // ---- menu ----
 {const btn=t=>`<button data-v="${t.id}" aria-pressed="${t.id===TRK.id}" style="flex-direction:column;align-items:flex-start;gap:2px"><b>${t.name}</b><span style="font-size:12px;opacity:.75;font-weight:400">${t.desc}</span></button>`,
@@ -6027,13 +6031,13 @@ function mApply(){const c=mMode==='champ',lock=c&&CH&&CH.rd<CH.list.length,n=$('
   document.querySelectorAll('#mMode button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===mMode?'true':'false'));
   if(c&&gameMode==='practice'){gameMode='race';saveLS('lightsout3d-mode','race');document.querySelectorAll('#modeSel button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v==='race'?'true':'false'));}
   $('modeSel').querySelector('[data-v="practice"]').style.display=c?'none':'';$('chBox').closest('.mRow').style.display=c?'':'none';
-  n.style.display=c?'':'none';n.textContent=lock?'대회 중에는 서킷이 정해져 있어요. 이번 라운드는 '+chTrk(CH.list[CH.rd]).name+'. 다른 서킷을 달리려면 일반 모드로 바꾸세요(대회 점수는 그대로 남아요).':'지금 고른 서킷이 1라운드예요. 나머지 라운드는 무작위로 정해져요.';
+  n.style.display=c?'':'none';n.textContent=lock?'대회 중에는 서킷이 정해져 있어요. 이번 라운드는 '+chTrk(CH.list[CH.rd]).name+'. 다른 서킷을 달리려면 일반 모드로 바꾸세요(대회 점수는 그대로 남아요).':(chLen>=TRACKS.length?'정규 일정 순서대로 달려요. 1라운드는 '+TRACKS[0].name+', 마지막에 자체 서킷 4곳을 달려요.':'지금 고른 서킷이 1라운드예요. 나머지 라운드는 무작위로 정해져요.');
   $('trkSel').classList.toggle('chLock',!!lock);updStartBtn();updateMenuBest();}
 // Changing circuit reloads the page (the track is built at load), so the next round starts from the menu after the reload.
 function chSave(){saveLS('lightsout3d-champ',CH?JSON.stringify(CH):'');}
 function chEnd(){CH=null;chSave();chMenu();}
 function chNew(n){const a=TRACKS.filter(t=>t.id!==TRK.id).map(t=>t.id);for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}
-  CH={list:[TRK.id].concat(a).slice(0,n),rd:0,pts:{},nm:{},last:{}};chSave();chMenu();}   // round 1 on the circuit already loaded
+  CH={list:n>=TRACKS.length?TRACKS.map(t=>t.id):[TRK.id].concat(a).slice(0,n),rd:0,pts:{},nm:{},last:{}};chSave();chMenu();}   // round 1 on the circuit already loaded. 11-05: the full season in calendar order instead (TRACKS is in that order, the game's own circuits last)
 function chHere(id){return id===TRK.id||!TRACKS.some(t=>t.id===id);}   // (a circuit removed by an update: race it here instead)
 function chTrk(id){return TRACKS.find(t=>t.id===id)||TRK;}
 function chRows(){return Object.keys(CH.pts).sort((a,b)=>CH.pts[b]-CH.pts[a]);}
