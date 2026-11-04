@@ -1072,7 +1072,7 @@ const TEAMS=[
  {name:'노르하운',short:'NORDHAVN',p:'#cfd5dc',s:'#ff4d6d',d:[['아르네 달','DAL'],['미로 칼리오','KAL']]},
  {name:'엠버 웍스',short:'EMBER',p:'#6a1030',s:'#e3b448',d:[['토비 렌','REN'],['야누 사리','SAR']]},
  {name:'메리디안',short:'MERIDIAN',p:'#5f6e26',s:'#ff7a1a',d:[['엘리아스 폰테','FON'],['이안 로크','ROK']]},
- {name:'하보크',short:'HAVOC',p:'#00b7ff',s:'#0b1017',d:[['제이 오카베','OKA'],['도윤 서','SEO']]},
+ {name:'하보크',short:'HAVOC',p:'#123fb8',s:'#f0c419',d:[['제이 오카베','OKA'],['도윤 서','SEO']]},
  {name:'아이언바크',short:'IRONBARK',p:'#2b2e34',s:'#ff2d95',d:[['벤 애쉬포드','ASH'],['레미 뒤발','DUV']]}
 ];
 const DIFF={easy:[0.80,0.90],normal:[0.87,0.965],hard:[0.93,1.0]};
@@ -4446,7 +4446,7 @@ function brandBlit(dst,sp,cx,cy,w,h,col,flipH,flipV,sx){const c=mkCanvas(Math.ce
 // and a fluorescent-yellow T-cam on the team's second car.
 // D dominant, W second colour (and where it goes), K black / anthracite, A accent keyline, M repeating texture,
 // flap / endp / rflap wing colours (front flaps, endplates, rear flap), fin finish.
-const LIV=[   // v11: new colours and designs for every team (original schemes; no real team's livery is imitated)
+const LIV=[   // v11: new colours and designs for every team (no real team's name or marks)
  {D:'#3a1fb8',W:null,wt:null,K:'#0a0916',A:'#3dffc0',M:'aurora',cut:'fade',flap:'#3a1fb8',endp:'#3a1fb8',rflap:'#0a0916',fin:'gloss',spine:1},     // AURORA: violet melting into black, mint ribbons
  {D:'#f2f4f7',W:'#ff5a1f',wt:'nose',K:'#15171c',A:'#ff5a1f',M:'speed',cut:'arrow',flap:'#ff5a1f',endp:'#f2f4f7',rflap:'#ff5a1f',fin:'gloss'},     // VANTA: white, a black arrowhead, signal-orange nose
  {D:'#101c3f',W:'#d9824a',wt:'engine',K:'#07090f',A:'#d9824a',M:'topo',cut:'late',flap:'#101c3f',endp:'#101c3f',rflap:'#101c3f',fin:'metal'},     // CRIMSON: midnight metallic, copper engine cover
@@ -4456,7 +4456,7 @@ const LIV=[   // v11: new colours and designs for every team (original schemes; 
  {D:'#cfd5dc',W:null,wt:null,K:'#121418',A:'#ff4d6d',M:'diamonds',cut:'rise',flap:'#cfd5dc',endp:'#121418',rflap:'#cfd5dc',fin:'metal'},          // NORDHAVN: frost silver, coral
  {D:'#6a1030',W:'#e3b448',wt:'engine',K:'#12070b',A:'#e3b448',M:'pin',cut:'split',flap:'#6a1030',endp:'#6a1030',rflap:'#6a1030',fin:'satin'},     // EMBER: burgundy and gold
  {D:'#5f6e26',W:null,wt:null,K:'#16180f',A:'#ff7a1a',M:'chevrons',cut:'solid',flap:'#5f6e26',endp:'#16180f',rflap:'#5f6e26',fin:'matte',KC:1},    // MERIDIAN: matte olive, orange details
- {D:'#00b7ff',W:'#ffffff',wt:'nose',K:'#0b1017',A:'#ffffff',M:'shards',cut:'dive',flap:'#ffffff',endp:'#00b7ff',rflap:'#00b7ff',fin:'gloss'},      // HAVOC: electric cyan, white nose, a black V
+ {D:'#123fb8',W:null,wt:null,K:'#0a0c12',A:'#e3142a',M:'none',cut:'late',flap:'#15171c',endp:'#e9ecf1',rflap:'#17191e',fin:'gloss',art:'cobalt'},   // HAVOC: pearl white band, cobalt flames, gold nose, red and gold sidepod panel (art: painted by cobaltBody / cobaltPod, no marks of any real team)
  {D:'#2b2e34',W:null,wt:null,K:'#0c0d10',A:'#ff2d95',M:'weave',cut:'rise',flap:'#2b2e34',endp:'#2b2e34',rflap:'#ff2d95',fin:'satin',spine:1}];     // IRONBARK: graphite, hot-pink details
 // KC: the dark areas are bare carbon (a twill weave) instead of paint - many 2026 cars leave carbon showing to save weight
 let CARBON_PAT=null;
@@ -4512,13 +4512,45 @@ const MOT_ACC={pin:1,aurora:0.55,speed:0.6,circuit:0.5,glitch:0.8,prism:0.92};  
 function motifInk(L){const acc=MOT_ACC[L.M];return [acc?L.A:(lumOf(L.D)>0.5?'#000000':'#ffffff'),acc||(L.M==='weave'?0.22:0.17)];}
 // g26 (v15, the 3D model's body): the 2026 look - the dark lower body is bare carbon for every team, a bigger race number on the
 // nose, a second big one on the engine cover, and a bigger driver code by the cockpit
+// 11-04: a painted livery: shapes by (u along the car, h up the flank), the same on both sides
+const COB={white:'#f1f3f7',blue:'#123fb8',light:'#3f7cf0',navy:'#0a2470',red:'#e3142a',gold:'#f0c419'};
+function artBand(g,X,V,s,top,bot,u0,u1,col){g.beginPath();for(let k=0;k<=48;k++){const u=u0+(u1-u0)*k/48;k?g.lineTo(X(u),V(s,top(u))):g.moveTo(X(u),V(s,top(u)));}for(let k=48;k>=0;k--){const u=u0+(u1-u0)*k/48;g.lineTo(X(u),V(s,bot(u)));}g.closePath();g.fillStyle=col;g.fill();}
+// a flame: pointed at both ends, swelling in the middle, bending by wave
+function artFlame(g,X,V,s,u0,h0,u1,h1,w,wave,col){const t=u=>(u-u0)/(u1-u0),c=u=>h0+(h1-h0)*t(u)+wave*Math.sin(Math.PI*t(u)),a=u=>w*Math.pow(Math.sin(Math.PI*t(u)),0.7);artBand(g,X,V,s,u=>c(u)+a(u),u=>c(u)-a(u),u0,u1,col);}
+const ramp=(u,a,b)=>smooth(Math.max(0,Math.min(1,(u-a)/(b-a))));
+function cobaltBody(g,X,V,W,H,L){   // on the model h above about 0.7 faces up, so the top of the car is the blue and the flames, the white band runs along the side
+  const fl=(s,F)=>{for(const f of F)artFlame(g,X,V,s,f[0],f[1],f[2],f[3],f[4],f[5],f[6]);};
+  for(const s of[1,-1]){
+    const top=u=>u<0.2?1.03:u<0.44?1.03-0.35*ramp(u,0.2,0.44):u<0.8?0.68+0.04*ramp(u,0.44,0.8):0.72+0.16*ramp(u,0.8,0.99),bot=u=>u<0.3?0:u<0.46?0.52*ramp(u,0.3,0.46):u<0.8?0.52+0.08*ramp(u,0.46,0.8):0.6+0.16*ramp(u,0.8,0.99);
+    fl(s,[[0.28,0.88,0.6,0.92,0.03,-0.01,COB.light],[0.3,0.8,0.62,0.74,0.03,0.02,COB.white],[0.34,0.92,0.7,0.84,0.03,0.02,COB.white],[0.4,0.76,0.78,0.78,0.025,0.03,COB.light],[0.46,0.98,0.62,0.98,0.04,0,COB.white],[0.52,0.88,0.86,0.88,0.02,0.01,COB.navy],[0.62,0.77,0.9,0.82,0.02,0,COB.light],[0.66,0.84,0.92,0.84,0.015,0,COB.white]]);   // flowing back over the top
+    artBand(g,X,V,s,()=>0.975,()=>0.94,0.58,0.99,COB.white);   // the two thin white lines along the engine cover
+    artBand(g,X,V,s,top,bot,0,0.995,COB.white);   // the white band: all of the nose, then a stripe along the side
+    const bk=u=>u<0.34?0.08:0.08+0.12*ramp(u,0.34,0.9),kp=new Path2D();kp.moveTo(0,V(s,0));for(let k=0;k<=60;k++){const u=k/60;kp.lineTo(X(u),V(s,bk(u)));}kp.lineTo(W,V(s,0));kp.closePath();g.fillStyle=kFill(g,L);g.fill(kp);   // bare carbon below
+    {const pt=(u,a)=>Math.min(1,(u-0.4)/0.07)*a,c=u=>0.33+0.04*ramp(u,0.4,0.78),T=u=>c(u)+pt(u,0.105),B=u=>c(u)-pt(u,0.105);   // the sidepod panel: gold point in front, red, then blue
+     artBand(g,X,V,s,u=>T(u)+0.018,u=>B(u)-0.018,0.396,0.8,COB.white);artBand(g,X,V,s,T,B,0.4,0.79,COB.gold);artBand(g,X,V,s,T,B,0.54,0.68,COB.red);
+     for(let k=0;k<5;k++){const h0=c(0.54)-0.095+k*0.04;g.beginPath();g.moveTo(X(0.545),V(s,h0));g.lineTo(X(0.505),V(s,h0+0.018));g.lineTo(X(0.545),V(s,h0+0.036));g.closePath();g.fillStyle=COB.red;g.fill();g.beginPath();g.moveTo(X(0.675),V(s,h0));g.lineTo(X(0.71),V(s,h0+0.018));g.lineTo(X(0.675),V(s,h0+0.036));g.closePath();g.fill();}   // jagged where red meets gold and blue
+     artBand(g,X,V,s,T,B,0.71,0.79,COB.blue);fl(s,[[0.66,0.31,0.9,0.38,0.028,0.01,COB.light],[0.7,0.41,0.88,0.45,0.016,0,COB.white]]);}
+    {const gr=g.createLinearGradient(X(0.03),0,X(0.115),0);gr.addColorStop(0,'#ffd42e');gr.addColorStop(1,'#e8a80e');g.fillStyle=gr;g.fillRect(0,Math.min(V(s,0),V(s,1.03)),X(0.115),Math.abs(V(s,1.03)-V(s,0)));}   // the gold nose tip
+    for(let k=0;k<6;k++){const h0=0.1+k*0.16,d=k%2?0.012:0.024;g.beginPath();g.moveTo(X(0.113),V(s,h0));g.lineTo(X(0.113+d),V(s,h0+0.03));g.lineTo(X(0.113),V(s,h0+0.06));g.closePath();g.fillStyle=COB.red;g.fill();}}   // a torn red edge where gold meets white
+  g.fillStyle=COB.red;g.fillRect(X(0.885),0.5*H-22,X(0.012),44);}   // the short red bar on the engine cover
+function cobaltPod(g,X,V,W,H,L){
+  for(const s of[1,-1]){
+    const kp=new Path2D(),bk=u=>0.24+0.12*u;kp.moveTo(0,V(s,0));for(let k=0;k<=30;k++){const u=k/30;kp.lineTo(X(u),V(s,bk(u)));}kp.lineTo(W,V(s,0));kp.closePath();g.fillStyle=kFill(g,L);g.fill(kp);
+    for(const f of[[0.04,0.92,0.82,0.86,0.035,0.02,COB.white],[0.12,0.84,0.95,0.94,0.03,-0.02,COB.light],[0.3,0.97,1,0.82,0.03,0.02,COB.navy]])artFlame(g,X,V,s,f[0],f[1],f[2],f[3],f[4],f[5],f[6]);   // the top of the pod
+    const top=u=>0.72-0.1*u+0.06*Math.sin(u*9),bot=u=>0.36+0.06*u;
+    artBand(g,X,V,s,u=>top(u)+0.03,u=>bot(u)-0.025,0.02,0.98,COB.white);   // a thin white outline round the panel
+    artBand(g,X,V,s,top,bot,0.03,0.96,COB.gold);
+    artBand(g,X,V,s,top,bot,0.24,0.78,COB.red);   // gold in front, red in the middle
+    for(let k=0;k<5;k++){const u0=0.24-0.025*(k%2),h0=0.4+k*0.065;g.beginPath();g.moveTo(X(u0+0.03),V(s,h0));g.lineTo(X(u0-0.05),V(s,h0+0.03));g.lineTo(X(u0+0.03),V(s,h0+0.06));g.closePath();g.fillStyle=COB.red;g.fill();}   // jagged where red meets gold
+    artBand(g,X,V,s,top,bot,0.74,0.96,COB.blue);
+    for(const f of[[0.68,0.46,1,0.5,0.035,0.02,COB.light],[0.72,0.58,1,0.6,0.025,-0.01,COB.white]])artFlame(g,X,V,s,f[0],f[1],f[2],f[3],f[4],f[5],f[6]);}}   // and blue flames behind
 function liveryTex(tm,num,ti,code,g26){
   const W=1024,H=512,c=mkCanvas(W,H),g=c.getContext('2d'),L=g26?Object.assign({},LIV[ti],{KC:1}):LIV[ti],D=L.D,K=L.K,A=L.A,R=matMap(L,W,H);
   // v around the section: 0 bottom, 0.25 right flank (+z), 0.5 top, 0.75 left flank; h = height on a flank (0 lower edge .. 1 top line)
   const V=(s,h)=>(1-(s>0?0.07+0.43*h:0.93-0.43*h))*H,X=u=>u*W;
   const bnd=(LIV_CUT[L.cut]||LIV_CUT.rise)[0];   // where the colour ends: black rises towards the back
   g.fillStyle=D;g.fillRect(0,0,W,H);
-  for(const s of[1,-1]){
+  if(L.art)cobaltBody(g,X,V,W,H,L);else for(const s of[1,-1]){
     const kp=new Path2D();kp.moveTo(0,V(s,0));for(let k=0;k<=60;k++){const u=k/60;kp.lineTo(X(u),V(s,bnd(u)));}kp.lineTo(W,V(s,0));kp.closePath();g.fillStyle=kFill(g,L);g.fill(kp);if(R&&L.KC){R.g.fillStyle=R.carbon;R.g.fill(kp);}
     if(L.cut==='sunset'){const SW=L.W||L.A,y0=Math.min(V(s,bnd(0.5)+0.01),V(s,1.02)),hh=Math.abs(V(s,1.02)-V(s,bnd(0.5)+0.01)),gr=g.createLinearGradient(X(0.26),0,X(0.8),0);gr.addColorStop(0,SW+'00');gr.addColorStop(1,SW);g.fillStyle=gr;g.fillRect(X(0.26),y0,X(1)-X(0.26),hh);
       const gk=g.createLinearGradient(X(0.86),0,X(1),0);gk.addColorStop(0,K+'00');gk.addColorStop(1,K);g.fillStyle=gk;g.fillRect(X(0.86),y0,X(1)-X(0.86),hh);}
@@ -4532,17 +4564,20 @@ function liveryTex(tm,num,ti,code,g26){
     if(L.M&&L.M!=='none'){const [mc,ma]=motifInk(L);livMotif(g,L.M,X(0.6),my0,X(0.995)-X(0.6),mh,mc,ma,ti*31+(s>0?1:2));}
     if(L.cut==='fade'){const y0=Math.min(V(s,0),V(s,1.02)),hh=Math.abs(V(s,1.02)-V(s,0)),gr=g.createLinearGradient(X(0.4),0,X(0.94),0);gr.addColorStop(0,K+'00');gr.addColorStop(1,K);g.fillStyle=gr;g.fillRect(X(0.4),y0,X(1)-X(0.4),hh);}}
   if(L.spine){g.fillStyle=A;g.fillRect(X(0.035),0.5*H-6,X(0.52)-X(0.035),12);}   // a thin stripe along the top of the nose and cockpit
-  g.fillStyle=K;g.fillRect(0,0,X(0.035),H);   // nose tip
+  if(!L.art){g.fillStyle=K;g.fillRect(0,0,X(0.035),H);}   // nose tip
   g.fillStyle='#121316';g.fillRect(0,(1-0.07)*H,W,0.07*H+1);g.fillRect(0,0,W,0.07*H);if(R){R.g.fillStyle=R.carbon;R.g.fillRect(0,(1-0.07)*H,W,0.07*H+1);R.g.fillRect(0,0,W,0.07*H);}   // bare carbon only along the bottom edge
   const txt=(t,x,y,size,flipH,flipV,col,maxW,wt)=>{for(const [q,cl] of R?[[g,col],[R.g,R.decal]]:[[g,col]]){q.save();q.translate(x,y);q.scale(flipH?-0.5:0.5,flipV?-1:1);q.font=`italic ${wt||800} ${size}px "Saira Condensed",Arial,sans-serif`;q.textAlign='center';q.textBaseline='middle';
     const w=q.measureText(t).width,k=Math.min(1,(maxW||400)/w);q.scale(k,1);q.fillStyle=cl;q.fillText(t,0,0);q.restore();}};   // numbers and names: vinyl (glossier than matte paint)
   const bb=(sp,cx,cy,w,h,col,fh,fv,sx)=>{brandBlit(g,sp,cx,cy,w,h,col,fh,fv,sx);if(R)brandBlit(R.g,sp,cx,cy,w,h,R.decal,fh,fv,sx);};
-  const noseBg=L.wt==='nose'&&L.W?L.W:D,numC=lumOf(A)>0.5&&lumOf(noseBg)<0.5?A:inkOn(noseBg);
-  const nS=g26?150:108;txt(String(num),0.19*W,V(1,0.62),nS,true,false,numC);txt(String(num),0.19*W,V(-1,0.62),nS,false,true,numC);   // race number on the nose
-  txt(String(num),0.12*W,0.5*H,g26?104:74,false,false,numC);
-  const onD=inkOn(D);txt(tm.short,0.3*W,V(1,0.42),34,true,false,onD,260);txt(tm.short,0.3*W,V(-1,0.42),34,false,true,onD,260);   // maker's name on the nose
+  const noseBg=L.wt==='nose'&&L.W?L.W:D,numC=L.art?A:lumOf(A)>0.5&&lumOf(noseBg)<0.5?A:inkOn(noseBg);
+  const nS=L.art?84:g26?150:108,nU=L.art?0.235:0.19;txt(String(num),nU*W,V(1,0.62),nS,true,false,numC);txt(String(num),nU*W,V(-1,0.62),nS,false,true,numC);   // race number on the nose
+  txt(String(num),(L.art?0.2:0.12)*W,0.5*H,L.art?64:g26?104:74,false,false,numC);
+  const onD=L.art?'#101218':inkOn(D);txt(tm.short,0.3*W,V(1,0.42),34,true,false,onD,260);txt(tm.short,0.3*W,V(-1,0.42),34,false,true,onD,260);   // maker's name on the nose
   if(code){const cb=L.wt==='cockpit'&&L.W?L.W:D;const cs=g26?44:30;txt(code,0.47*W,V(1,0.86),cs,true,false,inkOn(cb),120,700);txt(code,0.47*W,V(-1,0.86),cs,false,true,inkOn(cb),120,700);}   // driver on the cockpit side
-  if(ti!=null){const sp=TEAM_SP[ti];
+  if(ti!=null&&L.art){const sp=TEAM_SP[ti],two=(q,u,h,w,hh,col)=>{bb(SPONSORS[q],u*W,V(1,h),w,hh,col,true,false,0.5);bb(SPONSORS[q],u*W,V(-1,h),w,hh,col,false,true,0.5);};   // on the white band in dark, on the blue in white
+    two(sp[0],0.64,0.62,210,32,'#101218');two(sp[2],0.35,0.36,190,34,'#101218');two(sp[1],0.235,0.28,130,26,'#101218');two(sp[3],0.88,0.72,110,20,'#101218');two(sp[3],0.5,0.8,130,24,'#ffffff');
+    bb(SPONSORS[sp[0]],0.7*W,0.5*H,214,40,'#ffffff',false,false,0.5);}
+  if(ti!=null&&!L.art){const sp=TEAM_SP[ti];
     bb(SPONSORS[sp[0]],0.765*W,V(1,0.4),215,58,'#ffffff',true,false,0.62);bb(SPONSORS[sp[0]],0.765*W,V(-1,0.4),215,58,'#ffffff',false,true,0.62);   // title sponsor on the black rear
     bb(SPONSORS[sp[2]],0.38*W,V(1,0.64),220,40,onD,true,false,0.5);bb(SPONSORS[sp[2]],0.38*W,V(-1,0.64),220,40,onD,false,true,0.5);
     const nb=L.wt==='nose'&&L.W?L.W:D;bb(SPONSORS[sp[1]],0.235*W,V(1,0.26),150,30,inkOn(nb),true,false,0.5);bb(SPONSORS[sp[1]],0.235*W,V(-1,0.26),150,30,inkOn(nb),false,true,0.5);   // small partner on the lower nose
@@ -4575,7 +4610,7 @@ function podTex(tm,ti){   // sidepods: u 0 (inlet) .. 1 (rear), v around the sec
   const W=512,H=256,c=mkCanvas(W,H),g=c.getContext('2d'),L=LIV[ti],D=L.D,K=L.K,A=L.A,R=matMap(L,W,H);
   const V=(s,h)=>(1-(s>0?0.06+0.44*h:0.94-0.44*h))*H,X=u=>u*W,bnd=(LIV_CUT[L.cut]||LIV_CUT.rise)[1];   // black lower sidepod, rising towards the back
   g.fillStyle=D;g.fillRect(0,0,W,H);
-  for(const s of[1,-1]){const kp=new Path2D();kp.moveTo(0,V(s,0));for(let k=0;k<=30;k++){const u=k/30;kp.lineTo(X(u),V(s,bnd(u)));}kp.lineTo(W,V(s,0));kp.closePath();g.fillStyle=kFill(g,L);g.fill(kp);if(R&&L.KC){R.g.fillStyle=R.carbon;R.g.fill(kp);}
+  if(L.art)cobaltPod(g,X,V,W,H,L);else for(const s of[1,-1]){const kp=new Path2D();kp.moveTo(0,V(s,0));for(let k=0;k<=30;k++){const u=k/30;kp.lineTo(X(u),V(s,bnd(u)));}kp.lineTo(W,V(s,0));kp.closePath();g.fillStyle=kFill(g,L);g.fill(kp);if(R&&L.KC){R.g.fillStyle=R.carbon;R.g.fill(kp);}
     if(L.cut==='sunset'){const SW=L.W||L.A,y0=Math.min(V(s,0.12),V(s,1.02)),hh=Math.abs(V(s,1.02)-V(s,0.12)),gr=g.createLinearGradient(0,0,W,0);gr.addColorStop(0,SW+'55');gr.addColorStop(1,SW);g.fillStyle=gr;g.fillRect(0,y0,W,hh);}
     if(L.cut!=='solid'&&L.cut!=='fade'&&L.cut!=='sunset'){g.beginPath();for(let k=0;k<=30;k++){const u=k/30,y=V(s,bnd(u)+0.016);k?g.lineTo(X(u),y):g.moveTo(X(u),y);}g.strokeStyle=A;g.lineWidth=3;g.stroke();}
     if(L.cut==='fade'){const y0=Math.min(V(s,0),V(s,1.02)),hh=Math.abs(V(s,1.02)-V(s,0)),gr=g.createLinearGradient(X(0.15),0,X(1),0);gr.addColorStop(0,K+'00');gr.addColorStop(1,K);g.fillStyle=gr;g.fillRect(0,y0,W,hh);}
@@ -4584,7 +4619,7 @@ function podTex(tm,ti){   // sidepods: u 0 (inlet) .. 1 (rear), v around the sec
     if(L.M&&L.M!=='none'){const [mc,ma]=motifInk(L);livMotif(g,L.M,0,y0,W,hh,mc,Math.min(1,ma*1.15),ti*17+(s>0?3:4));}}
   g.fillStyle='#121316';g.fillRect(0,(1-0.06)*H,W,0.06*H+1);g.fillRect(0,0,W,0.06*H);if(R){R.g.fillStyle=R.carbon;R.g.fillRect(0,(1-0.06)*H,W,0.06*H+1);R.g.fillRect(0,0,W,0.06*H);}   // carbon undercut edge
   const sp=SPONSORS[TEAM_SP[ti][1]],mono=inkOn(D);
-  brandBlit(g,sp,W*0.42,V(1,0.66),200,46,mono,true,false);brandBlit(g,sp,W*0.42,V(-1,0.66),200,46,mono,false,true);if(R){brandBlit(R.g,sp,W*0.42,V(1,0.66),200,46,R.decal,true,false);brandBlit(R.g,sp,W*0.42,V(-1,0.66),200,46,R.decal,false,true);}
+  if(!L.art){brandBlit(g,sp,W*0.42,V(1,0.66),200,46,mono,true,false);brandBlit(g,sp,W*0.42,V(-1,0.66),200,46,mono,false,true);}if(R&&!L.art){brandBlit(R.g,sp,W*0.42,V(1,0.66),200,46,R.decal,true,false);brandBlit(R.g,sp,W*0.42,V(-1,0.66),200,46,R.decal,false,true);}
   // v13h: a second, smaller partner further back on the pod - the big flat panel was carrying one mark
   {const sp2=SPONSORS[TEAM_SP[ti][4]];for(const [q,cl] of R?[[g,mono],[R.g,R.decal]]:[[g,mono]]){
     brandBlit(q,sp2,W*0.78,V(1,0.42),130,30,cl,true,false);brandBlit(q,sp2,W*0.78,V(-1,0.42),130,30,cl,false,true);}}
@@ -5182,7 +5217,7 @@ let WORLD,KIT;
 // ---- livery editor: the player's own paint for a team (colours, layout, texture, finish, number, name), kept in this browser ----
 const LIV0=LIV.map(l=>Object.assign({},l)),TEAMS0=TEAMS.map(t=>({p:t.p,s:t.s,short:t.short}));
 let LIVC={};try{LIVC=JSON.parse(loadLS('lightsout3d-liv')||'{}')||{};}catch(e){LIVC={};}
-function applyLivData(ti){const c=LIVC[ti],t=TEAMS[ti];LIV[ti]=Object.assign({},LIV0[ti],c&&c.L?c.L:{});
+function applyLivData(ti){const c=LIVC[ti],t=TEAMS[ti];LIV[ti]=Object.assign({},LIV0[ti],c&&c.L?c.L:{});if(c&&c.L)LIV[ti].art=null;
   t.p=c&&c.L?LIV[ti].D:TEAMS0[ti].p;t.s=c&&c.L?LIV[ti].A:TEAMS0[ti].s;t.short=c&&c.name?c.name:TEAMS0[ti].short;}
 for(let i=0;i<TEAMS.length;i++)applyLivData(i);
 // 11-04: the driver's helmet: team colours, a stripe, the game's own team mark on both sides, the car number and team name on the back.
