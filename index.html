@@ -5519,8 +5519,8 @@ function shiftFx(S,g,dt){const o={rpm:1,cut:1,blip:0,click:0};   // click: 1 = u
       if(b>a){S.upT=0;o.click=1;}
       else{S.dnT=0;o.click=2;}}
     S.lastGear=g;}
-  if(S.upT!=null&&S.upT<0.08){const u=S.upT;o.cut=u<0.015?0.6:0.6+0.4*(u-0.015)/0.065;S.upT+=dt;}   // 11-04: measured at each upshift -1 to -3 dB over ~60 ms, the K keeps the power on (it was a gap of -18 dB)
-  if(S.dnT!=null&&S.dnT<0.4){S.dnT+=dt;const u=S.dnT,B=u<0.015?u/0.015:Math.exp(-(u-0.015)/0.05),E=u<0.035?u/0.035:Math.exp(-(u-0.035)/0.09);   // B: the throttle burst, E: the revs it drives (a little later)
+  if(S.upT!=null&&S.upT<0.08){const u=S.upT;o.cut=u<0.015?0.85:0.85+0.15*(u-0.015)/0.065;S.upT+=dt;}   // 11-04: measured at each upshift -1 to -3 dB over ~60 ms, the K keeps the power on (it was a gap of -18 dB)
+  if(S.dnT!=null&&S.dnT<0.4){S.dnT+=dt;const u=S.dnT,B=u<0.03?u/0.03:Math.exp(-(u-0.03)/0.09),E=u<0.05?u/0.05:Math.exp(-(u-0.05)/0.13);   // B: the throttle burst, E: the revs it drives (a little later)
     o.rpm=1+0.04*E;o.blip=B;}
   return o;}
 // engagement sounds: a metallic click (~3-4 kHz), a clack (~1 kHz) and a low clunk (~85 Hz), each a decaying resonance
@@ -5535,7 +5535,7 @@ function shiftBufs(ctx){const sr=ctx.sampleRate;
     let pk=1e-9;for(let i=0;i<n;i++)pk=Math.max(pk,Math.abs(b[i]));const buf=ctx.createBuffer(1,n,sr),d=buf.getChannelData(0);for(let i=0;i<n;i++)d[i]=b[i]/pk*Math.min(1,(n-i)/(sr*0.01));return buf;};
   return {up:[mk(false,11),mk(false,23),mk(false,37)],dn:[mk(true,41),mk(true,53),mk(true,67)]};}
 function shiftClick(down,inCar,t,dest){if(!SND.shb)return;const l=down?SND.shb.dn:SND.shb.up,s=AC.createBufferSource();s.buffer=l[(Math.random()*l.length)|0];s.playbackRate.value=0.94+Math.random()*0.12;
-  const g=AC.createGain();g.gain.value=(down?0.3:0.2)*(inCar?1:0.35);s.connect(g);g.connect(dest||SND.master);s.start(t);s.onended=()=>{try{g.disconnect();}catch(e){}};}
+  const g=AC.createGain();g.gain.value=(down?0.15:0.09)*(inCar?1:0.35);s.connect(g);g.connect(dest||SND.master);s.start(t);s.onended=()=>{try{g.disconnect();}catch(e){}};}
 // the gearbox whine: the engaged pair's input gear has more teeth in the higher gears, so its pitch jumps at every shift (game values)
 const GEAR_TEETH=[21,14,16,18,20,22,24,26,28];
 const RASP_SHAPE=(()=>{const n=2048,c=new Float32Array(n);for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(5*x)/Math.tanh(5);}return c;})();
@@ -5594,7 +5594,7 @@ const V29={ex:{alt:0.18,rev:0.07,cyc:0.07},im:{alt:0.2,rev:0.22,cyc:0.14},mech:[
 // and rumble sets, lowmid: dB at 210 Hz / 2.4 kHz, lgDark: how much darker the top gets, raspK: less clipped buzz)
 // PU_AI: the other cars' fixed filters (dB at 290 / 560 Hz). TEAM_PU: which power unit each team has (0 Ford, 1 Honda, 2 Mercedes, 3 Audi, 4 Ferrari: Ferrari, Haas and Cadillac share 4).
 const PU_AI=[[-6,-4],[0,0],[-5,2],[-3,-4],[-4,1]],TEAM_PU=[2,0,2,4,2,4,2,3,1,0,4];
-const PU_LOOPS=[{"on":[[7500,80],[9000,80],[10500,80],[12000,33]],"off":[[7500,31],[12000,12]]},{"on":[[9000,46]],"off":[[7500,65],[9000,80],[10500,80],[12000,17]]},{"on":[[7500,50],[9000,80],[10500,67],[12000,24]],"off":[[7500,31],[9000,46],[10500,57],[12000,22]]},{"on":[[7500,17],[9000,80],[10500,73]],"off":[[7500,31],[9000,80],[10500,80],[12000,80]]},{"on":[[7500,15],[9000,80],[10500,67]],"off":[[7500,17],[10500,47]]}];
+const PU_LOOPS=[{"on":[[5000,48],[6000,48],[7500,80],[9000,80],[10500,80],[12000,40]],"off":[[4500,12],[7500,12],[9000,12],[10500,12],[12000,40]]},{"on":[[5000,46],[6000,46],[7500,46],[9000,46],[10500,46],[12000,46]],"off":[[4500,48],[7500,65],[9000,80],[10500,80],[12000,40]]},{"on":[[5000,48],[6000,48],[7500,50],[9000,80],[10500,67],[12000,40]],"off":[[4500,31],[7500,40],[9000,46],[10500,57],[12000,40]]},{"on":[[5000,48],[6000,48],[7500,40],[9000,80],[10500,73],[12000,48]],"off":[[4500,48],[7500,48],[9000,80],[10500,80],[12000,80]]},{"on":[[5000,48],[6000,48],[7500,40],[9000,80],[10500,67],[12000,48]],"off":[[4500,47],[7500,40],[9000,47],[10500,47],[12000,47]]}];
 function engineBuffers5(ctx){
   const sr=ctx.sampleRate,cyc=sr*120/ENG_R0,deg=cyc/720,P=V29;
   let sd=24681357;const rnd=()=>{sd=(sd*16807)%2147483647;return sd/2147483647;};
@@ -5631,7 +5631,7 @@ function engineVoice5(ctx,dest,bufs){
   v.b1.frequency.value=P.rbF;v.b2.frequency.value=P.rbF;   // the low rumble path, a little wider, used at every rev
   return v;}
 // 11-04 윤택님: the player's car plays loops cut from a recording of the five power units (engine-pu0..4.bin, 16-bit, picked by ear over two versions synthesised from measurements of it). Each loop is stretches of that recording laid out by crank angle, so one cycle is always CY6 samples: at any rev the loops are in step and a crossfade keeps the firing note.
-// Third-party audio, rights not cleared: replace before any store release. PU_LOOPS: [rpm, cycles] of each loop, in file order. Below 7500 rpm there is little on-throttle recording, so the lowest loop is slowed; some off-throttle loops are borrowed from another unit.
+// Third-party audio, rights not cleared: replace before any store release. PU_LOOPS: [rpm, cycles] of each loop, in file order. Revs the recording lacks are filled from the nearest long loop with each order's level changed so the tone stays at the same Hz (played slowed as it was, the low gears sounded like a cave). The air between the orders is taken down and a little EQ added, so it reads as onboard rather than from a distance (scratchpad tool, game values).
 const CY6=512,PUF={};
 function puLoad(pu){return PUF[pu]||(PUF[pu]=(function get(){return fetch('engine-pu'+pu+'.bin').then(r=>{if(!r.ok)throw 0;return r.arrayBuffer();}).then(b=>new Int16Array(b)).catch(()=>new Promise(w=>setTimeout(w,3000)).then(get));})());}   // the file is in the offline cache; if the net is down it keeps trying, the engine stays quiet until then
 function engineVoice6(ctx,dest,pu){const G=x=>{const g=ctx.createGain();g.gain.value=x;return g;},v={v6:true,main:true,sets:[],out:G(0),lp:ctx.createBiquadFilter(),on:[],off:[]};v.lp.type='lowpass';v.lp.frequency.value=20000;v.lp.connect(v.out);
@@ -5640,12 +5640,12 @@ function engineVoice6(ctx,dest,pu){const G=x=>{const g=ctx.createGain();g.gain.v
     for(const st of ['on','off'])for(const q of T[st]){const n=q[1]*CY6,b=ctx.createBuffer(1,n,ctx.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=D[o+i]/32768;o+=n;
       const s=ctx.createBufferSource();s.buffer=b;s.loop=true;s.playbackRate.value=q[0]*CY6/120/ctx.sampleRate;const g=G(0);s.connect(g);g.connect(v.lp);s.start(t0);const a={rpm:q[0],s,g,k:CY6/120/ctx.sampleRate};v.sets.push(a);v[st].push(a);}});
   return v;}
-function engineSet6(v,t,rpm,load,lvl,bright,tc){const k=tc||0.012,R=Math.max(1500,rpm),q=Math.max(0,Math.min(1,(load-0.1)/0.5)),wOn=q*q*(3-2*q);
+function engineSet6(v,t,rpm,load,lvl,bright,tc){const k=tc||0.03,R=Math.max(1500,rpm),q=Math.max(0,Math.min(1,(load-0.1)/0.5)),wOn=q*q*(3-2*q);
   const go=(l,w)=>{if(!l.length)return;let i=0;while(i<l.length-2&&l[i+1].rpm<=R)i++;const f=l.length<2?0:Math.max(0,Math.min(1,Math.log(R/l[i].rpm)/Math.log(l[i+1].rpm/l[i].rpm)));
     for(let j=0;j<l.length;j++){l[j].s.playbackRate.setTargetAtTime(R*l[j].k,t,k);l[j].g.gain.setTargetAtTime(w*(j===i?Math.cos(f*1.5708):j===i+1?Math.sin(f*1.5708):0),t,0.03);}};
   go(v.on,wOn);go(v.off,1-wOn);v.out.gain.setTargetAtTime(lvl,t,0.008);v.lp.frequency.setTargetAtTime(v.inCar===false?bright:20000,t,0.03);}
-const ENG6=4;   // the same loudness in a race as the sound before it, so the balance with the other sounds stays
-function engineLevel6(rpm,L,inCar,cut,ck){return [ENG6*(cut==null?1:cut)*(1-0.28*(ck||0))*Math.min(1,0.55+0.45*rpm/7500),engineLevel5(rpm,L,inCar,cut,ck)[1]];}
+const ENG6=3.5;   // the same loudness in a race as the sound before it, so the balance with the other sounds stays
+function engineLevel6(rpm,L,inCar,cut,ck){return [ENG6*(cut==null?1:cut)*(1-0.28*(ck||0))*Math.min(1,0.55+0.45*rpm/7500)*(0.72+0.28*Math.max(0,Math.min(1,(rpm-7000)/4000))),engineLevel5(rpm,L,inCar,cut,ck)[1]];}
 function engineLevel5(rpm,L,inCar,cut,ck){const a=engineLevel4(rpm,L,inCar,cut,ck),r01=Math.min(1,rpm/12500),B=inCar?V29.bright:V29.brightOut;ck=ck||0;
   return [a[0]*V29.lvl[inCar?0:1],(B[0]+L*B[1]+r01*B[2])*(1-0.2*ck)];}
 function engineMix5(v,t,inCar){if(v.v6){v.inCar=inCar;return;}engineMix3(v,t,inCar);const P=V29;v.inCar=inCar;v.wIn=inCar?1:0;v.mx.gain.setTargetAtTime(inCar?P.mx[0]:P.mx[1],t,0.1);
@@ -5732,7 +5732,7 @@ function audioUpdate(dt){
   SND.T+=dt;
   const V=engineVoices();SND.eng=V.eng;SND.vox=V.vox;
   const pl=race.player,sp=Math.abs(pl.spd),auto=!!pl.pit||pl.fin!=null,pLim=!!pl.pit&&(pl.pit.state==='in'||pl.pit.state==='out')&&zoneR(pl.idx)>=PIT.RAMP&&zoneR(pl.idx)<PIT.Z-PIT.RX,   // v11f: on the speed-limited stretch of the pit lane
-    thr=(auto?(pl.pit&&pl.pit.state!=='stop'?(!pLim&&pl.thr!=null&&(pl.pit.state==='in'||pl.pit.state==='out'||pl.pit.state==='join')?pl.thr:0.45):0):(state==='countdown'?(key.gas?1:0):(pl.thr!=null?pl.thr:(key.gas?1:0))));
+    thr=(auto?(pl.pit&&pl.pit.state!=='stop'?(!pLim&&pl.thr!=null&&pl.pit.state==='in'?pl.thr:!pLim&&pl.thr!=null&&(pl.pit.state==='out'||pl.pit.state==='join')?Math.max(0.45,pl.thr):0.45):0):(state==='countdown'?(key.gas?1:0):(pl.thr!=null?pl.thr:(key.gas?1:0))));
   let rpm=curRpm,cut=1;
   const g=curGear;
   const sf=shiftFx(SND,g,dt),inCarS=!outCam(CAMS[camMode])&&!key.look;rpm*=sf.rpm;cut*=sf.cut;   // gear changes: cut / blip, clicks, bangs
@@ -5743,7 +5743,7 @@ function audioUpdate(dt){
   // stops pulling - it sounds like a lift. Here it is a sound cue only (the car's physics are unchanged).
   {const kp=sp*3.6;SND.acc=(SND.acc||0)+((kp-(SND.lk==null?kp:SND.lk))/Math.max(dt,1e-3)-(SND.acc||0))*Math.min(1,dt*3);SND.lk=kp;
    const on=state==='race'&&!pl.pit&&pl.fin==null&&thr>0.95&&kp>285&&!pl.boost&&SND.acc<3?1:0;SND.clip=(SND.clip||0)+(on-(SND.clip||0))*Math.min(1,dt*(on?2.5:6));}
-  if(pl.pit&&pl.pit.state!=='stop'&&sp>18&&pLim){SND.limT=(SND.limT||0)-dt;if(SND.limT<=0){SND.limOn=!SND.limOn;SND.limT=SND.limOn?0.02+Math.random()*0.04:0.03+Math.random()*0.06;}cut*=SND.limOn?0.22:1;}   // pit limiter
+  if(pl.pit&&pl.pit.state!=='stop'&&sp>18&&pLim){SND.limT=(SND.limT||0)-dt;if(SND.limT<=0){SND.limOn=!SND.limOn;SND.limT=SND.limOn?0.02+Math.random()*0.04:0.03+Math.random()*0.06;}cut*=SND.limOn?0.72:1;}   // pit limiter
   if(pl.spinR&&thr>0.5)rpm=Math.min(12700,rpm*1.1);
   if(tvL)rpm*=tvL.dop;   // TV view: the pitch drops as the car passes the camera                                  // wheelspin: revs flare
   const e=SND.eng,inCar=!outCam(CAMS[camMode])&&!key.look;let L,r01;
@@ -6520,6 +6520,7 @@ function drawHUD(dt){
   {const hv=state==='race'&&!pl.pit&&pl.fin==null&&(pl.thr||0)<0.15&&kmh>80?1:0;SND.hv=(SND.hv||0)+(hv-(SND.hv||0))*Math.min(1,dt*(hv?4:6));   // harvesting off throttle (a 2026 car recharges in every braking zone)
    if(SND.hv>0.01)rpm+=(Math.max(rpm,9200+500*Math.min(1,(kmh-80)/150))-rpm)*SND.hv;}let gs=pl.spd<-0.5?'R':(kmh<2&&!key.gas?'N':String(g));
   if(kmh<12)SND.launch=1;else if(kmh>=75||g>1)SND.launch=0;   // v11f: a launch starts from (almost) a standstill - a hairpin exit is not one
+  if(pl.pit&&kmh>1&&pl.pit.state!=='stop')rpm=Math.max(rpm,8000);   // 11-04: slow in the pit lane the clutch holds the revs (they fell to 4000-8000 and the engine sounded hollow)
   if(SND.launch&&g===1&&(pl.thr||0)>0.3&&kmh<75&&!pl.pit)rpm=Math.max(rpm,10300+kmh*20);   // launch: clutch slip holds the revs
   if(state==='countdown'){gs='N';
     if(key.gas){SND.holdT=(SND.holdT||0)-dt;if(SND.holdT<=0){SND.holdT=0.12+Math.random()*0.3;SND.holdTg=11800+Math.random()*1200;}   // 2026 starts: revs held around 12 000-13 000 to keep the turbo spinning, wandering ("all over the place")
