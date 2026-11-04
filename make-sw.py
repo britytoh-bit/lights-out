@@ -9,7 +9,7 @@ D = os.path.dirname(os.path.abspath(__file__))
 
 
 def is_game(f):
-    return f in ('index.html', 'manifest.webmanifest') or f.startswith(('lib-', 'font-', 'icon-', 'tex-', 'car-'))
+    return f in ('index.html', 'manifest.webmanifest') or f.startswith(('lib-', 'font-', 'icon-', 'tex-', 'car-', 'engine-'))
 
 
 names = sorted(f for f in os.listdir(D) if os.path.isfile(os.path.join(D, f)) and is_game(f))
