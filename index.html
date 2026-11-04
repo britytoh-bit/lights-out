@@ -1440,8 +1440,9 @@ function stepPlayer(race,c,dt,inp){
   const tg=tyreGrip(c),asst=ASSIST[race.assist]||ASSIST.normal;
   // 10-31: brake assist (skill presets) - brakes for the player when the car is faster than the speed profile just ahead (the speeds the
   // autopilot drives to). 2 strong: a little under the centre-line profile; 1 light: only clearly over it (a missed braking point).
-  if(race.bAs&&!c.pit&&c.vx>12){const i=wrap(c.idx+Math.round(c.vx*0.25/STEP)),L=profAt(i,tg.lat)*(race.bAs>1?0.97:1.04);
-    c.bAs=c.vx>L+(c.bAs?0:race.bAs>1?0.5:1);}else c.bAs=false;
+  // 11-04: light came on at +4 % and off at the same line, so at Monaco it cut 12 % of the time the throttle was held, in bursts. On at +15 %, off at +8 %: 0.2 %.
+  if(race.bAs&&!c.pit&&c.vx>12){const i=wrap(c.idx+Math.round(c.vx*0.25/STEP)),L=profAt(i,tg.lat);
+    c.bAs=race.bAs>1?c.vx>L*0.97+(c.bAs?0:0.5):c.vx>L*(c.bAs?1.08:1.15)+(c.bAs?0:1);}else c.bAs=false;
   // steering: keyboard ramps towards full lock, analogue input (drag/tilt) is followed directly
   const dig=(inp.right?1:0)-(inp.left?1:0),ana=!dig&&!!inp.axis,tgt=dig!==0?dig:(inp.axis?Math.max(-1,Math.min(1,inp.axis)):0),si=Math.max(0,Math.min(4,race.sens-1));
   const ramp=ana?SENS_RAMP_A[si]:SENS_RAMP[si]*(1.2-0.35*Math.min(1,Math.abs(c.spd)/85)),back=ana?2.4:3;   // centring and reversing are quicker than turning in
@@ -1449,7 +1450,7 @@ function stepPlayer(race,c,dt,inp){
   const dst=tgt-c.st,stepMax=rate*dt;c.st+=Math.max(-stepMax,Math.min(stepMax,dst));
   // pedals: keys press the pedal over a few hundredths of a second instead of instantly (brake: ~0.1 s to 90 %)
   const wantT=inp.gas&&!inp.brake&&!c.bAs?1:0,wantB=inp.brake||c.bAs?1:0;
-  {const q=inp.quickPed;c.thr+=(wantT-c.thr)*Math.min(1,dt*(wantT>c.thr?(q?28:16):(q?30:20)));c.bp+=(wantB-c.bp)*Math.min(1,dt*(wantB>c.bp?(q?40:24):(q?34:22)));}   // v12f: throttle 90 % in ~0.14 s (was ~0.23 s); 11-04 phone pedals (on or off, no travel): throttle ~0.08 s, brake ~0.06 s
+  {const q=inp.quickPed;c.thr+=(wantT-c.thr)*Math.min(1,dt*(wantT>c.thr?(q?28:16):(q?30:20)));c.bp+=(wantB-c.bp)*Math.min(1,dt*(wantB>c.bp?(q&&inp.brake?40:24):(q?34:22)));}   // v12f: throttle 90 % in ~0.14 s (was ~0.23 s); 11-04 phone pedals (on or off, no travel): throttle ~0.08 s, brake ~0.06 s
   // 2026 straight mode (active aero): the driver opens it with the steering-wheel button inside an activation zone;
   // braking or lifting off the throttle drops it back to corner mode. (aeroAuto: opens by itself in the zone)
   {const zone=race.rc.flag==='green'&&!!AERO[c.idx]&&!c.pit,on=!!inp.gas&&!inp.brake&&!c.bAs,press=(!!inp.sm&&!c.smPrev)||!!inp.smTap;c.smPrev=!!inp.sm;if(inp.smTap)inp.smTap=false;   // smTap: a press latched between frames
