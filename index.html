@@ -5383,7 +5383,7 @@ function exhaustIR4(ctx){
     const y=new Float32Array(n);let x1=0,x2=0,y1=0,y2=0;for(let i=0;i<n;i++){const v=b0*inp[i]+b1*x1+b2*x2-a1*y1-a2*y2;x2=x1;x1=inp[i];y2=y1;y1=v;y[i]=v;}return y;};
   let y=comb(x,2*0.6/690,-0.32,0.42);   // primary runner, 0.6 m of hot gas
   y=comb(y,2*0.3/680,-0.2,0.4);         // collector
-  y=bq(y,1400,0.6);                     // turbine: swallows the sharp edges
+  y=bq(y,3000,0.6);                     // turbine: takes the sharpest edges off (11-04: 1.4 kHz left no orders 9 and 12)
   y=comb(y,2*1.0/600,-0.32,0.34);       // tail pipe (a damped reflection: the pulses stay distinct)
   const out=new Float32Array(n);for(let i=0;i<n;i++)out[i]=y[i]-0.45*(i?y[i-1]:0);   // radiation from the open end
   let e=0;for(let i=0;i<n;i++)e+=out[i]*out[i];const g=0.42/Math.sqrt(e);
@@ -5391,7 +5391,7 @@ function exhaustIR4(ctx){
 }
 // ---- gear changes (v11e) ----
 // A seamless-shift F1 gearbox: an upshift is a short ignition cut (~12 ms, back by ~35 ms: "pap") and the note steps straight down; a downshift is a
-// throttle blip - a short loud, bright bark (~15 ms up, ~50 ms down) that drives the revs ~8 % past the new gear's within ~35 ms,
+// throttle blip - a short loud, bright bark (~15 ms up, ~50 ms down) that drives the revs ~4 % past the new gear's within ~35 ms,
 // settling over ~0.1-0.2 s (no exhaust bangs since 11-01); every engagement clicks (dog rings) and clunks
 // through the chassis - heavier on the way down.
 // Timings are game values in the range heard on onboard footage; they are not measured data.
@@ -5400,9 +5400,9 @@ function shiftFx(S,g,dt){const o={rpm:1,cut:1,blip:0,click:0};   // click: 1 = u
       if(b>a){S.upT=0;o.click=1;}
       else{S.dnT=0;o.click=2;}}
     S.lastGear=g;}
-  if(S.upT!=null&&S.upT<0.05){const u=S.upT;o.cut=u<0.012?0.12:u<0.035?0.12+0.88*(u-0.012)/0.023:1;S.upT+=dt;}
+  if(S.upT!=null&&S.upT<0.08){const u=S.upT;o.cut=u<0.015?0.6:0.6+0.4*(u-0.015)/0.065;S.upT+=dt;}   // 11-04: measured at each upshift -1 to -3 dB over ~60 ms, the K keeps the power on (it was a gap of -18 dB)
   if(S.dnT!=null&&S.dnT<0.4){S.dnT+=dt;const u=S.dnT,B=u<0.015?u/0.015:Math.exp(-(u-0.015)/0.05),E=u<0.035?u/0.035:Math.exp(-(u-0.035)/0.09);   // B: the throttle burst, E: the revs it drives (a little later)
-    o.rpm=1+0.08*E;o.blip=B;}
+    o.rpm=1+0.04*E;o.blip=B;}
   return o;}
 // engagement sounds: a metallic click (~3-4 kHz), a clack (~1 kHz) and a low clunk (~85 Hz), each a decaying resonance
 function shiftBufs(ctx){const sr=ctx.sampleRate;
@@ -5444,9 +5444,9 @@ function engineVoice4(ctx,dest,bufs,main){
   v.r1=F('highpass',900,0.7);v.rs=ctx.createWaveShaper();v.rs.curve=RASP_SHAPE;v.rs.oversample='2x';v.r2=F('peaking',2600,1.1,3);v.r3=F('lowpass',5500,0.7);v.rg=G(0.15);
   v.pre.connect(v.r1);v.r1.connect(v.rs);v.rs.connect(v.r2);v.r2.connect(v.r3);v.r3.connect(v.rg);v.rg.connect(v.drv);
   v.sh=ctx.createWaveShaper();v.sh.curve=ENG_SHAPE;v.sh.oversample='2x';v.drv.connect(v.sh);
-  v.hp=F('highpass',32,0.7);v.e1=F('lowshelf',240,null,main?EQ3.shelf:EQ3.shelf/2);v.lp=F('lowpass',3000,0.6);
+  v.hp=F('highpass',70,0.7);v.e1=F('lowshelf',240,null,main?EQ3.shelf:EQ3.shelf/2);v.lp=F('lowpass',3000,0.6);
   v.sh.connect(v.hp);v.hp.connect(v.e1);
-  if(main){v.lq=F('peaking',210,0.75,0);v.lh=F('peaking',2400,0.9,0);v.e1.connect(v.lq);v.lq.connect(v.lh);v.lh.connect(v.lp);}   // v11g: low gears - more low-mid body, a little less upper-mid
+  if(main){v.lq=F('peaking',250,0.75,0);v.lh=F('peaking',2400,0.9,0);v.e1.connect(v.lq);v.lq.connect(v.lh);v.lh.connect(v.lp);}   // v11g: low gears - more low-mid body, a little less upper-mid
   else v.e1.connect(v.lp);
   v.out=G(0);v.lp.connect(v.out);let last=v.out;if(ctx.createStereoPanner){v.pan=ctx.createStereoPanner();v.out.connect(v.pan);last=v.pan;}last.connect(dest);
   // v11f: every set starts on a cycle boundary, so their pulses line up and a blend between sets is a morph, not a comb filter
@@ -5459,7 +5459,8 @@ function engineLevel4(rpm,L,inCar,cut,ck){const r01=Math.min(1,rpm/12500),lowB=1
   return [(0.13+0.32*L)*(0.55+0.45*r01)*lowB*cut*(1-0.28*ck)*(inCar?1.05:0.95),((inCar?1000:1300)+L*(inCar?1500:1900)+r01*(inCar?800:1000))*(1-0.2*ck)];}
 const EQ3={b1:290,g1:6.5,b2:560,g2:3,t1:1350,t2:2300,drv:1.5,shelf:3};
 let RUMBLE=1.5,RUMBLE_R=[12500,2900],GROWL=1.0,LOWMID=[7,-3];   // LOWMID: low-gear EQ, dB at 210 Hz and 2.4 kHz (v11g)   // v11f: level of the low-gear rumble path; it fades out between R0-R1 and R0 rpm (game values)
-const WHINE3={mgu:0.65,turbo:0.7};   // the MGU-K and turbo whines a little quieter with this sound (they read as a high note too)
+const MGU_ORD=44;   // 11-04: the electric whine sits at ~44 crank orders (8.1 kHz at 11 100 rpm, measured; it follows the revs through the downshifts). It was 8.8 orders
+const WHINE3={mgu:0.5,turbo:0.5};   // the MGU-K and turbo whines a little quieter with this sound (they read as a high note too)
 function engineMix3(v,t,inCar){v.mx.gain.setTargetAtTime((inCar?0.72:0.95)*(v.v4&&v.main?1.2:1),t,0.1);v.mi.gain.setTargetAtTime(inCar?0.55:0.18,t,0.1);if(v.bg&&v.main)v.bg.gain.setTargetAtTime(inCar?0.55:0.2,t,0.1);}
 // ===== v12 sound: "2026 onboard V6", tuned against an onboard reference clip (a sim car's recording, not a real car) =====
 // Against that clip the v28 note had far less low and low-mid body (63-400 Hz), only the firing family of orders (1.5 / 3 / 4.5)
@@ -5467,11 +5468,13 @@ function engineMix3(v,t,inCar){v.mx.gain.setTargetAtTime((inCar?0.72:0.95)*(v.v4
 // tonal note (little noise between the harmonics) and little air above 4 kHz. So: pulse sets with a bank alternation, a
 // once-per-rev and a once-per-cycle pattern and more cycle scatter; an airbox path for the cockpit; the low rumble at every rev;
 // a hiss layer; a brighter top. All values are tuned game values.
-const V29={ex:{alt:0.35,rev:0.15,cyc:0.2},im:{alt:0.5,rev:0.7,cyc:0.6},mech:[0,0],exN:1.0,revPh:0.6,cycPh:0.4,cvw:0.4,av:0.2,jit:3,nz:0.45,rz:0.5,td:20,tr:2.2,neg:0.3,
-  intake:0.9,intakeOut:0.25,inF:[190,1.2,8],inF2:[650,1.5,0],inLP:1800,rumble:1.2,rumbleOut:0.8,rbF:220,hiss:0,hissF:4200,
-  mx:[0.86,1.14],bright:[2200,2600,1200],brightOut:[1500,2000,1100],hissOut:0.4,
-  drv:1.3,lvl:[1.18,1.02],lvlAI:1.1,shelf:5.5,pres:[2800,0.8,2.5],lgCut:0,
-  grP:{alt:0.14,rev:0.12,cyc:0.35},grCyl:2.4,grK:1.25,rbK:1.6,lowmid:[9,-5],lgDark:0.55,raspK:0.75};   // drv: drive into the shaper (x EQ3.drv; brings the peak-to-average ratio near the clip's); lvl [in-car, outside] / lvlAI: output level of
+// 11-04: re-tuned against two recordings of 2026 power units (analysed only, no audio from them in this file). Measured at 11 100 rpm flat out, level against the firing order 3:
+// 1.5: -11, 2: -21, 2.5: -26, 4.5: -12, 6: -5, 7.5: -19, 9: -8, 12: -12 dB: nearly flat up the firing family, weak half orders; centre of the spectrum 700-1900 Hz (was 850-1000); a whine at order ~44
+const V29={ex:{alt:0.18,rev:0.07,cyc:0.07},im:{alt:0.2,rev:0.22,cyc:0.14},mech:[0,0],exN:1.0,revPh:0.6,cycPh:0.4,cvw:0.4,av:0.2,jit:3,nz:0.45,rz:0.5,td:9,tr:0.8,neg:0.25,
+  intake:0.9,intakeOut:0.25,inF:[190,1.2,8],inF2:[650,1.5,0],inLP:1800,rumble:0.2,rumbleOut:0.15,rbF:220,hiss:0.045,hissF:6500,lq0:5,
+  mx:[0.86,1.14],bright:[2500,7500,2500],brightOut:[2500,7500,2500],hissOut:1,
+  drv:1.3,lvl:[1.42,1.45],lvlAI:1.1,shelf:4.5,pres:[2800,0.8,1.5],lgCut:0,
+  grP:{alt:0.14,rev:0.12,cyc:0.35},grCyl:2.4,grK:1.1,rbK:0.45,lowmid:[6,-1],lgDark:0.2,raspK:0.75};   // drv: drive into the shaper (x EQ3.drv; brings the peak-to-average ratio near the clip's); lvl [in-car, outside] / lvlAI: output level of
 // the player's car / the other cars (set so the loudness matches the v28 sound, so the balance with the other sounds stays); shelf: low shelf after the shaper (dB, 240 Hz); pres: presence peak [Hz, Q, dB]; lgCut: level taken out in the low gears (x the growl share)
 // v12b (player feedback): the clip's hiss at full throttle was the wind on that recording, so no hiss layer and far less noise in the
 // full-load pulses; the low gears growl more (grP / grCyl: a lumpier growl set with a strong once-per-cycle beat, grK / rbK: more of the growl
@@ -5479,7 +5482,7 @@ const V29={ex:{alt:0.35,rev:0.15,cyc:0.2},im:{alt:0.5,rev:0.7,cyc:0.6},mech:[0,0
 function engineBuffers5(ctx){
   const sr=ctx.sampleRate,cyc=sr*120/ENG_R0,deg=cyc/720,P=V29;
   let sd=24681357;const rnd=()=>{sd=(sd*16807)%2147483647;return sd/2147483647;};
-  const RUN=[0,15,2,17,1,14.5],TDc=[1,1.14,0.93,1.2,1.04,1.1],NZc=[1,1.25,0.9,1.3,1.05,1.15];
+  const RUN=[0,4,0.8,5,0.4,3.8],TDc=[1,1.06,0.96,1.08,1.02,1.04],NZc=[1,1.25,0.9,1.3,1.05,1.15];
   // per firing slot (banks alternate): bank alternation (1.5 / 4.5 / 7.5), once per rev (1 / 2 / 4 / 5), once per cycle (0.5 / 2.5 / 3.5)
   const pat=q=>[0,1,2,3,4,5].map(j=>(j%2?-1:1)*q.alt+q.rev*Math.cos(2*Math.PI*j/3+P.revPh)+q.cyc*Math.cos(2*Math.PI*j/6+P.cycPh));
   const mk=(o)=>{const NC=o.nc,len=Math.round(cyc*NC),b=new Float32Array(len);let w=0;const cv=new Float32Array(NC);for(let c=0;c<NC;c++){w=w*o.cr+(rnd()-0.5)*o.cvw;cv[c]=Math.max(o.cvmin==null?-9:o.cvmin,1+w);}
@@ -5500,11 +5503,11 @@ function engineBuffers5(ctx){
   const E=pat(P.ex),I=pat(P.im);   // the pipes hear mostly the firing family; the airbox (cockpit) every half order
   return {on:mk({pat:E,nc:512,cr:0.55,cyl:1,A:1,tr:P.tr,td:P.td,tn:12,tz:2.5,nz:P.nz*P.exN,rz:P.rz*P.exN,neg:P.neg,popP:0,popA:1,miss:0.025,missA:0.35,cvw:P.cvw*P.exN,av:P.av*P.exN,jit:P.jit*P.exN}),
           onI:mk({mech:P.mech,pat:I,nc:512,cr:0.55,cyl:1,A:1,tr:P.tr,td:P.td,tn:12,tz:2.5,nz:P.nz,rz:P.rz,neg:P.neg,popP:0,popA:1,miss:0.025,missA:0.35,cvw:P.cvw,av:P.av,jit:P.jit}),
-          off:mk({pat:E,nc:384,cr:0.55,cyl:0.8,A:0.55,tr:3,td:34,tn:18,tz:3,nz:0.5,rz:0.5,neg:0.15,popP:0.03,popA:1.8,miss:0.12,missA:0.08,cvw:0.25,av:0.4,jit:3}),
-          lo:mk({pat:E,nc:384,cr:0.4,cyl:1.3,A:1,tr:2.0,td:28,tn:12,tz:2.4,nz:0.5,rz:0.75,neg:0.3,popP:0.004,popA:1.6,miss:0.08,missA:0.22,cvw:0.6,av:0.28,jit:4}),
-          loI:mk({mech:P.mech,pat:I,nc:384,cr:0.4,cyl:1.3,A:1,tr:2.0,td:28,tn:12,tz:2.4,nz:Math.max(0.46,P.nz),rz:Math.max(0.75,P.rz),neg:0.3,popP:0.004,popA:1.6,miss:0.08,missA:0.22,cvw:Math.max(0.6,P.cvw),av:Math.max(0.28,P.av),jit:Math.max(4,P.jit)}),
+          off:mk({pat:E,nc:384,cr:0.55,cyl:0.8,A:0.55,tr:2,td:18,tn:18,tz:3,nz:0.9,rz:0.9,neg:0.15,popP:0.03,popA:1.8,miss:0.12,missA:0.08,cvw:0.25,av:0.4,jit:3}),
+          lo:mk({pat:E,nc:384,cr:0.4,cyl:1.3,A:1,tr:1.2,td:14,tn:12,tz:2.4,nz:0.5,rz:0.75,neg:0.3,popP:0.004,popA:1.6,miss:0.08,missA:0.22,cvw:0.6,av:0.28,jit:4}),
+          loI:mk({mech:P.mech,pat:I,nc:384,cr:0.4,cyl:1.3,A:1,tr:1.2,td:14,tn:12,tz:2.4,nz:Math.max(0.46,P.nz),rz:Math.max(0.75,P.rz),neg:0.3,popP:0.004,popA:1.6,miss:0.08,missA:0.22,cvw:Math.max(0.6,P.cvw),av:Math.max(0.28,P.av),jit:Math.max(4,P.jit)}),
           rb:mk({pat:I,nc:384,cr:0.25,cyl:1.2,A:1,tr:3,td:45,tn:12,tz:2.5,nz:0.1,rz:0,neg:0.05,popP:0,popA:1,miss:0.04,missA:0.3,cvw:1.2,cvmin:0.12,av:0.3,jit:4}),
-          gr:mk({pat:pat(P.grP),nc:384,cr:0.35,cyl:P.grCyl,A:1,tr:2.6,td:30,tn:12,tz:2.5,nz:0.12,rz:0.08,neg:0.25,popP:0,popA:1,miss:0.03,missA:0.4,cvw:0.6,av:0.18,jit:3})};
+          gr:mk({pat:pat(P.grP),nc:384,cr:0.35,cyl:P.grCyl,A:1,tr:1.6,td:16,tn:12,tz:2.5,nz:0.12,rz:0.08,neg:0.25,popP:0,popA:1,miss:0.03,missA:0.4,cvw:0.6,av:0.18,jit:3})};
 }
 function engineVoice5(ctx,dest,bufs,main){
   const v=engineVoice4(ctx,dest,bufs,main),P=V29;v.v5=true;   // the same pipes, rasp, shaper, EQ and sets as v28, plus:
@@ -5536,19 +5539,19 @@ function engineSet(v,t,rpm,load,lvl,bright,tc){const r=Math.max(0.2,rpm/ENG_R0),
     const wI=v.gonI?(v.wIn==null?1:v.wIn):0,gO=load*(1-0.75*wl)*(1-0.85*wg),gL=(0.75*wl*load+0.8*wl*(1-load))*(1-0.9*wg);
     v.gon.gain.setTargetAtTime(gO*(1-wI),t,0.018);v.glo.gain.setTargetAtTime(gL*(1-wI),t,0.03);if(v.gonI){v.gonI.gain.setTargetAtTime(gO*wI,t,0.018);v.gloI.gain.setTargetAtTime(gL*wI,t,0.03);}   // cockpit sets in-car
     v.goff.gain.setTargetAtTime(Math.max(0,1-load)*0.95*(1-0.8*wl)*Math.max(0,1-1.15*wg),t,0.03);}
-  if(v.lq){const LM=v.v5?V29.lowmid:LOWMID;v.lq.gain.setTargetAtTime(LM[0]*wg,t,0.05);v.lh.gain.setTargetAtTime(LM[1]*wg,t,0.05);if(v.pr)v.pr.gain.setTargetAtTime(V29.pres[2]*(1-wg),t,0.05);}
+  if(v.lq){const LM=v.v5?V29.lowmid:LOWMID;v.lq.gain.setTargetAtTime((v.v5?V29.lq0:0)+LM[0]*wg,t,0.05);v.lh.gain.setTargetAtTime(LM[1]*wg,t,0.05);if(v.pr)v.pr.gain.setTargetAtTime(V29.pres[2]*(1-wg),t,0.05);}
   else{v.gon.gain.setTargetAtTime(load,t,0.018);v.goff.gain.setTargetAtTime(Math.max(0,1-load)*0.95,t,0.03);}
   v.lp.frequency.setTargetAtTime(bright*(1-(v.v5?V29.lgDark:0.3)*wg),t,0.03);v.out.gain.setTargetAtTime(lvl*(1-(v.v5?V29.lgCut:0.18)*wg),t,0.008);if(v.hsG)v.hsG.gain.setTargetAtTime(V29.hiss*(0.25+0.75*load)*Math.min(1,rpm/11000)*(v.inCar===false?V29.hissOut:1),t,0.03);if(v.rg){const q2=Math.max(0,Math.min(1,(8000-rpm)/3500));v.rg.gain.setTargetAtTime((0.05+0.22*load)*(1+0.7*q2*(v.slo?1:0))*(1-0.8*wg)*(v.v5?V29.raspK:1),t,0.03);}}
 // menu preview of the growl sound with the race's gear-change model: rev up, an upshift, a lift,
 // four quick downshifts (blip, click), idle
 function previewShifts(v,t0,out){
-  const S={lastGear:'4'},D=[1.7,1.95,2.2,2.45],DT=1/60,RV=[[0.55,3900],[0.6,6500],[0.75,8600],[0.9,10300],[1.05,11400],[1.15,11900]];let lg=0;
+  const S={lastGear:'4'},D=[1.7,1.95,2.2,2.45],DT=1/60,RV=[[0.55,3900],[0.6,6500],[0.75,8600],[0.9,10300],[1.05,11600],[1.15,12400]];let lg=0;
   for(let i=0;i<207;i++){const t=i*DT;let rpm,L,g;
     if(t<1.15){let k=0;while(k<RV.length-2&&RV[k+1][0]<=t)k++;const a=RV[k],b=RV[k+1],f=Math.max(0,Math.min(1,(t-a[0])/(b[0]-a[0])));rpm=a[1]+(b[1]-a[1])*f;L=t<0.55?0.05:1;g='4';}
-    else if(t<1.55){rpm=9950+1950*(t-1.15)/0.4;L=1;g='5';}
-    else if(t<D[0]){rpm=11900-900*(t-1.55)/0.15;L=0.02;g='5';}
-    else if(t<2.7){const k=D.filter(d=>d<=t).length;rpm=11300-1500*(t-D[k-1])/0.25;L=0.02;g=String(5-k);}
-    else{rpm=Math.max(3900,9800-(t-2.7)*14750);L=0.05;g='1';}
+    else if(t<1.55){rpm=10300+1700*(t-1.15)/0.4;L=1;g='5';}
+    else if(t<D[0]){rpm=12000-900*(t-1.55)/0.15;L=0.02;g='5';}
+    else if(t<2.7){const k=D.filter(d=>d<=t).length;rpm=10600-1400*(t-D[k-1])/0.25;L=0.02;g=String(5-k);}
+    else{rpm=Math.max(3900,9200-(t-2.7)*14750);L=0.05;g='1';}
     const o=shiftFx(S,g,DT);rpm*=o.rpm;if(o.blip>0)L=Math.max(L,0.95*o.blip);
     {const gn=+g,lgT=gn>=1&&gn<=3?[0,1,0.8,0.5][gn]:0;lg+=(lgT-lg)*Math.min(1,DT*5);v.lgg=lg;v.lgw=lg*0.6;}   // v11g: the low-gear growl and rumble, as in the race
     const lb=engineLevel5(rpm,L,false,o.cut,0);engineSet(v,t0+t,rpm,L,lb[0]*(1+0.6*o.blip),lb[1]*(1+0.35*o.blip));
@@ -5613,7 +5616,7 @@ function audioUpdate(dt){
   const sf=shiftFx(SND,g,dt),inCarS=!outCam(CAMS[camMode])&&!key.look;rpm*=sf.rpm;cut*=sf.cut;   // gear changes: cut / blip, clicks, bangs
   if(sf.click)shiftClick(sf.click===2,inCarS,t+0.005);
   const lim=(Math.floor(SND.T*26)%2)===1,hold=state==='countdown'&&key.gas;
-  if(thr>=1&&rpm>12150&&!hold){rpm=lim?11900:12300;cut*=lim?0.4:1;}
+  if(thr>=1&&rpm>12650&&!hold){rpm=lim?12300:12700;cut*=lim?0.4:1;}
   // super clipping (2026): flat out near the end of a long straight with no electric deployment, the MGU-K harvests and the car
   // stops pulling - it sounds like a lift. Here it is a sound cue only (the car's physics are unchanged).
   {const kp=sp*3.6;SND.acc=(SND.acc||0)+((kp-(SND.lk==null?kp:SND.lk))/Math.max(dt,1e-3)-(SND.acc||0))*Math.min(1,dt*3);SND.lk=kp;
@@ -5640,10 +5643,10 @@ function audioUpdate(dt){
    if(f>0.2&&sp>8&&!pl.pit&&pp<0.35){SND.fsT=(SND.fsT||0)-dt;if(SND.fsT<=0){SND.fsT=Math.max(0.07,2.26/sp);sfxBurst({type:'lowpass',f:90+sp*1.2,q:0.8,amp:0.05*Math.min(1,f)*Math.min(1,sp/30)*(inCar?1:0.6),att:0.002,dur:0.035});}}}
   // turbo + MGU-K
   {const tb=Math.min(1,L*r01*1.05);SND.tb=(SND.tb||0)+(tb-(SND.tb||0))*Math.min(1,dt*(tb>(SND.tb||0)?2.8:1.6));   // no MGU-H from 2026: the turbo spools up (and down) with a lag
-    SND.turbo.frequency.setTargetAtTime(1500+SND.tb*5200,t,0.08);SND.turboG.gain.setTargetAtTime(0.018*SND.tb*SND.tb*WHINE3.turbo,t,0.12);}
+    SND.turbo.frequency.setTargetAtTime(3000+SND.tb*6000,t,0.08);SND.turboG.gain.setTargetAtTime(0.018*SND.tb*SND.tb*WHINE3.turbo,t,0.12);}
   const harvesting=pl.braking&&sp>15;
   {const hv=SND.hv||0,mg=pl.boost?0.05:Math.max(0.045*hv,harvesting?0.03:0.006*L,0.045*(SND.clip||0));   // 350 kW MGU-K: a much louder electric whine (deploying and harvesting); geared to the crank, so it follows rpm (ratio is a game value)
-    SND.mgu.frequency.setTargetAtTime(rpm/60*4.4,t,0.03);SND.mguF.frequency.setTargetAtTime(rpm/60*8.8,t,0.03);SND.mguG.gain.setTargetAtTime(mg*WHINE3.mgu,t,0.08);
+    SND.mgu.frequency.setTargetAtTime(rpm/60*MGU_ORD,t,0.03);SND.mguF.frequency.setTargetAtTime(rpm/60*MGU_ORD,t,0.03);SND.mguG.gain.setTargetAtTime(mg*WHINE3.mgu,t,0.08);
     if(SND.lastThr>0.8&&thr<0.2&&rpm>9000&&sp>25&&!pl.pit)sfxBurst({type:'highpass',f:2400,q:0.6,amp:0.07,att:0.004,dur:0.28});   // lift-off: turbo wastegate chuff (game effect)
     SND.lastThr=thr;}
   // tyres
@@ -6346,10 +6349,11 @@ function revDots(n){const el=$('rev');if(!el._d){el._d=[];for(let k=0;k<15;k++){
   el._d.forEach((d,k)=>d.classList.toggle('on',k<n));}
 // ---- HUD ----
 const hc={};function setT(id,v){if(hc[id]!==v){hc[id]=v;$(id).textContent=v;}}
-const GR=[120,100.3,83.9,70.1,58.6,49.0,41.0,34.2];let tyreT=0;   // rpm per km/h in each gear (game values: ~345 km/h at 11 800 rpm in 8th)
+const GR=[110,86.8,71.2,59.8,51.4,44.7,38.9,34.2];let tyreT=0;   // rpm per km/h in each gear (~345 km/h at 11 800 rpm in 8th; 11-04: the gaps measured off 2026 power units, wide low down (0.79) and close up top (0.87); they were an even 0.836)
 // 2026 mapping: idle at most 4000 rpm (FIA PU rules), upshift near 11 900, and the lowest gear that stays under ~11 300 when
 // slowing - teams ran very low gears (even 1st) in slow corners to harvest and keep the turbo spinning, so the revs stay high
-function gearRpm(kmh,pg){let g=pg||1;while(g<8&&kmh*GR[g-1]>11900)g++;if(pg){while(g>1&&kmh*GR[g-2]<11300)g--;}return [g,Math.max(3900,Math.min(12300,kmh*GR[g-1]))];}
+const GR_UP=[12500,12500,12400,12300,12000,11700,11700];   // 11-04: where a pull shifts up in each gear, measured off 2026 power units (the drop after it comes out at 0.79-0.87 of the peak, measured 0.79-0.865)
+function gearRpm(kmh,pg){let g=pg||1;while(g<8&&kmh*GR[g-1]>GR_UP[g-1])g++;if(pg){while(g>1&&kmh*GR[g-2]<10600)g--;}return [g,Math.max(3900,Math.min(12700,kmh*GR[g-1]))];}
 let hudGear=1,hudShT=9,hudShD=0;   // the auto gearbox (HUD + sound): time since the last shift, its direction
 let curRpm=4200,curGear='N';
 // v12f: G-meter: the car's acceleration as a dot in a circle (rings at 2 and 4 G; braking up, the turn's outside sideways) with a short
@@ -6381,20 +6385,20 @@ function drawHUD(dt){
    const dv=pl.dlt,el=$('tDelta'),cls=dv==null?'':dv<0?'neg':'pos';setT('tDelta',dv==null?'-':(dv<0?'-':'+')+Math.abs(dv).toFixed(3));if(el._c!==cls){el._c=cls;el.className=cls;}}
   if(spUntil&&performance.now()>spUntil){spUntil=0;$('hudTime').classList.remove('spOn');}   // 10-31: the sector popup's time is up
   const kmh=Math.round(Math.abs(pl.spd)*3.6);setT('spd',String(kmh));
-  let [g,rpm]=gearRpm(kmh,hudGear);
+  let [g,rpm]=gearRpm(Math.abs(pl.spd)*3.6,hudGear);
   hudShT+=dt;if(g!==hudGear){const d=g>hudGear?1:-1,r0=kmh*GR[hudGear-1];
-      if(d!==hudShD&&hudShT<(d<0?0.8:0.5)&&(d<0?r0>8900:r0<12100)){g=hudGear;rpm=Math.max(3900,Math.min(12300,r0));}   // no hunting in fast sweeps: a shift straight back is held off briefly unless the revs force it
+      if(d!==hudShD&&hudShT<(d<0?0.8:0.5)&&(d<0?r0>8900:r0<12350)){g=hudGear;rpm=Math.max(3900,Math.min(12300,r0));}   // no hunting in fast sweeps: a shift straight back is held off briefly unless the revs force it
       else{hudShT=0;hudShD=d;}}
   hudGear=g;
   {const hv=state==='race'&&!pl.pit&&pl.fin==null&&(pl.thr||0)<0.15&&kmh>80?1:0;SND.hv=(SND.hv||0)+(hv-(SND.hv||0))*Math.min(1,dt*(hv?4:6));   // harvesting off throttle (a 2026 car recharges in every braking zone)
-   if(SND.hv>0.01)rpm+=(Math.max(rpm,10200+900*Math.min(1,(kmh-80)/150))-rpm)*SND.hv;}let gs=pl.spd<-0.5?'R':(kmh<2&&!key.gas?'N':String(g));
+   if(SND.hv>0.01)rpm+=(Math.max(rpm,9200+500*Math.min(1,(kmh-80)/150))-rpm)*SND.hv;}let gs=pl.spd<-0.5?'R':(kmh<2&&!key.gas?'N':String(g));
   if(kmh<12)SND.launch=1;else if(kmh>=75||g>1)SND.launch=0;   // v11f: a launch starts from (almost) a standstill - a hairpin exit is not one
   if(SND.launch&&g===1&&(pl.thr||0)>0.3&&kmh<75&&!pl.pit)rpm=Math.max(rpm,10300+kmh*20);   // launch: clutch slip holds the revs
   if(state==='countdown'){gs='N';
     if(key.gas){SND.holdT=(SND.holdT||0)-dt;if(SND.holdT<=0){SND.holdT=0.12+Math.random()*0.3;SND.holdTg=11800+Math.random()*1200;}   // 2026 starts: revs held around 12 000-13 000 to keep the turbo spinning, wandering ("all over the place")
       SND.hold=(SND.hold||12000)+((SND.holdTg||12400)-(SND.hold||12000))*Math.min(1,dt*9);rpm=SND.hold+(Math.random()-0.5)*160;}
     else rpm=3900;}
-  curRpm+=(rpm-curRpm)*Math.min(1,dt*(rpm<curRpm-700?38:18));curGear=gs;   // v11e: the revs fall fast on an upshift
+  curRpm+=(rpm-curRpm)*Math.min(1,dt*(rpm<curRpm-250?38:18));curGear=gs;   // v11e: the revs fall fast on an upshift (11-04: 65-100 ms from peak to trough, measured)
   {const n=Math.max(0,Math.min(15,Math.round((curRpm-9000)/3300*15)));if(hc.rev!==n){hc.rev=n;$('rev').style.setProperty('--n',n);if(isTouch)revDots(n);}}   // v11: rev lights, the same scale as the steering-wheel LEDs
   setT('gear',gs);$('ers').style.transform='scaleX('+Math.min(1,pl.ers/ERS_MAX).toFixed(3)+')';$('ersBox').classList.toggle('on',pl.boost);setT('ersT','배터리 '+pl.ers.toFixed(1)+'MJ'+(pl.boost?' · 부스트':''));
   {const arm=!pl.aeroOpen&&pl.smZone&&!race.aeroAuto&&state==='race';$('bSM').className='badge'+(pl.aeroOpen?' on':arm?' arm':'');
