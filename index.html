@@ -1313,18 +1313,19 @@ function wallHit(race,c,hit,into,side){
 // pk: puncture per tyre (same corner order), 0 = fine .. 1 = fully deflated, running on the rim; pkR = how fast it goes down (1/s).
 // How much breaks per m/s of impact speed is a game tuning for feel, not measured crash data.
 const Z4=[0,0,0,0];
-function newDmg(){return {fp:0,fn:0,rw:0,sus:[0,0,0,0],pk:[0,0,0,0],pkR:[0,0,0,0],sd:[0,0],cool:0};}   // 11-04: sd: sidepod and floor edge on the -z / +z side: torn bodywork, less downforce, less cooling
+function newDmg(){return {fp:0,fn:0,rw:0,sus:[0,0,0,0],pk:[0,0,0,0],pkR:[0,0,0,0],sd:[0,0],sdA:[null,null],cool:0};}   // 11-04: sd: sidepod and floor edge on the -z / +z side: torn bodywork, less downforce, less cooling
 const pch=(x,x0,span,mx)=>Math.max(0,Math.min(mx,(x-x0)/span));   // chance of a puncture for an impact of size x
 function impactInc(hit,into,side){const e=Math.max(0,hit-3),F=side>0?'fp':'fn',O=side>0?'fn':'fp',sI=side>0?1:0,inc={sus:[0,0,0,0],pk:[0,0,0,0]};
   if(into>0.45){inc[F]=e*0.14;if(into>0.85)inc[O]=e*0.1;inc.sus[sI]=Math.max(0,hit-9)*0.045;inc.pk[sI]=pch(hit,12,25,0.5);}   // nose first
   else if(into<-0.45){inc.rw=e*0.11;inc.sus[2+sI]=Math.max(0,hit-8)*0.05;inc.pk[2+sI]=pch(hit,10,20,0.55);}                     // spun round, tail first
-  else{inc[F]=e*0.08;inc.sus[sI]=Math.max(0,hit-6)*0.045;inc.sus[2+sI]=Math.max(0,hit-6)*0.04;inc.pk[sI]=pch(hit,8,20,0.6);inc.pk[2+sI]=pch(hit,8,22,0.5);inc.sd=sI?[0,e*0.07]:[e*0.07,0];}   // side on: endplate, the wheels, the sidepod
+  else{inc[F]=e*0.08;inc.sus[sI]=Math.max(0,hit-6)*0.045;inc.sus[2+sI]=Math.max(0,hit-6)*0.04;inc.pk[sI]=pch(hit,8,20,0.6);inc.pk[2+sI]=pch(hit,8,22,0.5);inc.sd=sI?[0,e*0.07]:[e*0.07,0];inc.sdA={x:0.3-0.05*(hit%12),dir:-1};}   // side on: endplate, the wheels, the sidepod (the wall drags it backwards)
   if(hit>20){inc.sus[sI]+=0.5;inc.sus[2+sI]+=0.3;}
   return inc;}
 function contactDmg(race,a,b,sa,sb,rel,nx,nz){const e=rel-4;
-  const one=(c,sc,so,dx,dz)=>{const side=(-Math.sin(c.a)*dx+Math.cos(c.a)*dz)>0?1:-1,F=side>0?'fp':'fn',sI=side>0?1:0,inc={sus:[0,0,0,0],pk:[0,0,0,0]};
-    if(sc===0){const k=e*(so>0?0.14:0.09);inc.sd=sI?[0,k]:[k,0];}                        // 11-04: hit in the side: the sidepod (harder from a nose than rubbing wheels)
-    else if(sc>0&&so<0){inc[F]=e*0.1;inc.pk[sI]=pch(rel,10,24,0.15);}                        // our nose into their rear wheel: front wing
+  const one=(c,sc,so,dx,dz)=>{const o=c===a?b:a,ca=Math.cos(c.a),sca=Math.sin(c.a),lon=(o.x-c.x)*ca+(o.z-c.z)*sca,lat=Math.abs(-sca*dx+ca*dz);const side=(-Math.sin(c.a)*dx+Math.cos(c.a)*dz)>0?1:-1,F=side>0?'fp':'fn',sI=side>0?1:0,inc={sus:[0,0,0,0],pk:[0,0,0,0]};
+    // 11-04: hit in the side: the sidepod, harder from a nose than from rubbing alongside. The discs alone did not tell: two cars level touch rear disc to rear disc first. sdA: where, and which way the other car dragged it
+    if(lat>0.75&&Math.abs(lon)<3.6){const k=e*(so>0||sc===0?0.13:0.09);inc.sd=sI?[0,k]:[k,0];inc.sdA={x:Math.max(-0.32,Math.min(0.38,lon*0.3)),dir:o.spd>=c.spd?1:-1};}
+    if(sc>0&&so<0){inc[F]=e*0.1;inc.pk[sI]=pch(rel,10,24,0.15);}                        // our nose into their rear wheel: front wing
     else if(sc>0){inc[F]=e*0.05;inc.sus[sI]=e*0.02;inc.pk[sI]=pch(rel,9,24,0.2);}      // side by side, front wheels touching
     else if(so>0){inc.rw=e*0.03;inc.sus[2+sI]=e*0.015;inc.pk[2+sI]=pch(rel,8,22,0.35);} // hit from behind: their wing cuts our rear tyre
     else inc.sus[2+sI]=e*0.02;
@@ -1336,7 +1337,7 @@ function applyDmg(race,c,inc,hit,kind){
   const d=c.dmg,snap=()=>[d.fp,d.fn,d.rw,d.sus[0],d.sus[1],d.sus[2],d.sus[3],d.pk[0],d.pk[1],d.pk[2],d.pk[3],d.sd[0],d.sd[1]],b0=snap();
   d.fp=Math.min(1,d.fp+(inc.fp||0));d.fn=Math.min(1,d.fn+(inc.fn||0));d.rw=Math.min(1,d.rw+(inc.rw||0));
   for(let k=0;k<4;k++)d.sus[k]=Math.min(1,d.sus[k]+((inc.sus&&inc.sus[k])||0));
-  if(inc.sd)for(let k=0;k<2;k++)d.sd[k]=Math.min(1,d.sd[k]+inc.sd[k]);
+  if(inc.sd)for(let k=0;k<2;k++)if(inc.sd[k]>0){d.sd[k]=Math.min(1,d.sd[k]+inc.sd[k]);if(!d.sdA[k])d.sdA[k]=inc.sdA||{x:0.05,dir:-1};}
   // punctures: a cut tyre goes down in a couple of seconds, a slow puncture over ~15 s
   if(inc.pk)for(let k=0;k<4;k++){const p=inc.pk[k]||0;if(p>0&&d.pk[k]<0.05){const q=c.rnd();if(q<p){d.pk[k]=0.12;d.pkR[k]=q<p*0.55?0.45+0.9*c.rnd():0.04+0.05*c.rnd();}}}
   // 11-04: an impact no car survives ends the race whatever the setting, the player's car and the others alike (108 km/h square into something on 리얼, 130 on 보통). Below that 보통 keeps the player limping on
@@ -4822,14 +4823,45 @@ function ghostMat(kit){const gm=kit.ghostM=new THREE.MeshBasicMaterial({color:0x
       gm.onBeforeCompile=sh=>{sh.vertexShader='varying vec3 vGN;varying vec3 vGV;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\nvGN=normalize(normalMatrix*normal);vGV=-mvPosition.xyz;');
         sh.fragmentShader='varying vec3 vGN;varying vec3 vGV;\n'+sh.fragmentShader.replace('#include <alphamap_fragment>','#include <alphamap_fragment>\n{float q=abs(dot(normalize(vGN),normalize(vGV)));diffuseColor.a*=smoothstep(0.0,0.55,q);'+(GRADE_IN_TM?'diffuseColor.a=1.0-pow(1.0-diffuseColor.a,0.4545);':'')+'}');};kit.ghostS=gm.clone();kit.ghostS.opacity=0.28;kit.ghostS.onBeforeCompile=gm.onBeforeCompile;}   // dark in the middle, fading out to its edges: a blurred pillar. 10-30 윤택님 (blur on, the centre was still blocked): the pillar much fainter (ghostS) - the hoop keeps ghostM
       // v14b: (no post chain on a phone: it blends straight onto the sRGB screen, not in linear light - the same see-through needs less opacity)
-// 11-04: a side hit tears the sidepod open: a dark jagged hole and bent shards of the skin, drawn only on a damaged car (one mesh per torn side, none on an intact car; the 3D model's sidepod runs at z 0.59-0.67 here)
-function tearGeo(s){const CX=0.08,CY=0.46,R=[1,0.72,1.08,0.66,0.94,1.16,0.7,1.02,0.78,1.12,0.64,0.98,0.8,1.1],n=R.length,zAt=x=>{const q=Math.max(0,Math.min(1,(x+0.4)/0.6));return 0.59+0.08*q*(2-q);};
-  const pos=[],col=[],tri=(a,b,c,k)=>{for(const p of[a,b,c]){pos.push(p[0]-CX,p[1]-CY,s*p[2]);col.push(k,k,k*1.06);}},rim=[];for(let i=0;i<n;i++){const a=i/n*Math.PI*2,x=CX+Math.cos(a)*0.36*R[i],y=CY+Math.sin(a)*0.115*R[i];rim.push([x,y,zAt(x)+0.008]);}
-  const ctr=[CX,CY,zAt(CX)+0.008];for(let i=0;i<n;i++){tri(ctr,rim[i],rim[(i+1)%n],0.012);}
-  for(let i=0;i<n;i+=2){const p=rim[i],q=rim[(i+1)%n],ox=(p[0]-CX)*0.3+(i%4?0.05:-0.04),oy=(p[1]-CY)*0.7+(i%3?-0.03:0.02),t=[(p[0]+q[0])/2+ox,(p[1]+q[1])/2+oy,Math.max(p[2],q[2])+0.05+0.012*(i%3)];tri(p,q,t,i%4?0.1:0.24);}
-  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.computeVertexNormals();g.userData.c=[CX,CY];return g;}
-function tearMesh(kit,m,k){if(!kit.tear){kit.tear=[tearGeo(-1),tearGeo(1)];kit.tearM=new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.7,side:THREE.DoubleSide});}
-  const g=kit.tear[k],me=new THREE.Mesh(g,kit.tearM);me.position.set(g.userData.c[0],g.userData.c[1],0);me.castShadow=false;m.body.add(me);return me;}
+// 11-04: a side hit tears the sidepod open. Made when it happens, for that impact (where, which way it was dragged, how hard), on that car only; an intact car has none of it.
+// The hole is a flat patch with a shader that looks into a box behind it (a radiator at the back, dark walls), so it has real depth as the view moves. Around it: pale carbon fibre, bare weave where the paint has flaked, cracks and scrapes, and lifted, bent panels.
+const SD_Z=[[0.428,0.45,0.467,0.489,0.508,0.52,0.522,0.521,0.522,0.523,0.513,0.494],[0.444,0.466,0.485,0.509,0.531,0.545,0.547,0.541,0.529,0.522,0.513,0.499],[0.467,0.495,0.52,0.545,0.568,0.584,0.59,0.589,0.578,0.56,0.541,0.52],[0.488,0.521,0.552,0.58,0.603,0.62,0.628,0.631,0.628,0.62,0.605,0.572],[0.503,0.538,0.572,0.601,0.624,0.642,0.651,0.658,0.658,0.654,0.642,0.613],[0.512,0.547,0.582,0.611,0.634,0.651,0.664,0.671,0.673,0.673,0.662,0.637],[0.502,0.54,0.574,0.602,0.627,0.645,0.657,0.666,0.671,0.674,0.666,0.644],[0.447,0.481,0.504,0.527,0.551,0.563,0.574,0.586,0.605,0.622,0.619,0.612]];   // the 3D model's sidepod: |z| by height (0.26-0.54 m) and length (-0.6-0.5 m), measured
+function sdZ(x,y){const gx=Math.max(0,Math.min(10.999,(x+0.6)/0.1)),gy=Math.max(0,Math.min(6.999,(y-0.26)/0.04)),ix=gx|0,iy=gy|0,fx=gx-ix,fy=gy-iy,A=SD_Z[iy],B=SD_Z[iy+1];return (A[ix]*(1-fx)+A[ix+1]*fx)*(1-fy)+(B[ix]*(1-fx)+B[ix+1]*fx)*fy;}
+function tearMats(kit){if(kit.tearM)return;kit.tearM=new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.6,metalness:0.05,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
+  const K=GRADE_IN_TM?'1.0':'0.5';   // (phones write straight to the screen, the post chain lifts dark values)
+  kit.tearH=new THREE.ShaderMaterial({side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2,vertexShader:'attribute vec3 aC;attribute vec3 aR;varying vec3 vP;varying vec3 vD;varying vec3 vC;varying vec3 vR;void main(){vec4 mv=modelViewMatrix*vec4(position,1.0);vec3 e=-mv.xyz;vD=vec3(dot(modelViewMatrix[0].xyz,e),dot(modelViewMatrix[1].xyz,e),dot(modelViewMatrix[2].xyz,e));vP=position;vC=aC;vR=aR;gl_Position=projectionMatrix*mv;}',
+    fragmentShader:'precision highp float;varying vec3 vP;varying vec3 vD;varying vec3 vC;varying vec3 vR;void main(){float dist=length(vD),s=vR.z;vec3 r=-vD/dist,p=vP-vC,q=vec3(p.x,p.y,max(0.0,-s*p.z)),d=vec3(r.x,r.y,max(0.03,-s*r.z));float DP=0.26,wx=vR.x*1.3+0.05,wy=vR.y*1.3+0.04,t0=(DP-q.z)/d.z,tx=abs(d.x)>0.001?((d.x>0.0?wx:-wx)-q.x)/d.x:9.0,ty=abs(d.y)>0.001?((d.y>0.0?wy:-wy)-q.y)/d.y:9.0,t=min(t0,min(tx,ty));vec3 h=q+d*t,c;float fine=clamp(1.0-(dist-8.0)/16.0,0.0,1.0),dz=clamp(h.z/DP,0.0,1.0);'+
+      'if(t==t0){float fin=step(0.5,fract(h.x*62.0)),tb=smoothstep(0.32,0.46,abs(fract(h.y*19.0)-0.5));c=mix(vec3(0.055,0.058,0.06),mix(vec3(0.012),vec3(0.13,0.135,0.135),fin)*(0.45+0.55*tb),fine);float hs=smoothstep(0.02,0.012,abs(h.y-0.02-h.x*0.15));c=mix(c,vec3(0.17,0.075,0.02),hs*0.9);}'+
+      'else{float rb=step(0.78,fract((t==tx?h.y:h.x)*24.0));c=vec3(0.014+0.022*rb*fine);if(t==ty&&d.y>0.0)c*=0.45;else if(t==ty)c+=vec3(0.018);}'+
+      'c*=mix(1.15,0.42,dz);gl_FragColor=vec4(c*'+K+',1.0);}'});}
+function tearGeo(k,A,v){const s=k?1:-1;let sd=(Math.abs(Math.round(A.x*97))+(A.dir>0?31:7)+k*53)*9301+49297;const rn=()=>{sd=(sd*16807)%2147483647;return sd/2147483647;};
+  const dir=A.dir,cx=Math.max(-0.32,Math.min(0.38,A.x)),cy=0.43+rn()*0.05,rx=Math.min(0.1+0.3*v,0.45-Math.abs(cx)*0.4),ry=Math.min(0.03+0.085*v,0.535-cy,cy-0.3),N=30+Math.round(v*14),ph=[rn()*6.3,rn()*6.3,rn()*6.3];
+  const zOf=(x,y,up)=>s*(sdZ(x,y)+up);   // on the skin, a little proud
+  const R=[];for(let i=0;i<N;i++){const a=i/N*Math.PI*2,c=Math.cos(a),jag=i%3===0?(rn()-0.35)*0.34:(rn()-0.5)*0.12,q=1+0.2*Math.sin(a*2+ph[0])+0.13*Math.sin(a*5+ph[1])+0.07*Math.sin(a*11+ph[2])+jag;R.push([cx+c*rx*q*(c*dir>0?1.28:0.82),cy+Math.sin(a)*ry*q]);}
+  const out=(i,w)=>{const p=R[i],dx=(p[0]-cx)/rx,dy=(p[1]-cy)/ry,l=Math.hypot(dx,dy)||1;return [p[0]+dx/l*w,p[1]+dy/l*w];};
+  // the hole
+  const hp=[],ha=[],hr=[],zc=zOf(cx,cy,0.002),push=(x,y)=>{hp.push(x,y,zOf(x,y,0.01));ha.push(cx,cy,zc);hr.push(rx,ry,s);},rq=[0.34,0.68,1],rp=(i,q)=>[cx+(R[i][0]-cx)*q,cy+(R[i][1]-cy)*q];for(let i=0;i<N;i++){const j=(i+1)%N;let a=rp(i,rq[0]),b=rp(j,rq[0]);push(cx,cy);push(a[0],a[1]);push(b[0],b[1]);for(let q=1;q<3;q++){const a2=rp(i,rq[q]),b2=rp(j,rq[q]);push(a[0],a[1]);push(a2[0],a2[1]);push(b2[0],b2[1]);push(a[0],a[1]);push(b2[0],b2[1]);push(b[0],b[1]);a=a2;b=b2;}}
+  const H=new THREE.BufferGeometry();H.setAttribute('position',new THREE.Float32BufferAttribute(hp,3));H.setAttribute('aC',new THREE.Float32BufferAttribute(ha,3));H.setAttribute('aR',new THREE.Float32BufferAttribute(hr,3));H.computeBoundingSphere();
+  // the torn edge
+  const pos=[],col=[],tri=(a,b,c,r,g,bb)=>{for(const q of[a,b,c]){pos.push(q[0],q[1],q[2]);col.push(r,g,bb);}},V=(x,y,up)=>[x,y,zOf(x,y,up)];
+  const W1=[],W2=[];for(let i=0;i<N;i++){W1.push(0.007+0.024*rn()*rn());W2.push(W1[i]+0.006+(0.025+0.03*v)*Math.pow(rn(),1.6));}
+  for(let i=0;i<N;i++){const j=(i+1)%N,a=R[i],b=R[j],a1=out(i,W1[i]),b1=out(j,W1[j]),a2=out(i,W2[i]),b2=out(j,W2[j]),w=0.72+0.26*rn();
+    tri(V(a[0],a[1],0.006),V(b[0],b[1],0.006),V(a1[0],a1[1],0.007),w,w,w*0.95);tri(V(b[0],b[1],0.006),V(b1[0],b1[1],0.007),V(a1[0],a1[1],0.007),w*0.92,w*0.92,w*0.88);   // pale fibre at the very edge
+    const cw=i%2?0.022:0.06+0.03*rn();tri(V(a1[0],a1[1],0.006),V(b1[0],b1[1],0.006),V(a2[0],a2[1],0.005),cw,cw,cw*1.08);tri(V(b1[0],b1[1],0.006),V(b2[0],b2[1],0.005),V(a2[0],a2[1],0.005),cw*0.8,cw*0.8,cw*0.85);   // bare weave where the paint flaked off
+    if(i%2===0){const L=0.012+0.03*rn(),m=[(a[0]+b[0])/2,(a[1]+b[1])/2],in_=[cx-m[0],cy-m[1]],il=Math.hypot(in_[0],in_[1])||1,tp=[m[0]+in_[0]/il*L+(rn()-0.5)*0.012,m[1]+in_[1]/il*L];const f=0.82+0.16*rn();tri(V(a[0],a[1],0.008),V(b[0],b[1],0.008),V(tp[0],tp[1],0.006+rn()*0.012),f,f,f*0.94);}}   // loose strands into the hole
+  // cracks in the paint, scrapes the way it was dragged
+  const nC=2+Math.round(v*6);for(let n=0;n<nC;n++){const i=(rn()*N)|0,o=out(i,W2[i]),rd=[o[0]-cx,o[1]-cy],rl=Math.hypot(rd[0],rd[1])||1,L=0.02+(0.03+0.06*v)*rn(),e=[o[0]+rd[0]/rl*L+dir*L*0.3,o[1]+rd[1]/rl*L*0.55+(rn()-0.5)*0.02],t=0.002+0.003*rn();if(e[1]>0.555||e[1]<0.27)continue;tri(V(o[0],o[1]+t,0.005),V(o[0],o[1]-t,0.005),V(e[0],e[1],0.004),0.03,0.03,0.032);}
+  const nS=2+Math.round(v*5);for(let n=0;n<nS;n++){const y0=cy+(rn()-0.5)*ry*2.1,x0=cx+dir*rx*(0.6+0.5*rn()),L=(0.08+0.26*v)*(0.5+rn()*0.7),h=0.0025+0.005*rn(),g=0.1+0.2*rn();if(y0>0.55||y0<0.28)continue;const x1=x0+dir*L,m=(x0+x1)/2;tri(V(x0,y0-h,0.004),V(x0,y0+h,0.004),V(x1,y0+(rn()-0.5)*0.008,0.004),g,g,g);tri(V(m,y0+h*1.6,0.0042),V(m,y0+h*0.2,0.0042),V(x1+dir*L*0.25,y0+h,0.004),g*1.2,g*1.2,g*1.2);}
+  // lifted panels: hinged on the edge, bent out and away, the way it was dragged
+  const nP=1+Math.round(v*4);for(let n=0;n<nP;n++){const i=(rn()*N)|0,j=(i+2+((rn()*2)|0))%N,a=out(i,W1[i]),b=out(j,W1[j]),m=[(a[0]+b[0])/2,(a[1]+b[1])/2],rd=[m[0]-cx,m[1]-cy],rl=Math.hypot(rd[0],rd[1])||1,L=(0.02+0.05*rn())*(0.5+0.8*v),ox=rd[0]/rl*L*0.7+dir*L*0.55,oy=rd[1]/rl*L*0.7-0.012*rn(),lf=0.008+(0.012+0.03*rn())*(0.5+v);
+    const A1=[a[0],a[1],zOf(a[0],a[1],0.006)],B1=[b[0],b[1],zOf(b[0],b[1],0.006)],M1=[a[0]+ox*0.55,a[1]+oy*0.55,zOf(a[0],a[1],0.006)+s*lf*0.45],M2=[b[0]+ox*0.5,b[1]+oy*0.5,zOf(b[0],b[1],0.006)+s*lf*0.5],Tp=[m[0]+ox*1.1+(rn()-0.5)*0.02,m[1]+oy*1.1,zOf(m[0],m[1],0.006)+s*lf*1.15],g=0.04+0.05*rn();
+    tri(A1,B1,M1,g,g,g*1.1);tri(B1,M2,M1,g*0.8,g*0.8,g*0.9);tri(M1,M2,Tp,g*1.2,g*1.2,g*1.3);const f=0.8+0.18*rn();tri(M2,Tp,[M2[0]+(Tp[0]-M2[0])*0.3+0.004,M2[1]+(Tp[1]-M2[1])*0.3+0.005,M2[2]+(Tp[2]-M2[2])*0.3],f,f,f*0.95);}   // a light broken edge on each
+  if(v>=0.5){let x=cx+dir*rx*0.7,y=cy+ry*(rn()-0.2)*0.6,lf=0.008;const w=0.018+0.025*v;for(let q=0;q<4;q++){const dx=dir*(0.03+0.02*v),x1=x+dx,y1=y-0.012-0.006*q,lf1=lf+0.012+0.018*q,a=[x,y+w,zOf(x,y+w,0.005)+s*lf],b=[x,y-w,zOf(x,y-w,0.005)+s*lf],c=[x1,y1+w*(1-q*0.12),zOf(x1,y1,0.005)+s*lf1],d=[x1,y1-w*(1-q*0.12),zOf(x1,y1,0.005)+s*lf1],g=0.05+q*0.012;tri(a,b,c,g,g,g*1.1);tri(b,d,c,g*0.85,g*0.85,g*0.95);if(q===3){const f=0.85;tri(c,d,[(c[0]+d[0])/2+dir*0.018,(c[1]+d[1])/2,(c[2]+d[2])/2+s*0.012],f,f,f*0.96);}x=x1;y=y1;lf=lf1;}}   // a long strip peeling back
+  const G=new THREE.BufferGeometry();G.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));G.setAttribute('color',new THREE.Float32BufferAttribute(col,3));G.computeVertexNormals();G.computeBoundingSphere();return [H,G];}
+function tearSet(kit,m,k,A,v){tearMats(kit);const t=(m.tear||(m.tear=[null,null])),q=t[k]||(t[k]={h:new THREE.Mesh(new THREE.BufferGeometry(),kit.tearH),r:new THREE.Mesh(new THREE.BufferGeometry(),kit.tearM),b:-1});
+  if(!t[k].on){t[k].on=true;m.body.add(q.h);m.body.add(q.r);}q.h.visible=q.r.visible=true;const b=Math.floor(v*8);if(b===q.b)return;q.b=b;q.h.geometry.dispose();q.r.geometry.dispose();const [H,G]=tearGeo(k,A||{x:0.05,dir:-1},Math.min(1,0.14+b/8));q.h.geometry=H;q.r.geometry=G;}
+// precompiled with the race's other shaders, so the first tear does not stutter
+function tearPre(kit){tearMats(kit);const g=new THREE.Group(),[H,G]=tearGeo(0,{x:0,dir:1},0.2);g.add(new THREE.Mesh(H,kit.tearH),new THREE.Mesh(G,kit.tearM));g.scale.setScalar(0.001);g.position.y=-50;return g;}
 function buildCar(kit,scene,c){
   const M=teamMats(kit,c.team,c.num,c.isP?null:c.code,!!kit.glb),root=new THREE.Group(),body=new THREE.Group(),G=kit.geo;root.add(body);
   const add=(g,m,par,cast)=>{const me=new THREE.Mesh(g,m);me.castShadow=!!cast;me.receiveShadow=true;(par||body).add(me);return me;};
@@ -5799,8 +5831,10 @@ function setupRace(mode,o){o=o||{};mDraw=40;podiumEnd(false);meshes.forEach(m=>s
   const pi=race.cars.indexOf(race.player);SW=buildSteeringWheel(KIT,race.player);SW.col.position.x+=meshes[pi].ck.x;SW.col.position.y+=meshes[pi].ck.y;meshes[pi].body.add(SW.col);SW.arms.forEach(a=>meshes[pi].body.add(a));meshes[pi].sw=SW;addMirrorFaces(meshes[pi]);sessionBest=null;lapLog=[];spUntil=0;$('hudTime').classList.remove('spOn');camYaw=race.player.a;}
 function warmUp(){if(!renderer||!scene)return;const prev=renderer.getRenderTarget();let envs=[];try{envs=prepEnvs();}catch(e){}
   // compile against the same target the frames are drawn into (the post-processing buffer), or the shaders do not match
+  let tp=null;try{if(KIT&&KIT.glb){tp=tearPre(KIT);scene.add(tp);}}catch(e){}
   try{renderer.setRenderTarget(composer&&composer.readBuffer?composer.readBuffer:null);renderer.compile(scene,camera);
     const e0=scene.environment;for(const e of envs){scene.environment=e;renderer.compile(scene,camera);}scene.environment=e0;}catch(e){}
+  if(tp)scene.remove(tp);
   try{renderer.setRenderTarget(null);if(MIR&&MIR.hs)renderer.compile(MIR.hs,MIR.hc);}catch(e){}
   renderer.setRenderTarget(prev);
   try{if(KIT&&KIT.decalBlur)for(const k in KIT.decalBlur)renderer.initTexture(KIT.decalBlur[k].map);}catch(e){}   // v13j: else they upload as the cars pull away from the grid
@@ -7261,7 +7295,7 @@ function dmgVis(m,c){const d=c.dmg;if(!d||!m.fw)return;if(!c.pit){m.noseAnim=nul
   const clean=!na&&!ra&&!fx&&!dmgAny(d);if(clean&&m.dmgKey==='clean')return;   // intact car: nothing to do (and no garbage every frame)
   const key=clean?'clean':(na?na.ph+na.u.toFixed(2):'-')+(ra?ra.ph+ra.u.toFixed(2):'-')+(fx?fx.key:'-')+d.fp.toFixed(2)+d.fn.toFixed(2)+d.rw.toFixed(2)+d.sus.map(v=>v.toFixed(2)).join()+pk.map(v=>v.toFixed(2)).join()+d.sd[0].toFixed(2)+d.sd[1].toFixed(2);
   if(key===m.dmgKey)return;m.dmgKey=key;
-  for(let k=0;k<2;k++){const v=d.sd[k],t=m.tear||(m.tear=[null,null]);if(v>=0.12&&!t[k])t[k]=tearMesh(KIT,m,k);if(t[k]){t[k].visible=v>=0.12;const q=0.35+0.65*Math.min(1,v);t[k].scale.set(q,q,1);}}
+  for(let k=0;k<2;k++){const v=fx?0:d.sd[k];if(v>=0.1)tearSet(KIT,m,k,d.sdA[k],v);else if(m.tear&&m.tear[k]&&m.tear[k].on){const q=m.tear[k];q.h.visible=q.r.visible=false;q.b=-1;}}
   const fresh=!!na&&(na.ph==='on'||na.ph==='new');
   for(const g of m.fw){const sd=g.sd,h=fresh?0:Math.min(1,sd>0?d.fp:d.fn);
     g.visible=h<1&&!(na&&(na.ph==='gone'||na.ph==='on'));
