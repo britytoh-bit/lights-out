@@ -4249,14 +4249,14 @@ function airfoil(chord,thick,span,aoa,camber){
 }
 // side s>0: inboard end at z=zin, outboard at zin+span; s<0 mirrored; s=0 centred, both tips bent (rear wing)
 // rise: tip height change, r0: fraction of the span where the bend starts, sweep: tip moved back (x)
-function bentFoil(chord,thick,span,aoa,camber,s,zin,rise,r0,sweep,sp){
-  const sh=new THREE.Shape(),n=16;
+function bentFoil(chord,thick,span,aoa,camber,s,zin,rise,r0,sweep,sp,lo){   // lo: few segments, for the far-car stand-ins
+  const sh=new THREE.Shape(),n=lo?3:16;
   for(let i=0;i<=n;i++){const t=i/n,x=chord/2-t*chord,y=-camber*4*t*(1-t)+thick*1.1*Math.sqrt(t)*(1-t);i?sh.lineTo(x,y):sh.moveTo(x,y);}
   for(let i=n;i>=0;i--){const t=i/n,x=chord/2-t*chord,y=-camber*4*t*(1-t)-thick*0.35*Math.sqrt(t)*(1-t);sh.lineTo(x,y);}
-  const g=new THREE.ExtrudeGeometry(sh,{depth:span,steps:14,bevelEnabled:false,curveSegments:4});g.translate(0,0,-span/2);g.rotateZ(aoa);
+  const g=new THREE.ExtrudeGeometry(sh,{depth:span,steps:lo?3:14,bevelEnabled:false,curveSegments:4});g.translate(0,0,-span/2);g.rotateZ(aoa);
   const pa=g.attributes.position;
   for(let i=0;i<pa.count;i++){const z=pa.getZ(i);let t=s>0?z/span+0.5:s<0?0.5-z/span:Math.abs(z)/(span/2);
-    const f=smooth((t-r0)/(1-r0));pa.setY(i,pa.getY(i)+rise*f);pa.setX(i,pa.getX(i)-sweep*Math.pow(t,sp||1));
+    const f=smooth((t-r0)/(1-r0));pa.setY(i,pa.getY(i)+rise*f);pa.setX(i,pa.getX(i)-sweep*Math.pow(Math.max(0,t),sp||1));
     if(s!==0)pa.setZ(i,z+s*(span/2+zin));}
   g.computeVertexNormals();return g;}
 function plate(pts,th){const sh=new THREE.Shape();pts.forEach((p,i)=>i?sh.lineTo(p[0],p[1]):sh.moveTo(p[0],p[1]));const g=new THREE.ExtrudeGeometry(sh,{depth:th,bevelEnabled:false,curveSegments:6});g.translate(0,0,-th/2);return g;}
@@ -4354,17 +4354,19 @@ function buildCarGeometry(){
   // (built as two halves so each side can bend or break off on its own)
   const fwing={};
   for(const s of[-1,1]){const k=s>0?'P':'N';
-    fwing['c'+k]=mergeGeos([bentFoil(0.18,0.02,0.8,-0.04,0.012,s,0.02,0.05,0.6,0.14,2).translate(2.76,0.07,0),plate([[2.86,0.018],[2.62,0.018],[2.6,0.056],[2.84,0.056]],0.01).translate(0,0,s*0.45)]);
-    fwing['s'+k]=mergeGeos([plate([[2.74,0.03],[2.2,0.03],[2.18,0.07],[2.19,0.23],[2.26,0.265],[2.42,0.245],[2.58,0.16],[2.7,0.09],[2.74,0.06]],0.014).translate(0,0,s*0.82),
-      airfoil(0.14,0.007,0.05,-0.04,0.005).translate(2.45,0.19,s*0.852),plate([[2.7,0],[2.2,0],[2.23,0.045],[2.66,0.035]],0.006).rotateX(s*Math.PI/2).translate(0,0.034,s*0.827)]);
+    // 11-04 (photo references): stacked elements that climb and sweep back into a tall curved endplate; it was one flat band with a low plate
+    fwing['c'+k]=mergeGeos([bentFoil(0.2,0.024,0.8,-0.08,0.016,s,0.02,0.085,0.45,0.16,1.6).translate(2.79,0.062,0),bentFoil(0.15,0.016,0.8,-0.34,0.012,s,0.02,0.1,0.42,0.18,1.6).translate(2.635,0.1,0),plate([[2.86,0.018],[2.62,0.018],[2.6,0.056],[2.84,0.056]],0.01).translate(0,0,s*0.45)]);
+    const epl=plate([[2.88,0.02],[2.2,0.02],[2.17,0.075],[2.17,0.3],[2.24,0.365],[2.38,0.35],[2.56,0.225],[2.72,0.125],[2.86,0.07]],0.016).translate(0,0,s*0.82);{const pa=epl.attributes.position;for(let i=0;i<pa.count;i++)pa.setZ(i,pa.getZ(i)+s*0.045*smooth((pa.getY(i)-0.16)/0.2));epl.computeVertexNormals();}   // the top rolls outwards
+    fwing['s'+k]=mergeGeos([epl,airfoil(0.14,0.007,0.05,-0.04,0.005).translate(2.46,0.27,s*0.885),plate([[2.88,0],[2.17,0],[2.2,0.05],[2.82,0.04]],0.006).rotateX(s*Math.PI/2).translate(0,0.034,s*0.827)]);
     // fixed outboard flap sections: they carry on from the active flaps, sweeping back and up into the endplate
-    fwing['o'+k]=mergeGeos([bentFoil(0.12,0.012,0.22,-0.35,0.008,s,0.6,0.07,0,0.26,1.3).translate(2.676,0.104,0),bentFoil(0.1,0.01,0.22,-0.55,0.007,s,0.6,0.08,0,0.3,1.3).translate(2.5726,0.1539,0)]);}
+    fwing['o'+k]=mergeGeos([bentFoil(0.14,0.013,0.22,-0.42,0.009,s,0.6,0.09,0,0.2,1.3).translate(2.485,0.163,0),bentFoil(0.12,0.011,0.22,-0.62,0.008,s,0.6,0.08,0,0.12,1.3).translate(2.354,0.215,0)]);}
   // rear wing: mainplane (the flap is the active group), endplates, beam wing, swan-neck pylon, shark fin, rain light
   // (mainplane + endplates can break off as one piece; the beam wing and the pylon stay on the car)
   // 10-30 윤택님 (the open gap under the wing looked empty): a two-element beam wing again, in the mainplane's geometry (carbon, goes with it)
-  const rwingC=mergeGeos([bentFoil(0.26,0.028,0.93,-0.14,0.018,0,0,-0.06,0.78,0).translate(-2.19,0.8,0),
+  // 11-04 (photo references): a big spoon-shaped pair of elements whose tips climb into taller endplates with a raked top; the flap was narrow and dipped at the ends
+  const rwingC=mergeGeos([plate([[-1.99,0.66],[-1.99,0.5],[-2.3,0.45],[-2.42,0.56],[-2.5,0.66]],0.016).translate(0,0,0.475),plate([[-1.99,0.66],[-1.99,0.5],[-2.3,0.45],[-2.42,0.56],[-2.5,0.66]],0.016).translate(0,0,-0.475),bentFoil(0.3,0.03,0.93,-0.16,0.02,0,0,0.05,0.5,0).translate(-2.1,0.8,0),
     bentFoil(0.13,0.018,0.93,-0.10,0.012,0,0,0.025,0.6,0).translate(-2.15,0.555,0),bentFoil(0.10,0.015,0.93,-0.28,0.010,0,0,0.02,0.6,0).translate(-2.04,0.515,0)]);
-  const rwingS=mergeGeos([-1,1].map(s=>plate([[-2.0,0.47],[-2.3,0.47],[-2.42,0.62],[-2.47,0.7],[-2.45,0.92],[-2.32,0.96],[-2.1,0.93],[-2.0,0.78]],0.018).translate(0,0,s*0.475)));
+  const rwingS=mergeGeos([-1,1].map(s=>plate([[-1.99,0.66],[-2.5,0.66],[-2.55,0.8],[-2.57,1.03],[-2.49,1.07],[-2.16,0.99],[-2.03,0.9]],0.018).translate(0,0,s*0.475)));
   carbon.push(wingRod([-1.95,0.3,0],[-2.12,0.8,0],0.05,0.012));
   const fin=(()=>{const g=plate([[-0.66,1.0],[-1.98,0.84],[-2.04,0.5],[-1.9,0.47],[-1.45,0.63],[-1.02,0.84],[-0.7,0.97]],0.014),pa=g.attributes.position,uv=g.attributes.uv;   // 2026: the shark fin is back
     for(let i=0;i<pa.count;i++){const u=(pa.getX(i)+2.04)/1.38,v=(pa.getY(i)-0.47)/0.53;uv.setXY(i,pa.getZ(i)>=0?u:1-u,v);}return g;})();
@@ -4422,8 +4424,15 @@ function buildCarGeometry(){
   const tcam=new THREE.BoxGeometry(0.1,0.05,0.14).translate(-0.5,1.03,0);
   // wing decals (planes just proud of the endplates), uv mapped into the team decal atlas
   const dq=(w,h,x,y,z,s,u0,v0,u1,v1)=>{const g=new THREE.PlaneGeometry(w,h);if(s<0)g.rotateY(Math.PI);g.translate(x,y,z);const uv=g.attributes.uv;for(let i=0;i<uv.count;i++){const u=uv.getX(i),v=uv.getY(i);uv.setXY(i,u0+(u1-u0)*u,v0+(v1-v0)*v);}return g;};
-  const rwingD=mergeGeos([-1,1].map(s=>dq(0.34,0.16,-2.25,0.77,s*0.4855,s,0,0,0.5,0.5)));
-  for(const s of[-1,1])fwing['d'+(s>0?'P':'N')]=dq(0.22,0.055,2.44,0.1,s*0.8285,s,0.625,0.5,1,1);   // below the endplate fin
+  const rwingD=mergeGeos([-1,1].map(s=>dq(0.42,0.2,-2.29,0.85,s*0.4855,s,0,0,0.5,0.5)));
+  // 11-04: lettering on the front wing's main plane as well (the game's own sponsors, read from the front), following its climb and sweep
+  const mainD=s=>{const z0=0.26,z1=0.68,n=8,pos=[],uv=[],idx=[];for(let i=0;i<=n;i++){const q=i/n,z=z1+(z0-z1)*q,t=(z-0.02)/0.8,y=0.056+0.085*smooth((t-0.45)/0.55),x=2.79-0.16*Math.pow(t,1.6),zz=s>0?z:-(z0+z1-z),u=s>0?q:q;
+      pos.push(x+0.048,y,zz,x-0.048,y,zz);uv.push(u*0.625,0.5,u*0.625,1);if(i<n){const a=i*2;if(s>0)idx.push(a,a+1,a+2,a+1,a+3,a+2);else idx.push(a,a+1,a+2,a+1,a+3,a+2);}}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();return g;};
+  // 11-04: the far-car stand-ins get a few-sided copy of the wings (their triangles went up 45 % with the extra front element, now they are down instead)
+  for(const s of[-1,1])fwing['x'+(s>0?'P':'N')]=mergeGeos([bentFoil(0.2,0.024,0.8,-0.08,0.016,s,0.02,0.085,0.45,0.16,1.6,true).translate(2.79,0.062,0),bentFoil(0.15,0.016,0.8,-0.34,0.012,s,0.02,0.1,0.42,0.18,1.6,true).translate(2.635,0.1,0)]);
+  fwing.rx=mergeGeos([bentFoil(0.3,0.03,0.93,-0.16,0.02,0,0,0.05,0.5,0,1,true).translate(-2.1,0.8,0),bentFoil(0.13,0.018,0.93,-0.10,0.012,0,0,0.025,0.6,0,1,true).translate(-2.15,0.555,0)]);
+  for(const s of[-1,1])fwing['d'+(s>0?'P':'N')]=mergeGeos([dq(0.3,0.075,2.47,0.115,s*0.8285,s,0.625,0.5,1,1),mainD(s)]);   // below the endplate fin, and on the main plane
   return {paint:mergeGeos(paint),podL:pods[0],podR:pods[1],pods:mergeGeos(pods),fin,tcam,carbon:mergeGeos(carbon),carbonP:mergeGeos(carbon.filter(g=>g!==strut)),strut,strutG,dark:mergeGeos(dark),second:mergeGeos(second),metal:mergeGeos(metal),fw:fwing,rwC:rwingC,rwS:rwingS,rwD:rwingD,haloD};
 }
 // ---------- fictional sponsors (invented names and marks; no real brands) ----------
@@ -4718,8 +4727,13 @@ function loadCarModel(kit){if(!THREE.GLTFLoader)return;
     Q.ck={x:0.70,y:-0.07,ex:-0.05,ey:-0.01,fov:54,ly:-1.4,tx:ex.tcam?c3(ex.tcam)[0]+0.5:0.41,ty:ex.tcam?ex.tcam.mx[1]-1.055:0.075};   // 10-29 (onboard reference): the eye sits lower under the hoop with a narrower view - the blurred hoop frames the top, the wheel is bigger   // 10-30 윤택님 (the road was hard to see): the eye 9 cm higher and looking a little down (ly: look height 30 m ahead) - the horizon sits at about a third from the top, the road fills the middle
     Q.mir=[ex.mirrorL,ex.mirrorR].map(b=>b?[b.mn[0]-0.003,(b.mn[1]+b.mx[1])/2,(b.mn[2]+b.mx[2])/2,(b.mx[2]-b.mn[2])/2*0.92,(b.mx[1]-b.mn[1])/2*0.9]:null);
     Q.pylon=wingRod([-1.82,0.42,0],[-2.12,0.8,0],0.06,0.014);
+    // 11-04 (photo references): what the 2022 body lacks along the floor: a board ahead of the sidepod, a lip along the floor's edge, strakes before the rear tyre. In the pylon's mesh: no draw call more
+    {const L=[Q.pylon];for(const s of[-1,1]){const b=plate([[1.24,0.045],[0.7,0.045],[0.6,0.1],[0.64,0.2],[0.8,0.26],[1.04,0.2],[1.24,0.1]],0.012),pa=b.attributes.position;for(let i=0;i<pa.count;i++)pa.setZ(i,pa.getZ(i)+s*(0.6+0.12*(pa.getX(i)-0.6)/0.64));b.computeVertexNormals();L.push(b);
+       L.push(plate([[0.62,0.66],[0.2,0.72],[-0.2,0.73],[-0.6,0.7],[-1.16,0.6],[-1.16,0.635],[-0.6,0.745],[-0.2,0.775],[0.2,0.765],[0.62,0.695]],0.006).rotateX(s*Math.PI/2).translate(0,0.085,0));
+       for(let i=0;i<5;i++)L.push(plate([[0.075,0],[-0.075,0],[-0.06,0.1],[0.06,0.08]],0.006).rotateY(s*0.35).translate(-0.82-0.085*i,0.07,s*(0.655+0.012*i)));}
+     Q.pylon=mergeGeos(L);}
     Q.latLight=mergeGeos(Q.mir.filter(Boolean).map(b=>new THREE.BoxGeometry(0.04,0.02,0.014).translate(b[0]+0.02,b[1],b[2]+Math.sign(b[2])*(b[3]+0.008))));
-    kit.pxCg=mergeGeos([kit.geo.fw.cP,kit.geo.fw.cN,kit.geo.rwC,Q.pylon]);
+    kit.pxCg=mergeGeos([kit.geo.fw.xP,kit.geo.fw.xN,kit.geo.fw.rx,Q.pylon]);
     kit.glb=Q;window.__CARGLB={ok:true,t:Math.round(performance.now())};
     if(typeof state!=='undefined'&&state==='menu'&&KIT===kit)setupRace();   // the menu's cars at once; a race in progress keeps its cars
   }catch(e){console.warn('car model',e);window.__CARGLB={ok:false,why:String(e)};}},undefined,()=>{window.__CARGLB={ok:false,why:'load'};});}
@@ -4740,15 +4754,15 @@ function buildCarKit(){
     // v12h: lighter wheels for what is never seen close: the far-car stand-ins and (below the top setting) the pit crews' loose wheels
     tyreFlo:tyreProfile(WHL.hwf,24),tyreRlo:tyreProfile(WHL.hwr,24),ringLo:new THREE.RingGeometry(0.245,0.345,24),coverLo:new THREE.CircleGeometry(0.24,16),tyrePit:tyreProfile(WHL.hwr,12),ringPit:new THREE.RingGeometry(0.245,0.345,12),coverPit:new THREE.CircleGeometry(0.24,10),
     // v12h (2026 cars): red LED strips on the rear-wing endplates (they flash with the rear light) and amber lateral lights on the mirror tips
-    epLight:mergeGeos([-1,1].map(s=>new THREE.BoxGeometry(0.012,0.15,0.024).translate(-2.476,0.78,s*0.475))),latLight:mergeGeos([-1,1].map(s=>new THREE.BoxGeometry(0.07,0.022,0.014).translate(0.29,0.705,s*0.633))),upright:new THREE.CylinderGeometry(0.2,0.2,0.1,18).rotateX(Math.PI/2),cover:new THREE.CircleGeometry(0.24,40),
+    epLight:mergeGeos([-1,1].map(s=>new THREE.BoxGeometry(0.012,0.2,0.024).translate(-2.572,0.88,s*0.475))),latLight:mergeGeos([-1,1].map(s=>new THREE.BoxGeometry(0.07,0.022,0.014).translate(0.29,0.705,s*0.633))),upright:new THREE.CylinderGeometry(0.2,0.2,0.1,18).rotateX(Math.PI/2),cover:new THREE.CircleGeometry(0.24,40),
     helmet:(()=>{const g=new THREE.SphereGeometry(0.135,24,16);g.scale(1.12,1,0.95);return g;})(),
     visor:(()=>{const g=new THREE.SphereGeometry(0.137,24,8,-0.9,1.8,1.2,0.42);g.scale(1.12,1,0.95);g.rotateY(Math.PI/2);return g;})(),
-    drs:bentFoil(0.2,0.018,0.91,0,0.012,0,0,-0.06,0.78,0).translate(0.1,0,0),flapDecal:(()=>{const out=[];
-      for(const top of[true,false]){const g=new THREE.PlaneGeometry(0.74,0.17,1,8),p=new THREE.Vector3(0,0,1),q=new THREE.Vector3(top?1:-1,0,0),n=new THREE.Vector3(0,top?1:-1,0);
-        g.applyMatrix4(new THREE.Matrix4().makeBasis(p,q,n));g.translate(0.1,0,0);const pa=g.attributes.position,uv=g.attributes.uv;
-        for(let i=0;i<pa.count;i++){const x=pa.getX(i),t=Math.min(1,Math.max(0,(0.2-x)/0.2)),cb=-0.012*4*t*(1-t),y=top?cb+0.018*1.1*Math.sqrt(t)*(1-t)+0.0015:cb-0.018*0.35*Math.sqrt(t)*(1-t)-0.0015;pa.setY(i,y);
+    drs:bentFoil(0.24,0.02,0.91,0,0.014,0,0,0.05,0.5,0).translate(0.12,0,0),flapDecal:(()=>{const out=[];
+      for(const top of[true,false]){const g=new THREE.PlaneGeometry(0.8,0.2,10,8),p=new THREE.Vector3(0,0,1),q=new THREE.Vector3(top?1:-1,0,0),n=new THREE.Vector3(0,top?1:-1,0);
+        g.applyMatrix4(new THREE.Matrix4().makeBasis(p,q,n));g.translate(0.12,0,0);const pa=g.attributes.position,uv=g.attributes.uv;
+        for(let i=0;i<pa.count;i++){const x=pa.getX(i),t=Math.min(1,Math.max(0,(0.24-x)/0.24)),cb=-0.014*4*t*(1-t),y=(top?cb+0.02*1.1*Math.sqrt(t)*(1-t)+0.0015:cb-0.02*0.35*Math.sqrt(t)*(1-t)-0.0015)+0.05*smooth((Math.abs(pa.getZ(i))/0.455-0.5)/0.5);pa.setY(i,y);
           uv.setXY(i,uv.getX(i)*0.625,0.5+uv.getY(i)*0.5);}
-        g.computeVertexNormals();out.push(g);}return mergeGeos(out);})(),fflapP:bentFoil(0.12,0.012,0.58,0,0.008,1,0.03,0.01,0.7,0.03).translate(0.06,0,0),fflapN:bentFoil(0.12,0.012,0.58,0,0.008,-1,0.03,0.01,0.7,0.03).translate(0.06,0,0),fflap2P:bentFoil(0.1,0.01,0.56,0,0.007,1,0.04,0.012,0.7,0.03).translate(0.05,0,0),fflap2N:bentFoil(0.1,0.01,0.56,0,0.007,-1,0.04,0.012,0.7,0.03).translate(0.05,0,0),gurP:bentFoil(0.012,0.026,0.56,0,0,1,0.04,0.012,0.7,0.03).translate(0.006,0,0),gurN:bentFoil(0.012,0.026,0.56,0,0,-1,0.04,0.012,0.7,0.03).translate(0.006,0,0),light:new THREE.BoxGeometry(0.03,0.06,0.14),
+        g.computeVertexNormals();out.push(g);}return mergeGeos(out);})(),fflapP:bentFoil(0.14,0.013,0.58,0,0.009,1,0.03,0.03,0.5,0.05).translate(0.07,0,0),fflapN:bentFoil(0.14,0.013,0.58,0,0.009,-1,0.03,0.03,0.5,0.05).translate(0.07,0,0),fflap2P:bentFoil(0.12,0.011,0.56,0,0.008,1,0.04,0.035,0.5,0.06).translate(0.06,0,0),fflap2N:bentFoil(0.12,0.011,0.56,0,0.008,-1,0.04,0.035,0.5,0.06).translate(0.06,0,0),gurP:bentFoil(0.012,0.026,0.56,0,0,1,0.04,0.035,0.5,0.06).translate(0.006,0,0),gurN:bentFoil(0.012,0.026,0.56,0,0,-1,0.04,0.035,0.5,0.06).translate(0.006,0,0),light:new THREE.BoxGeometry(0.03,0.06,0.14),
     carbonM:new Phys({color:0x0b0c0e,roughness:0.55,metalness:0.0,clearcoat:0.12,clearcoatRoughness:0.4,envMapIntensity:0.32}),
     darkM:new THREE.MeshStandardMaterial({color:0x070708,roughness:0.9}),
     mirrorM:new THREE.MeshStandardMaterial({color:0x3a4046,roughness:0.03,metalness:1}),
@@ -4829,11 +4843,11 @@ function buildCar(kit,scene,c){
   for(const s of[1,-1]){const k=s>0?'P':'N',g=new THREE.Group();g.position.set(FW_X,0.1,s*0.07);body.add(g);const o=g.position.clone().negate();
     add(G.fw['c'+k],kit.carbonM,g,true).position.copy(o);
     const ep=new THREE.Group();ep.position.copy(o);g.add(ep);add(G.fw['s'+k],M.endp,ep,true);add(G.fw['d'+k],M.decal,ep);add(G.fw['o'+k],M.flap,ep,true);
-    for(const [geo,x,y,cA,oA] of[[kit['fflap'+k],2.62,0.125,-0.35,-0.08],[kit['fflap2'+k],2.53,0.18,-0.55,-0.1]]){const pv=flap(g,geo,M.flap,x-FW_X,y-0.1,cA,oA);pv.position.z=-s*0.07;ffp.push(pv);if(geo===kit['fflap2'+k])add(kit['gur'+k],M.gur,pv);}
+    for(const [geo,x,y,cA,oA] of[[kit['fflap'+k],2.47,0.16,-0.42,-0.1],[kit['fflap2'+k],2.365,0.215,-0.62,-0.12]]){const pv=flap(g,geo,M.flap,x-FW_X,y-0.1,cA,oA);pv.position.z=-s*0.07;ffp.push(pv);if(geo===kit['fflap2'+k])add(kit['gur'+k],M.gur,pv);}
     g.sd=s;g.ep=ep;fw.push(g);}
   const rw=new THREE.Group();rw.position.set(-2.12,0.8,0);body.add(rw);const ro=rw.position.clone().negate();
   add(G.rwC,kit.carbonM,rw,true).position.copy(ro);add(G.rwS,M.endp,rw,true).position.copy(ro);add(G.rwD,M.decal,rw).position.copy(ro);
-  const drs=new THREE.Group();drs.position.copy(ro);rw.add(drs);const rf=flap(drs,kit.drs,M.rflap,-2.44,0.95,-0.52,-0.06);add(kit.flapDecal,M.decal,rf);
+  const drs=new THREE.Group();drs.position.copy(ro);rw.add(drs);const rf=flap(drs,kit.drs,M.rflap,-2.46,0.97,-0.52,-0.06);add(kit.flapDecal,M.decal,rf);
   const rlM=new THREE.MeshBasicMaterial({color:0x220000,toneMapped:false});add(kit.light,rlM).position.set(-2.24,0.3,0);add(kit.epLight,rlM,rw).position.copy(ro);   // (the endplate strips go with the rear wing if it breaks off)
   const latM=new THREE.MeshBasicMaterial({color:0x1a0f00,toneMapped:false});add(Q?Q.latLight:kit.latLight,latM,body);
   scene.add(root);
@@ -4843,7 +4857,7 @@ function buildCar(kit,scene,c){
   const L1G=new Set([kit.fflapP,kit.fflapN,kit.fflap2P,kit.fflap2N,kit.gurP,kit.gurN,kit.drs]);   // v12c: the thin flaps go with the small details (>30 m)
   root.traverse(o=>{if(!o.isMesh)return;if(o.castShadow)casters.push(o);if(L1G.has(o.geometry)||L1.has(o.material)||rings.includes(o))lod1.push(o);else if(L2.has(o.material)||o.geometry===kit.epLight||o.geometry===kit.latLight||(Q&&o.geometry===Q.latLight))lod2.push(o);else if(L3.has(o.geometry))lod3.push(o);});
   // v12c: beyond 30 m the four carbon parts and the four tyres are drawn as two shared stand-in meshes (8 draw calls -> 2)
-  let px=null,pxHide=null;if(!c.isP){if(!kit.pxC){kit.pxC=mergeGeos([G.carbon,G.fw.cP,G.fw.cN,G.rwC]);const tg=[];for(const [x,front] of[[WHL.xf,true],[WHL.xr,false]])for(const s of[-1,1]){const g=(front?kit.tyreFlo:kit.tyreRlo).clone();g.translate(x,0.36,s*(front?WHL.zf:WHL.zr));tg.push(g);}kit.pxT=mergeGeos(tg);}
+  let px=null,pxHide=null;if(!c.isP){if(!kit.pxC){kit.pxC=mergeGeos([G.carbon,G.fw.xP,G.fw.xN,G.fw.rx]);const tg=[];for(const [x,front] of[[WHL.xf,true],[WHL.xr,false]])for(const s of[-1,1]){const g=(front?kit.tyreFlo:kit.tyreRlo).clone();g.translate(x,0.36,s*(front?WHL.zf:WHL.zr));tg.push(g);}kit.pxT=mergeGeos(tg);}
     const pc=new THREE.Mesh(Q?kit.pxCg:kit.pxC,kit.carbonM),pt=new THREE.Mesh(kit.pxT,kit.tyreM);pc.visible=pt.visible=false;pc.receiveShadow=pt.receiveShadow=true;body.add(pc);root.add(pt);px={pc,pt,bf:Q?bodyF:null};
     pxHide=[];root.traverse(o=>{if(o.isMesh&&o!==pc&&o!==pt&&(o.geometry===G.carbon||o.geometry===G.fw.cP||o.geometry===G.fw.cN||o.geometry===G.rwC||o.geometry===kit.tyreF||o.geometry===kit.tyreR||(Q&&o.geometry===Q.pylon)))pxHide.push(o);});if(Q)pxHide.push(...bodyN);
     // 10-30: an AI car's shadow is drawn from one stand-in (the model's light body + the four tyres, ~16k triangles, 1 draw call) that
