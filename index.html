@@ -2164,7 +2164,7 @@ function formStep(race,dt,inp){const F=race.form,rc=race.rc;if(!F||F.done)return
       if(!ok)break;redRelease(race,c);F.relC=c;F.rel++;}}
   for(const c of race.cars){if(c.gone||c.dnf||c.fk==null)continue;
     if(c.parked){c.spd=0;c.latG=c.lonG=0;c.braking=false;if(c.va!=null){c.va=c.a;c.vx=c.vy=c.r=0;}continue;}
-    if(c.pit){if(c.pit.state!=='red')stepPit(race,c,dt);continue;}
+    if(c.pit){if(c.pit.state!=='red')stepPit(race,c,dt,c.isP?inp:null);continue;}
     if(c.isP&&!c.fAuto){c.stillT=Math.abs(c.spd)<2?(c.stillT||0)+dt:0;
       const idle=c.stillT>(F.kind==='start'?Math.max(6,0.5*c.fk+8-F.t+6):8)&&F.t>0.5*c.fk+6;   // not moving off the grid / stopped on track: line the car up automatically
       if(c.fTgt-c.prog<FORM_AUTO||F.autoP||idle){c.fAuto=true;c.spd=Math.max(0,c.spd);c.lane=c.laneT=c.lat;c.rlw=0;c.va=c.a;c.vx=c.spd;c.vy=0;c.r=0;race.EV.push({type:'formAuto',idle});}
@@ -2218,7 +2218,7 @@ function formAI(race,c,dt){const F=race.form,rc=race.rc;trackInfo(c);const tg=ty
   if(d<0.8&&c.spd<1.5)formPark(race,c);}
 function formPark(race,c){const s=c.fSlot;c.idx=s.idx;c.x=s.x;c.z=s.z;c.a=s.a;c.lat=s.side;c.lane=c.laneT=s.side;c.rlw=0;c.spd=0;c.px=c.pz=0;c.latG=c.lonG=0;c.braking=false;
   c.prog=race.form.kind==='start'?c.fTgt-N:c.fTgt;c.pit=null;c.parked=true;c.pitReq=false;
-  if(c.va!=null){c.va=c.a;c.vx=c.vy=c.r=0;c.thr=c.bp=0;c.st=0;c.gx=c.x;c.gz=c.z;c.delta=0;c.slideAng=0;}
+  if(c.va!=null){c.va=c.a;c.vx=c.vy=c.r=0;c.thr=c.bp=0;c.st=0;c.handT=0;c.gx=c.x;c.gz=c.z;c.delta=0;c.slideAng=0;}
   if(c.isP)race.EV.push({type:'parked'});}
 // everyone is in the grid boxes: back to racing rules for the start (the start lights follow)
 function formEnd(race){const F=race.form,rc=race.rc;if(!F)return;

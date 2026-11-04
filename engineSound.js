@@ -4,7 +4,7 @@
 // The file holds, for each rev, the engine's average cycle and then what was left of the recording once that was taken away (roar, air), its slow level changes evened out. Revs one recording lacks came from its nearest rev or, a real low rev, from another power unit.
 // On loading, the rest is dealt in random order into a long loop and the average cycle added: the two need different joins (the cycle adds in phase, the rest does not), and the cycle never has one (a loop of the whole sound swelled or dipped at every join, heard as thumps). 울림 줄이기 is the level of the rest.
 // The game's revs almost never fall under 7700, where the recording's firing pulses alternate big and small (the 1.5-order family: a note an octave under the firing note, rough: the 그르릉). So the low gears play sound-only revs: lowPitch for the note and lowTimbre for the crossfade (저단 그르릉 is how much). The low loops' level also swings a little once per cycle.
-// Off the throttle (braking, downshifting) it is another sound. The recording's firing goes irregular there (a cycle hardly repeats the last: 4-19 % of the firing note is left of 33-76 % on the throttle, Ford 61 of 76), and it gains 5-12 dB under 400 Hz: the 그르르릉 of a downshift. So the off loops are those stretches as they are, only laid out by crank angle: nothing evened out but the biggest bangs. 감속 그르릉 is how much.
+// Off the throttle (braking, downshifting) it is another sound. The recording's firing goes irregular there (a cycle hardly repeats the last: of what repeats, 33-76 % of the sound on the throttle, as little as 4-19 % is left on three of the units), and it gains 5-12 dB under 400 Hz: the 그르르릉 of a downshift. So the off loops are those stretches as they are, only laid out by crank angle: nothing evened out but the biggest bangs. 감속 그르릉 is how much.
 // Chain: loops -> EQ -> low-pass (closes off the throttle) -> limiter -> out. Tuning panel: T key, or 그래픽과 기타 > 소리 > 소리 튜닝.
 const EngineSound=(()=>{
   // [rpm, cycles] of each loop, in file order: on the throttle, then off it
@@ -19,7 +19,7 @@ const EngineSound=(()=>{
   // offLP, offVol: low-pass and volume with the throttle closed. blip: pitch (cents), the level it reaches (2026 1.5 x 2025 as heard, whatever the volume before it), how far the low-pass opens, then its time constants
   const MODES={'2025':{offLP:5000,offVol:0.7,grid:false,tc:0.03,blip:{c:68,abs:0.77,lp:6000,up:0.015,hold:0.045,dn:0.09}},
     '2026':{offLP:2500,offVol:0.4,grid:true,tc:0.02,blip:{c:102,abs:1.25,lp:6000,up:0.006,hold:0.018,dn:0.035}}};
-  const OUTK=1.6,LP_OPEN=12000,OFFK=1,SWING=0.3;   // OUTK: the level at 100 %. OFFK: makes the closed-throttle volume come out as asked once the low-pass has taken its part. SWING: how far the low loops' level swings at 저단 그르릉 100 %
+  const OUTK=1.6,LP_OPEN=12000,OFFK=1,SWING=0.3,KEEP=[0,0.35,0.35,0.2,0.55];   // OUTK: the level at 100 %. OFFK: makes the closed-throttle volume come out as asked once the low-pass has taken its part. SWING: how far the low loops' level swings at 저단 그르릉 100 %. KEEP: how much of the on loops stays under the off loops, by power unit: dealt in pieces the off loops' firing note breaks up, and it is what carries the revs through a downshift (set so that the note is as strong as on the recording)
   const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),lerp=(a,b,f)=>a+(b-a)*f;
   // the game's revs run to 12 700 and its gears shift up at up to 12 500. Only the sound is scaled: 11 500 and below as they are, the top squeezed so that the limiter sits at 12 000
   const mapRpm=r=>{r=Math.max(4000,r);return r<=11500?r:Math.min(12000,11500+(r-11500)*500/1200);};
@@ -58,7 +58,7 @@ const EngineSound=(()=>{
     const gR=Math.pow(10,-12*P.clean/20),on=LOOPS[pu].on.map(q=>{const nc=q[1],n=nc*CY,x=new Float32Array(n);for(let i=0;i<n;i++)x[i]=D[o+CY+i]/32768;const y=deal(x,nc,rnd),buf=ctx.createBuffer(1,y.length,ctx.sampleRate),d=buf.getChannelData(0);
       const lo=q[0]<=7500,s=o+CY+n,m=lo?SWING*P.growl/32768:0,W=new Float32Array(LONG+1);for(let i=0;i<LONG;i++)W[i]=0.8+0.4*rnd();W[LONG]=W[0];   // the low loops' file ends with the shape of that swing: the level, cylinder by cylinder, once per cycle. W: its size wanders from cycle to cycle like real combustion (fixed, it is a machine's tremolo)
       for(let i=0;i<y.length;i++){const j=i%CY,c=(i-j)/CY;d[i]=(y[i]*gR+D[o+j]/32768)*(lo?1+m*(W[c]+(W[c+1]-W[c])*j/CY)*D[s+j]:1);}o=s+(lo?CY:0);return {rpm:q[0],buf};});
-    const off=(LOOPS[pu].off||[]).map(q=>{const nc=q[1],n=nc*CY,x=new Float32Array(n);for(let i=0;i<n;i++)x[i]=D[o+CY+i]/32768;const y=deal(x,nc,rnd),buf=ctx.createBuffer(1,y.length,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<y.length;i++)d[i]=y[i]+D[o+i%CY]/32768;o+=CY+n;return {rpm:q[0],buf};});
+    const F=LOOPS[pu].off||[],off=(o+F.reduce((a,q)=>a+CY+q[1]*CY,0)<=D.length?F:[]).map(q=>{const nc=q[1],n=nc*CY,x=new Float32Array(n);for(let i=0;i<n;i++)x[i]=D[o+CY+i]/32768;const y=deal(x,nc,rnd),buf=ctx.createBuffer(1,y.length,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<y.length;i++)d[i]=y[i]+D[o+i%CY]/32768;o+=CY+n;return {rpm:q[0],buf};});
     return BANK={key,on,off};}
 
   // ---- the player's engine ----
@@ -105,7 +105,7 @@ const EngineSound=(()=>{
     const play=(l,p,G)=>{if(!l.length)return;let i=0;while(i<l.length-2&&l[i+1].rpm<=p)i++;const f=l.length<2?0:clamp(Math.log(p/l[i].rpm)/Math.log(l[i+1].rpm/l[i].rpm),0,1);
       for(let j=0;j<l.length;j++){l[j].s.playbackRate.setTargetAtTime(R*l[j].k,t,M.tc);l[j].g.gain.setTargetAtTime(G*(j===i?Math.pow(1-f,0.75):j===i+1?Math.pow(f,0.75):0),t,0.03);}};   // between equal-power and straight: the orders add in phase, the air does not
     // off the throttle the off loops take over, in the two tenths the pedal takes to come up. Not on the grid, in neutral or at idle, where a slowed loop sounds like a cave. Full throttle stays full throttle while the speed falls
-    const b=Math.min(1,P.brk)*clamp((0.45-T)/0.4,0,1)*clamp((r-4300)/500,0,1)*(o.grid||o.gear==='N'?0:1);play(l,Rt,v.off.length?1-b:1);play(v.off,R,b*Math.max(1,P.brk));
+    const b=Math.min(1,P.brk)*clamp((0.45-T)/0.4,0,1)*clamp((r-4300)/500,0,1)*(o.grid||o.gear==='N'?0:1);play(l,Rt,v.off.length?1-b*(1-KEEP[v.pu]):1);play(v.off,R,b*Math.sqrt(1-KEEP[v.pu]*KEEP[v.pu])*Math.max(1,P.brk));
     // and a little quieter and darker than on the throttle
     v.vol.gain.setTargetAtTime(lv*lerp(M.offVol*OFFK,1,Math.pow(T,0.7)),t,0.012);v.lp.frequency.setTargetAtTime(M.offLP*Math.pow(LP_OPEN/M.offLP,T),t,0.04);
     if(S.inCar!==o.inCar){S.inCar=o.inCar;v.shLow.gain.setTargetAtTime(o.inCar?2:0,t,0.1);v.shTop.gain.setTargetAtTime(o.inCar?0:2,t,0.1);}   // the cockpit a little more low end, outside a little more top
