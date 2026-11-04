@@ -4,16 +4,17 @@
 // The file holds, for each rev, the engine's average cycle and then what was left of the recording once that was taken away (roar, air), its slow level changes evened out. Revs one recording lacks came from its nearest rev or, a real low rev, from another power unit.
 // On loading, the rest is dealt in random order into a long loop and the average cycle added: the two need different joins (the cycle adds in phase, the rest does not), and the cycle never has one (a loop of the whole sound swelled or dipped at every join, heard as thumps). 울림 줄이기 is the level of the rest.
 // The game's revs almost never fall under 7700, where the recording's firing pulses alternate big and small (the 1.5-order family: a note an octave under the firing note, rough: the 그르릉). So the low gears play sound-only revs: lowPitch for the note and lowTimbre for the crossfade (저단 그르릉 is how much). The low loops' level also swings a little once per cycle.
+// Off the throttle (braking, downshifting) it is another sound. The recording's firing goes irregular there (a cycle hardly repeats the last: 4-19 % of the firing note is left of 33-76 % on the throttle, Ford 61 of 76), and it gains 5-12 dB under 400 Hz: the 그르르릉 of a downshift. So the off loops are those stretches as they are, only laid out by crank angle: nothing evened out but the biggest bangs. 감속 그르릉 is how much.
 // Chain: loops -> EQ -> low-pass (closes off the throttle) -> limiter -> out. Tuning panel: T key, or 그래픽과 기타 > 소리 > 소리 튜닝.
 const EngineSound=(()=>{
-  // [rpm, cycles] of each loop, in file order
-  const LOOPS=[{"on":[[5000,40],[6000,96],[7500,96],[9000,96],[10500,96],[12000,40]]},{"on":[[5000,17],[6000,30],[7500,59],[9000,47],[10500,47],[12000,47]]},{"on":[[5000,32],[6000,96],[7500,96],[9000,39],[10500,39],[12000,39]]},{"on":[[5000,40],[6000,59],[7500,96],[9000,91],[10500,31],[12000,31]]},{"on":[[5000,40],[6000,96],[7500,96],[9000,96],[10500,33],[12000,33]]}];
+  // [rpm, cycles] of each loop, in file order: on the throttle, then off it
+  const LOOPS=[{"on":[[5000,40],[6000,96],[7500,96],[9000,96],[10500,96],[12000,40]],"off":[[8100,117],[10100,128]]},{"on":[[5000,17],[6000,30],[7500,59],[9000,47],[10500,47],[12000,47]],"off":[[6500,82],[8800,48]]},{"on":[[5000,32],[6000,96],[7500,96],[9000,39],[10500,39],[12000,39]],"off":[[7000,55],[9000,97]]},{"on":[[5000,40],[6000,59],[7500,96],[9000,91],[10500,31],[12000,31]],"off":[[7000,29],[10500,73]]},{"on":[[5000,40],[6000,96],[7500,96],[9000,96],[10500,33],[12000,33]],"off":[[7000,66],[9000,73]]}];
   // TEMP: 이전 소리(113e101) A/B. Goes once the player has decided, with engine-old-pu*.bin, tidy(), deal's lin, the etO button and the wind line in index.html
   const OLD=[{"on":[[5000,64],[6000,64],[7500,64],[9000,64],[10500,64],[12000,16]]},{"on":[[5000,32],[6000,32],[7500,32],[9000,32],[10500,32],[12000,32]]},{"on":[[5000,32],[6000,32],[7500,32],[9000,64],[10500,32],[12000,16]]},{"on":[[5000,16],[6000,16],[7500,16],[9000,64],[10500,64],[12000,64]]},{"on":[[5000,16],[6000,16],[7500,16],[9000,64],[10500,32],[12000,32]]}];
-  const CY=512,LONG=384,LS='lightsout3d-engsnd3',DEF={mode:'2025',master:1,clean:0.25,growl:1,lowmid:0,high:0,gridLo:8000,gridHi:11000,old:false};
+  const CY=512,LONG=384,LS='lightsout3d-engsnd3',DEF={mode:'2025',master:1,clean:0.25,growl:1,brk:1,lowmid:0,high:0,gridLo:8000,gridHi:11000,old:false};
   const pct=v=>Math.round(v*100)+'%',db=v=>(v>0?'+':'')+v+' dB',num=v=>Math.round(v).toLocaleString('en-US');
   // key(s), name, min, max, step, how it reads
-  const SLIDERS=[['master','마스터 볼륨',0,1.5,0.05,pct],['clean','울림 줄이기',0,1,0.05,pct],['growl','저단 그르릉',0,1.5,0.05,pct],['lowmid','250~700Hz',-6,6,0.5,db],['high','1~2.5kHz',-6,6,0.5,db],[['gridLo','gridHi'],'출발 대기 RPM',6000,12000,100,v=>num(v)+' rpm']];
+  const SLIDERS=[['master','마스터 볼륨',0,1.5,0.05,pct],['clean','울림 줄이기',0,1,0.05,pct],['growl','저단 그르릉',0,1.5,0.05,pct],['brk','감속 그르릉',0,1.5,0.05,pct],['lowmid','250~700Hz',-6,6,0.5,db],['high','1~2.5kHz',-6,6,0.5,db],[['gridLo','gridHi'],'출발 대기 RPM',6000,12000,100,v=>num(v)+' rpm']];
   // 2025: even and smooth. 2026: a big change off the throttle, revs held on the grid, a sharper downshift.
   // offLP, offVol: low-pass and volume with the throttle closed. blip: pitch (cents), the level it reaches (2026 1.5 x 2025 as heard, whatever the volume before it), how far the low-pass opens, then its time constants
   const MODES={'2025':{offLP:5000,offVol:0.7,grid:false,tc:0.03,blip:{c:68,abs:0.77,lp:6000,up:0.015,hold:0.045,dn:0.09}},
@@ -57,11 +58,12 @@ const EngineSound=(()=>{
     const gR=Math.pow(10,-12*P.clean/20),on=LOOPS[pu].on.map(q=>{const nc=q[1],n=nc*CY,x=new Float32Array(n);for(let i=0;i<n;i++)x[i]=D[o+CY+i]/32768;const y=deal(x,nc,rnd),buf=ctx.createBuffer(1,y.length,ctx.sampleRate),d=buf.getChannelData(0);
       const lo=q[0]<=7500,s=o+CY+n,m=lo?SWING*P.growl/32768:0,W=new Float32Array(LONG+1);for(let i=0;i<LONG;i++)W[i]=0.8+0.4*rnd();W[LONG]=W[0];   // the low loops' file ends with the shape of that swing: the level, cylinder by cylinder, once per cycle. W: its size wanders from cycle to cycle like real combustion (fixed, it is a machine's tremolo)
       for(let i=0;i<y.length;i++){const j=i%CY,c=(i-j)/CY;d[i]=(y[i]*gR+D[o+j]/32768)*(lo?1+m*(W[c]+(W[c+1]-W[c])*j/CY)*D[s+j]:1);}o=s+(lo?CY:0);return {rpm:q[0],buf};});
-    return BANK={key,on};}
+    const off=(LOOPS[pu].off||[]).map(q=>{const nc=q[1],n=nc*CY,x=new Float32Array(n);for(let i=0;i<n;i++)x[i]=D[o+CY+i]/32768;const y=deal(x,nc,rnd),buf=ctx.createBuffer(1,y.length,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<y.length;i++)d[i]=y[i]+D[o+i%CY]/32768;o+=CY+n;return {rpm:q[0],buf};});
+    return BANK={key,on,off};}
 
   // ---- the player's engine ----
-  function attach(v,bk){const ctx=v.ctx,G=x=>{const g=ctx.createGain();g.gain.value=x;return g;},t0=ctx.currentTime+0.01,k=CY/120/ctx.sampleRate;for(const a of v.on){try{a.s.stop();}catch(e){}try{a.g.disconnect();}catch(e){}}
-    v.on=bk.on.map(q=>{const s=ctx.createBufferSource();s.buffer=q.buf;s.loop=true;s.playbackRate.value=(v.R||9000)*k;const g=G(0);s.connect(g);g.connect(v.mix);s.start(t0);return {rpm:q.rpm,s,g,k};});}   // all at the same moment: in step
+  function attach(v,bk){const ctx=v.ctx,G=x=>{const g=ctx.createGain();g.gain.value=x;return g;},t0=ctx.currentTime+0.01,k=CY/120/ctx.sampleRate;for(const a of v.on.concat(v.off)){try{a.s.stop();}catch(e){}try{a.g.disconnect();}catch(e){}}
+    const mk=q=>{const s=ctx.createBufferSource();s.buffer=q.buf;s.loop=true;s.playbackRate.value=(v.R||9000)*k;const g=G(0);s.connect(g);g.connect(v.mix);s.start(t0);return {rpm:q.rpm,s,g,k};};v.on=bk.on.map(mk);v.off=(bk.off||[]).map(mk);}   // all at the same moment: in step
   function create(ctx,dest,pu){
     const G=x=>{const g=ctx.createGain();g.gain.value=x;return g;},F=(ty,f,q,gn)=>{const b=ctx.createBiquadFilter();b.type=ty;b.frequency.value=f;if(q!=null)b.Q.value=q;if(gn!=null)b.gain.value=gn;return b;};
     const chain=(...n)=>{for(let i=1;i<n.length;i++)n[i-1].connect(n[i]);};
@@ -71,11 +73,11 @@ const EngineSound=(()=>{
     const shift=G(1),limG=G(1),vol=G(0.5),out=G(1);
     // the rev limiter cuts in and out 15 times a second, whatever the frame rate
     const limO=ctx.createOscillator(),lf=F('lowpass',200,-3),limD=G(0);limO.type='square';limO.frequency.value=15;limO.connect(lf);lf.connect(limD);limD.connect(limG.gain);limO.start();
-    const v={v6:true,ctx,pu,mix,limO,lp,pkMid,pkHigh,shLow,shTop,master,shift,limG,limD,vol,out,on:[],eq:[hp,pk200,pk500,pkMid,pkHigh,top,lp,shLow,shTop],S:{gear:'N',thr:0,low:1,onGrid:false,gT:0,gTg:9500,gR:9500,go:-1,go0:0,inCar:null}};
+    const v={v6:true,ctx,pu,mix,limO,lp,pkMid,pkHigh,shLow,shTop,master,shift,limG,limD,vol,out,on:[],off:[],eq:[hp,pk200,pk500,pkMid,pkHigh,top,lp,shLow,shTop],S:{gear:'N',thr:0,low:1,onGrid:false,gT:0,gTg:9500,gR:9500,go:-1,go0:0,inCar:null}};
     chain(mix,hp,pk200,pk500,pkMid,pkHigh,top,lp,shLow,shTop,master,lim,ceil,shift,limG,vol,out);
     if(ctx.createStereoPanner){v.pan=ctx.createStereoPanner();out.connect(v.pan);v.pan.connect(dest);}else out.connect(dest);
     live.add(v);v.ready=puLoad(pu).then(D=>{if(v.dead)return;v.D=D;attach(v,bank(ctx,pu,D));});return v;}
-  function stop(v){v.dead=true;live.delete(v);for(const a of v.on)try{a.s.stop();}catch(e){}try{v.limO.stop();}catch(e){}try{v.out.disconnect();if(v.pan)v.pan.disconnect();}catch(e){}}
+  function stop(v){v.dead=true;live.delete(v);for(const a of v.on.concat(v.off))try{a.s.stop();}catch(e){}try{v.limO.stop();}catch(e){}try{v.out.disconnect();if(v.pan)v.pan.disconnect();}catch(e){}}
   // a new race: nothing of the last one's start lights carries over (left during the countdown, the first frame read as lights out)
   function reset(v){v.S.onGrid=false;v.S.go=-1;v.S.gear='N';}
 
@@ -83,7 +85,7 @@ const EngineSound=(()=>{
   function upshift(v,t){const g=v.shift.gain;g.cancelScheduledValues(t);g.setTargetAtTime(0.85,t,0.006);g.setTargetAtTime(1,t+0.05,0.03);}
   // a downshift: a blip of the revs, louder and brighter for a moment. Scheduled, so that it is as short at 30 fps as at 60
   function downshift(v,t,M,thr,lv){const B=M.blip,go=(p,peak,rest)=>{p.cancelScheduledValues(t);p.setTargetAtTime(peak,t,B.up);p.setTargetAtTime(rest,t+B.hold,B.dn);};
-    for(const a of v.on)if(a.s.detune)go(a.s.detune,B.c,0);go(v.shift.gain,Math.max(1.1,B.abs/(lv*lerp(M.offVol*OFFK,1,Math.pow(thr,0.7)))),1);
+    for(const a of v.on.concat(v.off))if(a.s.detune)go(a.s.detune,B.c,0);go(v.shift.gain,Math.max(1.1,B.abs/(lv*lerp(M.offVol*OFFK,1,Math.pow(thr,0.7)))),1);
     go(v.lp.detune,Math.max(0,1200*Math.log2(B.lp/(M.offLP*Math.pow(LP_OPEN/M.offLP,thr)))),0);}
 
   // o: {t, dt, rpm (the game's), thr 0..1, gear, inCar, dop (doppler), grid (on the start lights), pitLim}
@@ -100,9 +102,11 @@ const EngineSound=(()=>{
     if(o.gear!==S.gear){const a=+S.gear,b=+o.gear;if(a&&b){if(b>a)upshift(v,t);else downshift(v,t,M,T,lv);}S.gear=o.gear;}
     S.low+=((LOWG[o.gear]||0)-S.low)*Math.min(1,dt*12);const old=v.D&&v.D.old,Lw=old?0:S.low*Math.min(1,P.growl),rp=lowPitch(r);   // smooth across a shift
     const R=lerp(r,rp,Lw)*(o.dop||1)*(1+0.002*Math.sin(t*9.1)+0.0015*Math.sin(t*3.7)),Rt=old?R:lerp(r,lowTimbre(rp),Lw),l=v.on;v.R=R;   // the revs never sit dead still
-    if(l.length){let i=0;while(i<l.length-2&&l[i+1].rpm<=Rt)i++;const f=l.length<2?0:clamp(Math.log(Rt/l[i].rpm)/Math.log(l[i+1].rpm/l[i].rpm),0,1);
-      for(let j=0;j<l.length;j++){l[j].s.playbackRate.setTargetAtTime(R*l[j].k,t,M.tc);l[j].g.gain.setTargetAtTime(j===i?Math.pow(1-f,0.75):j===i+1?Math.pow(f,0.75):0,t,0.03);}}   // between equal-power and straight: the orders add in phase, the air does not
-    // off the throttle it is the same engine at the same revs, quieter and darker (the recording's off-throttle stretches are full of shift bangs; looped, they read as the sound breaking up). Full throttle stays full throttle while the speed falls
+    const play=(l,p,G)=>{if(!l.length)return;let i=0;while(i<l.length-2&&l[i+1].rpm<=p)i++;const f=l.length<2?0:clamp(Math.log(p/l[i].rpm)/Math.log(l[i+1].rpm/l[i].rpm),0,1);
+      for(let j=0;j<l.length;j++){l[j].s.playbackRate.setTargetAtTime(R*l[j].k,t,M.tc);l[j].g.gain.setTargetAtTime(G*(j===i?Math.pow(1-f,0.75):j===i+1?Math.pow(f,0.75):0),t,0.03);}};   // between equal-power and straight: the orders add in phase, the air does not
+    // off the throttle the off loops take over, in the two tenths the pedal takes to come up. Not on the grid, in neutral or at idle, where a slowed loop sounds like a cave. Full throttle stays full throttle while the speed falls
+    const b=Math.min(1,P.brk)*clamp((0.45-T)/0.4,0,1)*clamp((r-4300)/500,0,1)*(o.grid||o.gear==='N'?0:1);play(l,Rt,v.off.length?1-b:1);play(v.off,R,b*Math.max(1,P.brk));
+    // and a little quieter and darker than on the throttle
     v.vol.gain.setTargetAtTime(lv*lerp(M.offVol*OFFK,1,Math.pow(T,0.7)),t,0.012);v.lp.frequency.setTargetAtTime(M.offLP*Math.pow(LP_OPEN/M.offLP,T),t,0.04);
     if(S.inCar!==o.inCar){S.inCar=o.inCar;v.shLow.gain.setTargetAtTime(o.inCar?2:0,t,0.1);v.shTop.gain.setTargetAtTime(o.inCar?0:2,t,0.1);}   // the cockpit a little more low end, outside a little more top
     const d=o.thr>=0.99&&o.rpm>12650&&!o.grid?0.9:o.pitLim?0.3:0;v.limD.gain.setTargetAtTime(d/2,t,0.005);v.limG.gain.setTargetAtTime(1-d/2,t,0.005);}
