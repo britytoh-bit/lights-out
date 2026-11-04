@@ -4745,7 +4745,10 @@ function loadCarModel(kit){if(!THREE.GLTFLoader)return;
     Q.mir=[ex.mirrorL,ex.mirrorR].map(b=>b?[b.mn[0]-0.003,(b.mn[1]+b.mx[1])/2,(b.mn[2]+b.mx[2])/2,(b.mx[2]-b.mn[2])/2*0.92,(b.mx[1]-b.mn[1])/2*0.9]:null);
     Q.pylon=wingRod([-1.82,0.42,0],[-2.12,0.8,0],0.06,0.014);
     // 11-04 (photo references): what the 2022 body lacks along the floor: a board ahead of the sidepod, a lip along the floor's edge, strakes before the rear tyre. In the pylon's mesh: no draw call more
-    {const L=[Q.pylon];for(const s of[-1,1]){const b=plate([[1.24,0.045],[0.7,0.045],[0.6,0.1],[0.64,0.2],[0.8,0.26],[1.04,0.2],[1.24,0.1]],0.012),pa=b.attributes.position;for(let i=0;i<pa.count;i++)pa.setZ(i,pa.getZ(i)+s*(0.6+0.12*(pa.getX(i)-0.6)/0.64));b.computeVertexNormals();L.push(b);
+    // 11-04: two flat side plates of the 3D model's own wing mount (z +-0.04, x -1.92 to -1.63) were in its 'chrome' group: a mirror finish on a flat plate showed the sky map as a pale green patterned patch by the rear tyre. They go in carbon with the pylon
+    {const L=[Q.pylon],pa0=Q.chrome.attributes.position,ix=Q.chrome.index.array,keep=[],pts=[];for(let i=0;i<ix.length;i+=3){const a=ix[i],b=ix[i+1],c=ix[i+2];if(pa0.getX(a)<-1.5&&pa0.getX(b)<-1.5&&pa0.getX(c)<-1.5){for(const q of[a,b,c])pts.push(pa0.getX(q),pa0.getY(q),pa0.getZ(q));}else keep.push(a,b,c);}
+     if(pts.length){Q.chrome.setIndex(keep);const gp=new THREE.BufferGeometry();gp.setAttribute('position',new THREE.Float32BufferAttribute(pts,3));gp.computeVertexNormals();L.push(gp);}
+     for(const s of[-1,1]){const b=plate([[1.24,0.045],[0.7,0.045],[0.6,0.1],[0.64,0.2],[0.8,0.26],[1.04,0.2],[1.24,0.1]],0.012),pa=b.attributes.position;for(let i=0;i<pa.count;i++)pa.setZ(i,pa.getZ(i)+s*(0.6+0.12*(pa.getX(i)-0.6)/0.64));b.computeVertexNormals();L.push(b);
        L.push(plate([[0.62,0.66],[0.2,0.72],[-0.2,0.73],[-0.6,0.7],[-1.16,0.6],[-1.16,0.635],[-0.6,0.745],[-0.2,0.775],[0.2,0.765],[0.62,0.695]],0.006).rotateX(s*Math.PI/2).translate(0,0.085,0));
        for(let i=0;i<5;i++)L.push(plate([[0.075,0],[-0.075,0],[-0.06,0.1],[0.06,0.08]],0.006).rotateY(s*0.35).translate(-0.82-0.085*i,0.07,s*(0.655+0.012*i)));}
      Q.pylon=mergeGeos(L);}
