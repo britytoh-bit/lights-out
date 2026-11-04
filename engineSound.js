@@ -3,7 +3,7 @@
 // Each loop is the recording laid out by crank angle, so one engine cycle (720 degrees) is always CY samples: at any rev all the loops are in step and a crossfade keeps the firing note.
 // Stretches with a shift bang in them were left out, and revs the recording lacks were filled from the nearest long loop with each order's level changed so that the tone stays at the same Hz (slowed as it was, the low gears sounded like a cave).
 // On loading, the air between the orders is taken down (울림 줄이기) and stretches of each loop are dealt in random order into a much longer one (repeated as it was, a steady rev was heard as a pattern).
-// Chain: loops -> EQ -> low-pass (closes off the throttle) -> limiter -> out. Tuning panel: T key; on a phone 그래픽과 기타 > 소리, tap the words 「엔진 소리」 5 times.
+// Chain: loops -> EQ -> low-pass (closes off the throttle) -> limiter -> out. Tuning panel: T key, or 그래픽과 기타 > 소리 > 소리 튜닝.
 const EngineSound=(()=>{
   // [rpm, cycles] of each loop, in file order
   const LOOPS=[{"on":[[5000,64],[6000,64],[7500,64],[9000,64],[10500,64],[12000,16]]},{"on":[[5000,32],[6000,32],[7500,32],[9000,32],[10500,32],[12000,32]]},{"on":[[5000,32],[6000,32],[7500,32],[9000,64],[10500,32],[12000,16]]},{"on":[[5000,16],[6000,16],[7500,16],[9000,64],[10500,64],[12000,64]]},{"on":[[5000,16],[6000,16],[7500,16],[9000,64],[10500,32],[12000,32]]}];
@@ -170,10 +170,9 @@ const EngineSound=(()=>{
     box.querySelector('.etD').addEventListener('click',()=>{Object.assign(P,DEF);save();apply();rebuild();redraw();});
     box.addEventListener('click',e=>{if(e.target===box)box.hidden=true;});}
   function openPanel(){if(!box)build();box._redraw();box.hidden=false;}
-  // hooks: {preview, hidden (the element tapped 5 times to open the panel on a phone), ctx (the AudioContext, once there is one), mayResume}
+  // hooks: {preview, ctx (the AudioContext, once there is one), mayResume}
   function setup(h){hooks=h;
     addEventListener('keydown',e=>{if(e.code!=='KeyT'||e.repeat||/^(INPUT|TEXTAREA)$/.test(e.target.tagName||''))return;if(box&&!box.hidden)box.hidden=true;else openPanel();});
-    if(h.hidden){let n=0,last=0;h.hidden.addEventListener('pointerup',e=>{n=e.timeStamp-last<800?n+1:1;last=e.timeStamp;if(n>=5){n=0;setTimeout(openPanel,320);}});}   // (opens a moment later: the tap's click must not land on the panel)
     // phones hold an AudioContext until a touch starts it, and a call leaves it interrupted
     const wake=()=>{const c=h.ctx&&h.ctx();if(c&&c.state!=='running'&&c.state!=='closed'&&(!h.mayResume||h.mayResume()))c.resume();};
     for(const ty of['touchend','pointerdown','keydown'])addEventListener(ty,wake,{capture:true,passive:true});}

@@ -634,7 +634,7 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
         <div><p class="label">브레이크 보조 (너무 빠르면 대신 밟아요)</p><div class="seg" id="basSel"><button data-v="0">끔<span class="rec">상급 추천</span></button><button data-v="1">약하게<span class="rec">중급 추천</span></button><button data-v="2">강하게</button></div></div>
         <div><p class="label">레이싱 라인 가이드 (L 키)</p><div class="seg" id="rlSel"><button data-v="corners" aria-pressed="true">코너만<span class="rec">중급 추천</span></button><button data-v="full" aria-pressed="false">전체</button><button data-v="off" aria-pressed="false">끔<span class="rec">상급 추천</span></button></div></div>
         <div><p class="label">액티브 에어로 (직선 모드)</p><div class="seg" id="aeroSel"><button data-v="manual" aria-pressed="true">직접</button><button data-v="auto" aria-pressed="false">자동</button></div></div>
-        <div><p class="label">엔진 사운드</p><button id="sndPrev" type="button" style="width:100%">들어보기</button></div>
+        <div><p class="label">엔진 사운드</p><button id="sndPrev" type="button" style="width:100%">들어보기</button><button id="sndTune" type="button" style="width:100%">튜닝</button></div>
         <div><p class="label">그래픽</p><div class="seg" id="qSel"><button data-v="high" aria-pressed="false">높음</button><button data-v="medium" aria-pressed="true">보통</button><button data-v="low" aria-pressed="false">부드럽게</button></div></div>
         <div><p class="label">자동 화질 조절 (프레임이 떨어지면 효과를 하나씩 줄임)</p><div class="seg" id="aqSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔</button></div></div>
         <div><p class="label">관중 표시 (관중석의 사람 그림 · 끄면 조금 가벼워질 수 있어요)</p><div class="seg" id="crowdSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔</button></div></div>
@@ -5694,7 +5694,7 @@ const MPAGES={track:[[null,[['chBox','대회','서킷을 이어 달리며 순위
   team:[[null,[['teamSel'],['livBtn']]]],
   race:[['레이스',[['modeSel','진행 방식'],['lapSel','랩 수'],['difSel','AI 난이도'],['scSel','스타트 타이어']]],['날씨와 시간',[['wxSel','날씨','변덕은 도중에 비가 와요'],['todSel','시간대']]],['규칙',[['fmlSel','포메이션 랩','출발 전에 한 바퀴 돌아요'],['incSel','사고와 세이프티카'],['dmgSel','차량 손상','보통: 내 차는 크게 부딪혀도 대부분 피트에서 고쳐요 · 리얼: 부러진 서스펜션·큰 충격·찢어진 사이드포드는 리타이어 · 끔: 손상 없음']]]],
   drive:[[null,[['skSel','실력'],['skNote'],['tutBtn']]],['조작',[['smSel','조향 방식'],['sensSel','조향 감도','1이 가장 부드러워요'],['pedSel','페달 위치','양쪽은 브레이크가 왼쪽이에요'],['agSel','가속'],['stSel','스타트','수동은 부정 출발을 판정해요']]],['보조',[['asSel','주행 보조','잠김과 스핀을 잡아줘요'],['basSel','브레이크 보조','너무 빠르면 대신 밟아요. 늦게 밟고 싶으면 끄세요'],['rlSel','레이싱 라인'],['aeroSel','직선 모드 날개']]]],
-  set:[['그래픽',[['qSel','그래픽'],['aqSel','자동 화질 조절','프레임이 떨어지면 효과를 줄여요'],['crowdSel','관중 표시','끄면 조금 가벼워져요']]],['소리',[['sndPrev','엔진 소리']]],['성능 측정',[['bvSel','측정 시점'],['bwSel','측정 날씨'],['benchBtn','자동 성능 측정','28개 서킷을 돌며 재요. 15~20분 걸리니 충전기에 꽂아 두세요']]],['도움말',[['touchHelp'],['mKeys']]]]};
+  set:[['그래픽',[['qSel','그래픽'],['aqSel','자동 화질 조절','프레임이 떨어지면 효과를 줄여요'],['crowdSel','관중 표시','끄면 조금 가벼워져요']]],['소리',[['sndPrev','엔진 소리'],['sndTune','소리 튜닝','모드와 울림을 귀로 맞춰요']]],['성능 측정',[['bvSel','측정 시점'],['bwSel','측정 날씨'],['benchBtn','자동 성능 측정','28개 서킷을 돌며 재요. 15~20분 걸리니 충전기에 꽂아 두세요']]],['도움말',[['touchHelp'],['mKeys']]]]};
 const MNAMES={track:'서킷',team:'팀',race:'레이스 설정',drive:'운전',set:'그래픽과 기타'};
 function mOpen(k){$('mHome').hidden=!!k;$('mPage').hidden=!k;for(const n in MPAGES){const on=n===k;$('mP_'+n).hidden=!on;if(on)$('mP_'+n).scrollTop=0;}if(k)$('mPgT').textContent=k==='track'&&mMode==='champ'?'대회와 서킷':MNAMES[k];}
 function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={easy:'AI 쉬움',normal:'AI 보통',hard:'AI 어려움'}[diff]||'',w={dry:'맑음',mixed:'변덕',rain:'비'}[weather]||'';
@@ -5723,7 +5723,7 @@ function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={ea
  // a tap is the finger lifting off a button: the browser does not always make a click of it (one in a few after a scroll). touchend, as iOS only lets sound and sensors start from a touch.
  document.addEventListener('touchend',e=>{const b=tapB;tapB=null;if(!b||dragged||e.touches.length)return;noClick=e.timeStamp+500;b.click();},true);
  document.addEventListener('click',e=>{if(e.isTrusted&&(dragged||e.timeStamp<noClick)){dragged=false;e.preventDefault();e.stopPropagation();}},true);document.addEventListener('visibilitychange',()=>{mDraw=Math.max(mDraw,10);});}
-EngineSound.setup({preview:()=>previewEngine(),hidden:$('sndPrev').closest('.mRow').querySelector('.mL'),ctx:()=>AC,mayResume:()=>state!=='paused'&&!document.hidden});   // the tuning panel (T key; on a phone tap the words 「엔진 소리」 5 times)
+EngineSound.setup({preview:()=>previewEngine(),ctx:()=>AC,mayResume:()=>state!=='paused'&&!document.hidden});$('sndTune').addEventListener('click',()=>EngineSound.openPanel());   // the tuning panel (T key, or this button. 11-04: 5 taps on the words did not open it on an iPhone)
 function updateMenuBest(){menuSum();const ch=mMode==='champ',fin=CH&&CH.rd>=CH.list.length;$('mN_track').textContent=ch?'대회':'서킷';
   $('bestMenu').textContent=!ch?TRK.name+(bestLap?', 베스트 '+fmt(bestLap):''):fin?'대회가 끝났어요':CH?'라운드 '+(CH.rd+1)+'/'+CH.list.length+', '+chTrk(CH.list[CH.rd]).name:chLen+'라운드, '+TRK.name+'에서 시작';}
 
