@@ -906,12 +906,27 @@ function pitSideR(r){return PIT.tun&&r>PIT.tun.ZA?-PIT.side:PIT.side;}
 function pitWallInR(r){return PIT.tun&&r>PIT.tun.ZA?PIT.wallInB:PIT.wallIn;}   // the pit wall's (or the exit road wall's) offset
 function PZ(i,s){const r=zoneR(i);return r>=0&&pitSideR(r)===s;}
 // the floor of the tunnel road below the track height at fractional pit-zone index rf (0 outside the tunnel)
-function pitDepR(rf){const t=PIT.tun;if(!t||!(rf>=t.d0&&rf<=t.u1))return 0;const a=Math.max(0,Math.min(PIT.Z,Math.floor(rf))),b=Math.min(PIT.Z,a+1),f=rf-a;return t.dep[a]+(t.dep[b]-t.dep[a])*f;}
+function pitDepR(rf){const t=PIT.tun,D=pitD(),a=Math.max(0,Math.min(PIT.Z,Math.floor(rf))),b=Math.min(PIT.Z,a+1),f=rf-a,d=D[a]+(D[b]-D[a])*f;if(!t||!(rf>=t.d0&&rf<=t.u1))return d;return d+t.dep[a]+(t.dep[b]-t.dep[a])*f;}
+// 11-04: the pit road's own surface. A lane 16 m to the inside of a climbing corner crosses the 2 m track sections a few decimetres apart, so it took the road's height changes in a tenth of the distance:
+// the car and the view kicked (115 mm at Austin's exit). Where the lane is clear of the track it now rides a smoothed copy of the heights, measured along the lane; the car, the lane's mesh and the ground beside it all use it. Back to the track's own height where it rejoins.
+const PIT_SM=12;let PIT_D=null;function pitD(){if(PIT_D)return PIT_D;const Z=PIT.Z,H=new Float64Array(Z+1),S=new Float64Array(Z+1),W=new Float64Array(Z+1),t=PIT.tun,D=new Float32Array(Z+1);let px=0,pz=0,mx=0;
+  for(let r=0;r<=Z;r++){const i=wrap(PIT.E+r),p=P[i],n=T[i],lq=(()=>{let v=0,c=0;for(let q=Math.max(0,r-6);q<=Math.min(Z,r+6);q++){v+=pitLatR(q);c++;}return v/c;})(),l=PIT.side*lq,x=p[0]-n[1]*l,z=p[1]+n[0]*l;S[r]=r?S[r-1]+Math.max(0.05,Math.hypot(x-px,z-pz)):0;px=x;pz=z;H[r]=TR.H[i]+(t&&r>=t.d0&&r<=t.u1?t.dep[r]:0);let lm=0;for(let q=Math.max(0,r-4);q<=Math.min(Z,r+4);q++)lm=Math.max(lm,Math.abs(pitLatR(q)));W[r]=lm-1.2>TR.HW[i]||(t&&t.dep[r]<-0.1)?1:0;}
+  const sm=(A,sg)=>{const O=new Float64Array(Z+1);let a=0,b=0;for(let r=0;r<=Z;r++){while(S[r]-S[a]>3*sg)a++;while(b<Z&&S[b+1]-S[r]<=3*sg)b++;let w=0,v=0;for(let q=a;q<=b;q++){const u=(S[q]-S[r])/sg,g=Math.exp(-0.5*u*u);w+=g;v+=g*A[q];}O[r]=v/w;}return O;};
+  const Hs=sm(H,PIT_SM);let Wm=new Float64Array(W);for(let r=0;r<=Z;r++){let m=1;for(let q=r;q>=0&&S[r]-S[q]<=8;q--)m=Math.min(m,W[q]);for(let q=r;q<=Z&&S[q]-S[r]<=8;q++)m=Math.min(m,W[q]);Wm[r]=m;}Wm=sm(Wm,4);
+  for(let r=0;r<=Z;r++){D[r]=Wm[r]*smooth(S[r]/70)*(Hs[r]-H[r]);mx=Math.max(mx,Math.abs(D[r]));}D.mx=mx;D.S=S;return PIT_D=D;}
+// 11-04 (the bounce at the pit entry): the lane's speed caps (the limiter, its own tight bends) were only met when the car reached them, so it braked at 2 g, coasted, braked again, picked up, a pulse a second:
+// the nose and the view went down and up with each (body pitch 8 mrad, the view 14). One speed curve for the lane now: looks ahead at 8 m/s2, picks up at 3 m/s2 inside the limited stretch
+let PIT_VP=null;function pitVP(){if(PIT_VP)return PIT_VP;const S=pitD().S,Z=PIT.Z,V=new Float32Array(Z+1),a0=PIT.RAMP,a1=Z-PIT.RX;
+  const D=pitD(),t=PIT.tun,hh=r=>TR.H[wrap(PIT.E+r)]+D[r]+(t&&r>=t.d0&&r<=t.u1?t.dep[r]:0);
+  for(let r=0;r<=Z;r++){let v=r>=a0&&r<a1?PIT.LIMIT:VMAX;if(PIT.lrm)v=Math.min(v,Math.max(12,Math.sqrt(20*PIT.lrm[r])));const q0=Math.max(0,r-4),q1=Math.min(Z,r+4);if(q1-q0===8){const d1=S[r]-S[q0],d2=S[q1]-S[r],kp=Math.abs((hh(q1)-hh(r))/Math.max(0.5,d2)-(hh(r)-hh(q0))/Math.max(0.5,d1))/(0.5*(d1+d2)+0.5);if(kp>1e-4)v=Math.min(v,Math.max(20,Math.sqrt(2.5/kp)));}V[r]=v;}   // a crest or a dip in the pit road: no faster than 0.25 g over it
+  for(let r=Z-1;r>=0;r--)V[r]=Math.min(V[r],Math.sqrt(V[r+1]*V[r+1]+2*8*(S[r+1]-S[r])));
+  for(let r=1;r<a1;r++)V[r]=Math.min(V[r],Math.sqrt(V[r-1]*V[r-1]+2*3*(S[r]-S[r-1])));return PIT_VP=V;}
+function pitDv(i){const r=zoneR(i);return r>=0?pitD()[r]:0;}
 // fractional track index of a point (between the two section lines it lies between; i0 = a nearby index), and the tunnel floor there
 function secF(x,z,i0){let j=i0;for(let it=0;it<8;it++){const p=P[j],t=T[j],d=(x-p[0])*t[0]+(z-p[1])*t[1];if(d<0){j=wrap(j-1);continue;}
     const j1=wrap(j+1),q=P[j1],t1=T[j1],d1=(x-q[0])*t1[0]+(z-q[1])*t1[1];if(d1>=0){j=j1;continue;}return j+d/Math.max(1e-6,d-d1);}
   return i0;}
-function pitDepXZ(x,z,i0){if(!PIT.tun)return 0;const f=secF(x,z,i0),j=Math.floor(f),r=zoneR(wrap(j));return r<0?0:pitDepR(r+f-j);}
+function pitDepXZ(x,z,i0){const f=secF(x,z,i0),j=Math.floor(f),r=zoneR(wrap(j));return r<0?0:pitDepR(r+f-j);}
 // the barrier line must not jump sideways: at most 0.5 m nearer or further per 2 m of track (about 14 degrees), so walls,
 // fences and stands run smoothly (the raw limits step by up to 18 m where a corner's inside limit or a nearby part of the
 // lap kicks in). This only ever brings a barrier closer, so every limit still holds; the pit side of the pit zone keeps its own.
@@ -1447,8 +1462,9 @@ function stepPit(race,c,dt){
   else if(r0<limOut)vt=PIT.LIMIT;
   else vt=Math.min(vt,profAt(wrap(c.idx+3),1)*0.96,pitAheadV(c,ti,tyreGrip(c).lat,0.9));   // pit exit road: no faster than the track allows just ahead, nor than the next corner allows (v11f)
   if(PIT.lrm)vt=Math.min(vt,Math.max(12,Math.sqrt(20*PIT.lrm[Math.max(0,Math.min(PIT.Z,r0))])));   // tight bends in the pit road itself (never a crawl)
+  {const VP=pitVP(),q=Math.max(0,Math.min(PIT.Z,r0+ti.along/STEP)),a=Math.floor(q),b=Math.min(PIT.Z,a+1);vt=Math.min(vt,VP[a]+(VP[b]-VP[a])*(q-a));}
   if(pp.state==='in'){let stopAt=pp.redQ?redQR(pp.q):pp.box-(boxBusy(race,c)?3:0);/* v12i: right behind the team-mate's car, 3 steps */const d=(stopAt-r0)*STEP-ti.along;
-    vt=Math.min(vt,Math.sqrt(2*(pp.redQ?7:11)*Math.max(0,d-0.4)));   // v12i: a firm stop into the box (0.7 g held up the fast lane for 35 m)
+    vt=Math.min(vt,Math.sqrt(2*(pp.redQ?7:11)*Math.max(0,d-0.4-0.1*c.spd)));   // v12i: a firm stop into the box (0.7 g held up the fast lane for 35 m)
     if(pp.redQ){pp.stuckT=c.spd<0.3?(pp.stuckT||0)+dt:0;if((d<1.2&&c.spd<1.2)||pp.stuckT>2.5){redHold(race,c);return;}}
     else if(race.sess&&!c.isP&&d<1.2&&c.spd<1.2){pp.state='garage';pp.t=1e9;pp.hideT=race.t+2.5;pp.stopT=null;c.spd=0;if(c.run){c.run.ph='garage';c.run.k++;}return;}   // session: back into the garage
     else if(d<1.2&&c.spd<1.2&&!boxBusy(race,c)){pp.state='stop';pp.stopT=race.t;const slow=c.rnd()<0.08;pp.service=slow?4+c.rnd()*3:2.1+c.rnd()*0.9;c.spd=0;
@@ -1465,7 +1481,8 @@ function stepPit(race,c,dt){
     if(dm>-12&&dm<25&&Math.abs(o.lat-c.lat)<2.6)vt=Math.min(vt,o.spd*(dm<=0?0.85:dm<8?0.9:1));}
   vt=Math.min(vt,scCapV(race,c));   // v13m: red-flag restart - follow the safety car out of the pit lane
   // 11-04: small differences ease in. Following a car in the lane the gap flips between two steps every 2 m of road, so the speed sawed at 11 Hz (+12 / -18 m/s2): the nose nodded and the view with it
-  {const dv=vt-c.spd;if(vt>8&&Math.abs(dv)<1.6)c.spd+=dv*Math.min(1,dt*5);else if(dv>0)c.spd=Math.min(vt,c.spd+ACC*0.9*dt);else c.spd=Math.max(vt,c.spd-(12+0.3*c.spd)*dt);}
+  // and the pedals come on and off over a third of a second (jerk limit): no step in the car's pitch at the start or the end of a stop. Below 8 m/s it is the box or the car ahead: straight to it
+  {const dv=vt-c.spd,br=12+0.3*c.spd;if(vt>8){const ta=Math.max(-br,Math.min(ACC*0.9,dv*3.5)),a0=pp.a==null?(c.lonG||0):pp.a;pp.a=a0+Math.max(-45*dt,Math.min(45*dt,ta-a0));c.spd=Math.max(0,c.spd+pp.a*dt);}else{if(dv>0)c.spd=Math.min(vt,c.spd+ACC*0.9*dt);else c.spd=Math.max(vt,c.spd-br*dt);pp.a=(c.spd-v0)/Math.max(dt,1e-4);}}
   c.braking=c.spd<v0-0.01;c.boost=false;c.latG=c.spd*om;c.lonG=(c.spd-v0)/Math.max(dt,1e-4);
   move(c,dt);barrier(race,c);
   tyreStep(race,c,dt,c.latG,c.lonG,0);
@@ -2424,7 +2441,7 @@ function buildHeights(renderer){
   for(let gz=0;gz<nz;gz++)for(let gx=0;gx<nx;gx++){const k=gz*nx+gx,d=Math.sqrt(d0[k]),fa=farAt(x0+gx*cell,z0+gz*cell);dist[k]=d;
     if(sw[k]>0){const wf=smooth((d-14)/40),e=smooth((d-11)/9),near=d0[k]<1e11?nh[k]*(1-e)+(shw[k]/sw[k])*e:shw[k]/sw[k];hm[k]=near*(1-wf)+fa*wf;}else hm[k]=fa;
     if(nbk[k])hm[k]+=nbk[k]*(1-smooth((d-20)/26));}   // v13: a banked turn: the ground keeps the bank's height out past the barriers (an embankment), then eases back
-  if(PIT&&PIT.Z){for(let r=-12;r<=PIT.Z+12;r++){const PS=pitSideR(Math.max(0,Math.min(PIT.Z,r))),i=wrap(PIT.E+r),q=P[i],t=T[i],ex=-t[1]*PS,ez=t[0]*PS,h=TR.H[i];   // (v12d: the side the lane is on)
+  if(PIT&&PIT.Z){for(let r=-12;r<=PIT.Z+12;r++){const PS=pitSideR(Math.max(0,Math.min(PIT.Z,r))),i=wrap(PIT.E+r),q=P[i],t=T[i],ex=-t[1]*PS,ez=t[0]*PS,h=TR.H[i]+pitDv(i);   // (v12d: the side the lane is on)
       for(let o=HALF+1;o<=PIT.OFF+30;o+=cell*0.5){const gx=Math.round((q[0]+ex*o-x0)/cell),gz=Math.round((q[1]+ez*o-z0)/cell);if(gx<0||gz<0||gx>=nx||gz>=nz)continue;
         const k=gz*nx+gx;if(dist[k]<o-3)continue;const w=smooth((PIT.OFF+30-o)/10);hm[k]=hm[k]*(1-w)+h*w;}}}
   HD.water=null;
@@ -2454,7 +2471,7 @@ function roadSurfY(x,z,i0){if(!HD.on)return 0;let j=i0;
 // at Monaco - and every tyre sat 4 cm into the asphalt, which is laid 4 cm above the track height). CAR_SQ: tyre squash.
 const CAR_SQ=0.008;
 function wheelY(c,ca,sa,ln,fx,rz){const x=c.x+ca*fx-sa*rz,z=c.z+sa*fx+ca*rz;return roadSurfY(x,z,c.idx)+(ln?pitDepXZ(x,z,c.idx):0);}
-function carPose(c,o){const ca=Math.cos(c.a),sa=Math.sin(c.a),ln=!!PIT.tun&&!!(c.pit||c.onLane);   // all four tyres: pitch and roll (v12d: on the floor of the Yas exit tunnel too)
+function carPose(c,o){const ca=Math.cos(c.a),sa=Math.sin(c.a),ln=!!(c.pit||c.onLane);   // all four tyres: pitch and roll (v12d: on the floor of the Yas exit tunnel too)
   const fl=wheelY(c,ca,sa,ln,WHL.xf,-WHL.zf),fr=wheelY(c,ca,sa,ln,WHL.xf,WHL.zf),rl=wheelY(c,ca,sa,ln,WHL.xr,-WHL.zr),rr=wheelY(c,ca,sa,ln,WHL.xr,WHL.zr),yf=(fl+fr)/2,yr=(rl+rr)/2;
   o.pp=Math.atan2(yf-yr,WHL.xf-WHL.xr);o.pr=Math.atan2((fl+rl)-(fr+rr),2*(WHL.zf+WHL.zr));o.py=yr+(yf-yr)*(-WHL.xr)/(WHL.xf-WHL.xr)+0.04-CAR_SQ;return o;}
 // bake the height map into the static world once: every vertex (world space) is raised by the ground height under it;
@@ -2996,7 +3013,7 @@ mk(ring(2048,256,23,0.08,0.2,[110,125,140],[150,160,170],1),2450,240,80);}
    const sg=(fa,fb)=>[i=>PS>0?fa(i):-fb(i),i=>PS>0?fb(i):-fa(i)];
    const ext=i=>mid(i)?8:3.2;
    let [o1,o2]=sg(i=>pl(i)-3.2,i=>pl(i)+ext(i));
-   const plM=wetReg(std({map:asphalt,roughnessMap:asphRough,roughness:1,color:0xd8d8d8,polygonOffset:true,polygonOffsetFactor:-1}),0.55,0.16);add(ribbon(o1,o2,0.028,both,null,true),plM,true);
+   const plM=wetReg(std({map:asphalt,roughnessMap:asphRough,roughness:1,color:0xd8d8d8,polygonOffset:true,polygonOffsetFactor:-1}),0.55,0.16);add(ribbon(o1,o2,0,both,i=>0.028+pitDv(i),true),plM,true);
    useTex(plM,'map','asphalt_c.jpg',{srgb:true,rep:R2});useTex(plM,'roughnessMap','asphalt_r.jpg',{rep:R2});useTex(plM,'normalMap','asphalt_n.jpg',{rep:R2,after:()=>plM.normalScale.set(0.3,0.3)});W.pitLaneM=plM;
    // v13g: the lane's inner line belongs at the lane's inner edge, even where that is inside the
    // track - a street pit exit shares the road, and this solid line is what separates the two.
@@ -3006,10 +3023,10 @@ mk(ring(2048,256,23,0.08,0.2,[110,125,140],[150,160,170],1),2450,240,80);}
    // v13j: but never further in than the track's own edge line - where the lane merges it crossed that line in an X and ran
    // on into the racing lane. It now runs along the edge line to the merge. The gap between the lane and the road (grass
    // slivers between two white lines - it looked like broken road) is paved with the lane's asphalt where it is narrow.
-   const plIn=i=>Math.max(pl(i)-3.05,HWv(i)-0.42);[o1,o2]=sg(plIn,i=>plIn(i)+0.2);add(ribbon(o1,o2,0.062,both),lineM,true);
+   const plIn=i=>Math.max(pl(i)-3.05,HWv(i)-0.42);[o1,o2]=sg(plIn,i=>plIn(i)+0.2);add(ribbon(o1,o2,0,both,i=>0.062+pitDv(i)),lineM,true);
    {const g0=i=>HWv(i),gap=k=>{const w=pl(k)-3.2-g0(k);return w>0.05&&w<4;};   // a kerb, where there is one, sits higher and stays on top
-    [o1,o2]=sg(g0,i=>Math.max(g0(i),pl(i)-3.1));add(ribbon(o1,o2,0.028,k=>both(k)&&(gap(k)||gap(wrap(k+1)))),plM,true);}
-   [o1,o2]=sg(i=>pl(i)+2.9,i=>pl(i)+3.1);add(ribbon(o1,o2,0.045,k=>both(k)&&mid(k)&&(k%4<2)),lineM,true);
+    [o1,o2]=sg(g0,i=>Math.max(g0(i),pl(i)-3.1));add(ribbon(o1,o2,0,k=>both(k)&&(gap(k)||gap(wrap(k+1))),i=>0.028+pitDv(i)),plM,true);}
+   [o1,o2]=sg(i=>pl(i)+2.9,i=>pl(i)+3.1);add(ribbon(o1,o2,0,k=>both(k)&&mid(k)&&(k%4<2),i=>0.045+pitDv(i)),lineM,true);
    // pit wall with fence
    const pwM=std({color:0xcdd0d3,roughness:0.7}),pw=k=>inZ(k)&&inZ(wrap(k+1))&&mid(k)&&mid(wrap(k+1))&&wA(k);
    add(wall(i=>PS*(PIT.wallIn),0,1.2,pw),pwM,true,true);add(wall(i=>PS*(PIT.wallIn+0.6),0,1.2,pw),pwM,true,true);
@@ -3024,9 +3041,9 @@ mk(ring(2048,256,23,0.08,0.2,[110,125,140],[150,160,170],1),2450,240,80);}
    // itself (concrete, sponsor boards on both faces, a fence on top) all along the tunnel and the exit road
    if(tn){const BS=-PS,WIN=PIT.wallInB,inB=k=>zoneR(k)>tn.ZA&&zoneR(wrap(k+1))>tn.ZA,aw=i=>Math.abs(pl(i)),
       midB=k=>inB(k)&&mid(k)&&mid(wrap(k+1)),glB=k=>inB(k)&&zoneR(k)>=tn.u1,sgB=(fa,fb)=>[i=>BS>0?fa(i):-fb(i),i=>BS>0?fb(i):-fa(i)];
-     [o1,o2]=sgB(i=>mid(i)?WIN+0.6:HALF+0.05,i=>aw(i)+3.2);add(ribbon(o1,o2,0.028,glB,null,true),plM,true);
-     [o1,o2]=sgB(i=>aw(i)-3.05,i=>aw(i)-2.85);add(ribbon(o1,o2,0.045,glB),lineM,true);
-     [o1,o2]=sgB(i=>aw(i)+2.85,i=>aw(i)+3.05);add(ribbon(o1,o2,0.045,glB),lineM,true);
+     [o1,o2]=sgB(i=>mid(i)?WIN+0.6:HALF+0.05,i=>aw(i)+3.2);add(ribbon(o1,o2,0,glB,i=>0.028+pitDv(i),true),plM,true);
+     [o1,o2]=sgB(i=>aw(i)-3.05,i=>aw(i)-2.85);add(ribbon(o1,o2,0,glB,i=>0.045+pitDv(i)),lineM,true);
+     [o1,o2]=sgB(i=>aw(i)+2.85,i=>aw(i)+3.05);add(ribbon(o1,o2,0,glB,i=>0.045+pitDv(i)),lineM,true);
      add(wall(i=>BS*(aw(i)+3.4),0,1.1,glB,BS>0),wallM,true,true);
      [o1,o2]=sgB(i=>HALF+0.05,i=>WIN-0.02);add(ribbon(o1,o2,0.02,midB,null,true),runM,true);
      add(wall(i=>BS*WIN,0,1.2,midB),pwM,true,true);add(wall(i=>BS*(WIN+0.6),0,1.2,midB),pwM,true,true);
@@ -6853,7 +6870,7 @@ function sync(dt){
      m.pitch+=(lon*0.00042-m.pitch)*k;m.roll+=(-lat*0.00022-m.roll)*k;dmgVis(m,c);m.body.rotation.z=m.pitch+m.dmgPitch;m.body.rotation.x=m.roll+m.dmgRoll;
      if(m.pkAny&&!c.pit&&Math.abs(c.spd)>2){const tt=performance.now()*0.001,pk=c.dmg.pk;for(let k=0;k<4;k++)if(pk[k]>0.3)m.wheels[k].parent.rotation.x=m.cam[k]+Math.sin(tt*(18+Math.abs(c.spd)*1.2)+k*1.7)*0.05*pk[k];}
      {const v=Math.abs(c.spd),dw=PH.kD*v*v/(PH.m*9.81)*(c.aeroOpen===2?0.75:1),cp=c.pit?0:Math.max(-0.5,Math.min(3,v*v*vkAt(c.idx)/9.81)),tg=Math.max(-0.042,-0.0105*dw-0.006*cp);   // v12f: pressed down onto its springs by the downforce and in compressions (ride height ~2.5 cm lower at top speed)
-      m.sqY=(m.sqY==null?tg:m.sqY+(tg-m.sqY)*Math.min(1,dt*10));m.body.position.y=m.sqY+(v>45?(bumpy(c.idx)-0.5)*0.006*Math.sin(performance.now()*0.05+i)*Math.min(1,(v-45)/40):0)+(c.isP&&c.kerbW&&!c.pit&&v>8?Math.sin(performance.now()*0.05)*0.005*c.kerbW:0);}}
+      m.sqY=(m.sqY==null?tg:m.sqY+(tg-m.sqY)*Math.min(1,dt*(c.pit?3:10)));m.body.position.y=m.sqY+(v>45?(bumpy(c.idx)-0.5)*0.006*Math.sin(performance.now()*0.05+i)*Math.min(1,(v-45)/40):0)+(c.isP&&c.kerbW&&!c.pit&&v>8?Math.sin(performance.now()*0.05)*0.005*c.kerbW:0);}}
     // wheels: locked wheels stop, spinning rears turn faster than the road
     {const dA=c.spd*dt/0.36,sw=m.spinW||(m.spinW=[0,0,0,0]);for(let w=0;w<4;w++){const lk=w<2?((c.lkS?c.lkS[w]:c.lockF)||(c.aiLk>0&&c.aiLkW===w)):c.lockR;   // v12h: per wheel
        if(!lk)sw[w]-=w<2?dA:dA*(c.spinR?1.7:1);m.wheels[w].rotation.z=sw[w];}}
@@ -6882,7 +6899,7 @@ function sync(dt){
      m.rlM.color.setHex(on?0xff2a1a:0x220000);
      if(m.latM){const amb=!c.gone&&!c.pit&&!c.inGarage&&(c.parked||c.dnf||(state==='race'&&!race.form&&race.t-(race.startT||0)>3&&c.fin==null&&Math.abs(c.spd)<5.6));m.latM.color.setHex(amb?0xffa000:0x1a0f00);}}});
   syncRaceControl(dt);
-  if(WORLD.blobs){const b=WORLD.blobs;race.cars.forEach((c,i)=>{const h=c.gone||c.inGarage?0.001:1,tn=PIT.tun&&c.pit?[pitDepXZ(c.x,c.z,c.idx),pitDepXZ(c.x+Math.cos(c.a)*1.5,c.z+Math.sin(c.a)*1.5,c.idx)-pitDepXZ(c.x-Math.cos(c.a)*1.5,c.z-Math.sin(c.a)*1.5,c.idx)]:null;   // (v12d: on the Yas exit tunnel's floor)
+  if(WORLD.blobs){const b=WORLD.blobs;race.cars.forEach((c,i)=>{const h=c.gone||c.inGarage?0.001:1,tn=c.pit?[pitDepXZ(c.x,c.z,c.idx),pitDepXZ(c.x+Math.cos(c.a)*1.5,c.z+Math.sin(c.a)*1.5,c.idx)-pitDepXZ(c.x-Math.cos(c.a)*1.5,c.z-Math.sin(c.a)*1.5,c.idx)]:null;   // (v12d: on the Yas exit tunnel's floor)
     _q.setFromEuler(TR.bank?_eb.set(TR.BK[c.idx]?meshes[i].pr||0:0,-c.a,Math.atan(slopeAlong(c.idx,c.a)+(tn?tn[1]/3:0)),'YZX'):_eb.set(0,-c.a,Math.atan(slopeAlong(c.idx,c.a)+(tn?tn[1]/3:0)),'XYZ'));/* v13: leaning with the car on a banked turn */_v.set(c.x+(meshes[i].ox||0),0.07+roadY(c.x,c.z,c.idx)+(tn?tn[0]:0),c.z+(meshes[i].oz||0));_s.set(h,h,h);_m4.compose(_v,_q,_s);b.setMatrixAt(i,_m4);});_s.set(1,1,1);b.count=race.cars.length;b.instanceMatrix.needsUpdate=true;}
   try{stepFlagMarshal(dt);if(WORLD.anim)for(const f of WORLD.anim)f(dt);}catch(e){}
   {const cmv=CAMS[camMode],spdK=(state==='race'||state==='done')&&!key.look&&!CINE?Math.min(1,Math.max(0,(Math.abs(race.player.spd)-55)/35))*(cmv==='tv'?0:outCam(cmv)?0.5:1):0;
@@ -6905,7 +6922,10 @@ function sync(dt){
     +IMPACT*(Math.sin(shakeT*73)*0.05+Math.sin(shakeT*41)*0.035);IMPACT*=Math.exp(-dt*5);
   {const J=JOLT,h=Math.min(dt,0.05);J.vx+=(-260*J.x-22*J.vx)*h;J.vz+=(-260*J.z-22*J.vz)*h;J.x+=J.vx*h;J.z+=J.vz*h;J.x=Math.max(-0.12,Math.min(0.12,J.x));J.z=Math.max(-0.14,Math.min(0.14,J.z));
    if(HITF>0||HITO){HITF=Math.max(0,HITF-dt*2.8);const o=Math.round(HITF*20)/20;if(o!==HITO){HITO=o;HITFX.style.opacity=o;HITFX.style.display=o>0?'block':'none';}}}
-  const pitch=pm.pitch||0,gy=pm.py!=null?pm.py:roadY(pl.x,pl.z,pl.idx),gs=pm.pp!=null?Math.tan(pm.pp):slopeAlong(pl.idx,pl.a),KP=0.5;   // v12c: the car's own pose
+  let gy=pm.py!=null?pm.py:roadY(pl.x,pl.z,pl.idx),gs=pm.pp!=null?Math.tan(pm.pp):slopeAlong(pl.idx,pl.a);
+  // 11-04: in the pit lane the cameras ride a filtered road height and slope (a type-2 filter: no lag on a steady climb, the remaining kicks of the road left out), easing back to the car's own within half a second of leaving
+  {const F=CAMF,h=Math.min(dt,0.05),w=8,e=gy-F.y;if(Math.abs(e)>2.5){F.y=gy;F.v=gs*pl.spd;F.s=gs;}else{F.v+=w*w*e*h;F.y+=(F.v+2*w*e)*h;F.s+=(gs-F.s)*Math.min(1,dt*7);}F.k=pl.pit?Math.min(1,F.k+dt*2.5):Math.max(0,F.k-dt*2);if(F.k){gy+=(F.y-gy)*F.k;gs+=(F.s-gs)*F.k;}}
+  const pitch=pm.pitch||0,KP=0.5;   // v12c: the car's own pose
   // v13g: the driver's head is not bolted to the car. It is thrown against the cornering load,
   // nods under braking and shakes over the kerbs, and it turns a little into the corner. headLat
   // and headLon are the same lagged g-loads the cockpit camera already rides on, so the head and
@@ -7231,7 +7251,7 @@ function pitFx(dt){
 }
 function sfxGun(v,d){if(!AC||muted)return;d=Math.max(0.12,d);sfxBurst({type:'bandpass',f:2700+Math.random()*500,q:2.6,amp:0.34*v,att:0.004,hold:d*0.85,dur:d,am:52+Math.random()*8});sfxBurst({type:'bandpass',f:620,q:1.4,amp:0.18*v,dur:0.05,delay:d*0.9});}
 // ---- car damage: bent / missing wing halves, rear wing, suspension corners ----
-let IMPACT=0,FLATPH=0;   // FLATPH: a flat spot's phase, summed (time x speed went to noise under braking: its rate grew with the race clock)
+let IMPACT=0,FLATPH=0;const CAMF={k:0,y:0,v:0,s:0};   // FLATPH: a flat spot's phase, summed (time x speed went to noise under braking: its rate grew with the race clock)
 // Everything is drawn from the car's damage state, so a repaired car (all zero after the stop) looks new again.
 // During a stop, m.fixV (from the stop timeline) marks the parts the crew has already replaced.
 function dmgVis(m,c){const d=c.dmg;if(!d||!m.fw)return;if(!c.pit){m.noseAnim=null;m.rwAnim=null;m.fixV=null;}const na=m.noseAnim,ra=m.rwAnim,fx=m.fixV,pk=d.pk||Z4;
