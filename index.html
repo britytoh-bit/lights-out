@@ -5443,7 +5443,7 @@ function initAudio(){if(AC)return;try{
   {const sc=AC.createGain(),cl=AC.createWaveShaper(),n=4096,c=new Float32Array(n);sc.gain.value=0.5;   // v12: a soft clip on the very end - unity below -1.4 dBFS, rounds off
    for(let i=0;i<n;i++){const x=2*(i/(n-1)*2-1),a=Math.abs(x);c[i]=a<=0.85?x:Math.sign(x)*(0.85+0.15*Math.tanh((a-0.85)/0.15));}   // stacked peaks (up to +6 dB) instead of a hard clip
    cl.curve=c;cl.oversample='none';comp.connect(sc);sc.connect(cl);cl.connect(AC.destination);}
-  SND.master=AC.createGain();SND.master.gain.value=0;SND.air=AC.createBiquadFilter();SND.air.type='lowpass';SND.air.frequency.value=20000;SND.air.Q.value=0.5;SND.master.connect(SND.air);SND.air.connect(comp);   // 10-30: distance muffling for the TV view
+  SND.master=AC.createGain();SND.master.gain.value=0;SND.air=AC.createBiquadFilter();SND.air.type='lowpass';SND.air.frequency.value=20000;SND.air.Q.value=0.5;SND.master.connect(SND.air);SND.out=comp;SND.lagD=AC.createDelay(0.3);SND.lagD.delayTime.value=0;SND.air.connect(SND.lagD);SND.lagD.connect(comp);   // 10-30: distance muffling for the TV view
   const M=SND.master,G=(v)=>{const g=AC.createGain();g.gain.value=v||0;return g;},F=(type,f,q)=>{const b=AC.createBiquadFilter();b.type=type;b.frequency.value=f;if(q!=null)b.Q.value=q;return b;};
   SND.G=G;SND.F=F;
   {const V=engineVoices();SND.eng=V.eng;SND.vox=V.vox;}
@@ -5475,6 +5475,9 @@ function mkNoise(){const s=AC.createBufferSource();s.buffer=SND.nb;s.loop=true;s
 // A 4-stroke V6 fires 3 times per crank revolution, so the firing frequency is rpm/60*3 (525 Hz at 10 500 rpm).
 // Loops are synthesised at 9000 rpm and replayed faster/slower; the resonances stay fixed like a real exhaust.
 const ENG_R0=9000;
+// 11-04 the sound at a trackside camera, from the geometry only (no recording of it to go by): d metres away, closing at vr (+ away), rear 0..1 how much the tail points at it. Level falls with distance (a broadcast's mix keeps it from falling all the way), the air and the distance take the top off, the exhaust side is louder and brighter, a little echo off the stands grows with distance, the sound arrives a fixed 60 ms late (20 m; a delay following d would add to the Doppler pitch).
+function tvHear(d,vr,rear){const dd=Math.max(4,d),A=Math.max(0.045,Math.min(1,Math.pow(14/dd,0.85)))*(0.72+0.28*rear);
+  return {A,cut:Math.max(1500,Math.min(16000,(7000+7000*rear)*Math.pow(40/dd,0.55))),dop:Math.max(0.72,Math.min(1.38,343/(343+vr))),wet:Math.min(0.5,0.06+dd/320),lag:0.06};}
 const ENG_SHAPE=(()=>{const n=2048,c=new Float32Array(n);for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(1.6*x+0.18*x*x)/Math.tanh(1.6);}return c;})();
 // voices (the player's car + four nearby cars, all the 2026 onboard V6 sound) are built on first use
 function puBufs(pu){if(SND.bufP&&SND.bufPu===pu)return SND.bufP;if(!SND.bufs5)SND.bufs5=engineBuffers5(AC);SND.bufP=engineBuffers5(AC,pu,SND.bufs5);SND.bufPu=pu;return SND.bufP;}   // only the voice in use is kept
@@ -5561,7 +5564,7 @@ function engineVoice4(ctx,dest,bufs,main){
   v.r1=F('highpass',900,0.7);v.rs=ctx.createWaveShaper();v.rs.curve=RASP_SHAPE;v.rs.oversample='2x';v.r2=F('peaking',2600,1.1,3);v.r3=F('lowpass',5500,0.7);v.rg=G(0.15);
   v.pre.connect(v.r1);v.r1.connect(v.rs);v.rs.connect(v.r2);v.r2.connect(v.r3);v.r3.connect(v.rg);v.rg.connect(v.drv);
   v.sh=ctx.createWaveShaper();v.sh.curve=ENG_SHAPE;v.sh.oversample='2x';v.drv.connect(v.sh);
-  v.hp=F('highpass',110,0.7);v.e1=F('lowshelf',240,null,main?EQ3.shelf:EQ3.shelf/2);v.lp=F('lowpass',3000,0.6);
+  v.hp=F('highpass',60,0.7);v.e1=F('lowshelf',240,null,main?EQ3.shelf:EQ3.shelf/2);v.lp=F('lowpass',3000,0.6);
   v.sh.connect(v.hp);v.hp.connect(v.e1);
   if(main){v.lq=F('peaking',250,0.75,0);v.lh=F('peaking',2400,0.9,0);v.e1.connect(v.lq);v.lq.connect(v.lh);v.lh.connect(v.lp);}   // v11g: low gears - more low-mid body, a little less upper-mid
   else v.e1.connect(v.lp);
@@ -5588,18 +5591,18 @@ function engineMix3(v,t,inCar){v.mx.gain.setTargetAtTime((inCar?0.72:0.95)*(v.v4
 // 11-04: re-tuned against two recordings of 2026 power units (analysed only, no audio from them in this file). Measured at 11 100 rpm flat out, level against the firing order 3:
 // 1.5: -11, 2: -21, 2.5: -26, 4.5: -12, 6: -5, 7.5: -19, 9: -8, 12: -12 dB: nearly flat up the firing family, weak half orders; centre of the spectrum 700-1900 Hz (was 850-1000); a whine at order ~44
 const V29={ex:{alt:0.18,rev:0.07,cyc:0.07},im:{alt:0.2,rev:0.22,cyc:0.14},mech:[0,0],exN:1.0,revPh:0.6,cycPh:0.4,cvw:0.4,av:0.2,jit:3,nz:0.45,rz:0.5,td:9,tr:0.8,neg:0.25,
-  intake:0.9,intakeOut:0.25,inF:[190,1.2,8],inF2:[650,1.5,0],inLP:1800,rumble:0.2,rumbleOut:0.15,rbF:220,hiss:0.5,hissF:7000,lq0:1,
-  mx:[0.86,1.14],bright:[2500,7500,2500],brightOut:[2500,7500,2500],hissOut:1,
+  intake:0.9,intakeOut:0.25,inF:[190,1.2,8],inF2:[650,1.5,0],inLP:1800,rumble:0.35,rumbleOut:0.25,rbF:220,hiss:0.08,hissF:5000,lq0:3,
+  mx:[0.86,1.14],bright:[3600,7000,2400],brightOut:[3400,6500,2400],hissOut:1,
   drv:1.3,lvl:[1.42,1.45],lvlAI:1.1,shelf:4.5,pres:[2800,0.8,1.5],lgCut:0,
-  grP:{alt:0.14,rev:0.12,cyc:0.35},grCyl:2.4,grK:1.1,rbK:0.45,lowmid:[6,-1],lgDark:0.2,raspK:0.75};   // drv: drive into the shaper (x EQ3.drv; brings the peak-to-average ratio near the clip's); lvl [in-car, outside] / lvlAI: output level of
+  grP:{alt:0.14,rev:0.12,cyc:0.35},grCyl:2.4,grK:1.25,rbK:0.6,lowmid:[8,-3],lgDark:0.35,raspK:0.75};   // drv: drive into the shaper (x EQ3.drv; brings the peak-to-average ratio near the clip's); lvl [in-car, outside] / lvlAI: output level of
 // the player's car / the other cars (set so the loudness matches the v28 sound, so the balance with the other sounds stays); shelf: low shelf after the shaper (dB, 240 Hz); pres: presence peak [Hz, Q, dB]; lgCut: level taken out in the low gears (x the growl share)
 // v12b (player feedback): the clip's hiss at full throttle was the wind on that recording, so no hiss layer and far less noise in the
 // full-load pulses; the low gears growl more (grP / grCyl: a lumpier growl set with a strong once-per-cycle beat, grK / rbK: more of the growl
 // and rumble sets, lowmid: dB at 210 Hz / 2.4 kHz, lgDark: how much darker the top gets, raspK: less clipped buzz)
 // 11-04: five power-unit voices. PU_ORD: level (dB) of each crank order in PU_O for the full-load set, closed-loop tuned against the analysed recordings so that what comes out of the pipes, shaper and EQ has the measured orders (no audio from them is in this file). PU_NZ: air noise. PU_AI: the other cars' fixed filters (dB at 290 / 560 Hz): only values change, no extra nodes. TEAM_PU: which voice each team has.
 const PU_O=[1.5,2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,9,10,10.5,11,12,13.5,15,16.5,18,21,24,27,30,33,36,40,44];
-const PU_ORD=[[0.0,-10.1,-16.5,-0.0,-15.5,-9.4,-9.1,-6.7,-7.6,4.5,-7.3,-3.0,-3.9,-11.6,8.9,-29.4,-12.3,-12.4,-14.5,-15.3,-19.0,-1.9,4.6,-6.0,-5.7,-7.0,-25.9,-5.3,-3.1,3.1,-2.6],[-9.0,-18.2,-25.5,-0.0,-24.5,-16.4,-18.1,-15.3,-16.6,-4.5,-16.3,-12.0,-12.9,-20.6,-0.1,-31.9,-21.3,-13.5,-23.5,-24.3,-28.0,-10.9,-4.4,-15.0,-14.7,-15.5,-34.8,-14.3,-12.1,-5.9,-6.8],[-5.6,-12.3,-19.0,-0.0,-19.5,-13.9,-9.1,-8.3,-9.6,4.5,-7.3,-3.0,-3.9,-11.6,8.0,-22.9,-12.3,-4.5,-14.5,-15.3,-20.3,-1.9,4.6,-6.3,-6.2,-6.5,-25.8,-5.3,-3.6,3.1,-3.6],[0.0,-11.0,-18.2,-0.0,-15.5,-7.4,-9.1,-6.3,-7.6,4.5,-7.3,-3.0,-3.9,-11.6,8.9,-25.9,-12.3,-4.5,-14.5,-15.3,-19.0,-1.9,4.6,-6.0,-5.7,-6.5,-25.8,-5.3,-3.1,3.1,2.2],[-0.5,-11.7,-23.8,-0.0,-15.5,-7.4,-9.1,-6.3,-7.6,4.5,-7.3,-3.0,-3.9,-16.5,3.7,-23.1,-12.3,-9.4,-14.5,-15.3,-19.9,-1.9,4.6,-6.0,-5.7,-6.5,-25.8,-5.3,-3.1,3.1,2.2]];
-const PU_NZ=[1.2,1,1.15,1.6,1.55],PU_AI=[[5,2],[0,0],[3,1],[5,3],[4,1]],TEAM_PU=[2,0,2,4,2,4,2,3,1,0,4];
+const PU_ORD=[[-18.0,-12.0,-30.3,0.0,-8.1,-19.6,6.1,-15.2,-23.0,-9.7,-16.2,-18.7,-6.1,-18.1,-9.0,-20.8,-37.7,-31.3,-32.5,-14.4,-26.1,-31.7,-39.4,-31.2,-17.7,-31.9,-30.9,-15.6,-29.1,-25.2,-21.5],[-23.2,-6.1,-13.1,0.0,-4.1,-11.0,5.2,-10.1,-20.3,-7.5,-6.1,-14.4,-8.2,-26.0,-14.2,-16.9,-18.8,-38.8,-28.1,-7.8,-22.9,-20.1,-33.5,-23.2,-17.8,-42.3,-29.7,-22.4,-35.0,-25.6,-26.2],[-23.3,-14.7,-17.6,0.0,-11.7,-15.5,0.0,-19.7,-32.1,-11.9,-21.1,-16.4,-5.7,-28.7,-11.6,-26.1,-14.0,-48.3,-36.1,-42.9,-16.6,-18.2,-18.0,-29.3,-18.2,-11.4,-19.4,-16.8,-24.2,-21.6,-22.2],[-33.6,-5.4,-15.6,0.0,-10.8,-31.7,-2.2,-8.2,-30.5,-9.7,-31.6,-18.1,-11.5,-5.7,-6.9,-26.4,-13.0,-22.2,-20.9,-24.4,-16.6,-27.9,-35.6,-23.8,-20.9,-33.9,-22.4,-20.7,-39.2,-27.3,-42.5],[-36.5,-7.5,-38.7,0.0,-27.3,-22.2,3.5,-13.2,-42.1,-2.6,-33.6,-18.7,-12.0,-14.4,-11.7,-25.6,-26.4,-36.5,-36.6,-39.0,-25.3,-28.2,-40.5,-41.6,-21.5,-15.2,-31.4,-17.1,-30.7,-28.6,-36.0]];
+const PU_NZ=[1.2,1,1.4,1.1,1.1],PU_AI=[[-4,1],[0,0],[-6,-4],[-3,-4],[-5,2]],TEAM_PU=[2,0,2,4,2,4,2,3,1,0,4];
 function engineBuffers5(ctx,pu,base){
   const sr=ctx.sampleRate,cyc=sr*120/ENG_R0,deg=cyc/720,P=V29;
   let sd=24681357;const rnd=()=>{sd=(sd*16807)%2147483647;return sd/2147483647;};
@@ -5630,8 +5633,8 @@ function engineBuffers5(ctx,pu,base){
   return {on:on0||mk({pat:E,nc:512,cr:0.55,cyl:1,A:1,tr:P.tr,td:P.td,tn:12,tz:2.5,nz:P.nz*P.exN,rz:P.rz*P.exN,neg:P.neg,popP:0,popA:1,miss:0.025,missA:0.35,cvw:P.cvw*P.exN,av:P.av*P.exN,jit:P.jit*P.exN}),
           onI:on0||mk({mech:P.mech,pat:I,nc:512,cr:0.55,cyl:1,A:1,tr:P.tr,td:P.td,tn:12,tz:2.5,nz:P.nz,rz:P.rz,neg:P.neg,popP:0,popA:1,miss:0.025,missA:0.35,cvw:P.cvw,av:P.av,jit:P.jit}),
           off:mk({pat:E,nc:384,cr:0.55,cyl:0.8,A:0.55,tr:2,td:18,tn:18,tz:3,nz:0.9,rz:0.9,neg:0.15,popP:0.03,popA:1.8,miss:0.12,missA:0.08,cvw:0.25,av:0.4,jit:3}),
-          lo:mk({pat:E,nc:384,cr:0.4,cyl:1.3,A:1,tr:1.2,td:14,tn:12,tz:2.4,nz:0.5,rz:0.75,neg:0.3,popP:0.004,popA:1.6,miss:0.08,missA:0.22,cvw:0.6,av:0.28,jit:4}),
-          loI:mk({mech:P.mech,pat:I,nc:384,cr:0.4,cyl:1.3,A:1,tr:1.2,td:14,tn:12,tz:2.4,nz:Math.max(0.46,P.nz),rz:Math.max(0.75,P.rz),neg:0.3,popP:0.004,popA:1.6,miss:0.08,missA:0.22,cvw:Math.max(0.6,P.cvw),av:Math.max(0.28,P.av),jit:Math.max(4,P.jit)}),
+          lo:mk({pat:E,nc:384,cr:0.3,cyl:1.5,A:1,tr:1.2,td:16,tn:16,tz:3,nz:0.85,rz:1.0,neg:0.3,popP:0.01,popA:1.6,miss:0.14,missA:0.15,cvw:1.1,av:0.5,jit:9}),
+          loI:mk({mech:P.mech,pat:I,nc:384,cr:0.3,cyl:1.5,A:1,tr:1.2,td:16,tn:16,tz:3,nz:0.85,rz:1.0,neg:0.3,popP:0.01,popA:1.6,miss:0.14,missA:0.15,cvw:1.1,av:0.5,jit:9}),
           rb:mk({pat:I,nc:384,cr:0.25,cyl:1.2,A:1,tr:3,td:45,tn:12,tz:2.5,nz:0.1,rz:0,neg:0.05,popP:0,popA:1,miss:0.04,missA:0.3,cvw:1.2,cvmin:0.12,av:0.3,jit:4}),
           gr:mk({pat:pat(P.grP),nc:384,cr:0.35,cyl:P.grCyl,A:1,tr:1.6,td:16,tn:12,tz:2.5,nz:0.12,rz:0.08,neg:0.25,popP:0,popA:1,miss:0.03,missA:0.4,cvw:0.6,av:0.18,jit:3})};
 }
@@ -5649,7 +5652,7 @@ function engineVoice5(ctx,dest,bufs,main){
     v.sonI.start(0,at(bufs.onI));v.sloI.start(0,at(bufs.loI));v.wIn=1;}
   if(main&&P.hiss>0){   // air: hiss from the intake and the turbo, after the shaper (not darkened by the brightness filter)
     const n=ctx._nz5||(ctx._nz5=(()=>{const b=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate),d=b.getChannelData(0);let s=777;for(let i=0;i<d.length;i++){s=(s*16807)%2147483647;d[i]=s/1073741823.5-1;}return b;})());
-    v.hs=ctx.createBufferSource();v.hs.buffer=n;v.hs.loop=true;v.hsF=F('bandpass',P.hissF,0.35);v.hsG=G(0);v.hs.connect(v.hsF);v.hsF.connect(v.hsG);v.hsG.connect(v.out);v.hs.start(0);}
+    v.hs=ctx.createBufferSource();v.hs.buffer=n;v.hs.loop=true;v.hsF=F('bandpass',P.hissF,0.7);v.hsG=G(0);v.hs.connect(v.hsF);v.hsF.connect(v.hsG);v.hsG.connect(v.out);v.hs.start(0);}
   return v;}
 function engineLevel5(rpm,L,inCar,cut,ck){const a=engineLevel4(rpm,L,inCar,cut,ck),r01=Math.min(1,rpm/12500),B=inCar?V29.bright:V29.brightOut;ck=ck||0;
   return [a[0]*V29.lvl[inCar?0:1],(B[0]+L*B[1]+r01*B[2])*(1-0.2*ck)];}
@@ -5662,7 +5665,7 @@ function engineSet(v,t,rpm,load,lvl,bright,tc){const r=Math.max(0.2,rpm/ENG_R0),
   const wg=v.sgr?(v.lgg||0)*(0.35+0.65*Math.max(0,Math.min(1,(12000-rpm)/3000))):0;   // v11f: low-gear growl share (set by audioUpdate from the gear)
   if(v.sgr){v.sgr.playbackRate.setTargetAtTime(r,t,k);v.ggr.gain.setTargetAtTime(GROWL*(v.v5?V29.grK:1)*wg*(0.95*load+0.35*(1-load)),t,0.03);}
   if(v.slo){v.slo.playbackRate.setTargetAtTime(r,t,k);const q=Math.max(0,Math.min(1,(8600-rpm)/3600)),wl=q*q*(3-2*q);   // below ~8600 rpm the lumpy set blends in (all of it at 5000)
-    const wI=v.gonI?(v.wIn==null?1:v.wIn):0,gO=load*(1-0.75*wl)*(1-0.85*wg),gL=(0.75*wl*load+0.8*wl*(1-load))*(1-0.9*wg);
+    const wI=v.gonI?(v.wIn==null?1:v.wIn):0,gk=v.gritK||0,gO=load*(1-0.75*wl)*(1-0.85*wg)*(1-0.85*gk),gL=Math.max((0.75*wl*load+0.8*wl*(1-load))*(1-0.9*wg),gk*0.95);   // gk: off the throttle (braking, turning in): the even note breaks up (measured: no clear orders, rough)
     v.gon.gain.setTargetAtTime(gO*(1-wI),t,0.018);v.glo.gain.setTargetAtTime(gL*(1-wI),t,0.03);if(v.gonI){v.gonI.gain.setTargetAtTime(gO*wI,t,0.018);v.gloI.gain.setTargetAtTime(gL*wI,t,0.03);}   // cockpit sets in-car
     v.goff.gain.setTargetAtTime(Math.max(0,1-load)*0.95*(1-0.8*wl)*Math.max(0,1-1.15*wg),t,0.03);}
   if(v.lq){const LM=v.v5?V29.lowmid:LOWMID;v.lq.gain.setTargetAtTime((v.v5?V29.lq0:0)+LM[0]*wg,t,0.05);v.lh.gain.setTargetAtTime(LM[1]*wg,t,0.05);if(v.pr)v.pr.gain.setTargetAtTime(V29.pres[2]*(1-wg),t,0.05);}
@@ -5728,10 +5731,14 @@ function audioUpdate(dt){
   // 10-30 윤택님 「TV 시점은 멀리서 나는 소리」: in the TV view the listener is the trackside camera, not the driver - the car is
   // quieter and duller the further it is, sits left/right in the picture, and drops in pitch as it passes (doppler)
   const tvL=live&&CAMS[camMode]==='tv'&&!key.look?(()=>{const p=race.player,m=camera.matrixWorld.elements,cx=camera.position.x,cz=camera.position.z,dx=p.x-cx,dz=p.z-cz,
-      d=Math.max(2,Math.hypot(dx,dz)),rl=Math.hypot(m[0],m[2])||1,vr=(Math.cos(p.a)*dx+Math.sin(p.a)*dz)/d*p.spd;
-    return {cx,cz,d,rx:m[0]/rl,rz:m[2]/rl,pan:Math.max(-0.8,Math.min(0.8,(m[0]*dx+m[2]*dz)/rl/d)),dop:Math.max(0.75,Math.min(1.3,343/(343+vr))),A:Math.max(0.25,Math.min(1,Math.pow(10/d,0.9)))};})():null;
-  SND.master.gain.setTargetAtTime(live?0.7*(tvL?tvL.A:1):0,t,0.1);
-  if(SND.air)SND.air.frequency.setTargetAtTime(tvL?Math.max(2400,Math.min(20000,22000*10/tvL.d)):20000,t,0.1);
+      d=Math.max(2,Math.hypot(dx,dz)),rl=Math.hypot(m[0],m[2])||1,vr=(Math.cos(p.a)*dx+Math.sin(p.a)*dz)/d*p.spd,rear=0.5+0.5*(Math.cos(p.a)*dx+Math.sin(p.a)*dz)/d,H=tvHear(d,vr,rear);
+    return {cx,cz,d,rx:m[0]/rl,rz:m[2]/rl,pan:Math.max(-0.8,Math.min(0.8,(m[0]*dx+m[2]*dz)/rl/d)),dop:H.dop,A:H.A,cut:H.cut,wet:H.wet,lag:H.lag};})():null;
+  SND.master.gain.setTargetAtTime(live?0.7*(tvL?tvL.A:CAMS[camMode]==='far'?0.8:1):0,t,0.1);
+  if(SND.air)SND.air.frequency.setTargetAtTime(tvL?tvL.cut:CAMS[camMode]==='far'?11000:20000,t,0.1);
+  // the echo and the lateness: only wired in while the TV view is on (nothing to pay in the other views)
+  if(tvL&&!SND.tvW){const dl=AC.createDelay(0.5),fb=SND.G(0.28),lp=SND.F('lowpass',2200,0.5),wet=SND.G(0);dl.delayTime.value=0.13;dl.connect(lp);lp.connect(fb);fb.connect(dl);lp.connect(wet);wet.connect(SND.out);SND.tvW={dl,wet};}
+  if(SND.tvW){const on=!!tvL;if(on!==SND.tvOn){SND.tvOn=on;try{if(on)SND.air.connect(SND.tvW.dl);else SND.air.disconnect(SND.tvW.dl);}catch(e){}}SND.tvW.wet.gain.setTargetAtTime(on?tvL.wet:0,t,0.2);}
+  if(SND.lagD)SND.lagD.delayTime.setTargetAtTime(tvL?tvL.lag:0,t,0.8);
   if(!live)return;
   SND.T+=dt;
   const V=engineVoices();SND.eng=V.eng;SND.vox=V.vox;
@@ -5754,13 +5761,13 @@ function audioUpdate(dt){
   {const ck=SND.clip||0,L0=pl.pit&&pl.pit.state==='stop'?0.06:hold?0.8:Math.max(thr>0.05?0.25+0.75*thr:0.04,0.65*(SND.hv||0))-0.3*ck;   // harvesting: the engine stays under load off throttle ("full-throttle mode when braking and cornering")
     SND.load+=(L0-SND.load)*Math.min(1,dt*14);L=SND.load;if(sf.blip>0)L=Math.max(L,0.95*sf.blip);r01=Math.min(1,rpm/12500);   // the blip opens the throttle
     const bk=sf.blip;   // downshift blip: the bark is louder and brighter than the load alone gives
-    {const gn=+g||0,lgT=gn>=1&&gn<=3?[0,1,0.8,0.5][gn]:0;SND.lg=(SND.lg||0)+(lgT-(SND.lg||0))*Math.min(1,dt*5);e.lgw=SND.lg*(inCar?1:0.6);e.lgg=SND.lg;}   // v11f: low-gear rumble
+    {const gn=+g||0,lgT=gn>=1&&gn<=3?[0,1,0.8,0.5][gn]:0;SND.lg=(SND.lg||0)+(lgT-(SND.lg||0))*Math.min(1,dt*5);e.lgw=SND.lg*(inCar?1:0.6);e.lgg=SND.lg;{const gt=thr<0.15&&sp>8?1:0;SND.gk=(SND.gk||0)+(gt-(SND.gk||0))*Math.min(1,dt*6);e.gritK=SND.gk;}}   // v11f: low-gear rumble
     const lb=engineLevel5(rpm,L,inCar,cut,ck);engineSet(e,t,rpm,L,lb[0]*(1+0.6*bk),lb[1]*(1+0.35*bk));}
   if(e.pan)e.pan.pan.setTargetAtTime(tvL?tvL.pan:0,t,0.1);
   engineMix5(e,t,inCar);
   {const on=0.8,gm=Math.max(300,rpm/60*(GEAR_TEETH[+g]||21));SND.gw.frequency.setTargetAtTime(gm,t,0.03);SND.gwF.frequency.setTargetAtTime(gm,t,0.03);   // gear-mesh frequency (21 teeth: game value)
    SND.gwG.gain.setTargetAtTime(on*(0.005+0.013*(1-L))*Math.min(1,sp/8)*(inCar?1:0.55),t,0.05);}
-  SND.rdG.gain.setTargetAtTime(Math.min(1,sp/70)*(inCar?0.055:0.03)*(pl.off?0.3:1),t,0.1);
+  SND.rdG.gain.setTargetAtTime(tvL?0:Math.min(1,sp/70)*(inCar?0.055:0.03)*(pl.off?0.3:1),t,0.1);
   {const pk=pl.dmg&&pl.dmg.pk,p=pk?Math.max(pk[0],pk[1],pk[2],pk[3]):0;   // a flat tyre flaps once per wheel turn; on the rim it scrapes
    if(p>0.35&&sp>2&&!pl.pit){SND.pkT=(SND.pkT||0)-dt;if(SND.pkT<=0){SND.pkT=Math.max(0.07,2.26/sp);sfxBurst({type:'lowpass',f:160+sp*2.5,q:0.9,amp:0.2*p*Math.min(1,sp/12),att:0.002,dur:0.055});
      if(p>0.85&&sp>5)sfxBurst({type:'bandpass',f:2800+Math.random()*1600,q:2.2,amp:0.045*Math.min(1,sp/30),att:0.002,dur:0.08});}}}
@@ -5795,7 +5802,7 @@ function audioUpdate(dt){
   SND.grG.gain.setTargetAtTime(off&&sp>2?Math.min(0.35,0.08+sp*0.006):0,t,0.05);
   // wind
   SND.rnG.gain.setTargetAtTime(race.wx.rain*(inCar?0.09:0.06),t,0.3);SND.hsG.gain.setTargetAtTime(WET*Math.min(1,sp/50)*0.07,t,0.1);
-  SND.wF.frequency.setTargetAtTime(300+sp*15,t,0.1);SND.wG.gain.setTargetAtTime(Math.min(inCar?0.11:0.07,sp*sp*0.000014),t,0.15);   // v12b: softer and lower - at full speed it read as hiss over the engine
+  SND.wF.frequency.setTargetAtTime(300+sp*15,t,0.1);SND.wG.gain.setTargetAtTime(tvL?0:Math.min(inCar?0.075:0.05,sp*sp*0.00001),t,0.15);   // v12b: softer and lower - at full speed it read as hiss over the engine
   // other cars (nearest four) with distance, pan and doppler
   // v12i: a voice stays with its car while that car is still among the nearest five (each voice went to whichever car was the n-th
   // nearest this frame, so in a pack - cars a metre apart swapping places - the voices hopped between cars: the engines warbled, the
