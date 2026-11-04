@@ -46,6 +46,9 @@ body{height:100%; margin:0; background:var(--bg); color:var(--ink); overflow:hid
 #wrap{position:relative; width:100%; height:100%; container-type:size}   /* 11-01: the size rules below ask #wrap (@container), not the window - turned sideways (body.rot) the window is upright but #wrap is landscape */
 body.rot{--sat:env(safe-area-inset-right,0px); --sar:env(safe-area-inset-bottom,0px); --sab:env(safe-area-inset-left,0px); --sal:env(safe-area-inset-top,0px)}   /* turned: the screen's top (notch) is #wrap's left */
 #gl{position:absolute; inset:0; width:100%; height:100%; display:block}
+#rotHint{display:none; position:fixed; inset:0; z-index:100; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:24px; background:#16171b; color:#f2f3f5; text-align:center}
+body.portHint #rotHint{display:flex}
+#rotHint b{font-size:20px} #rotHint span{font-size:15px; color:#9ea3ad}
 /* v14b: phone smooth / normal - the post chain's vignette as a CSS layer (same curve: 0.22 at the default .6 opacity, darker with speed) */
 #vig{display:none; position:absolute; inset:0; pointer-events:none; opacity:.6; background:radial-gradient(ellipse 72% 90% at 50% 48%,rgba(0,0,0,0) 38.89%,rgba(0,0,0,.0573) 54.17%,rgba(0,0,0,.1833) 69.44%,rgba(0,0,0,.3094) 84.72%,rgba(0,0,0,.3667) 100%)}
 body.tmgrade #vig{display:block}
@@ -516,6 +519,7 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
 </script>
 </head>
 <body>
+<div id="rotHint"><b>폰을 가로로 돌려 주세요</b><span>회전 잠금이 켜져 있으면 풀어 주세요</span></div>
 <div id="wrap">
   <canvas id="gl"></canvas><div id="vig"></div><div id="hitfx"></div>
   <div class="hud num" id="hudTop"><div><span id="pos">P12</span><span class="small" id="posN">/22</span></div><div><span class="small" id="lapL">랩 </span><span id="lap">1/3</span></div><div id="pen" class="small" style="color:#ffb347"></div><div id="wxI" class="small"></div></div>
@@ -5186,15 +5190,12 @@ function lapTable(open){if(!lapLog.length)return '';let bi=-1;lapLog.forEach((l,
   return '<details'+(open?' open':'')+'><summary>내 랩 기록 · '+lapLog.length+'랩'+(bi>=0?' · 베스트 '+fmt(lapLog[bi].t):'')+(bestLap?' · 서킷 베스트 '+fmt(bestLap):'')+'</summary><table class="num"><tr><th>랩</th><th>랩 타임</th><th>S1</th><th>S2</th><th>S3</th><th>차이</th></tr>'+rows+'</table></details>';}
 const isTouch=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 if(isTouch)document.body.classList.add('touch');
-// 11-01: a phone is always played sideways. Held upright, or turned with the rotation lock on (the window stays upright - iOS Safari
-// cannot lock it), #wrap is laid out at the landscape size and turned 90 deg clockwise: right for a phone turned to the left (top of
-// the phone on the left, charging port on the right). Unlocked, the OS turns the window itself and nothing is turned here.
-// Layout code works in #wrap's coordinates: VW() x VH() is its size, bcr() a box in it, ptX() a finger's x along it.
+// 11-04 윤택님: sideways only by the phone's own screen rotation. The page is no longer turned 90 deg when the window is upright (ROT stays false);
+// held upright it asks to turn the phone. Layout code works in #wrap's coordinates: VW() x VH() is its size, bcr() a box in it, ptX() a finger's x along it.
 // 11-04: the window size is read once, not on every use (reading innerWidth after the HUD changed forces a layout: 0.2-0.4 ms a frame on this laptop, more on a phone)
 let mDraw=40,ROT=false,WINW=innerWidth,WINH=innerHeight;const VW=()=>ROT?WINH:WINW,VH=()=>ROT?WINW:WINH,ptX=e=>ROT?e.clientY:e.clientX;
 function bcr(e){const r=e.getBoundingClientRect();if(!ROT)return r;const W=innerWidth;return {left:r.top,right:r.bottom,top:W-r.right,bottom:W-r.left,x:r.top,y:W-r.right,width:r.height,height:r.width};}
-function applyRot(){ROT=isTouch&&innerHeight>innerWidth;document.body.classList.toggle('rot',ROT);
-  $('wrap').style.cssText=ROT?'position:fixed;left:0;top:0;width:'+innerHeight+'px;height:'+innerWidth+'px;transform-origin:0 0;transform:translateX('+innerWidth+'px) rotate(90deg)':'';}
+function applyRot(){document.body.classList.toggle('portHint',isTouch&&innerHeight>innerWidth);if(!$('pause').hidden)$('resumeBtn').scrollIntoView({block:'nearest'});}
 applyRot();
 let quality=loadLS('lightsout3d-q2')||'medium';if(!['high','medium','low'].includes(quality))quality='medium';document.body.classList.add('q-'+quality);let tod=loadLS('lightsout3d-tod')||'day';
 let sens=parseInt(loadLS('lightsout3d-sens'),10)||2;
@@ -7774,7 +7775,7 @@ function vsTick(now){const d=now-VS.lastV;VS.lastV=now;if(!(d>0&&d<100))return;V
   if(VS.i%120===0){const s=Array.from(VS.a).sort((x,y)=>x-y),p=s[12];VS.hz=Math.max(VS.hz,p<9.5?120:p<12.5?90:60);}}   // 10-30: the screen's rate only goes up - a heavy stretch (frames of 17 ms+) used to make a 120 Hz screen read "60Hz"
 function frame(now){
   vsTick(now);if(PERF.lock60&&now-last<12.5){requestAnimationFrame(frame);return;}   // locked: skip the in-between refresh
-  const raw=(now-last)/1000,dt=Math.min(1/30,Math.max(0,raw));last=now;fpsTick(raw);if((frame.n=(frame.n||0)+1)%30===0&&(innerWidth!==resize.w||innerHeight!==resize.h))resize();
+  const raw=(now-last)/1000,dt=Math.min(1/30,Math.max(0,raw));last=now;fpsTick(raw);if((frame.n=(frame.n||0)+1)%30===0&&(innerWidth!==resize.w||innerHeight!==resize.h))resize();if(isTouch&&WINH>WINW&&(state==='race'||state==='countdown'))setPause(true);   // turned upright mid-race: it waits
   if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').style.opacity=0;}
   if(flagPulse>0)flagPulse-=dt;
   if(BENCH)benchStep(raw,dt);
