@@ -1398,6 +1398,9 @@ function joinStep(race,c,dt){
   if(pp.jT>8||(pp.jT>0.25&&!yl&&Math.abs(c.lat)<HALF-0.8&&Math.abs(hd)<0.09&&(Math.abs(bend)<0.17||pp.jT>2.5)&&!need&&!c.braking)){
     c.pit=null;c.lane=c.laneT=Math.max(-HALF+1.6,Math.min(HALF-1.6,c.lat));c.rlw=0;c.passT=race.t+2;if(c.r!=null)c.r=0;if(c.isP)race.EV.push({type:'pitOut'});}}
 function stepPit(race,c,dt){
+  // 11-04: the pit road is paved. stepPlayer no longer runs in here, so whatever it saw on its last step stayed for the whole stop: one wheel on the grass
+  // beside the entry froze c.off, and the camera's off-track shake ran at 7 Hz all down the lane (chase 47 mm rms, cockpit 16 mm; 1.8 and 0.6 without it)
+  c.off=false;c.kerbW=0;c.surf=SURF.track;
   if(c.va!=null)c.va=c.a;
   if(c.pit.state==='join'){joinStep(race,c,dt);return;}
   const ti=trackInfo(c),r0=zoneR(ti.i);
@@ -1450,7 +1453,8 @@ function stepPit(race,c,dt){
   if(pp.state==='out'&&r0>PIT.Z-40)for(const o of race.cars){if(o===c||o.gone||o.pit||o.inGarage)continue;const dm=gapTo(c,o)*STEP;
     if(dm>-12&&dm<25&&Math.abs(o.lat-c.lat)<2.6)vt=Math.min(vt,o.spd*(dm<=0?0.85:dm<8?0.9:1));}
   vt=Math.min(vt,scCapV(race,c));   // v13m: red-flag restart - follow the safety car out of the pit lane
-  if(c.spd<vt)c.spd=Math.min(vt,c.spd+ACC*0.9*dt);else c.spd=Math.max(vt,c.spd-(12+0.3*c.spd)*dt);
+  // 11-04: small differences ease in. Following a car in the lane the gap flips between two steps every 2 m of road, so the speed sawed at 11 Hz (+12 / -18 m/s2): the nose nodded and the view with it
+  {const dv=vt-c.spd;if(vt>8&&Math.abs(dv)<1.6)c.spd+=dv*Math.min(1,dt*5);else if(dv>0)c.spd=Math.min(vt,c.spd+ACC*0.9*dt);else c.spd=Math.max(vt,c.spd-(12+0.3*c.spd)*dt);}
   c.braking=c.spd<v0-0.01;c.boost=false;c.latG=c.spd*om;c.lonG=(c.spd-v0)/Math.max(dt,1e-4);
   move(c,dt);barrier(race,c);
   tyreStep(race,c,dt,c.latG,c.lonG,0);
@@ -6840,13 +6844,13 @@ function sync(dt){
   const L=(fx,y,rz,out,useCar)=>{const c1=useCar?pa:ca,s1=useCar?psa:sa;return out.set(PX+c1*fx-s1*rz,y,PZ+s1*fx+c1*rz);};
   headLat+=((pl.latG||0)*-0.0035-headLat)*Math.min(1,dt*6);headLon+=((pl.lonG||0)*0.0022-headLon)*Math.min(1,dt*6);
   headLat=Math.max(-0.09,Math.min(0.09,headLat));headLon=Math.max(-0.07,Math.min(0.05,headLon));
-  const pitCam=!!(pInfo&&(pInfo.ph==='stop'||(pInfo.ph==='in'&&Math.abs(pl.spd)<9)||(pInfo.ph==='out'&&race.t-pInfo.car.pit.relT<0.9)));
+  const pitCam=!!(pInfo&&(pInfo.ph==='stop'||(pInfo.ph==='in'&&(Math.abs(pl.spd)<9||CAMPIT)&&pl.pit.box-zoneR(pl.idx)<=8)||(pInfo.ph==='out'&&race.t-pInfo.car.pit.relT<0.9)));
   const lookBack=!!key.look&&!pitCam&&cm!=='tv'&&(state==='race'||state==='done'||state==='countdown');CAMLOOK=lookBack;CAMPIT=pitCam;
   pm.helmet.visible=pitCam||lookBack||cm!=='cockpit'||!!CINE;if(SW)SW.g.visible=!pitCam&&!lookBack&&(cm==='cockpit'||cm==='tcam')&&!CINE;if(pm.tcPod)pm.tcPod.visible=!(cm==='tcam'&&!pitCam&&!lookBack&&!CINE);
   {const gh=HALOGH&&cm==='cockpit'&&!pitCam&&!lookBack&&!CINE;for(const h of[pm.strut,pm.halo])if(h&&h.g.visible!==gh){h.g.visible=gh;h.n.visible=!gh;}}   // v12i: G key / pause menu   // the T-cam sits in that pod
   const sp=Math.abs(pl.spd)/VMAX;shakeT+=dt;
-  const vib=(Math.sin(shakeT*61)*0.6+Math.sin(shakeT*37))*0.0025*sp+(pl.off?Math.sin(shakeT*45)*0.018:0)+(pl.kerbW||0)*Math.min(1,sp*2.5)*(Math.sin(shakeT*47)*0.0045+Math.sin(shakeT*66)*0.002)   // 10-29: the kerb rumble at 7.5 / 10.5 Hz (it was 13 / 21 Hz: faster than a phone's 50-60 frames can show, it strobed and read as stutter)
-    +((pl.lockF||pl.lockR)?Math.sin(shakeT*57)*0.006:0)+Math.max(0,(pl.flat||0)-0.05)*Math.sin(shakeT*Math.abs(pl.spd)*2.7)*0.009
+  FLATPH+=dt*Math.abs(pl.spd)*2.7;const vib=(Math.sin(shakeT*61)*0.6+Math.sin(shakeT*37))*0.0025*sp*(pl.pit?0.3:1)+(pl.off?Math.sin(shakeT*45)*0.018:0)+(pl.kerbW||0)*Math.min(1,sp*2.5)*(Math.sin(shakeT*47)*0.0045+Math.sin(shakeT*66)*0.002)   // 10-29: the kerb rumble at 7.5 / 10.5 Hz (it was 13 / 21 Hz: faster than a phone's 50-60 frames can show, it strobed and read as stutter)
+    +((pl.lockF||pl.lockR)?Math.sin(shakeT*57)*0.006:0)+Math.max(0,(pl.flat||0)-0.05)*Math.sin(FLATPH)*0.009*Math.min(1,Math.abs(pl.spd)/45)
     +IMPACT*(Math.sin(shakeT*73)*0.05+Math.sin(shakeT*41)*0.035);IMPACT*=Math.exp(-dt*5);
   {const J=JOLT,h=Math.min(dt,0.05);J.vx+=(-260*J.x-22*J.vx)*h;J.vz+=(-260*J.z-22*J.vz)*h;J.x+=J.vx*h;J.z+=J.vz*h;J.x=Math.max(-0.12,Math.min(0.12,J.x));J.z=Math.max(-0.14,Math.min(0.14,J.z));
    if(HITF>0||HITO){HITF=Math.max(0,HITF-dt*2.8);const o=Math.round(HITF*20)/20;if(o!==HITO){HITO=o;HITFX.style.opacity=o;HITFX.style.display=o>0?'block':'none';}}}
@@ -7176,7 +7180,7 @@ function pitFx(dt){
 }
 function sfxGun(v,d){if(!AC||muted)return;d=Math.max(0.12,d);sfxBurst({type:'bandpass',f:2700+Math.random()*500,q:2.6,amp:0.34*v,att:0.004,hold:d*0.85,dur:d,am:52+Math.random()*8});sfxBurst({type:'bandpass',f:620,q:1.4,amp:0.18*v,dur:0.05,delay:d*0.9});}
 // ---- car damage: bent / missing wing halves, rear wing, suspension corners ----
-let IMPACT=0;
+let IMPACT=0,FLATPH=0;   // FLATPH: a flat spot's phase, summed (time x speed went to noise under braking: its rate grew with the race clock)
 // Everything is drawn from the car's damage state, so a repaired car (all zero after the stop) looks new again.
 // During a stop, m.fixV (from the stop timeline) marks the parts the crew has already replaced.
 function dmgVis(m,c){const d=c.dmg;if(!d||!m.fw)return;if(!c.pit){m.noseAnim=null;m.rwAnim=null;m.fixV=null;}const na=m.noseAnim,ra=m.rwAnim,fx=m.fixV,pk=d.pk||Z4;
