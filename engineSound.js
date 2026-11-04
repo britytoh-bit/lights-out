@@ -1,13 +1,13 @@
 // 라이츠 아웃 3D - the engine sound. The game only calls EngineSound.update() and setLite().
 // It plays loops cut from a recording of the five 2026 power units (engine-pu0..4.bin, 16-bit; chosen by ear, three versions made purely in code did not pass). Third-party audio, rights not cleared: replace before any store release.
 // Each loop is the recording laid out by crank angle, so one engine cycle (720 degrees) is always CY samples: at any rev all the loops are in step and a crossfade keeps the firing note.
-// Stretches with a shift bang in them were left out, and revs the recording lacks were filled from the nearest long loop with each order's level changed so that the tone stays at the same Hz (slowed as it was, the low gears sounded like a cave).
-// On loading, the air between the orders is taken down (울림 줄이기) and stretches of each loop are dealt in random order into a much longer one (repeated as it was, a steady rev was heard as a pattern).
+// The file holds, for each rev, the engine's average cycle and then what was left of the recording once that was taken away (roar, air), its slow level changes evened out. Revs one recording lacks came from its nearest rev or, a real low rev, from another power unit.
+// On loading, the rest is dealt in random order into a long loop and the average cycle added: the two need different joins (the cycle adds in phase, the rest does not), and the cycle never has one (a loop of the whole sound swelled or dipped at every join, heard as thumps). 울림 줄이기 is the level of the rest.
 // Chain: loops -> EQ -> low-pass (closes off the throttle) -> limiter -> out. Tuning panel: T key, or 그래픽과 기타 > 소리 > 소리 튜닝.
 const EngineSound=(()=>{
   // [rpm, cycles] of each loop, in file order
-  const LOOPS=[{"on":[[5000,64],[6000,64],[7500,64],[9000,64],[10500,64],[12000,16]]},{"on":[[5000,32],[6000,32],[7500,32],[9000,32],[10500,32],[12000,32]]},{"on":[[5000,32],[6000,32],[7500,32],[9000,64],[10500,32],[12000,16]]},{"on":[[5000,16],[6000,16],[7500,16],[9000,64],[10500,64],[12000,64]]},{"on":[[5000,16],[6000,16],[7500,16],[9000,64],[10500,32],[12000,32]]}];
-  const CY=512,LONG=384,LS='lightsout3d-engsnd2',DEF={mode:'2025',master:1,clean:0.5,lowmid:0,high:0,gridLo:8000,gridHi:11000};
+  const LOOPS=[{"on":[[5000,34],[6000,38],[7500,79],[9000,96],[10500,96],[12000,40]]},{"on":[[5000,16],[6000,25],[7500,24],[9000,47],[10500,47],[12000,47]]},{"on":[[5000,18],[6000,55],[7500,96],[9000,39],[10500,39],[12000,39]]},{"on":[[5000,34],[6000,38],[7500,29],[9000,48],[10500,31],[12000,31]]},{"on":[[5000,34],[6000,71],[7500,39],[9000,96],[10500,34],[12000,34]]}];
+  const CY=512,LONG=384,LS='lightsout3d-engsnd3',DEF={mode:'2025',master:1,clean:0.25,lowmid:0,high:0,gridLo:8000,gridHi:11000};
   const pct=v=>Math.round(v*100)+'%',db=v=>(v>0?'+':'')+v+' dB',num=v=>Math.round(v).toLocaleString('en-US');
   // key(s), name, min, max, step, how it reads
   const SLIDERS=[['master','마스터 볼륨',0,1.5,0.05,pct],['clean','울림 줄이기',0,1,0.05,pct],['lowmid','250~700Hz',-6,6,0.5,db],['high','1~2.5kHz',-6,6,0.5,db],[['gridLo','gridHi'],'출발 대기 RPM',6000,12000,100,v=>num(v)+' rpm']];
@@ -34,21 +34,15 @@ const EngineSound=(()=>{
   // ---- the loops ----
   const FILES={};
   function puLoad(pu){return FILES[pu]||(FILES[pu]=(function get(){return fetch('engine-pu'+pu+'.bin').then(r=>{if(!r.ok)throw 0;return r.arrayBuffer();}).then(b=>new Int16Array(b)).catch(()=>new Promise(w=>setTimeout(w,3000)).then(get));})());}   // the file is in the offline cache; if the net is down it keeps trying, the engine stays quiet until then
-  function fft(re,im,sign){const n=re.length;for(let i=1,j=0;i<n;i++){let b=n>>1;for(;j&b;b>>=1)j^=b;j^=b;if(i<j){let t=re[i];re[i]=re[j];re[j]=t;t=im[i];im[i]=im[j];im[j]=t;}}
-    for(let l=2;l<=n;l<<=1){const a=sign*2*Math.PI/l,wr=Math.cos(a),wi=Math.sin(a);for(let i=0;i<n;i+=l){let cr=1,ci=0;for(let j=0,h=l>>1;j<h;j++){const p=i+j,q=p+h,xr=re[q]*cr-im[q]*ci,xi=re[q]*ci+im[q]*cr;re[q]=re[p]-xr;im[q]=im[p]-xi;re[p]+=xr;im[p]+=xi;const t=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=t;}}}}
-  // the orders stay, what lies between them (the recording's room and wind) goes down: more below 400 Hz, where a distant recording booms. A wide pass round each order, or the sound rings and turns artificial
-  function tidy(x,nc,rpm){const n=x.length,re=Float64Array.from(x),im=new Float64Array(n),H=n>>1;fft(re,im,-1);
-    for(let k=1;k<=H;k++){const m=k%nc;let u=(Math.min(m,nc-m)/nc-0.12)/0.18;u=u<0?0:u>1?1:u;u=u*u*(3-2*u);const g=Math.pow(10,(k/nc/2*rpm/60<400?-10:-6)*P.clean*u/20);re[k]*=g;im[k]*=g;if(k<H){re[n-k]*=g;im[n-k]*=g;}}
-    fft(re,im,1);const o=new Float32Array(n);for(let i=0;i<n;i++)o[i]=re[i]/n;return o;}
-  // stretches of 8-20 cycles in random order. They join on cycle boundaries, over two cycles (shorter, each join ticked and the top orders fluttered), with a straight fade: the orders are in phase across a join, an equal-power fade would swell at every one
-  function deal(x,nc,rnd){const n=x.length,X=CY*2,L=LONG*CY,tmp=new Float32Array(L+X);let pos=0,last=-1;
+  // the rest: stretches of 8-20 cycles in random order, over two cycles and at equal power (they are not in phase)
+  function deal(x,nc,rnd){const n=x.length,X=CY*2,L=LONG*CY,tmp=new Float32Array(L+X),q=Math.PI/2;let pos=0,last=-1;
     while(pos<L){let c=(rnd()*nc)|0;if(c===last)c=(c+1)%nc;last=c;const seg=Math.min(nc,8+((rnd()*13)|0))*CY,st=c*CY;
-      for(let i=0;i<seg+X&&pos+i<L+X;i++){const v=x[(st+i)%n];if(i<X&&pos>0){const f=i/X;tmp[pos+i]=tmp[pos+i]*(1-f)+v*f;}else tmp[pos+i]=v;}pos+=seg;}
-    for(let i=0;i<X;i++){const f=i/X;tmp[i]=tmp[i]*f+tmp[L+i]*(1-f);}
+      for(let i=0;i<seg+X&&pos+i<L+X;i++){const v=x[(st+i)%n];if(i<X&&pos>0){const f=i/X*q;tmp[pos+i]=tmp[pos+i]*Math.cos(f)+v*Math.sin(f);}else tmp[pos+i]=v;}pos+=seg;}
+    for(let i=0;i<X;i++){const f=i/X*q;tmp[i]=tmp[i]*Math.sin(f)+tmp[L+i]*Math.cos(f);}
     return tmp.subarray(0,L);}
   let BANK=null;   // the one set kept in memory: the power unit in use
   function bank(ctx,pu,D){const key=pu+'|'+P.clean+'|'+ctx.sampleRate;if(BANK&&BANK.key===key)return BANK;let sd=4242+pu,o=0;const rnd=()=>{sd=(sd*16807)%2147483647;return sd/2147483647;};
-    const on=LOOPS[pu].on.map(q=>{const nc=q[1],n=nc*CY,x=new Float32Array(n);for(let i=0;i<n;i++)x[i]=D[o+i]/32768;o+=n;const y=deal(P.clean>0?tidy(x,nc,q[0]):x,nc,rnd),buf=ctx.createBuffer(1,y.length,ctx.sampleRate);buf.getChannelData(0).set(y);return {rpm:q[0],buf};});
+    const gR=Math.pow(10,-12*P.clean/20),on=LOOPS[pu].on.map(q=>{const nc=q[1],n=nc*CY,x=new Float32Array(n);for(let i=0;i<n;i++)x[i]=D[o+CY+i]/32768;const y=deal(x,nc,rnd),buf=ctx.createBuffer(1,y.length,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<y.length;i++)d[i]=y[i]*gR+D[o+i%CY]/32768;o+=CY+n;return {rpm:q[0],buf};});
     return BANK={key,on};}
 
   // ---- the player's engine ----

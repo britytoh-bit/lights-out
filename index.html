@@ -1781,7 +1781,7 @@ function stepAI(race,c,dt){
     if((!ramp||o.pit.state==='join')&&Math.abs(dp)<3.2&&Math.abs(dl)<3.2){if(dl>=0){if(!sideP||dl<sideP.lat-c.lat)sideP=o;}else if(!sideN||dl>sideN.lat-c.lat)sideN=o;}   // overlapping, side by side
     if(dp<0&&dp>-14&&dp>atkD&&!o.dnf&&!o.pit&&Math.abs(dl)<5){atk=o;atkD=dp;}   // 11-04: the car attacking it
     if(dp<0&&dp>-16&&Math.abs(dl)<2.4&&!o.dnf&&!ramp){const cl=o.spd-c.spd;if(cl>9){const tc=(-dp*STEP-5.2)/cl;if(tc<1.3&&tc<tth){tth=tc;threat=o;}}}   // about to be hit from behind
-    const stopped=o.dnf||(o.fail&&o.spd<4),halted=stopped||(o.spd<3&&race.t>(race.startT||0)+4),slow=halted||(!startPh&&c.spd>14&&o.spd<Math.max(7,c.spd*0.45));   // (off the start a slower launch is followed, not dodged)   // broken down, stopped on track (spun, stalled) or crawling
+    const stopped=o.dnf||(o.fail&&o.spd<4),halted=stopped||(o.spd<3&&race.t>(race.startT||0)+4),slow=halted||(!startPh&&c.spd>14&&o.spd<(neutral&&!o.fail?7:Math.max(7,c.spd*0.45)));   // (off the start a slower launch is followed, not dodged)   // broken down, stopped on track (spun, stalled) or crawling (11-04: under a VSC, safety car or yellow a slower car still moving is followed: it was driven round, an overtake)
     if(slow&&dp>0&&dp<40&&dp<od&&dlp<3.4){od=dp;obst=o;}
     if(stopped){if(creep&&o===c.obstP)continue;const dls=c.unjam?Math.abs(o.lat-pathLat(c,o.idx)):dlp;if(dp>0&&dp<40&&dls<(c.unjam?2.4:3.0))vSafe=Math.min(vSafe,Math.sqrt(2*bA*Math.max(0,dp*STEP-(c.unjam?4.5:7))));continue;}   // (v13: unjam - by where its path goes past it, see below)
     if(dp>0&&dp<40){const pitB=ramp||(o.pitReq&&wrap(PIT.E-o.idx)*STEP<300),dl=dlp;
