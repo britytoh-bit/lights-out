@@ -414,42 +414,67 @@ body.touch #hudTime .row.sp .spt{display:none}   /* the time itself is in the co
 #bench td:first-child{width:auto} #bench td:first-child:empty{display:none} #benchTa{width:100%; height:9em; font-size:12px; margin:0 0 12px}
 #fpsBox{position:absolute; left:50%; bottom:calc(6px + var(--sab)); transform:translateX(-50%); padding:2px 9px; border-radius:4px; background:rgba(9,11,15,.72); color:#cfe3ff; font-size:12px; pointer-events:none; z-index:5; white-space:nowrap}   /* v12h: F key */
 body.inmenu #fpsBox{display:none}
-/* 11-04: the menu in five tabs, one starting lamp each; the start button and what it will start always in view */
-#menu{padding:max(6px,var(--sat)) max(10px,var(--sar)) max(6px,var(--sab)) max(10px,var(--sal))}
-#menu .card{display:flex; flex-direction:column; width:min(980px,100%); height:100%; max-height:min(680px,100%); padding:0; overflow:hidden}
-#mTop{display:flex; flex:1; min-height:0}
-#mRail{flex:0 0 156px; display:flex; flex-direction:column; padding:10px 8px 8px 14px; border-right:1px solid var(--line)}
-#mRail h1{font-size:22px; margin:0 0 6px; line-height:1; white-space:nowrap}
-#mMode{flex:none; gap:3px; margin:0 0 6px}
-#mMode button{flex:1 1 0; min-width:0; min-height:40px; padding:0; font-size:12px; white-space:nowrap}
+/* 11-04: the menu reads like a phone settings app: a short list at home, one topic per page. Home keeps the car in view (one frozen frame, nothing is drawn behind the menu). */
+#menu{--mbg:#16171b; --msub:#9ea3ad; --mfill:#26282e; --mpill:#474b56; padding:0; background:none; align-items:stretch; justify-content:stretch}
+#menu .card,body.touch #menu .card{position:relative; display:block; width:100%; max-width:none; height:100%; max-height:none; padding:0; background:none; border:0; border-radius:0; box-shadow:none; overflow:hidden}
+#mHome{position:absolute; inset:0; display:flex}
+#mHome[hidden]{display:none}
+#mHomeL{flex:0 0 min(60%,600px); display:flex; flex-direction:column; min-height:0; overflow-y:auto; padding:max(12px,var(--sat)) 18px 8px max(20px,var(--sal)); background:var(--mbg); border-top:4px solid; border-image:repeating-linear-gradient(90deg,var(--kerb) 0 22px,#fff 22px 44px) 4}
+#mHomeL h1,body.touch #mHomeL h1{flex:none; font-size:25px; line-height:1; margin:0 0 10px}
+#menu #mMode{flex:none; margin:0 0 6px}
+#menu #mMode button{min-height:40px; font-size:15px}
+#mList{flex:1 0 auto; display:flex; flex-direction:column; justify-content:space-evenly}
+#menu .mItem{display:flex; align-items:center; gap:12px; width:100%; min-height:44px; padding:0 4px 0 6px; background:none; border:0; border-radius:10px; text-align:left; color:#f2f3f5}
+#menu .mItem:active{background:var(--mfill)}
+.mItem b{flex:none; font-size:16px; font-weight:600}
+.mItem span{flex:1; min-width:0; text-align:right; font-size:14px; font-weight:400; color:var(--msub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.mItem i{flex:none; width:8px; height:8px; margin-right:4px; border:solid #6d717b; border-width:2px 2px 0 0; transform:rotate(45deg)}
+#mHomeR{flex:1; min-width:0; display:flex; align-items:flex-end; padding:0 max(16px,var(--sar)) max(14px,var(--sab)) 16px; pointer-events:none}
+#menu #startBtn{flex:1; position:static; width:100%; min-height:58px; margin:0; padding:0 12px; border-radius:12px; font-size:19px; pointer-events:auto; box-shadow:none}
+#mPage{position:absolute; inset:0; display:flex; flex-direction:column; background:var(--mbg); animation:mIn .18s ease-out}
+#mPage[hidden]{display:none}
+@keyframes mIn{from{transform:translateX(28px); opacity:0}}
+@media (prefers-reduced-motion:reduce){#mPage{animation:none}}
+#mPgH{flex:none; display:flex; align-items:center; gap:4px; height:52px; padding:max(4px,var(--sat)) 20px 0 max(10px,var(--sal))}
+#menu #mBack{flex:none; width:44px; height:44px; padding:0; background:none; border:0; border-radius:10px}
+#menu #mBack:active{background:var(--mfill)}
+#mBack i{display:block; width:12px; height:12px; margin:0 0 0 17px; border:solid #f2f3f5; border-width:0 0 2.5px 2.5px; transform:rotate(45deg)}
+#mPgT{font-size:20px; font-weight:700; color:#f2f3f5}
+.mPg{flex:1; min-height:0; overflow-y:auto; padding:2px max(20px,var(--sar)) max(20px,var(--sab)) max(24px,var(--sal))}
+.mPg[hidden]{display:none}
+.mGrp{margin:16px 0 2px; font-size:13px; font-weight:600; color:var(--msub)}
+.mPg .mGrp:first-child{margin-top:4px}
+.mRow{display:flex; align-items:center; gap:20px; min-height:58px; padding:6px 0}
+body.touch .mRow.touchOnly{display:flex}
+.mL{flex:0 0 36%; min-width:0}
+.mL b{display:block; font-size:15px; font-weight:600; color:#f2f3f5}
+.mL small{display:block; margin-top:2px; font-size:12.5px; font-weight:400; line-height:1.35; color:var(--msub)}
+.mC{flex:1; min-width:0}
+#menu .mC .seg,#menu .mC .row2{margin:0}
+.mC .sub,#menu .mC .sub{margin:0 0 8px; font-size:14px; color:#f2f3f5}
+.mB{padding:6px 0}
+#menu .mB>.teams{margin:0}
+#menu .mB>button{width:100%; min-height:48px; margin:0}
+#menu .skNote{margin:0; font-size:13px}
+#menu .teams,body.touch #menu .teams{grid-template-columns:repeat(auto-fill,minmax(186px,1fr)); gap:6px}
+#menu .teams button{min-height:46px; justify-content:center; padding:0 12px; background:var(--mfill); border:0; border-radius:10px; font-size:14px}
+#menu .teams button[aria-pressed="true"]{background:var(--mpill); color:#fff; font-weight:700; box-shadow:none}
+#trkSel>p{margin:10px 0 0 !important; color:var(--msub) !important}
+#trkSel>p:first-child{margin-top:0 !important}
+#menu #teamSel button{justify-content:flex-start}
+.mB:has(>#chTrkNote[style*="none"]){display:none}
 #trkSel.chLock>button,#trkSel.chLock>p:not(:last-child){display:none}
-#mTabs{display:flex; flex-direction:column; flex:1; min-height:0; gap:2px}
-#mTabs button{flex:1 1 0; min-height:36px; max-height:64px; display:flex; align-items:center; gap:11px; padding:0 8px; background:none; border:0; border-radius:4px; color:var(--dim); font-size:15px; font-weight:700; text-align:left}
-#mTabs button i{flex:none; width:14px; height:14px; border-radius:50%; background:#3b1212; box-shadow:inset 0 1px 2px rgba(0,0,0,.7)}
-#mTabs button[aria-selected="true"]{color:var(--ink); background:rgba(255,255,255,.07)}
-#mTabs button[aria-selected="true"] i{background:#ff2b1f; box-shadow:0 0 10px 2px rgba(255,43,31,.65)}
-#mTabs button:focus-visible{outline:2px solid #fff; outline-offset:-2px}
-#mPanels{flex:1; min-width:0; overflow-y:auto; padding:12px 14px 4px; touch-action:pan-y; -webkit-overflow-scrolling:touch}
-.mP[hidden]{display:none}
-#mFoot{flex:none; display:flex; align-items:center; gap:14px; padding:8px 12px 8px 14px; border-top:1px solid var(--line)}
-#mSum{flex:1; min-width:0}
-#mSumT{font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-#mSum #bestMenu{margin:1px 0 0; font-size:12px; color:var(--dim); text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-#menu #startBtn{flex:none; position:static; width:auto; min-width:200px; margin:0; padding:12px 24px; font-size:17px; box-shadow:none}
-/* 11-04: buttons on the menu and result cards: quiet until chosen. Options sit in one joined bar, the chosen one is lifted with a red line (the tab's lamp colour); white only marks 일반/대회. The in-race buttons have their own look. */
-.card button{background:rgba(255,255,255,.055); border-color:rgba(255,255,255,.12); border-radius:6px; line-height:1.25; word-break:keep-all; transition:background .12s,color .12s,border-color .12s}
-.card button:active{background:rgba(255,255,255,.13)}
-.card button[aria-pressed="true"]{background:#2f333c; color:#fff; border-color:rgba(255,255,255,.3); box-shadow:inset 0 -2px 0 #ff2b1f}
-.card .seg,.lecard .seg{gap:2px; padding:2px; background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.1); border-radius:8px}
-.card .seg button,.lecard .seg button{min-height:36px; background:none; border-color:transparent; border-radius:6px; color:#c3c7cd}
-.card .seg button:active,.lecard .seg button:active{background:rgba(255,255,255,.1)}
-.card .seg button[aria-pressed="true"],.lecard .seg button[aria-pressed="true"]{background:#2f333c; color:#fff; border-color:transparent; box-shadow:inset 0 -2px 0 #ff2b1f}
+.mPg,#mHomeL,.overlay:not(#menu)>.card,.lecard{touch-action:none}
+/* 11-04: buttons on the cards: one look everywhere. Options sit in one grey bar, the chosen one is the lighter pill in bold white. Red only on the button that starts something. */
+.card button{background:var(--mfill,#26282e); border-color:transparent; border-radius:10px; line-height:1.25; word-break:keep-all; transition:background .12s,color .12s}
+.card button:active{background:#33363e}
+.card .seg,.lecard .seg{gap:2px; padding:3px; background:#26282e; border:0; border-radius:12px}
+.card .seg button,.lecard .seg button{min-height:38px; background:none; border-color:transparent; border-radius:9px; color:#b3b7c0; font-weight:500}
+.card .seg button:active,.lecard .seg button:active{background:#33363e}
+.card button[aria-pressed="true"],.card .seg button[aria-pressed="true"],.lecard .seg button[aria-pressed="true"]{background:#474b56; color:#fff; font-weight:700; border-color:transparent; box-shadow:none}
 .card .seg button[aria-pressed="true"] .rec{color:var(--yellow)}
-.card .teams button[aria-pressed="true"]{box-shadow:inset 3px 0 0 #ff2b1f}
-#mMode button[aria-pressed="true"]{background:var(--ink); color:#15171b; box-shadow:none}
-button.go,.card button.go{background:linear-gradient(180deg,#e0352c,#c21f1f); border:0; border-radius:6px; color:#fff; font-weight:700; letter-spacing:.01em; box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
-button.go:active,.card button.go:active{background:#b21c1c}
-#menu #startBtn{box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
+button.go,.card button.go{background:#d92d26; border:0; border-radius:12px; color:#fff; font-weight:700; box-shadow:none}
+button.go:active,.card button.go:active{background:#b4211c}
 /* 10-31: skill picker, tutorial card (in the timing panel's place, clear of the controls and the road), 조작법 overlay */
 #skill .card{width:min(760px,100%); padding:14px 18px 14px}
 #skill h2{margin:0 0 4px; font-size:22px} #skill .sub{margin:0 0 10px; font-size:14px}
@@ -484,7 +509,7 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
   var last = 0;
   document.addEventListener('touchend', function(e){
     var now = Date.now();
-    if (now - last < 350) e.preventDefault();   /* 두 번째 탭만 막는다 — 보통 탭은 그대로 */
+    if (now - last < 350 && !(e.target.closest && e.target.closest('.overlay,#livEd'))) e.preventDefault();   /* 두 번째 탭만 막는다 — 보통 탭은 그대로. 메뉴에선 막지 않는다(빠른 탭이 씹혔다) */
     last = now;
   }, {passive:false});
 })();
@@ -575,45 +600,45 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
       <p class="label">진행 방식</p>
       <div class="seg" id="modeSel"><button data-v="race" aria-pressed="true">레이스</button><button data-v="quali" aria-pressed="false">예선 → 레이스</button><button data-v="practice" aria-pressed="false">연습 주행</button></div>
       <p class="label">실력</p>
-      <div class="seg" id="skSel"><button data-v="easy">초보 (가장 쉽게)</button><button data-v="pro">직접 설정</button></div><p class="skNote" id="skNote"></p>
-      <button id="tutBtn" type="button" style="width:100%;margin:-6px 0 16px">튜토리얼 · 짧은 연습 주행으로 조작 익히기</button>
+      <div class="seg" id="skSel"><button data-v="easy">초보</button><button data-v="pro">직접 설정</button></div><p class="skNote" id="skNote"></p>
+      <button id="tutBtn" type="button">튜토리얼로 조작 익히기</button>
       <p class="label" id="chLbl">대회 (서킷을 이어 달리며 순위별 점수 합산)</p>
       <div id="chBox"></div>
       <p class="sub" id="chTrkNote" style="display:none;margin:0 0 12px"></p>
       <p class="label">서킷</p>
       <div class="teams" id="trkSel"></div>
       <p class="label">도로 폭 (실제 서킷)</p>
-      <div class="seg" id="wdSel"><button data-v="real" aria-pressed="true">실제에 가깝게</button><button data-v="wide" aria-pressed="false">넓게 (이전, 15 m)</button></div>
+      <div class="seg" id="wdSel"><button data-v="real" aria-pressed="true">실제에 가깝게</button><button data-v="wide" aria-pressed="false">넓게 15 m</button></div>
       <p class="label">내 팀 (가상 팀)</p>
       <div class="teams" id="teamSel"></div>
-      <button id="livBtn" type="button" style="width:100%;margin:-6px 0 16px">🎨 내 팀 리버리 꾸미기 (색·무늬·번호)</button>
+      <button id="livBtn" type="button">내 팀 차 꾸미기</button>
       <div class="two">
-        <div><p class="label">포메이션 랩</p><div class="seg" id="fmlSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔 (바로 출발)</button></div></div>
+        <div><p class="label">포메이션 랩</p><div class="seg" id="fmlSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔</button></div></div>
         <div><p class="label">랩 수</p><div class="seg" id="lapSel"><button data-v="3" aria-pressed="true">3</button><button data-v="5" aria-pressed="false">5</button><button data-v="10" aria-pressed="false">10</button></div></div>
         <div><p class="label">AI 난이도</p><div class="seg" id="difSel"><button data-v="easy" aria-pressed="false">쉬움</button><button data-v="normal" aria-pressed="true">보통</button><button data-v="hard" aria-pressed="false">어려움</button></div></div>
         <div><p class="label">조향 감도 (1 가장 부드러움)</p><div class="seg" id="sensSel"><button data-v="1" aria-pressed="false">1</button><button data-v="2" aria-pressed="true">2</button><button data-v="3" aria-pressed="false">3<span class="rec">중급 추천</span></button><button data-v="4" aria-pressed="false">4<span class="rec">상급 추천</span></button><button data-v="5" aria-pressed="false">5</button></div></div>
         <div><p class="label">스타트 타이어</p><div class="seg" id="scSel"><button data-v="S" aria-pressed="false" style="color:#ff5a4f">소프트</button><button data-v="M" aria-pressed="true" style="color:#f5c518">미디엄</button><button data-v="H" aria-pressed="false">하드</button><button data-v="I" aria-pressed="false" style="color:#3ddc84">인터</button><button data-v="W" aria-pressed="false" style="color:#5b9bff">웻</button></div></div>
         <div><p class="label">시간대</p><div class="seg" id="todSel"><button data-v="day" aria-pressed="true">한낮</button><button data-v="sunset" aria-pressed="false">석양</button><button data-v="night" aria-pressed="false">야간</button></div></div>
         <div class="touchOnly"><p class="label">조향 방식</p><div class="seg" id="smSel"><button data-v="tilt" aria-pressed="false">기울이기</button><button data-v="drag" aria-pressed="true">드래그</button><button data-v="buttons" aria-pressed="false">버튼</button></div></div>
-        <div class="touchOnly"><p class="label">페달 위치</p><div class="seg" id="pedSel"><button data-v="split" aria-pressed="true">양쪽 (브레이크 왼쪽)</button><button data-v="right" aria-pressed="false">오른쪽에 모아서</button></div></div>
+        <div class="touchOnly"><p class="label">페달 위치</p><div class="seg" id="pedSel"><button data-v="split" aria-pressed="true">양쪽</button><button data-v="right" aria-pressed="false">오른쪽</button></div></div>
         <div class="touchOnly"><p class="label">가속</p><div class="seg" id="agSel"><button data-v="auto" aria-pressed="true">자동 가속</button><button data-v="manual" aria-pressed="false">직접 가속<span class="rec">중급·상급 추천</span></button></div></div>
-        <div><p class="label">날씨</p><div class="seg" id="wxSel"><button data-v="dry" aria-pressed="true">맑음</button><button data-v="mixed" aria-pressed="false">변덕 (도중에 비)</button><button data-v="rain" aria-pressed="false">비</button></div></div>
-        <div><p class="label">차량 손상 (벽·접촉·펑처)</p><div class="seg" id="dmgSel"><button data-v="off" aria-pressed="false">끔</button><button data-v="normal" aria-pressed="true">보통</button><button data-v="sim" aria-pressed="false">리얼 (리타이어 가능)</button></div></div>
+        <div><p class="label">날씨</p><div class="seg" id="wxSel"><button data-v="dry" aria-pressed="true">맑음</button><button data-v="mixed" aria-pressed="false">변덕</button><button data-v="rain" aria-pressed="false">비</button></div></div>
+        <div><p class="label">차량 손상 (벽·접촉·펑처)</p><div class="seg" id="dmgSel"><button data-v="off" aria-pressed="false">끔</button><button data-v="normal" aria-pressed="true">보통</button><button data-v="sim" aria-pressed="false">리얼</button></div></div>
         <div><p class="label">사고 · 세이프티카</p><div class="seg" id="incSel"><button data-v="off" aria-pressed="false">없음</button><button data-v="real" aria-pressed="false">가끔</button><button data-v="often" aria-pressed="true">자주</button></div></div>
-        <div class="keyOnly"><p class="label">스타트</p><div class="seg" id="stSel"><button data-v="manual" aria-pressed="true">수동 (부정 출발 판정)</button><button data-v="auto" aria-pressed="false">자동</button></div></div>
+        <div class="keyOnly"><p class="label">스타트</p><div class="seg" id="stSel"><button data-v="manual" aria-pressed="true">수동</button><button data-v="auto" aria-pressed="false">자동</button></div></div>
         <div><p class="label">주행 보조</p><div class="seg" id="asSel"><button data-v="high" aria-pressed="false">높음</button><button data-v="normal" aria-pressed="true">보통<span class="rec">중급 추천</span></button><button data-v="off" aria-pressed="false">끔<span class="rec">상급 추천</span></button></div></div>
         <div><p class="label">브레이크 보조 (너무 빠르면 대신 밟아요)</p><div class="seg" id="basSel"><button data-v="0">끔<span class="rec">상급 추천</span></button><button data-v="1">약하게<span class="rec">중급 추천</span></button><button data-v="2">강하게</button></div></div>
         <div><p class="label">레이싱 라인 가이드 (L 키)</p><div class="seg" id="rlSel"><button data-v="corners" aria-pressed="true">코너만<span class="rec">중급 추천</span></button><button data-v="full" aria-pressed="false">전체</button><button data-v="off" aria-pressed="false">끔<span class="rec">상급 추천</span></button></div></div>
-        <div><p class="label">액티브 에어로 (직선 모드)</p><div class="seg" id="aeroSel"><button data-v="manual" aria-pressed="true">버튼으로 직접</button><button data-v="auto" aria-pressed="false">자동</button></div></div>
-        <div><p class="label">엔진 사운드</p><button id="sndPrev" type="button" style="width:100%;margin:0 0 16px;padding:8px">▶ 엔진 소리 들어보기 (2026 온보드 V6)</button></div>
+        <div><p class="label">액티브 에어로 (직선 모드)</p><div class="seg" id="aeroSel"><button data-v="manual" aria-pressed="true">직접</button><button data-v="auto" aria-pressed="false">자동</button></div></div>
+        <div><p class="label">엔진 사운드</p><button id="sndPrev" type="button" style="width:100%">들어보기</button></div>
         <div><p class="label">그래픽</p><div class="seg" id="qSel"><button data-v="high" aria-pressed="false">높음</button><button data-v="medium" aria-pressed="true">보통</button><button data-v="low" aria-pressed="false">부드럽게</button></div></div>
-        <div><p class="label">자동 화질 조절 (프레임이 떨어지면 효과를 하나씩 줄임)</p><div class="seg" id="aqSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔 (고른 그래픽 그대로)</button></div></div>
+        <div><p class="label">자동 화질 조절 (프레임이 떨어지면 효과를 하나씩 줄임)</p><div class="seg" id="aqSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔</button></div></div>
         <div><p class="label">관중 표시 (관중석의 사람 그림 · 끄면 조금 가벼워질 수 있어요)</p><div class="seg" id="crowdSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔</button></div></div>
       </div>
       <p class="label">자동 성능 측정 (28개 서킷을 혼자 돌며 프레임을 재요 · 약 15~20분 · 지금 그래픽 설정 그대로 · 휴대폰은 가로로 두고 충전기에 꽂아 두세요)</p>
       <div class="two"><div><p class="label">측정 시점</p><div class="seg" id="bvSel"><button data-v="cur" aria-pressed="true">지금 시점</button><button data-v="cockpit" aria-pressed="false">콕핏</button></div></div>
         <div><p class="label">측정 날씨</p><div class="seg" id="bwSel"><button data-v="dry" aria-pressed="true">맑음</button><button data-v="rain" aria-pressed="false">비</button><button data-v="night" aria-pressed="false">밤</button></div></div></div>
-      <div class="row2" style="margin:0 0 16px"><button id="benchBtn" type="button" style="min-height:48px">자동 성능 측정 시작</button><button id="benchLast" type="button" style="min-height:48px" hidden>지난 측정 결과</button></div>
+      <div class="row2"><button id="benchBtn" type="button" style="min-height:48px">자동 성능 측정 시작</button><button id="benchLast" type="button" style="min-height:48px" hidden>지난 측정 결과</button></div>
       <p class="sub touchOnly" id="touchHelp">가로 화면 권장. 왼쪽 아래로 조향, 오른쪽 아래 페달로 가속·브레이크. 자동 가속이면 브레이크만 누르면 돼요. 직선 구간에서 '직선' 버튼을 누르면 날개가 열려요. 위쪽 '맵' 버튼으로 미니맵 크기를 바꿀 수 있어요.</p>
       <div class="keys keyOnly">
         <span><kbd>↑</kbd> <kbd>W</kbd></span><span>가속</span>
@@ -637,7 +662,7 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
         <span><kbd>G</kbd></span><span>콕핏 시점에서 헤일로 블러 켜기/끄기 (기본 켬 · 일시정지 메뉴에도 있어요)</span>
       </div>
       <button class="go" id="startBtn">레이스 시작<span class="keyOnly"> (Enter)</span></button>
-      <p class="best num" id="bestMenu"></p>
+      
     </div>
   </div>
   <div class="overlay" id="pause" hidden><div class="card"><h1>일시정지</h1><p class="sub">레이스가 멈춰 있어요. 설정을 바꿔도 레이스는 그대로 이어집니다.</p>
@@ -5014,7 +5039,7 @@ if(isTouch)document.body.classList.add('touch');
 // the phone on the left, charging port on the right). Unlocked, the OS turns the window itself and nothing is turned here.
 // Layout code works in #wrap's coordinates: VW() x VH() is its size, bcr() a box in it, ptX() a finger's x along it.
 // 11-04: the window size is read once, not on every use (reading innerWidth after the HUD changed forces a layout: 0.2-0.4 ms a frame on this laptop, more on a phone)
-let ROT=false,WINW=innerWidth,WINH=innerHeight;const VW=()=>ROT?WINH:WINW,VH=()=>ROT?WINW:WINH,ptX=e=>ROT?e.clientY:e.clientX;
+let mDraw=40,ROT=false,WINW=innerWidth,WINH=innerHeight;const VW=()=>ROT?WINH:WINW,VH=()=>ROT?WINW:WINH,ptX=e=>ROT?e.clientY:e.clientX;
 function bcr(e){const r=e.getBoundingClientRect();if(!ROT)return r;const W=innerWidth;return {left:r.top,right:r.bottom,top:W-r.right,bottom:W-r.left,x:r.top,y:W-r.right,width:r.height,height:r.width};}
 function applyRot(){ROT=isTouch&&innerHeight>innerWidth;document.body.classList.toggle('rot',ROT);
   $('wrap').style.cssText=ROT?'position:fixed;left:0;top:0;width:'+innerHeight+'px;height:'+innerWidth+'px;transform-origin:0 0;transform:translateX('+innerWidth+'px) rotate(90deg)':'';}
@@ -5147,7 +5172,7 @@ function setupComposer(){
 function basePR(){const w=VW(),h=VH();let pr=Math.min(quality==='high'?(isTouch?1.75:2):quality==='medium'?(isTouch?1.5:1):(isTouch?1.25:1),window.devicePixelRatio||1);   // v14b: phones a step sharper (smooth 1 -> 1.25, normal 1.25 -> 1.5) with the post passes gone
   if(quality==='low'&&!isTouch)pr=Math.min(pr,Math.max(0.5,Math.sqrt(2.4e6/Math.max(1,w*h))));   // v12h: the lowest setting on a PC draws at most ~1080p worth of pixels (a 1440p or 4K window drew 2-4 times that)
   return pr;}
-function resize(){resize.w=WINW=innerWidth;resize.h=WINH=innerHeight;applyRot();const w=VW(),h=VH();let pr=basePR();   // 11-01: the size this was done for - frame() redoes it when the window has another size (an iPhone turned sideways can send its resize with one old side: 402x402 canvas, stretched and cut off, mirror in the corner)
+function resize(){mDraw=Math.max(mDraw,10);resize.w=WINW=innerWidth;resize.h=WINH=innerHeight;applyRot();const w=VW(),h=VH();let pr=basePR();   // 11-01: the size this was done for - frame() redoes it when the window has another size (an iPhone turned sideways can send its resize with one old side: 402x402 canvas, stretched and cut off, mirror in the corner)
   if(typeof PERF!=='undefined'&&PERF.prCap)pr=Math.min(pr,PERF.prCap);   // (and keeps what the smoothness governor took off)
   renderer.setPixelRatio(pr);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
   if(composer){composer.setPixelRatio?composer.setPixelRatio(renderer.getPixelRatio()):0;composer.setSize(w,h);if(fxaa){const pr=renderer.getPixelRatio();fxaa.material.uniforms.resolution.value.set(1/(w*pr),1/(h*pr));}}}
@@ -5652,7 +5677,7 @@ function setNext(k){if(!race||state==='menu')return;const p=race.player;if(p.pit
 function cycleNext(){const p=race&&race.player;if(!p)return;const o=['S','M','H','I','W'];setNext(o[(o.indexOf(p.nextComp||p.ty.comp)+1)%5]);}
 let toastHold=0;
 function toast(m,c,d,hold){if(!hold&&performance.now()<toastHold)return;if(hold)toastHold=performance.now()+hold;const t=$('toast');t.textContent=m;t.style.color=c||'#fff';t.style.opacity=1;toastT=d||1.8;}
-function setupRace(mode,o){o=o||{};podiumEnd(false);meshes.forEach(m=>scene.remove(m.root));resetSkids();if(WORLD&&WORLD.crew)WORLD.crew.ready=false;clearDebris();
+function setupRace(mode,o){o=o||{};mDraw=40;podiumEnd(false);meshes.forEach(m=>scene.remove(m.root));resetSkids();if(WORLD&&WORLD.crew)WORLD.crew.ready=false;clearDebris();
   const opts={weather,incidents,damage:damageMode,aeroAuto:aeroMode==='auto',assist:isTouch&&assistMode==='off'?'offTouch':assistMode,formation:mode==='race'&&formOn,gridOrder:o.gridOrder,skills:o.skills};
   if(mode==='quali'||mode==='practice')race=makeSession(teamSel,mode,diff,sens,null,Object.assign(opts,{comp:startComp}));
   else race=makeRace(teamSel,laps,diff,sens,startComp,null,opts);
@@ -5674,7 +5699,7 @@ function warmUp(){if(!renderer||!scene)return;const prev=renderer.getRenderTarge
     for(const mt of ms)for(const k in mt){const t=mt[k];if(t&&t.isTexture&&!seen.has(t)&&t.image){seen.add(t);renderer.initTexture(t);}}});}catch(e){}}
 function fmtClock(t){t=Math.max(0,Math.ceil(t));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');}
 // o: {mode, gridOrder, skills} - a race after qualifying keeps the grid and the drivers' pace from the sessions
-function startRace(o){o=o||{mode:gameMode};const mode=o.mode||gameMode;lastStart=o;FF=false;
+function startRace(o){o=o||{mode:gameMode};const mode=o.mode||gameMode;lastStart=o;FF=false;if(camera.clearViewOffset)camera.clearViewOffset();
   document.body.classList.remove('inmenu');document.body.classList.add('racing');if(isTouch)prepMobile();initAudio();if(AC&&AC.state==='suspended')AC.resume();
   ['menu','result','pause','sess'].forEach(id=>$(id).hidden=true);
   setupRace(mode,o);warmUp();race.champ=!!o.champ;
@@ -5717,30 +5742,48 @@ function showSess(){const S=race.sess,p=race.player;if(!S)return;state='sessRes'
 function setPause(on){if(on){if(state==='paused')return;pausedFrom=state;state='paused';$('pLaps').innerHTML=lapTable(false);$('pause').hidden=false;
     const sk=$('skipBtn');sk.hidden=!canSkip();sk.textContent=race&&race.sess?'이 세션 건너뛰기':'건너뛰기 (빠르게 진행)';pauseLabels();$('resumeBtn').focus();if(AC)AC.suspend();}
   else{state=pausedFrom||'race';$('pause').hidden=true;if(AC)AC.resume();}}
-function toMenu(){tutEnd();{const r=loadLS('lightsout3d-tutret');if(r){saveLS('lightsout3d-tutret','');if(r!==TRK.id){saveLS('lightsout3d-track',r);$('loading').style.display='flex';$('loading').textContent='서킷을 불러오는 중';setTimeout(()=>location.reload(),30);}}}   // back from the tutorial circuit
+function toMenu(){tutEnd();mOpen(null);{const r=loadLS('lightsout3d-tutret');if(r){saveLS('lightsout3d-tutret','');if(r!==TRK.id){saveLS('lightsout3d-track',r);$('loading').style.display='flex';$('loading').textContent='서킷을 불러오는 중';setTimeout(()=>location.reload(),30);}}}   // back from the tutorial circuit
   perfReset();document.body.classList.add('inmenu');document.body.classList.remove('racing');state='menu';FF=false;setupRace();['pause','result','sess'].forEach(id=>$(id).hidden=true);$('menu').hidden=false;$('lights').style.opacity=0;updateMenuBest();}
 // ---- 대회 모드: circuits one after another, POINTS per finishing position, kept in localStorage so a closed browser resumes mid-season.
 let CH=null;try{CH=JSON.parse(loadLS('lightsout3d-champ')||'null');}catch(e){CH=null;}if(CH&&!(Array.isArray(CH.list)&&CH.pts&&CH.nm))CH=null;
 // 11-04: 일반 / 대회 at the top of the menu. 대회 takes over the start button; the settings are shared.
 let mMode=loadLS('lightsout3d-mmode')||(CH?'champ':'normal'),chLen=+loadLS('lightsout3d-chlen')||8;
-// 11-04: the menu's tabs. The controls keep their ids and handlers; they are only moved into the tab they belong to. Whatever is left goes under 설정.
-const MTABS=[['race','레이스',['chBox','modeSel','lapSel','difSel','scSel','wxSel','todSel','fmlSel','incSel','dmgSel']],['track','서킷',['chTrkNote','trkSel','wdSel']],['team','팀',['teamSel','livBtn']],['drive','운전',['skSel','skNote','tutBtn','smSel','pedSel','agSel','asSel','basSel','sensSel','rlSel','aeroSel','stSel']],['set','설정',[]]];
-function menuTab(t){for(const [k] of MTABS){const on=k===t;$('mP_'+k).hidden=!on;document.querySelector(`#mTabs button[data-t="${k}"]`).setAttribute('aria-selected',on?'true':'false');}$('mPanels').scrollTop=0;saveLS('lightsout3d-mtab',t);}
-function menuSum(){const d={easy:'AI 쉬움',normal:'AI 보통',hard:'AI 어려움'}[diff]||'',w={dry:'맑음',mixed:'변덕',rain:'비'}[weather]||'',m=gameMode==='practice',el=$('mSumT'),c=mMode!=='champ'?'':!CH?'대회 '+chLen+'라운드':CH.rd<CH.list.length?'라운드 '+(CH.rd+1)+'/'+CH.list.length:'대회 종료';if(el)el.textContent=[TEAMS[teamSel].short,c,m?'연습':laps+'랩',m?'':d,w].filter(Boolean).join('  /  ');}
-(function menuBuild(){const card=document.querySelector('#menu .card'),h1=card.querySelector('h1'),st=$('startBtn'),be=$('bestMenu');
-  const mk=(tag,id,par)=>{const e=document.createElement(tag);if(id)e.id=id;if(par)par.appendChild(e);return e;};
-  const top=mk('div','mTop'),rail=mk('div','mRail',top),tabs=mk('div','mTabs',rail),pan=mk('div','mPanels',top),foot=mk('div','mFoot');tabs.setAttribute('role','tablist');rail.insertBefore(h1,tabs);
-  const mm=mk('div','mMode');mm.className='seg';mm.innerHTML='<button type="button" data-v="normal">일반 모드</button><button type="button" data-v="champ">대회 모드</button>';rail.insertBefore(mm,tabs);
-  card.appendChild(top);for(const [k,nm,ids] of MTABS){const b=mk('button',null,tabs);b.type='button';b.dataset.t=k;b.setAttribute('role','tab');b.innerHTML='<i></i>'+nm;b.onclick=()=>menuTab(k);
-    const p=mk('div','mP_'+k,pan);p.className='mP';let grid=null;
-    for(const id of ids){const e=$(id);if(!e)continue;const par=e.parentElement;
-      if(par.parentElement&&par.parentElement.classList.contains('two')){if(!grid){grid=mk('div',null,p);grid.className='two';}grid.appendChild(par);}   // a label and its control, already together
-      else{const lb=e.previousElementSibling;if(lb&&lb.classList.contains('label'))p.appendChild(lb);p.appendChild(e);}}}
-  const sum=mk('div','mSum',foot);mk('div','mSumT',sum);sum.appendChild(be);foot.appendChild(st);
-  card.appendChild(top);card.appendChild(foot);const rest=$('mP_set');for(const e of [...card.children]){if(e===top||e===foot)continue;rest.appendChild(e);}   // (the sound, graphics and test settings, the key list)
-  $('menu').addEventListener('click',()=>setTimeout(menuSum,0));
-  let t='race';try{const v=localStorage.getItem('lightsout3d-mtab');if(MTABS.some(x=>x[0]===v))t=v;}catch(e){}menuTab(t);})();
-function updateMenuBest(){menuSum();const c=mMode==='champ'&&CH&&CH.rd<CH.list.length?chTrk(CH.list[CH.rd]):null;$('bestMenu').innerHTML=c?'이번 라운드 · '+c.name:TRK.name+' · '+(bestLap?'내 베스트 랩 <b>'+fmt(bestLap)+'</b>':'첫 랩 기록을 남겨보세요');}
+// 11-04: the menu: a short list at home, one topic per page. The controls keep their ids and handlers; they are only moved to their row.
+const MPAGES={track:[[null,[['chBox','대회','서킷을 이어 달리며 순위별 점수를 합산해요'],['chTrkNote'],['trkSel']]],['도로',[['wdSel','도로 폭']]]],
+  team:[[null,[['teamSel'],['livBtn']]]],
+  race:[['레이스',[['modeSel','진행 방식'],['lapSel','랩 수'],['difSel','AI 난이도'],['scSel','스타트 타이어']]],['날씨와 시간',[['wxSel','날씨','변덕은 도중에 비가 와요'],['todSel','시간대']]],['규칙',[['fmlSel','포메이션 랩','출발 전에 한 바퀴 돌아요'],['incSel','사고와 세이프티카'],['dmgSel','차량 손상','리얼은 리타이어할 수 있어요']]]],
+  drive:[[null,[['skSel','실력'],['skNote'],['tutBtn']]],['조작',[['smSel','조향 방식'],['sensSel','조향 감도','1이 가장 부드러워요'],['pedSel','페달 위치','양쪽은 브레이크가 왼쪽이에요'],['agSel','가속'],['stSel','스타트','수동은 부정 출발을 판정해요']]],['보조',[['asSel','주행 보조','잠김과 스핀을 잡아줘요'],['basSel','브레이크 보조','너무 빠르면 대신 밟아요. 늦게 밟고 싶으면 끄세요'],['rlSel','레이싱 라인'],['aeroSel','직선 모드 날개']]]],
+  set:[['그래픽',[['qSel','그래픽'],['aqSel','자동 화질 조절','프레임이 떨어지면 효과를 줄여요'],['crowdSel','관중 표시','끄면 조금 가벼워져요']]],['소리',[['sndPrev','엔진 소리']]],['성능 측정',[['bvSel','측정 시점'],['bwSel','측정 날씨'],['benchBtn','자동 성능 측정','28개 서킷을 돌며 재요. 15~20분 걸리니 충전기에 꽂아 두세요']]],['도움말',[['touchHelp'],['mKeys']]]]};
+const MNAMES={track:'서킷',team:'팀',race:'레이스 설정',drive:'운전',set:'그래픽과 기타'};
+function mOpen(k){$('mHome').hidden=!!k;$('mPage').hidden=!k;for(const n in MPAGES){const on=n===k;$('mP_'+n).hidden=!on;if(on)$('mP_'+n).scrollTop=0;}if(k)$('mPgT').textContent=k==='track'&&mMode==='champ'?'대회와 서킷':MNAMES[k];}
+function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={easy:'AI 쉬움',normal:'AI 보통',hard:'AI 어려움'}[diff]||'',w={dry:'맑음',mixed:'변덕',rain:'비'}[weather]||'';
+  set('mV_team',TEAMS[teamSel].name);set('mV_race',gameMode==='practice'?['연습 주행',w].join(', '):[(gameMode==='quali'?'예선 후 ':'')+laps+'랩',d,w].join(', '));
+  set('mV_drive',[{tilt:'기울이기',drag:'드래그',buttons:'버튼'}[steerMode],autoGas?'자동 가속':'직접 가속'].join(', '));set('mV_set','그래픽 '+({high:'높음',medium:'보통',low:'부드럽게'}[quality]||''));}
+(function menuBuild(){const card=document.querySelector('#menu .card'),h1=card.querySelector('h1'),st=$('startBtn'),help=card.querySelector('.keys');help.id='mKeys';
+  const mk=(tag,id,par,cl)=>{const e=document.createElement(tag);if(id)e.id=id;if(cl)e.className=cl;if(par)par.appendChild(e);return e;};
+  const old=[...card.children],home=mk('div','mHome'),L=mk('div','mHomeL',home),R=mk('div','mHomeR',home),page=mk('div','mPage');page.hidden=true;
+  L.appendChild(h1);const mm=mk('div','mMode',L,'seg');mm.innerHTML='<button type="button" data-v="normal">일반 모드</button><button type="button" data-v="champ">대회 모드</button>';
+  const list=mk('div','mList',L);for(const k in MNAMES){const b=mk('button',null,list,'mItem');b.type='button';b.innerHTML=`<b id="mN_${k}">${MNAMES[k]}</b><span id="${k==='track'?'bestMenu':'mV_'+k}"></span><i></i>`;b.onclick=()=>mOpen(k);}
+  R.appendChild(st);const hd=mk('div','mPgH',page),bk=mk('button','mBack',hd);bk.type='button';bk.setAttribute('aria-label','뒤로');bk.innerHTML='<i></i>';bk.onclick=()=>mOpen(null);mk('div','mPgT',hd);
+  for(const k in MPAGES){const pg=mk('div','mP_'+k,page,'mPg');pg.hidden=true;
+    for(const [grp,rows] of MPAGES[k]){if(grp)mk('p',null,pg,'mGrp').textContent=grp;
+      for(const [id,lb,sm] of rows){const e=$(id);if(!e)continue;const w=e.closest('.touchOnly,.keyOnly'),box=e.parentElement.classList.contains('row2')?e.parentElement:e;
+        if(!lb){const r=mk('div',null,pg,'mB');if(w&&!e.matches('.touchOnly,.keyOnly'))r.classList.add(w.classList.contains('touchOnly')?'touchOnly':'keyOnly');r.appendChild(box);continue;}
+        const r=mk('div',null,pg,'mRow');if(w)r.classList.add(w.classList.contains('touchOnly')?'touchOnly':'keyOnly');const l=mk('div',null,r,'mL');mk('b',null,l).textContent=lb;if(sm)mk('small',null,l).textContent=sm;mk('div',null,r,'mC').appendChild(box);}}}
+  old.forEach(e=>{if(e.parentElement===card)e.remove();});card.appendChild(home);card.appendChild(page);$('menu').addEventListener('click',()=>setTimeout(menuSum,0));})();
+// 11-04 the menu scrolls by hand: turned sideways (rotation lock on) the whole page is rotated and a browser's own touch scrolling did not move at all (0 px on a 140 px drag).
+{const SEL='.mPg,#mHomeL,.overlay:not(#menu)>.card,.lecard',Y=e=>ROT?-e.clientX:e.clientY;let S=null,raf=0,dragged=false;
+ const fling=(el,v)=>{let t0=performance.now();const go=now=>{const dt=now-t0;t0=now;const top=el.scrollTop;el.scrollTop=top-v*dt;v*=Math.exp(-dt/380);raf=Math.abs(v)>0.02&&el.scrollTop!==top?requestAnimationFrame(go):0;};raf=requestAnimationFrame(go);};
+ let tapB=null,noClick=0;
+ document.addEventListener('pointerdown',e=>{if(!isTouch)return;cancelAnimationFrame(raf);raf=0;dragged=false;tapB=e.target.closest&&e.target.closest('.overlay button,#livEd button');const t=e.target.closest&&e.target.closest(SEL);S=t&&t.scrollHeight>t.clientHeight+1?{el:t,id:e.pointerId,y0:Y(e),top:t.scrollTop,ly:Y(e),lt:e.timeStamp,v:0,drag:false}:null;},true);
+ document.addEventListener('pointermove',e=>{if(!S||e.pointerId!==S.id)return;const y=Y(e);if(!S.drag){if(Math.abs(y-S.y0)<7)return;S.drag=dragged=true;S.y0=y;S.top=S.el.scrollTop;}
+   S.el.scrollTop=S.top-(y-S.y0);const dt=e.timeStamp-S.lt;if(dt>0){S.v=0.6*S.v+0.4*(y-S.ly)/dt;S.ly=y;S.lt=e.timeStamp;}},true);
+ const end=e=>{if(!S||e.pointerId!==S.id)return;const s=S;S=null;if(s.drag&&e.type==='pointerup'&&e.timeStamp-s.lt<90)fling(s.el,Math.max(-3.5,Math.min(3.5,s.v)));};document.addEventListener('pointerup',end,true);document.addEventListener('pointercancel',end,true);
+ // a tap is the finger lifting off a button: the browser does not always make a click of it (one in a few after a scroll). touchend, as iOS only lets sound and sensors start from a touch.
+ document.addEventListener('touchend',e=>{const b=tapB;tapB=null;if(!b||dragged||e.touches.length)return;noClick=e.timeStamp+500;b.click();},true);
+ document.addEventListener('click',e=>{if(e.isTrusted&&(dragged||e.timeStamp<noClick)){dragged=false;e.preventDefault();e.stopPropagation();}},true);document.addEventListener('visibilitychange',()=>{mDraw=Math.max(mDraw,10);});}
+function updateMenuBest(){menuSum();const ch=mMode==='champ',fin=CH&&CH.rd>=CH.list.length;$('mN_track').textContent=ch?'대회':'서킷';
+  $('bestMenu').textContent=!ch?TRK.name+(bestLap?', 베스트 '+fmt(bestLap):''):fin?'대회가 끝났어요':CH?'라운드 '+(CH.rd+1)+'/'+CH.list.length+', '+chTrk(CH.list[CH.rd]).name:chLen+'라운드, '+TRK.name+'에서 시작';}
 
 // ---- menu ----
 {const btn=t=>`<button data-v="${t.id}" aria-pressed="${t.id===TRK.id}" style="flex-direction:column;align-items:flex-start;gap:2px"><b>${t.name}</b><span style="font-size:12px;opacity:.75;font-weight:400">${t.desc}</span></button>`,
@@ -5775,7 +5818,7 @@ let LED=null;   // {ti, L, num, name} while the editor is open
 function leCur(){return LED;}
 function leOpen(){const ti=teamSel,c=LIVC[ti];LED={ti,L:Object.assign({},LIV[ti],{spine:LIV[ti].spine?1:0,wt:LIV[ti].wt||'none'}),num:(c&&c.num)||ti*2+2,name:(c&&c.name)||''};
   $('leTeam').textContent=TEAMS[ti].name;$('leNum').value=LED.num;$('leName').value=LED.name;$('leName').placeholder=TEAMS0[ti].short;leSync();$('menu').hidden=true;$('livEd').hidden=false;document.body.classList.add('lived');}
-function leClose(){$('livEd').hidden=true;$('menu').hidden=false;document.body.classList.remove('lived');LED=null;if(camera.clearViewOffset)camera.clearViewOffset();}
+function leClose(){mDraw=30;$('livEd').hidden=true;$('menu').hidden=false;document.body.classList.remove('lived');LED=null;if(camera.clearViewOffset)camera.clearViewOffset();}
 function leSync(){if(!LED)return;const L=LED.L;
   document.querySelectorAll('#livEd .sws').forEach(d=>{const k=d.dataset.k,v=k==='W'?(L.W||'none'):L[k];d.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v?'true':'false'));const inp=d.querySelector('input');if(inp&&v&&v!=='none')inp.value=v;});
   document.querySelectorAll('#lePre button').forEach(b=>{const P=LIV_PRESETS[+b.dataset.p].L;b.setAttribute('aria-pressed',P.D===L.D&&P.A===L.A&&P.M===L.M&&P.cut===L.cut&&P.fin===L.fin?'true':'false');});
@@ -5832,7 +5875,7 @@ const skLines=k=>SKILLS[k].li.filter(l=>isTouch||!l[1]).map(l=>l[0]);
 function curSkill(){if(loadLS('lightsout3d-skill')==='pro')return 'pro';for(const k in SKILLS){const s=SKILLS[k];if(!s.custom&&sens===s.sens&&assistMode===s.as&&brakeAs===s.bas&&rlMode===s.rl&&(!isTouch||(steerMode===s.sm&&autoGas===(s.ag==='auto'))))return k;}return 'pro';}
 function skillUI(){if(!skReady)return;const k=curSkill();segPick(['skSel','pSkSel'],k);segPick(['basSel'],brakeAs);
   const t=k==='pro'?'지금: 직접 설정 · 아래에서 하나씩 골라요 (노란 글씨가 중급·상급 추천)':'지금: '+SKILLS[k].nm+' · '+skLines(k).join(' · ');for(const id of['skNote','pSkNote'])$(id).textContent=t;}
-function skOpenCustom(){const pz=!$('pause').hidden;if(!$('skill').hidden){$('skill').hidden=true;$('menu').hidden=false;}if(!pz)menuTab('drive');
+function skOpenCustom(){const pz=!$('pause').hidden;if(!$('skill').hidden){$('skill').hidden=true;$('menu').hidden=false;}if(!pz)mOpen('drive');
   const t=pz?$('pSmSel'):$(isTouch?'smSel':'sensSel');if(t)setTimeout(()=>t.parentNode.scrollIntoView({block:'start',behavior:'smooth'}),60);}
 function setBrakeAs(v){brakeAs=v;saveLS('lightsout3d-bas',v);if(race)race.bAs=v;skillUI();}
 function applySkill(k){const s=SKILLS[k];if(!s)return;saveLS('lightsout3d-skill',k);if(s.custom){skillUI();skOpenCustom();return;}
@@ -6037,7 +6080,7 @@ function menuStart(){if(mMode!=='champ')return startRace();if(CH&&CH.rd>=CH.list
 function mApply(){const c=mMode==='champ',lock=c&&CH&&CH.rd<CH.list.length,n=$('chTrkNote');
   document.querySelectorAll('#mMode button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===mMode?'true':'false'));
   if(c&&gameMode==='practice'){gameMode='race';saveLS('lightsout3d-mode','race');document.querySelectorAll('#modeSel button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v==='race'?'true':'false'));}
-  $('modeSel').querySelector('[data-v="practice"]').style.display=c?'none':'';$('chLbl').style.display=$('chBox').style.display=c?'':'none';
+  $('modeSel').querySelector('[data-v="practice"]').style.display=c?'none':'';$('chBox').closest('.mRow').style.display=c?'':'none';
   n.style.display=c?'':'none';n.textContent=lock?'대회 중에는 서킷이 정해져 있어요. 이번 라운드는 '+chTrk(CH.list[CH.rd]).name+'. 다른 서킷을 달리려면 일반 모드로 바꾸세요(대회 점수는 그대로 남아요).':'지금 고른 서킷이 1라운드예요. 나머지 라운드는 무작위로 정해져요.';
   $('trkSel').classList.toggle('chLock',!!lock);updStartBtn();updateMenuBest();}
 // Changing circuit reloads the page (the track is built at load), so the next round starts from the menu after the reload.
@@ -6062,10 +6105,10 @@ function chTable(){if(!CH)return toMenu();['result','menu'].forEach(id=>$(id).hi
   $('sLaps').innerHTML='';$('sess').hidden=false;$('sess').querySelector('.card').scrollTop=0;go.focus({preventScroll:true});}
 function chMenu(){const b=$('chBox');
   if(!CH){const L=[[4,'짧게'],[8,'보통'],[TRACKS.length,'전체']];if(!L.some(x=>x[0]===chLen))chLen=8;
-    b.innerHTML='<div class="seg">'+L.map(([n,t])=>`<button type="button" data-n="${n}" aria-pressed="${n===chLen}">${t}<br>${n}라운드</button>`).join('')+'</div>';
+    b.innerHTML='<div class="seg">'+L.map(([n])=>`<button type="button" data-n="${n}" aria-pressed="${n===chLen}">${n}라운드</button>`).join('')+'</div>';
     b.querySelectorAll('button').forEach(x=>x.onclick=()=>{chLen=+x.dataset.n;saveLS('lightsout3d-chlen',chLen);chMenu();});mApply();return;}
   const N=CH.list.length,fin=CH.rd>=N,ks=chRows(),me=ks.indexOf('YOU');
-  b.innerHTML=`<p class="sub" style="margin:0 0 8px;color:var(--ink)">${fin?'대회 종료 · 챔피언 '+CH.nm[ks[0]][0]:'라운드 '+(CH.rd+1)+'/'+N+' · '+chTrk(CH.list[CH.rd]).name}${me>=0?' · 나 P'+(me+1)+' · '+CH.pts.YOU+'점':''}</p><div class="row2" style="margin-bottom:12px">`+
+  b.innerHTML=`<p class="sub">${fin?'대회 종료, 챔피언 '+CH.nm[ks[0]][0]:'라운드 '+(CH.rd+1)+'/'+N+', '+chTrk(CH.list[CH.rd]).name}${me>=0?', 나 P'+(me+1)+', '+CH.pts.YOU+'점':''}</p><div class="row2" style="margin-bottom:12px">`+
     (CH.rd?'<button id="chTbl" type="button">순위표</button>':'')+(fin?'':'<button id="chQuit" type="button">대회 그만두기</button>')+'</div>';
   if(CH.rd)$('chTbl').onclick=chTable;if(!fin)$('chQuit').onclick=()=>{if(confirm('대회를 그만둘까요? 지금까지의 점수가 지워져요.'))chEnd();};mApply();}
 $('chBtn').onclick=chTable;chMenu();
@@ -7444,7 +7487,7 @@ let BENCH=null,BENCH_R=null,benchOpt={view:'cur',wx:'dry'};
 function benchLoad(k){try{return JSON.parse(localStorage.getItem(k||BKEY)||'null');}catch(e){return null;}}
 function benchSave(S){try{localStorage.setItem(BKEY,JSON.stringify(S));return true;}catch(e){return false;}}
 function setLS(k,v){try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){}}
-function benchStart(){if(state!=='menu')return;const q=BQUICK;
+function benchStart(){if(state!=='menu')return;if(camera.clearViewOffset)camera.clearViewOffset();const q=BQUICK;
   const S={cfg:{view:benchOpt.view==='cockpit'?'cockpit':CAMS[camMode],wx:benchOpt.wx,pts:q?4:48,pit:q?0:3,ms:q?300:500,quick:q},
     orig:{track:loadLS('lightsout3d-track'),tod:loadLS('lightsout3d-tod')},ids:(q?TRACKS.slice(0,2):TRACKS).map(t=>t.id),k:0,res:[],t0:Date.now()};
   if(!benchSave(S)||!benchLoad()){toast('저장 공간을 쓸 수 없어 측정을 시작할 수 없어요','#ffb347',3);return;}
@@ -7573,10 +7616,12 @@ function frame(now){
     if(race.sess&&race.sess.over&&state==='race')showSess();
     if(state==='done'&&!race.sess){doneT+=dt;if(CINE&&CINE.ph==='pod'){try{podiumStep(dt);}catch(e){console.error(e);podiumEnd(true);}}else if(doneT>3.4&&$('result').hidden&&!CINE){if(podiumOK())podiumStart();else showResults();}}
   }
-  if(TEXQ.length&&state!=='race'&&state!=='countdown')while(TEXQ.length)TEXQ.shift()();
+  if(TEXQ.length&&state!=='race'&&state!=='countdown'){mDraw=Math.max(mDraw,20);while(TEXQ.length)TEXQ.shift()();}
+  // 11-04: nothing moves behind the menu: draw until the car stands in its place, then stop (the menu scrolled in jerks on top of the whole 3D scene)
+  if(state==='menu'&&!BENCH&&!LED&&!$('menu').hidden&&--mDraw<0){mDraw=0;requestAnimationFrame(frame);return;}
   sync(dt);
   if(state==='menu'){orbit+=dt*(LED?0.2:0.12);const pl=race.player;const gy=roadY(pl.x,pl.z,pl.idx),od=LED?6.2:7.5;camera.position.set(pl.x+Math.cos(orbit)*od,(LED?1.9:1.6)+gy,pl.z+Math.sin(orbit)*od);
-    if(LED&&camera.setViewOffset){const w=VW(),h=VH(),port=w<h;camera.setViewOffset(w,h,port?0:-Math.min(210,w*0.21),port?h*0.26:0,w,h);}camera.fov=45;camera.near=0.25;camera.lookAt(pl.x,0.5+gy,pl.z);camera.updateProjectionMatrix();meshes[race.cars.indexOf(pl)].helmet.visible=true;if(SW)SW.g.visible=false;}
+    if(camera.setViewOffset){const w=VW(),h=VH(),port=w<h;camera.setViewOffset(w,h,LED?(port?0:-Math.min(210,w*0.21)):-w*0.3,LED&&port?h*0.26:0,w,h);}camera.fov=45;camera.near=0.25;camera.lookAt(pl.x,0.5+gy,pl.z);camera.updateProjectionMatrix();meshes[race.cars.indexOf(pl)].helmet.visible=true;if(SW)SW.g.visible=false;}
   if(WORLD.waterTex){WORLD.waterTex.offset.x+=dt*0.004;WORLD.waterTex.offset.y+=dt*0.0025;}
   // v12j: the whole shadow map is redrawn every frame; once the governor decides the device is struggling (PERF.shHalf) it is
   // redrawn every other frame instead - a shadow one frame behind is not visible, and it is a large slice of work.
