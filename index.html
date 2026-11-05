@@ -5555,7 +5555,7 @@ function audioUpdate(dt){
   if(pl.spinR&&thr>0.5)rpm=Math.min(12700,rpm*1.1);   // wheelspin: revs flare
   EngineSound.update(e,{t,dt,rpm,thr,gear:curGear,inCar,dop:tvL?tvL.dop:1,grid:state==='countdown',pitLim:pLim&&sp>18});
   if(e.pan)e.pan.pan.setTargetAtTime(tvL?tvL.pan:0,t,0.1);
-  SND.rdG.gain.setTargetAtTime(tvL?0:Math.min(1,sp/70)*(EngineSound.P.old?(inCar?0.055:0.03):(inCar?0.02:0.03))*(pl.off?0.3:1),t,0.1);   // 11-05: back to what 23157f3 had: the recording's air and road are already in the engine loops (a3adb99 raised these for its synthesised engine and they stayed. .old: temporary A/B)
+  SND.rdG.gain.setTargetAtTime(tvL?0:Math.min(1,sp/70)*(EngineSound.P.old?(inCar?0.055:0.03):(inCar?0:0.03))*(pl.off?0.3:1),t,0.1);   // 11-05: back to what 23157f3 had: the recording's air and road are already in the engine loops (a3adb99 raised these for its synthesised engine and they stayed. .old: temporary A/B)
   {const pk=pl.dmg&&pl.dmg.pk,p=pk?Math.max(pk[0],pk[1],pk[2],pk[3]):0;   // a flat tyre flaps once per wheel turn; on the rim it scrapes
    if(p>0.35&&sp>2&&!pl.pit){SND.pkT=(SND.pkT||0)-dt;if(SND.pkT<=0){SND.pkT=Math.max(0.07,2.26/sp);sfxBurst({type:'lowpass',f:160+sp*2.5,q:0.9,amp:0.2*p*Math.min(1,sp/12),att:0.002,dur:0.055});
      if(p>0.85&&sp>5)sfxBurst({type:'bandpass',f:2800+Math.random()*1600,q:2.2,amp:0.045*Math.min(1,sp/30),att:0.002,dur:0.08});}}}
@@ -5582,7 +5582,7 @@ function audioUpdate(dt){
   SND.grG.gain.setTargetAtTime(off&&sp>2?Math.min(0.35,0.08+sp*0.006):0,t,0.05);
   // wind
   SND.rnG.gain.setTargetAtTime(race.wx.rain*(inCar?0.09:0.06),t,0.3);SND.hsG.gain.setTargetAtTime(WET*Math.min(1,sp/50)*0.07,t,0.1);
-  SND.wF.frequency.setTargetAtTime(300+sp*15,t,0.1);SND.wG.gain.setTargetAtTime(tvL?0:Math.min(EngineSound.P.old?(inCar?0.075:0.05):(inCar?0.02:0.025),sp*sp*0.00001),t,0.15);   // v12b: softer and lower - at full speed it read as hiss over the engine. 11-05: 윤택님 「풍절음」: as the road above; it no longer goes through a compressor with the engine, so nothing ducks it
+  SND.wF.frequency.setTargetAtTime(300+sp*15,t,0.1);SND.wG.gain.setTargetAtTime(tvL?0:Math.min(EngineSound.P.old?(inCar?0.075:0.05):(inCar?0:0.025),sp*sp*0.00001),t,0.15);   // v12b: softer and lower - at full speed it read as hiss over the engine. 11-05: 윤택님 「풍절음」: as the road above; it no longer goes through a compressor with the engine, so nothing ducks it
   // other cars (nearest four) with distance, pan and doppler
   // v12i: a voice stays with its car while that car is still among the nearest five (each voice went to whichever car was the n-th
   // nearest this frame, so in a pack - cars a metre apart swapping places - the voices hopped between cars: the engines warbled, the
