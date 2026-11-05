@@ -1486,7 +1486,7 @@ function stepPit(race,c,dt,inp){
       if(c.isP)race.EV.push({type:'pitStop',pen:pp.pen});return;}}
   // v12i: a car in the pit lane only waits behind a car that is where it is going: its own line at that car's tail (leaving the box it
   // waited behind the car in the next box until that one had been serviced and gone - a dozen places lost under a safety car)
-  for(const o of race.cars){if(o===c||o.gone||!o.pit||o.pit.state==='garage')continue;const dp=gapTo(c,o);if(dp>0&&dp<11&&Math.abs(o.lat-PIT.side*latAt(Math.max(r0,Math.min(PIT.Z,r0+dp-3))))<2.6)vt=o.spd<1&&dp>=3.6?Math.min(vt,Math.sqrt(2*4*(dp-3.6)*STEP)):Math.min(vt,dp<3.5?0:Math.max(0,o.spd-(dp<6?1.5:0)));}
+  for(const o of race.cars){if(o===c||o.gone||!o.pit||o.pit.state==='garage'||(c.pit.state==='out'&&o.pit.state==='in'&&o.pit.wait))continue;const dp=gapTo(c,o);if(dp>0&&dp<11&&Math.abs(o.lat-PIT.side*latAt(Math.max(r0,Math.min(PIT.Z,r0+dp-3))))<2.6)vt=o.spd<1&&dp>=3.6?Math.min(vt,Math.sqrt(2*4*(dp-3.6)*STEP)):Math.min(vt,dp<3.5?0:Math.max(0,o.spd-(dp<6?1.5:0)));}   // 11-06 QA: leaving the box, not behind a car waiting in the working lane for its team-mate (off this line: a car stood 15 s there)
   // v13k: the last 40 m of the exit road - where it runs beside the track (Austin: onto the racing line out of turn 1) - give
   // way to a car on the track that is level or just ahead in the same metres, before the merge, not after it
   if(pp.state==='out'&&r0>PIT.Z-40)for(const o of race.cars){if(o===c||o.gone||o.pit||o.inGarage)continue;const dm=gapTo(c,o)*STEP;
@@ -1860,8 +1860,8 @@ function stepAI(race,c,dt){
   move(c,dt);barrier(race,c);if(!c.fail)checkPitEntry(race,c);
   tyreStep(race,c,dt,c.latG,c.lonG,0);
   if(c.fail&&c.spd<0.3){c.spd=0;c.dnf=true;c.fail=false;onDNF(race,c);}
-  {const blk=!c.fail&&!c.pit&&rc.flag!=='red'&&c.spd<0.8&&!!obst&&(obst.dnf||obst.fail||obst.spd<1);c.jamT=blk?(c.jamT||0)+dt:Math.max(0,(c.jamT||0)-dt*0.5);   // v13: unjam (above): set after
-   if(c.jamT>2)c.unjamT=race.t+5;c.unjam=c.unjamT!=null&&race.t<c.unjamT&&!c.fail&&!c.pit;                                                 // 2 s at a standstill, held 5 s (a creep past; it flickered off)
+  {const blk=!c.fail&&!c.pit&&c.spd<0.8&&!!obst&&(obst.dnf||obst.fail||obst.spd<1);c.jamT=blk?(c.jamT||0)+dt:Math.max(0,(c.jamT||0)-dt*0.5);   // v13: unjam (above): set after
+   if(c.jamT>2)c.unjamT=race.t+5;c.unjam=c.unjamT!=null&&race.t<c.unjamT&&!c.fail&&!c.pit;                                                 // 2 s at a standstill, held 5 s (a creep past; it flickered off) 11-06 QA: under a red flag too (behind a crashed car in the pit-side lane they stood until the 150 s move to the pits)
    if(c.jamT>4&&!(c.creepT>race.t)){c.creepT=race.t+6;c.obstP=obst;}if(!(c.creepT>race.t))c.obstP=null;}
 }
 const onRamp=c=>!!c.pit&&(c.pit.state==='join'||c.pit.state==='in'&&zoneR(c.idx)<Math.min(PIT.RAMP,40)&&Math.abs(c.lat)<HALF+2.5);   // v13j: 'join' is back on the track while c.pit is still set - it drove through the field
@@ -5540,7 +5540,7 @@ function sfx(type){
 }
 function audioUpdate(dt){
   if(!AC||!SND.eng||!race)return;
-  const t=AC.currentTime,live=(state==='race'||state==='countdown'||state==='done')&&!muted&&!(CINE&&CINE.ph==='pod');
+  const t=AC.currentTime,live=(state==='race'||state==='countdown'||state==='done')&&!muted&&!(CINE&&CINE.ph==='pod')&&$('result').hidden;   // 11-06 QA: nor under the results (the cool-down lap's engine came back up there); a retired car's engine is off (SND.eM below)
   // 10-30 윤택님 「TV 시점은 멀리서 나는 소리」: in the TV view the listener is the trackside camera, not the driver - the car is
   // quieter and duller the further it is, sits left/right in the picture, and drops in pitch as it passes (doppler)
   const tvL=live&&CAMS[camMode]==='tv'&&!key.look?(()=>{const p=race.player,m=camera.matrixWorld.elements,cx=camera.position.x,cz=camera.position.z,dx=p.x-cx,dz=p.z-cz,
@@ -5548,7 +5548,7 @@ function audioUpdate(dt){
     return {cx,cz,d,rx:m[0]/rl,rz:m[2]/rl,pan:Math.max(-0.8,Math.min(0.8,(m[0]*dx+m[2]*dz)/rl/d)),dop:H.dop,A:H.A,cut:H.cut,wet:H.wet,lag:H.lag};})():null;
   SND.master.gain.setTargetAtTime(live?0.7*(tvL?tvL.A:CAMS[camMode]==='far'?0.8:1):0,t,0.1);
   if(SND.air)SND.air.frequency.setTargetAtTime(tvL?tvL.cut:CAMS[camMode]==='far'?11000:20000,t,0.1);
-  SND.eM.gain.setTargetAtTime(live&&!PREV?(tvL?tvL.A:CAMS[camMode]==='far'?0.8:1):0,t,0.1);SND.eAir.frequency.setTargetAtTime(tvL?tvL.cut:CAMS[camMode]==='far'?11000:20000,t,0.1);
+  SND.eM.gain.setTargetAtTime(live&&!PREV&&!(race.player&&race.player.dnf)?(tvL?tvL.A:CAMS[camMode]==='far'?0.8:1):0,t,0.1);SND.eAir.frequency.setTargetAtTime(tvL?tvL.cut:CAMS[camMode]==='far'?11000:20000,t,0.1);
   // the echo and the lateness: only wired in while the TV view is on (nothing to pay in the other views)
   if(tvL&&!SND.tvW){const dl=AC.createDelay(0.5),fb=SND.G(0.28),lp=SND.F('lowpass',2200,0.5),wet=SND.G(0);dl.delayTime.value=0.13;dl.connect(lp);lp.connect(fb);fb.connect(dl);lp.connect(wet);wet.connect(SND.out);SND.tvW={dl,wet};}
   if(SND.tvW){const on=!!tvL;if(on!==SND.tvOn){SND.tvOn=on;try{if(on){SND.air.connect(SND.tvW.dl);SND.eAir.connect(SND.tvW.dl);}else{SND.air.disconnect(SND.tvW.dl);SND.eAir.disconnect(SND.tvW.dl);}}catch(e){}}SND.tvW.wet.gain.setTargetAtTime(on?tvL.wet:0,t,0.2);}

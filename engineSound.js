@@ -79,10 +79,10 @@ const EngineSound=(()=>{
     // the rev limiter cuts in and out 15 times a second, whatever the frame rate
     const limO=ctx.createOscillator(),lf=F('lowpass',200,-3),limD=G(0);limO.type='square';limO.frequency.value=15;limO.connect(lf);lf.connect(limD);limD.connect(limG.gain);limO.start();
     const v={v6:true,ctx,pu,mix,limO,lp,pkMid,pkHigh,shLow,shTop,master,shift,limG,limD,vol,out,on:[],off:[],eq:[hp,pk200,pk500,pkMid,pkHigh,top,lp,shLow,shTop],S:{gear:'N',thr:0,low:1,onGrid:false,gT:0,gTg:11800,gR:11800,inCar:null}};
-    chain(mix,hp,pk200,pk500,pkMid,pkHigh,top,lp,shLow,shTop,master,ceil,shift,limG,vol,out);
+    chain(mix,hp,pk200,pk500,pkMid,pkHigh,top,lp,shLow,shTop,master,shift,limG,vol,ceil,out);   // 11-06 QA: the ceiling after the level (off the throttle the off loops, louder than the on loops, ran into it before their 0.4 came off: 8-31 small cracks a second above 6 kHz)
     if(ctx.createStereoPanner){v.pan=ctx.createStereoPanner();out.connect(v.pan);v.pan.connect(dest);}else out.connect(dest);
     live.add(v);v.ready=puLoad(pu).then(D=>{if(v.dead)return;v.D=D;attach(v,bank(ctx,pu,D));});return v;}
-  function stop(v){v.dead=true;live.delete(v);for(const a of v.on.concat(v.off))try{a.s.stop();}catch(e){}try{v.limO.stop();}catch(e){}try{v.out.disconnect();if(v.pan)v.pan.disconnect();}catch(e){}}
+  function stop(v){v.dead=true;live.delete(v);try{v.out.gain.cancelScheduledValues(v.ctx.currentTime);v.out.gain.setTargetAtTime(0,v.ctx.currentTime,0.008);}catch(e){}setTimeout(()=>{for(const a of v.on.concat(v.off))try{a.s.stop();}catch(e){}try{v.limO.stop();}catch(e){}try{v.out.disconnect();if(v.pan)v.pan.disconnect();}catch(e){}},60);}   // 11-06 QA: down in 8 ms, then stopped (cut dead it ticked: the preview pressed again, a race started over it)
   // a new race: nothing of the last one's start lights carries over (left during the countdown, the first frame read as lights out)
   function reset(v){v.S.onGrid=false;v.S.gear='N';}
 
@@ -119,12 +119,12 @@ const EngineSound=(()=>{
   const LITE={};
   function liteBuf(ctx,pu){const k=(P.old?'o':P.rec?'r':'s')+pu+'|'+P.clean+'|'+P.hiss+'|'+ctx.sampleRate;return LITE[k]||(LITE[k]=puLoad(pu).then(D=>{if(D.old||D.rec){const on=bank(ctx,pu,D).on;return (on.find(a=>a.rpm===10500)||on[on.length-1]).buf;}
       let o=0,nc=0;for(const q of SYN[pu].on){nc=q[1];if(q[0]===10500)break;o+=CY+nc*CY+(q[0]<=7500?CY:0);}const n=nc*CY,x=new Float32Array(n),gR=Math.pow(10,-12*P.clean/20);for(let i=0;i<n;i++)x[i]=D[o+CY+i]/32768;const y=hiss(x,10500),buf=ctx.createBuffer(1,n,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<n;i++)d[i]=y[i]*gR+D[o+i%CY]/32768;return buf;}));}
-  function liteOn(v,buf){const c=v.ctx;if(v.s){try{v.s.stop();}catch(e){}try{v.s.disconnect();}catch(e){}}const s=c.createBufferSource();s.buffer=buf;s.loop=true;s.playbackRate.value=10000*v.k;s.connect(v.lp);s.start(c.currentTime,Math.random()*buf.duration);v.s=s;}
+  function liteOn(v,buf){const c=v.ctx;if(v.s){try{v.s.stop();}catch(e){}try{v.s.disconnect();}catch(e){}}const s=c.createBufferSource();s.buffer=buf;s.loop=true;s.playbackRate.value=v.rt||10000*v.k;s.connect(v.lp);s.start(c.currentTime,Math.random()*buf.duration);v.s=s;}
   function createLite(ctx,dest,pu){const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1500;lp.Q.value=-3;const out=ctx.createGain();out.gain.value=0;const v={lite:true,ctx,pu,lp,out,s:null,k:CY/120/ctx.sampleRate};lp.connect(out);
     if(ctx.createStereoPanner){v.pan=ctx.createStereoPanner();out.connect(v.pan);v.pan.connect(dest);}else out.connect(dest);
     v.ready=liteBuf(ctx,pu).then(b=>liteOn(v,b));if(!P.old&&!P.rec)for(let q=0;q<5;q++)setTimeout(()=>liteBuf(ctx,q),300+q*150);return v;}
   function setLitePu(v,pu){if(P.old||P.rec||pu==null||pu===v.pu)return;v.pu=pu;liteBuf(v.ctx,pu).then(b=>{if(v.pu===pu)liteOn(v,b);});}
-  function setLite(v,t,rpm,dop,level,cut,tc){if(v.s)v.s.playbackRate.setTargetAtTime(mapRpm(rpm,v.pu)*dop*v.k,t,tc||0.03);v.lp.frequency.setTargetAtTime(cut,t,0.03);v.out.gain.setTargetAtTime(level,t,0.008);}
+  function setLite(v,t,rpm,dop,level,cut,tc){v.rt=mapRpm(rpm,v.pu)*dop*v.k;if(v.s)v.s.playbackRate.setTargetAtTime(v.rt,t,tc||0.03);v.lp.frequency.setTargetAtTime(cut,t,0.03);v.out.gain.setTargetAtTime(level,t,0.008);}   // 11-06 QA: rt kept for liteOn - a new unit's loop starts at this pitch (from 10000 it slid 3.5 semitones down)
 
   // ---- hear it without a race: the grid, a launch, three upshifts, a lift, three downshifts, idle, then a steady pull at high speed. Runs on a timer, so the sliders are heard as they move ----
   function preview(ctx,dest,pu,onEnd){const v=create(ctx,dest,pu),END=9.6;let t0=0,r=4000,last=0,done=false,fade=false,iv=0;v.out.gain.value=0;
