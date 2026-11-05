@@ -5,15 +5,17 @@
 // On loading, the rest is dealt in random order into a long loop and the average cycle added: the two need different joins (the cycle adds in phase, the rest does not), and the cycle never has one (a loop of the whole sound swelled or dipped at every join, heard as thumps). 울림 줄이기 is the level of the rest.
 // The game's revs almost never fall under 7700, where the recording's firing pulses alternate big and small (the 1.5-order family: a note an octave under the firing note, rough: the 그르릉). So the low gears play sound-only revs: lowPitch for the note and lowTimbre for the crossfade (저단 그르릉 is how much). The low loops' level also swings a little once per cycle.
 // Off the throttle (braking, downshifting) it is another sound. The recording's firing goes irregular there (a cycle hardly repeats the last: of what repeats, 33-76 % of the sound on the throttle, as little as 4-19 % is left on three of the units), and it gains 5-12 dB under 400 Hz: the 그르르릉 of a downshift. So the off loops are those stretches as they are, only laid out by crank angle: nothing evened out but the biggest bangs. 감속 그르릉 is how much.
+// 11-06: by default the game plays engine-syn*.bin, made by code from measurements only (order levels, the place and size of the six firing pulses, the spectrum and crank-angle shape of the rest; the rest's phases are random, so no recording's waveform is in them), the same layout as the other files. Measured off a 30 s clip of the five units above 10 000 rpm, the old files below that and off the throttle. 녹음 소리 in the panel plays the old recording until the player has decided.
 // Chain: loops -> EQ -> low-pass (closes off the throttle) -> ceiling -> out. No compressor: nothing touches the level below the ceiling (11-05: 칼칼하고 미세하게 깨진다, the recording itself stays under it).
 // 11-05 윤택님 「고속에서 시소 철 삐걱, 바람, 김새는 소리」: at a steady high rev the sound was the deliberate pitch wobble (0.7 s and 1.7 s, heard as a see-saw once the revs stop moving, gone), rest pieces that changed every 0.1-0.3 s (now 0.3-0.6 s), and above 2 kHz almost nothing but the rest, which is hiss (고역 잡음 줄이기 lowers the rest only, from 2.5 kHz; the +2 dB at the top is gone).
 // 11-05: the revs of the sound stop where each recording's own revs stop (TOP): the game's 10 600-12 500 sat above nearly all of the recording, thin (the 250-500 Hz band 11 dB down) and high. Tuning panel: T key, or 그래픽과 기타 > 소리 > 소리 튜닝.
 const EngineSound=(()=>{
   // [rpm, cycles] of each loop, in file order: on the throttle, then off it
   const LOOPS=[{"on":[[5000,40],[6000,96],[7500,96],[9000,96],[10500,96],[12000,40]],"off":[[8100,117],[10100,128]]},{"on":[[5000,17],[6000,30],[7500,59],[9000,47],[10500,47],[12000,47]],"off":[[6500,82],[8800,48]]},{"on":[[5000,32],[6000,96],[7500,96],[9000,39],[10500,39],[12000,39]],"off":[[7000,55],[9000,97]]},{"on":[[5000,40],[6000,59],[7500,96],[9000,91],[10500,31],[12000,31]],"off":[[7000,29],[10500,73]]},{"on":[[5000,40],[6000,96],[7500,96],[9000,96],[10500,33],[12000,33]],"off":[[7000,66],[9000,73]]}];
+  const SYN=[{"on":[[5000,96],[6000,96],[7500,96],[9000,96],[10500,96],[12000,96]],"off":[[8100,96],[10100,96]]},{"on":[[5000,96],[6000,96],[7500,96],[9000,96],[10500,96],[12000,96]],"off":[[6500,96],[8800,96]]},{"on":[[5000,96],[6000,96],[7500,96],[9000,96],[10500,96],[12000,96]],"off":[[7000,96],[9000,96]]},{"on":[[5000,96],[6000,96],[7500,96],[9000,96],[10500,96],[12000,96]],"off":[[7000,96],[10500,96]]},{"on":[[5000,96],[6000,96],[7500,96],[9000,96],[10500,96],[12000,96]],"off":[[7000,96],[9000,96]]}],SYNTOP=[11800,11300,11400,11600,11700],SYNKEEP=[0,0.05,0.35,0.1,0.5];   // the new material: its loops, where each unit's revs end in the clip (95th percentile), and how much of the on loops stays under the off loops
   // TEMP: 이전 소리(113e101) A/B. Goes once the player has decided, with engine-old-pu*.bin, tidy(), deal's lin, the etO button and the wind line in index.html
   const OLD=[{"on":[[5000,64],[6000,64],[7500,64],[9000,64],[10500,64],[12000,16]]},{"on":[[5000,32],[6000,32],[7500,32],[9000,32],[10500,32],[12000,32]]},{"on":[[5000,32],[6000,32],[7500,32],[9000,64],[10500,32],[12000,16]]},{"on":[[5000,16],[6000,16],[7500,16],[9000,64],[10500,64],[12000,64]]},{"on":[[5000,16],[6000,16],[7500,16],[9000,64],[10500,32],[12000,32]]}];
-  const CY=512,LONG=384,LS='lightsout3d-engsnd5',DEF={master:1,clean:0.25,hiss:-6,growl:1,brk:1,aero:0.35,vox:0.5,tyre:1,lowmid:0,high:0,gridLo:11600,gridHi:12000,old:false};
+  const CY=512,LONG=384,LS='lightsout3d-engsnd6',DEF={rec:false,master:1,clean:0.25,hiss:-3,growl:1,brk:1,aero:0.35,vox:0.5,tyre:1,lowmid:0,high:0,gridLo:11600,gridHi:12000,old:false};
   const pct=v=>Math.round(v*100)+'%',db=v=>(v>0?'+':'')+v+' dB',num=v=>Math.round(v).toLocaleString('en-US');
   // key(s), name, min, max, step, how it reads
   const SLIDERS=[['master','마스터 볼륨',0,1.5,0.05,pct],['clean','울림 줄이기',0,1,0.05,pct],['hiss','고역 잡음 줄이기',-12,0,1,db],['growl','저단 그르릉',0,1.5,0.05,pct],['brk','감속 그르릉',0,1.5,0.05,pct],['aero','직선 모드 날개 소리',0,1,0.05,pct],['vox','다른 차 소리',0,1.5,0.05,pct],['tyre','타이어 끼익',0,1,0.05,pct],['lowmid','250~700Hz',-6,6,0.5,db],['high','1~2.5kHz',-6,6,0.5,db],[['gridLo','gridHi'],'출발 대기 RPM',6000,12000,100,v=>num(v)+' rpm']];
@@ -24,13 +26,13 @@ const EngineSound=(()=>{
   const OUTK=1.9,LP_OPEN=12000,OFFK=1,SWING=0.3,KEEP=[0,0.35,0.35,0.2,0.55];   // OUTK: the level at 100 %. OFFK: makes the closed-throttle volume come out as asked once the low-pass has taken its part. SWING: how far the low loops' level swings at 저단 그르릉 100 %. KEEP: how much of the on loops stays under the off loops, by power unit: dealt in pieces the off loops' firing note breaks up, and it is what carries the revs through a downshift (set so that the note is as strong as on the recording)
   const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),lerp=(a,b,f)=>a+(b-a)*f;
   // the game's revs run to 12 700 and its gears shift up at up to 12 500. Only the sound is scaled: 8000 and below as they are, then a straight line so that 12 500 lands on TOP, where that power unit's recording really ends (its revs on the throttle at the 95th percentile, measured)
-  const TOP=[10900,12000,11800,11300,10500],mapRpm=(r,pu)=>{r=Math.max(4000,Math.min(12700,r));const T=TOP[pu]||12000;return r<=8000?r:8000+(r-8000)*(T-8000)/4500;};
+  const TOP=[10900,12000,11800,11300,10500],mapRpm=(r,pu)=>{r=Math.max(4000,Math.min(12700,r));const T=(P.rec||P.old?TOP:SYNTOP)[pu]||12000;return r<=8000?r:8000+(r-8000)*(T-8000)/4500;};
   const levelAt=r=>Math.min(1,0.55+0.45*r/7500)*(0.72+0.28*clamp((r-7000)/4000,0,1));   // the low gears a little quieter, idle quieter still
   // the low gears: the note comes down towards where the recording really has its alternating pulses (at most 12 %, nothing at the top of a gear, nothing at idle, where a slowed loop sounded like a cave), and from 7500 to 8900 the 7500 loop plays on; then a quick rise to the top loop. LOWG: how much of it in each gear
   const lowPitch=(r,T)=>r*(1-0.12*clamp((r-6500)/2000,0,1)*clamp((T-r)/2000,0,1)),lowTimbre=p=>p<=7500?p:p<=8900?7500:Math.min(12000,7500+(p-8900)*4500/3100),LOWG={N:1,R:1,1:1,2:0.9,3:0.7,4:0.3};
 
   const P=(()=>{const o=Object.assign({},DEF);let s=null;try{s=JSON.parse(localStorage.getItem(LS));}catch(e){}
-    if(s&&typeof s==='object'){if(s.old===true)o.old=true;for(const q of SLIDERS)for(const k of [].concat(q[0]))if(Number.isFinite(s[k]))o[k]=clamp(s[k],q[2],q[3]);}
+    if(s&&typeof s==='object'){if(s.old===true)o.old=true;if(s.rec===true)o.rec=true;for(const q of SLIDERS)for(const k of [].concat(q[0]))if(Number.isFinite(s[k]))o[k]=clamp(s[k],q[2],q[3]);}
     if(o.gridLo>o.gridHi)o.gridLo=o.gridHi;return o;})();
   const save=()=>{try{localStorage.setItem(LS,JSON.stringify(P));}catch(e){}};
   const live=new Set();
@@ -41,7 +43,7 @@ const EngineSound=(()=>{
 
   // ---- the loops ----
   const FILES={};
-  function puLoad(pu){const old=P.old,f=(old?'engine-old-pu':'engine-pu')+pu;return FILES[f]||(FILES[f]=(function get(){return fetch(f+'.bin').then(r=>{if(!r.ok)throw 0;return r.arrayBuffer();}).then(b=>{const a=new Int16Array(b);a.old=old;return a;}).catch(()=>new Promise(w=>setTimeout(w,3000)).then(get));})());}   // the file is in the offline cache; if the net is down it keeps trying, the engine stays quiet until then
+  function puLoad(pu){const old=P.old,rec=P.rec,f=(old?'engine-old-pu':rec?'engine-pu':'engine-syn')+pu;return FILES[f]||(FILES[f]=(function get(){return fetch(f+'.bin').then(r=>{if(!r.ok)throw 0;return r.arrayBuffer();}).then(b=>{const a=new Int16Array(b);a.old=old;a.rec=rec;return a;}).catch(()=>new Promise(w=>setTimeout(w,3000)).then(get));})());}   // the file is in the offline cache; if the net is down it keeps trying, the engine stays quiet until then
   // the rest: stretches of 24-48 cycles in random order, over two cycles and at equal power (they are not in phase)
   function deal(x,nc,rnd,lin){const n=x.length,X=CY*2,L=LONG*CY,tmp=new Float32Array(L+X),q=Math.PI/2,A=f=>lin?1-f:Math.cos(f*q),B=f=>lin?f:Math.sin(f*q);let pos=0,last=-1;
     while(pos<L){let c=(rnd()*nc)|0;if(c===last)c=(c+1)%nc;last=c;const seg=Math.min(nc,24+((rnd()*25)|0))*CY,st=c*CY;
@@ -57,12 +59,12 @@ const EngineSound=(()=>{
   // the rest only, from 2.5 kHz up: its hiss goes, the firing notes in the average cycle stay. rpm: this loop's own, a loop is laid out by crank angle
   const hiss=(y,rpm)=>{if(P.hiss>=0)return y;const a=Math.exp(-2*Math.PI*2500/(rpm/120*CY)),g=1-Math.pow(10,P.hiss/20),n=y.length,o=new Float32Array(n);let l=0;for(let i=Math.max(0,n-4096);i<n;i++)l=a*l+(1-a)*y[i];for(let i=0;i<n;i++){l=a*l+(1-a)*y[i];o[i]=y[i]-g*(y[i]-l);}return o;};
   let BANK=null;   // the one set kept in memory: the power unit in use
-  function bank(ctx,pu,D){const key=(D.old?'old':'')+pu+'|'+P.clean+'|'+P.hiss+'|'+P.growl+'|'+ctx.sampleRate;if(BANK&&BANK.key===key)return BANK;let sd=4242+pu,o=0;const rnd=()=>{sd=(sd*16807)%2147483647;return sd/2147483647;};
+  function bank(ctx,pu,D){const key=(D.old?'old':D.rec?'rec':'syn')+pu+'|'+P.clean+'|'+P.hiss+'|'+P.growl+'|'+ctx.sampleRate;if(BANK&&BANK.key===key)return BANK;let sd=4242+pu,o=0;const rnd=()=>{sd=(sd*16807)%2147483647;return sd/2147483647;};
     if(D.old)return BANK={key,on:OLD[pu].on.map(q=>{const nc=q[1],n=nc*CY,x=new Float32Array(n);for(let i=0;i<n;i++)x[i]=D[o+i]/32768;o+=n;const y=deal(tidy(x,nc,q[0]),nc,rnd,true),buf=ctx.createBuffer(1,y.length,ctx.sampleRate);buf.getChannelData(0).set(y);return {rpm:q[0],buf};})};
-    const gR=Math.pow(10,-12*P.clean/20),on=LOOPS[pu].on.map(q=>{const nc=q[1],n=nc*CY,x=new Float32Array(n);for(let i=0;i<n;i++)x[i]=D[o+CY+i]/32768;const y=hiss(deal(x,nc,rnd),q[0]),buf=ctx.createBuffer(1,y.length,ctx.sampleRate),d=buf.getChannelData(0);
+    const LP=D.rec?LOOPS:SYN,fM=D.rec?OFFM[pu]:1,fG=D.rec?OFFG[pu]:1,gR=Math.pow(10,-12*P.clean/20),on=LP[pu].on.map(q=>{const nc=q[1],n=nc*CY,x=new Float32Array(n);for(let i=0;i<n;i++)x[i]=D[o+CY+i]/32768;const y=hiss(deal(x,nc,rnd),q[0]),buf=ctx.createBuffer(1,y.length,ctx.sampleRate),d=buf.getChannelData(0);
       const lo=q[0]<=7500,s=o+CY+n,m=lo?SWING*P.growl/32768:0,W=new Float32Array(LONG+1);for(let i=0;i<LONG;i++)W[i]=0.8+0.4*rnd();W[LONG]=W[0];   // the low loops' file ends with the shape of that swing: the level, cylinder by cylinder, once per cycle. W: its size wanders from cycle to cycle like real combustion (fixed, it is a machine's tremolo)
       for(let i=0;i<y.length;i++){const j=i%CY,c=(i-j)/CY;d[i]=(y[i]*gR+D[o+j]/32768)*(lo?1+m*(W[c]+(W[c+1]-W[c])*j/CY)*D[s+j]:1);}o=s+(lo?CY:0);return {rpm:q[0],buf};});
-    const F=LOOPS[pu].off||[],off=(o+F.reduce((a,q)=>a+CY+q[1]*CY,0)<=D.length?F:[]).map(q=>{const nc=q[1],n=nc*CY,x=new Float32Array(n);for(let i=0;i<n;i++)x[i]=D[o+CY+i]/32768;const y=hiss(deal(x,nc,rnd),q[0]),buf=ctx.createBuffer(1,y.length,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<y.length;i++)d[i]=(y[i]+OFFM[pu]*D[o+i%CY]/32768)*OFFG[pu];o+=CY+n;return {rpm:q[0],buf};});
+    const F=LP[pu].off||[],off=(o+F.reduce((a,q)=>a+CY+q[1]*CY,0)<=D.length?F:[]).map(q=>{const nc=q[1],n=nc*CY,x=new Float32Array(n);for(let i=0;i<n;i++)x[i]=D[o+CY+i]/32768;const y=hiss(deal(x,nc,rnd),q[0]),buf=ctx.createBuffer(1,y.length,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<y.length;i++)d[i]=(y[i]+fM*D[o+i%CY]/32768)*fG;o+=CY+n;return {rpm:q[0],buf};});
     return BANK={key,on,off};}
 
   // ---- the player's engine ----
@@ -93,7 +95,7 @@ const EngineSound=(()=>{
 
   // o: {t, dt, rpm (the game's), thr 0..1, gear, inCar, dop (doppler), grid (on the start lights), pitLim}
   function update(v,o){const S=v.S,M=MODE,t=o.t,dt=o.dt;
-    const T0=TOP[v.pu]||12000;let r=mapRpm(o.rpm,v.pu),th=o.thr;
+    const T0=(P.rec||P.old?TOP:SYNTOP)[v.pu]||12000;let r=mapRpm(o.rpm,v.pu),th=o.thr;
     if(o.grid){   // the revs held high on the grid, wandering; they do not wait for the pedal
       if(!S.onGrid){S.onGrid=true;S.gT=0;S.gR=lerp(P.gridLo,P.gridHi,Math.random());}
       S.gT-=dt;if(S.gT<=0){S.gT=0.3+Math.random()*0.5;S.gTg=lerp(P.gridLo,P.gridHi,Math.random());}
@@ -106,7 +108,7 @@ const EngineSound=(()=>{
     const play=(l,p,G)=>{if(!l.length)return;let i=0;while(i<l.length-2&&l[i+1].rpm<=p)i++;const f=l.length<2?0:clamp(Math.log(p/l[i].rpm)/Math.log(l[i+1].rpm/l[i].rpm),0,1);
       for(let j=0;j<l.length;j++){l[j].s.playbackRate.setTargetAtTime(R*l[j].k,t,M.tc);l[j].g.gain.setTargetAtTime(G*(j===i?Math.pow(1-f,0.75):j===i+1?Math.pow(f,0.75):0),t,0.03);}};   // between equal-power and straight: the orders add in phase, the air does not
     // off the throttle the off loops take over, in the two tenths the pedal takes to come up. Not on the grid, in neutral or at idle, where a slowed loop sounds like a cave. Full throttle stays full throttle while the speed falls
-    const b=Math.min(1,P.brk)*clamp((0.45-T)/0.4,0,1)*clamp((r-4300)/500,0,1)*(o.grid||o.gear==='N'?0:1);play(l,Rt,v.off.length?1-b*(1-KEEP[v.pu]):1);play(v.off,R,b*Math.sqrt(1-KEEP[v.pu]*KEEP[v.pu])*Math.max(1,P.brk));
+    const b=Math.min(1,P.brk)*clamp((0.45-T)/0.4,0,1)*clamp((r-4300)/500,0,1)*(o.grid||o.gear==='N'?0:1);const K=(v.D&&v.D.rec?KEEP:SYNKEEP)[v.pu];play(l,Rt,v.off.length?1-b*(1-K):1);play(v.off,R,b*Math.sqrt(1-K*K)*Math.max(1,P.brk));
     // and a little quieter and darker than on the throttle
     v.vol.gain.setTargetAtTime(lv*lerp(M.offVol*OFFK,1,Math.pow(T,0.7)),t,0.012);v.lp.frequency.setTargetAtTime(M.offLP*Math.pow(LP_OPEN/M.offLP,T),t,0.04);
     if(S.inCar!==o.inCar){S.inCar=o.inCar;v.shLow.gain.setTargetAtTime(o.inCar?2:0,t,0.1);v.shTop.gain.setTargetAtTime(o.inCar?0:2,t,0.1);}   // the cockpit a little more low end, outside a little more top
@@ -179,10 +181,10 @@ const EngineSound=(()=>{
   // 울림 줄이기 changes the loops themselves: they are made again when the finger lifts, not while it moves
   const rebuild=()=>{for(const v of live)if(v.D&&!v.dead)puLoad(v.pu).then(D=>{if(v.dead)return;v.D=D;attach(v,bank(v.ctx,v.pu,D));});};
   function build(){const st=document.createElement('style');st.textContent=CSS;document.head.appendChild(st);box=document.createElement('div');box.id='engTune';box.hidden=true;
-    box.innerHTML=`<div class="etC"><div class="etH"><b>엔진 소리 튜닝</b><button type="button" class="etX">닫기</button></div><div class="etB"></div><div class="etA"><button type="button" class="etGo">소리 듣기</button><button type="button" class="etO"></button><button type="button" class="etD">기본값으로</button></div></div>`;document.body.appendChild(box);
+    box.innerHTML=`<div class="etC"><div class="etH"><b>엔진 소리 튜닝</b><button type="button" class="etX">닫기</button></div><div class="etB"></div><div class="etA"><button type="button" class="etGo">소리 듣기</button><button type="button" class="etO"></button><button type="button" class="etO etRc"></button><button type="button" class="etD">기본값으로</button></div></div>`;document.body.appendChild(box);
     const body=box.querySelector('.etB'),apply=()=>{for(const v of live)applyP(v);},draws=SLIDERS.map(q=>slider(body,q,apply,rebuild));
-    const etO=box.querySelector('.etO'),drawO=()=>{etO.textContent='이전 소리(113e101) '+(P.old?'켜짐':'꺼짐');etO.setAttribute('aria-pressed',P.old?'true':'false');};etO.addEventListener('click',()=>{P.old=!P.old;save();drawO();rebuild();});
-    const redraw=()=>{draws.forEach(d=>d());drawO();};box._redraw=redraw;
+    const etO=box.querySelector('.etO'),drawO=()=>{etO.textContent='이전 소리(113e101) '+(P.old?'켜짐':'꺼짐');etO.setAttribute('aria-pressed',P.old?'true':'false');};etO.addEventListener('click',()=>{P.old=!P.old;if(P.old)P.rec=false;save();drawO();if(box._redraw)box._redraw();rebuild();});
+    const etRc=box.querySelector('.etRc'),drawRc=()=>{etRc.textContent='녹음 소리 '+(P.rec?'켜짐':'꺼짐');etRc.setAttribute('aria-pressed',P.rec?'true':'false');};etRc.addEventListener('click',()=>{P.rec=!P.rec;if(P.rec)P.old=false;save();drawRc();drawO();rebuild();});const redraw=()=>{draws.forEach(d=>d());drawO();drawRc();};box._redraw=redraw;
     box.querySelector('.etX').addEventListener('click',()=>{box.hidden=true;});
     box.querySelector('.etGo').addEventListener('click',()=>{if(hooks.preview)hooks.preview();});
     box.querySelector('.etD').addEventListener('click',()=>{Object.assign(P,DEF);save();apply();rebuild();redraw();});

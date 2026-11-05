@@ -9,7 +9,8 @@
 - `font-*.woff2`: Saira / Saira Condensed 글꼴(index.html 안의 @font-face가 불러옴).
 - `car-f1.glb`: 차량 차체 3D 모델(CC BY 4.0, CREDITS.txt). 바퀴·날개·헬멧은 index.html의 코드로 만듭니다. 못 불러오면 코드로 만든 예전 차체가 나옵니다.
 - `engineSound.js`: 엔진 소리 재생과 튜닝 패널. T 키, 또는 그래픽과 기타 > 소리 > 소리 튜닝.
-- `engine-pu*.bin`: 내 차 엔진 소리 루프(파워유닛 5종, 16비트). 외부 녹음에서 잘라 낸 것으로 권리 미확인. 앱스토어 출시 전에 교체해야 합니다.
+- `engine-syn*.bin`: 기본으로 재생하는 엔진 소리 재료(파워유닛 5종). 측정값으로 코드가 새로 만든 것이고 녹음 파형은 들어 있지 않습니다. 만드는 도구는 저장소 밖 `_백업\lights-out_20261106_합성`.
+- `engine-pu*.bin`: 튜닝 패널 「녹음 소리」 비교용 옛 재료. 외부 녹음에서 잘라 낸 것으로 권리 미확인. 비교가 끝나면 지웁니다.
 - `engine-old-pu*.bin`: 튜닝 패널 「이전 소리(113e101)」 비교용 임시 재료. 비교가 끝나면 engineSound.js의 TEMP 표시 부분과 함께 지웁니다.
 - `tex-*.jpg|png`: 텍스처. 코드에서는 `TEXDIR='tex-'` + 이름으로 불러옵니다.
 - `icon-*.png`, `manifest.webmanifest`: 홈 화면·바탕화면 설치용.
