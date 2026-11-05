@@ -13,14 +13,12 @@ const EngineSound=(()=>{
   const LOOPS=[{"on":[[5000,40],[6000,96],[7500,96],[9000,96],[10500,96],[12000,40]],"off":[[8100,117],[10100,128]]},{"on":[[5000,17],[6000,30],[7500,59],[9000,47],[10500,47],[12000,47]],"off":[[6500,82],[8800,48]]},{"on":[[5000,32],[6000,96],[7500,96],[9000,39],[10500,39],[12000,39]],"off":[[7000,55],[9000,97]]},{"on":[[5000,40],[6000,59],[7500,96],[9000,91],[10500,31],[12000,31]],"off":[[7000,29],[10500,73]]},{"on":[[5000,40],[6000,96],[7500,96],[9000,96],[10500,33],[12000,33]],"off":[[7000,66],[9000,73]]}];
   // TEMP: 이전 소리(113e101) A/B. Goes once the player has decided, with engine-old-pu*.bin, tidy(), deal's lin, the etO button and the wind line in index.html
   const OLD=[{"on":[[5000,64],[6000,64],[7500,64],[9000,64],[10500,64],[12000,16]]},{"on":[[5000,32],[6000,32],[7500,32],[9000,32],[10500,32],[12000,32]]},{"on":[[5000,32],[6000,32],[7500,32],[9000,64],[10500,32],[12000,16]]},{"on":[[5000,16],[6000,16],[7500,16],[9000,64],[10500,64],[12000,64]]},{"on":[[5000,16],[6000,16],[7500,16],[9000,64],[10500,32],[12000,32]]}];
-  const CY=512,LONG=384,LS='lightsout3d-engsnd5',DEF={mode:'2025',master:1,clean:0.25,hiss:-6,growl:1,brk:1,aero:0.35,vox:0.5,tyre:1,lowmid:0,high:0,gridLo:11600,gridHi:12000,old:false};
+  const CY=512,LONG=384,LS='lightsout3d-engsnd5',DEF={master:1,clean:0.25,hiss:-6,growl:1,brk:1,aero:0.35,vox:0.5,tyre:1,lowmid:0,high:0,gridLo:11600,gridHi:12000,old:false};
   const pct=v=>Math.round(v*100)+'%',db=v=>(v>0?'+':'')+v+' dB',num=v=>Math.round(v).toLocaleString('en-US');
   // key(s), name, min, max, step, how it reads
   const SLIDERS=[['master','마스터 볼륨',0,1.5,0.05,pct],['clean','울림 줄이기',0,1,0.05,pct],['hiss','고역 잡음 줄이기',-12,0,1,db],['growl','저단 그르릉',0,1.5,0.05,pct],['brk','감속 그르릉',0,1.5,0.05,pct],['aero','직선 모드 날개 소리',0,1,0.05,pct],['vox','다른 차 소리',0,1.5,0.05,pct],['tyre','타이어 끼익',0,1,0.05,pct],['lowmid','250~700Hz',-6,6,0.5,db],['high','1~2.5kHz',-6,6,0.5,db],[['gridLo','gridHi'],'출발 대기 RPM',6000,12000,100,v=>num(v)+' rpm']];
-  // 2025: even and smooth. 2026: a big change off the throttle, revs held on the grid, a sharper downshift.
-  // offLP, offVol: low-pass and volume with the throttle closed. blip: pitch (cents), the level it reaches (2026 1.5 x 2025 as heard, whatever the volume before it), how far the low-pass opens, then its time constants
-  const MODES={'2025':{offLP:5000,offVol:0.7,grid:false,tc:0.03,blip:{c:68,abs:0.77,lp:6000,up:0.015,hold:0.045,dn:0.09}},
-    '2026':{offLP:2500,offVol:0.4,grid:true,tc:0.02,blip:{c:102,abs:1.25,lp:6000,up:0.006,hold:0.018,dn:0.035}}};
+  // offLP, offVol: low-pass and volume with the throttle closed. blip: pitch (cents), the level it reaches (whatever the volume before it), how far the low-pass opens, then its time constants
+  const MODE={offLP:2500,offVol:0.4,tc:0.02,blip:{c:102,abs:1.25,lp:6000,up:0.006,hold:0.018,dn:0.035}};
   // 11-06 윤택님 「그르릉이 악기 소리 같다」: measured, the off loops repeated more than the recording (a cycle like the last: Audi 0.38 against 0.18, Honda 0.58 against 0.41). OFFM: how much of the average cycle they keep, set per power unit so that this matches the recording. OFFG: brings their level back
   const OFFM=[0.85,0.5,0.35,0.4,0.4],OFFG=[1.13,1.35,1.15,1.23,1.26];
   const OUTK=1.9,LP_OPEN=12000,OFFK=1,SWING=0.3,KEEP=[0,0.35,0.35,0.2,0.55];   // OUTK: the level at 100 %. OFFK: makes the closed-throttle volume come out as asked once the low-pass has taken its part. SWING: how far the low loops' level swings at 저단 그르릉 100 %. KEEP: how much of the on loops stays under the off loops, by power unit: dealt in pieces the off loops' firing note breaks up, and it is what carries the revs through a downshift (set so that the note is as strong as on the recording)
@@ -32,7 +30,7 @@ const EngineSound=(()=>{
   const lowPitch=(r,T)=>r*(1-0.12*clamp((r-6500)/2000,0,1)*clamp((T-r)/2000,0,1)),lowTimbre=p=>p<=7500?p:p<=8900?7500:Math.min(12000,7500+(p-8900)*4500/3100),LOWG={N:1,R:1,1:1,2:0.9,3:0.7,4:0.3};
 
   const P=(()=>{const o=Object.assign({},DEF);let s=null;try{s=JSON.parse(localStorage.getItem(LS));}catch(e){}
-    if(s&&typeof s==='object'){if(MODES[s.mode])o.mode=s.mode;if(s.old===true)o.old=true;for(const q of SLIDERS)for(const k of [].concat(q[0]))if(Number.isFinite(s[k]))o[k]=clamp(s[k],q[2],q[3]);}
+    if(s&&typeof s==='object'){if(s.old===true)o.old=true;for(const q of SLIDERS)for(const k of [].concat(q[0]))if(Number.isFinite(s[k]))o[k]=clamp(s[k],q[2],q[3]);}
     if(o.gridLo>o.gridHi)o.gridLo=o.gridHi;return o;})();
   const save=()=>{try{localStorage.setItem(LS,JSON.stringify(P));}catch(e){}};
   const live=new Set();
@@ -94,9 +92,9 @@ const EngineSound=(()=>{
     go(v.lp.detune,Math.max(0,1200*Math.log2(B.lp/(M.offLP*Math.pow(LP_OPEN/M.offLP,thr)))),0);}
 
   // o: {t, dt, rpm (the game's), thr 0..1, gear, inCar, dop (doppler), grid (on the start lights), pitLim}
-  function update(v,o){const S=v.S,M=MODES[P.mode],t=o.t,dt=o.dt;
+  function update(v,o){const S=v.S,M=MODE,t=o.t,dt=o.dt;
     const T0=TOP[v.pu]||12000;let r=mapRpm(o.rpm,v.pu),th=o.thr;
-    if(M.grid&&o.grid){   // 2026: the revs held high on the grid, wandering; they do not wait for the pedal
+    if(o.grid){   // the revs held high on the grid, wandering; they do not wait for the pedal
       if(!S.onGrid){S.onGrid=true;S.gT=0;S.gR=lerp(P.gridLo,P.gridHi,Math.random());}
       S.gT-=dt;if(S.gT<=0){S.gT=0.3+Math.random()*0.5;S.gTg=lerp(P.gridLo,P.gridHi,Math.random());}
       S.gR+=(S.gTg-S.gR)*Math.min(1,dt*9);r=mapRpm(S.gR,v.pu);th=Math.max(th,0.65);}
@@ -141,12 +139,9 @@ const EngineSound=(()=>{
 #engTune[hidden]{display:none}
 #engTune .etC{display:flex;flex-direction:column;width:min(780px,100%);max-height:100%;padding:12px 18px;border-radius:14px;background:#1c1d22;box-shadow:0 10px 40px rgba(0,0,0,.5)}
 #engTune .etH{display:flex;align-items:center;gap:12px;margin-bottom:4px}
-#engTune .etH b{flex:none;font-size:16px;font-weight:700}
+#engTune .etH b{flex:1;font-size:16px;font-weight:700}
 #engTune button{font:inherit;min-height:38px;padding:0 14px;border:0;border-radius:9px;background:#2d2f36;color:#f2f3f5;font-weight:600}
 #engTune button:active{background:#3a3d46}
-#engTune .etSeg{flex:1;display:flex;gap:4px;padding:3px;border-radius:11px;background:#26282e}
-#engTune .etSeg button{flex:1;min-height:34px;padding:0 8px;background:none;color:#b3b7c0;font-weight:500;white-space:nowrap}
-#engTune .etSeg button[aria-pressed="true"]{background:#474b56;color:#fff;font-weight:700}
 #engTune .etB{display:grid;grid-template-columns:1fr 1fr;gap:0 26px;min-height:0;overflow-y:auto}
 #engTune .etR{padding:5px 0 0}
 #engTune .etL{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:#b3b7c0}
@@ -161,7 +156,7 @@ const EngineSound=(()=>{
 #engTune .etA .etGo{background:#f5c518;color:#15161a}
 #engTune .etA .etGo:active{background:#dcb015}
 #engTune .etA .etO[aria-pressed="true"]{background:#474b56;color:#fff;font-weight:700}
-@media (max-width:540px){#engTune .etB{grid-template-columns:1fr}#engTune .etH{flex-wrap:wrap}#engTune .etSeg{order:3;flex-basis:100%}#engTune .etX{margin-left:auto}}`;
+@media (max-width:540px){#engTune .etB{grid-template-columns:1fr}#engTune .etH{flex-wrap:wrap}}`;
   function slider(host,q,onMove,onEnd){const keys=[].concat(q[0]),[,,lo,hi,step,fmt]=q,el=document.createElement('div');el.className='etR';
     el.innerHTML=`<div class="etL">${q[1]}<span></span></div><div class="etS"><div class="etT"></div><div class="etF"></div>${keys.map(()=>'<div class="etK"></div>').join('')}</div>`;host.appendChild(el);
     const S=el.querySelector('.etS'),Fl=el.querySelector('.etF'),Ks=[...el.querySelectorAll('.etK')],R=el.querySelector('.etL span');
@@ -184,11 +179,10 @@ const EngineSound=(()=>{
   // 울림 줄이기 changes the loops themselves: they are made again when the finger lifts, not while it moves
   const rebuild=()=>{for(const v of live)if(v.D&&!v.dead)puLoad(v.pu).then(D=>{if(v.dead)return;v.D=D;attach(v,bank(v.ctx,v.pu,D));});};
   function build(){const st=document.createElement('style');st.textContent=CSS;document.head.appendChild(st);box=document.createElement('div');box.id='engTune';box.hidden=true;
-    box.innerHTML=`<div class="etC"><div class="etH"><b>엔진 소리 튜닝</b><div class="etSeg"><button type="button" data-m="2025">2025 스타일</button><button type="button" data-m="2026">2026 실제 스타일</button></div><button type="button" class="etX">닫기</button></div><div class="etB"></div><div class="etA"><button type="button" class="etGo">소리 듣기</button><button type="button" class="etO"></button><button type="button" class="etD">기본값으로</button></div></div>`;document.body.appendChild(box);
-    const body=box.querySelector('.etB'),apply=()=>{for(const v of live)applyP(v);},draws=SLIDERS.map(q=>slider(body,q,apply,rebuild)),seg=[...box.querySelectorAll('.etSeg button')],drawSeg=()=>seg.forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===P.mode?'true':'false'));
+    box.innerHTML=`<div class="etC"><div class="etH"><b>엔진 소리 튜닝</b><button type="button" class="etX">닫기</button></div><div class="etB"></div><div class="etA"><button type="button" class="etGo">소리 듣기</button><button type="button" class="etO"></button><button type="button" class="etD">기본값으로</button></div></div>`;document.body.appendChild(box);
+    const body=box.querySelector('.etB'),apply=()=>{for(const v of live)applyP(v);},draws=SLIDERS.map(q=>slider(body,q,apply,rebuild));
     const etO=box.querySelector('.etO'),drawO=()=>{etO.textContent='이전 소리(113e101) '+(P.old?'켜짐':'꺼짐');etO.setAttribute('aria-pressed',P.old?'true':'false');};etO.addEventListener('click',()=>{P.old=!P.old;save();drawO();rebuild();});
-    const redraw=()=>{draws.forEach(d=>d());drawSeg();drawO();};box._redraw=redraw;
-    seg.forEach(b=>b.addEventListener('click',()=>{P.mode=b.dataset.m;save();drawSeg();}));
+    const redraw=()=>{draws.forEach(d=>d());drawO();};box._redraw=redraw;
     box.querySelector('.etX').addEventListener('click',()=>{box.hidden=true;});
     box.querySelector('.etGo').addEventListener('click',()=>{if(hooks.preview)hooks.preview();});
     box.querySelector('.etD').addEventListener('click',()=>{Object.assign(P,DEF);save();apply();rebuild();redraw();});
@@ -200,5 +194,5 @@ const EngineSound=(()=>{
     // phones hold an AudioContext until a touch starts it, and a call leaves it interrupted
     const wake=()=>{const c=h.ctx&&h.ctx();if(c&&c.state!=='running'&&c.state!=='closed'&&(!h.mayResume||h.mayResume()))c.resume();};
     for(const ty of['touchend','pointerdown','keydown'])addEventListener(ty,wake,{capture:true,passive:true});}
-  return {P,MODES,mapRpm,create,update,stop,reset,createLite,setLite,preview,setup,openPanel};
+  return {P,mapRpm,create,update,stop,reset,createLite,setLite,preview,setup,openPanel};
 })();
