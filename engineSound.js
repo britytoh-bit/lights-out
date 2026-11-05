@@ -12,15 +12,15 @@
 const EngineSound=(()=>{
   // [rpm, cycles] of each loop, in file order: on the throttle, then off it
   const LOOPS=[{"on":[[5000,40],[6000,96],[7500,96],[9000,96],[10500,96],[12000,40]],"off":[[8100,117],[10100,128]]},{"on":[[5000,17],[6000,30],[7500,59],[9000,47],[10500,47],[12000,47]],"off":[[6500,82],[8800,48]]},{"on":[[5000,32],[6000,96],[7500,96],[9000,39],[10500,39],[12000,39]],"off":[[7000,55],[9000,97]]},{"on":[[5000,40],[6000,59],[7500,96],[9000,91],[10500,31],[12000,31]],"off":[[7000,29],[10500,73]]},{"on":[[5000,40],[6000,96],[7500,96],[9000,96],[10500,33],[12000,33]],"off":[[7000,66],[9000,73]]}];
-  const SYN=[{"on":[[5000,96],[6000,96],[7500,96],[9000,96],[10500,96],[12000,96]],"off":[[8100,96],[10100,96]]},{"on":[[5000,96],[6000,96],[7500,96],[9000,96],[10500,96],[12000,96]],"off":[[6500,96],[8800,96]]},{"on":[[5000,96],[6000,96],[7500,96],[9000,96],[10500,96],[12000,96]],"off":[[7000,96],[9000,96]]},{"on":[[5000,96],[6000,96],[7500,96],[9000,96],[10500,96],[12000,96]],"off":[[7000,96],[10500,96]]},{"on":[[5000,96],[6000,96],[7500,96],[9000,96],[10500,96],[12000,96]],"off":[[7000,96],[9000,96]]}],SYNTOP=[11800,11300,11400,11600,11700],SYNKEEP=[0,0.05,0.35,0.1,0.5];   // the new material: its loops, where each unit's revs end in the clip (95th percentile), and how much of the on loops stays under the off loops
+  const SYN=[{"on":[[5000,96],[6000,96],[7500,96],[9000,96],[10500,96],[12000,96]],"off":[[7500,96],[10000,96]]},{"on":[[5000,96],[6000,96],[7500,96],[9000,96],[10500,96],[12000,96]],"off":[[7500,96],[10000,96]]},{"on":[[5000,96],[6000,96],[7500,96],[9000,96],[10500,96],[12000,96]],"off":[[7500,96],[10000,96]]},{"on":[[5000,96],[6000,96],[7500,96],[9000,96],[10500,96],[12000,96]],"off":[[7500,96],[10000,96]]},{"on":[[5000,96],[6000,96],[7500,96],[9000,96],[10500,96],[12000,96]],"off":[[7500,96],[10000,96]]}],SYNTOP=[12200,12400,12200,12500,12500],SYNKEEP=[0,0.05,0.35,0.1,0.5];   // the new material: its loops, where each unit's revs end in the clip (95th percentile), and how much of the on loops stays under the off loops
   // TEMP: 이전 소리(113e101) A/B. Goes once the player has decided, with engine-old-pu*.bin, tidy(), deal's lin, the etO button and the wind line in index.html
   const OLD=[{"on":[[5000,64],[6000,64],[7500,64],[9000,64],[10500,64],[12000,16]]},{"on":[[5000,32],[6000,32],[7500,32],[9000,32],[10500,32],[12000,32]]},{"on":[[5000,32],[6000,32],[7500,32],[9000,64],[10500,32],[12000,16]]},{"on":[[5000,16],[6000,16],[7500,16],[9000,64],[10500,64],[12000,64]]},{"on":[[5000,16],[6000,16],[7500,16],[9000,64],[10500,32],[12000,32]]}];
-  const CY=512,LONG=384,LS='lightsout3d-engsnd6',DEF={rec:false,master:1,clean:0.25,hiss:-3,growl:1,brk:1,aero:0.35,vox:0.5,tyre:1,lowmid:0,high:0,gridLo:11600,gridHi:12000,old:false};
+  const CY=512,LONG=384,LS='lightsout3d-engsnd7',DEF={rec:false,master:1,clean:0.25,hiss:-3,growl:0,brk:1,aero:0.35,vox:0.5,tyre:1,lowmid:0,high:0,gridLo:11600,gridHi:12000,old:false};
   const pct=v=>Math.round(v*100)+'%',db=v=>(v>0?'+':'')+v+' dB',num=v=>Math.round(v).toLocaleString('en-US');
   // key(s), name, min, max, step, how it reads
   const SLIDERS=[['master','마스터 볼륨',0,1.5,0.05,pct],['clean','울림 줄이기',0,1,0.05,pct],['hiss','고역 잡음 줄이기',-12,0,1,db],['growl','저단 그르릉',0,1.5,0.05,pct],['brk','감속 그르릉',0,1.5,0.05,pct],['aero','직선 모드 날개 소리',0,1,0.05,pct],['vox','다른 차 소리',0,1.5,0.05,pct],['tyre','타이어 끼익',0,1,0.05,pct],['lowmid','250~700Hz',-6,6,0.5,db],['high','1~2.5kHz',-6,6,0.5,db],[['gridLo','gridHi'],'출발 대기 RPM',6000,12000,100,v=>num(v)+' rpm']];
   // offLP, offVol: low-pass and volume with the throttle closed. blip: pitch (cents), the level it reaches (whatever the volume before it), how far the low-pass opens, then its time constants
-  const MODE={offLP:2500,offVol:0.4,tc:0.02,blip:{c:102,abs:1.25,lp:6000,up:0.006,hold:0.018,dn:0.035}};
+  const MODE={offLP:2500,offVol:0.4,tc:0.02,blip:{c:102,abs:0.8,lp:2600,up:0.006,hold:0.018,dn:0.035}};
   // 11-06 윤택님 「그르릉이 악기 소리 같다」: measured, the off loops repeated more than the recording (a cycle like the last: Audi 0.38 against 0.18, Honda 0.58 against 0.41). OFFM: how much of the average cycle they keep, set per power unit so that this matches the recording. OFFG: brings their level back
   const OFFM=[0.85,0.5,0.35,0.4,0.4],OFFG=[1.13,1.35,1.15,1.23,1.26];
   const OUTK=1.9,LP_OPEN=12000,OFFK=1,SWING=0.3,KEEP=[0,0.35,0.35,0.2,0.55];   // OUTK: the level at 100 %. OFFK: makes the closed-throttle volume come out as asked once the low-pass has taken its part. SWING: how far the low loops' level swings at 저단 그르릉 100 %. KEEP: how much of the on loops stays under the off loops, by power unit: dealt in pieces the off loops' firing note breaks up, and it is what carries the revs through a downshift (set so that the note is as strong as on the recording)
@@ -115,9 +115,15 @@ const EngineSound=(()=>{
     const d=o.thr>=0.99&&o.rpm>12650&&!o.grid?0.9:o.pitLim?0.3:0;v.limD.gain.setTargetAtTime(d/2,t,0.005);v.limG.gain.setTargetAtTime(1-d/2,t,0.005);}
 
   // ---- other cars: one loop of the same set, a low-pass and a level (distance, doppler and the choice of three cars are the game's) ----
-  function createLite(ctx,dest,pu){const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1500;lp.Q.value=-3;const out=ctx.createGain();out.gain.value=0;const v={lite:true,pu,lp,out,s:null,k:CY/120/ctx.sampleRate};lp.connect(out);
+  // 11-06 윤택님 「모든 차들 다 동일함」: every other car played the player's own power unit. Now each voice plays the unit of the car it follows (setLitePu, called when the voice changes car, while it is silent). One loop per unit, the file's 96 cycles as they are: the new material loops without a join, and it costs almost nothing to make
+  const LITE={};
+  function liteBuf(ctx,pu){const k=(P.old?'o':P.rec?'r':'s')+pu+'|'+P.clean+'|'+P.hiss+'|'+ctx.sampleRate;return LITE[k]||(LITE[k]=puLoad(pu).then(D=>{if(D.old||D.rec){const on=bank(ctx,pu,D).on;return (on.find(a=>a.rpm===10500)||on[on.length-1]).buf;}
+      let o=0,nc=0;for(const q of SYN[pu].on){nc=q[1];if(q[0]===10500)break;o+=CY+nc*CY+(q[0]<=7500?CY:0);}const n=nc*CY,x=new Float32Array(n),gR=Math.pow(10,-12*P.clean/20);for(let i=0;i<n;i++)x[i]=D[o+CY+i]/32768;const y=hiss(x,10500),buf=ctx.createBuffer(1,n,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<n;i++)d[i]=y[i]*gR+D[o+i%CY]/32768;return buf;}));}
+  function liteOn(v,buf){const c=v.ctx;if(v.s){try{v.s.stop();}catch(e){}try{v.s.disconnect();}catch(e){}}const s=c.createBufferSource();s.buffer=buf;s.loop=true;s.playbackRate.value=10000*v.k;s.connect(v.lp);s.start(c.currentTime,Math.random()*buf.duration);v.s=s;}
+  function createLite(ctx,dest,pu){const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1500;lp.Q.value=-3;const out=ctx.createGain();out.gain.value=0;const v={lite:true,ctx,pu,lp,out,s:null,k:CY/120/ctx.sampleRate};lp.connect(out);
     if(ctx.createStereoPanner){v.pan=ctx.createStereoPanner();out.connect(v.pan);v.pan.connect(dest);}else out.connect(dest);
-    v.ready=puLoad(pu).then(D=>{const on=bank(ctx,pu,D).on,q=on.find(a=>a.rpm===10500)||on[on.length-1],s=ctx.createBufferSource();s.buffer=q.buf;s.loop=true;s.playbackRate.value=10000*v.k;s.connect(lp);s.start(ctx.currentTime,Math.random()*q.buf.duration);v.s=s;});return v;}
+    v.ready=liteBuf(ctx,pu).then(b=>liteOn(v,b));if(!P.old&&!P.rec)for(let q=0;q<5;q++)setTimeout(()=>liteBuf(ctx,q),300+q*150);return v;}
+  function setLitePu(v,pu){if(P.old||P.rec||pu==null||pu===v.pu)return;v.pu=pu;liteBuf(v.ctx,pu).then(b=>{if(v.pu===pu)liteOn(v,b);});}
   function setLite(v,t,rpm,dop,level,cut,tc){if(v.s)v.s.playbackRate.setTargetAtTime(mapRpm(rpm,v.pu)*dop*v.k,t,tc||0.03);v.lp.frequency.setTargetAtTime(cut,t,0.03);v.out.gain.setTargetAtTime(level,t,0.008);}
 
   // ---- hear it without a race: the grid, a launch, three upshifts, a lift, three downshifts, idle, then a steady pull at high speed. Runs on a timer, so the sliders are heard as they move ----
@@ -196,5 +202,5 @@ const EngineSound=(()=>{
     // phones hold an AudioContext until a touch starts it, and a call leaves it interrupted
     const wake=()=>{const c=h.ctx&&h.ctx();if(c&&c.state!=='running'&&c.state!=='closed'&&(!h.mayResume||h.mayResume()))c.resume();};
     for(const ty of['touchend','pointerdown','keydown'])addEventListener(ty,wake,{capture:true,passive:true});}
-  return {P,mapRpm,create,update,stop,reset,createLite,setLite,preview,setup,openPanel};
+  return {P,mapRpm,create,update,stop,reset,createLite,setLite,preview,setup,openPanel,setLitePu};
 })();

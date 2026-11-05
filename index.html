@@ -5602,7 +5602,7 @@ function audioUpdate(dt){
   SND.vox.forEach((v,i)=>{const o=v.car?near[rankOf(v.car)]:null;
     if(!o){v.out.gain.setTargetAtTime(0,t,0.1);v.fade=0;return;}
     if(v.sw===2){v.sw=1;v.fade=0;v.out.gain.setTargetAtTime(0,t,0.006);return;}   // changing car: out first
-    const snap=v.sw===1;v.sw=0;v.fade=Math.min(1,(v.fade||0)+dt/0.15);
+    const snap=v.sw===1;v.sw=0;v.fade=Math.min(1,(v.fade||0)+dt/0.15);if(snap)EngineSound.setLitePu(v,TEAM_PU[o.c.team]);
     const c=o.c,d=Math.max(1.5,o.d),ux=-o.dx/d,uz=-o.dz/d,cvx=Math.cos(c.a)*c.spd,cvz=Math.sin(c.a)*c.spd;
     const vs=cvx*ux+cvz*uz,vl=-(pvx*ux+pvz*uz),dop=Math.max(0.6,Math.min(1.6,(343+vl)/(343-vs)));
     const kmh=Math.abs(c.spd)*3.6,[,rr]=gearRpm(kmh),rp=c.spd<1?(race.t<c.react?12400+Math.sin(SND.T*7.3+i*1.7)*420+Math.sin(SND.T*23+i*2.3)*180:3900):rr;
