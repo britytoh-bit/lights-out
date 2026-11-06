@@ -67,7 +67,7 @@ body:not(.touch):not(.q-low) .hud, body:not(.touch):not(.q-low) #mini{-webkit-ba
 #tower .r:last-child{border-bottom:0}
 #tower .r .p{width:30px; align-self:stretch; display:flex; align-items:center; justify-content:center; font-weight:800; color:var(--ink); background:rgba(255,255,255,.07); margin-right:8px}
 #tower .r .c{width:3px; height:15px; border-radius:0; margin-right:8px; box-shadow:0 0 0 1px rgba(255,255,255,.22)}
-#tower .r .n{font-weight:700; letter-spacing:.06em} #tower .r .n .pn{color:#e8730c; font-style:normal; font-weight:700; margin-left:3px; font-size:.85em}
+#tower .r .n{font-weight:700; letter-spacing:.06em} #tower .r .n .flm{color:#b16cff; font-style:normal; margin-left:3px; font-size:.7em}   /* 11-06: fastest lap holder */ #tower .r .n .pn{color:#e8730c; font-style:normal; font-weight:700; margin-left:3px; font-size:.85em}
 #tower .r.me{background:#f2f3f5; color:#0d0f13} #tower .r.me .n{color:#0d0f13} #tower .r.me .p{background:var(--team); color:#0b0c0f}
 #tower .r.me .q{color:#3a3f47}
 #tower .gap{padding:0 12px; color:var(--dim); font-size:12px; line-height:1.1}
@@ -683,7 +683,7 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
     <p class="label">서킷별 (평균 fps)</p><table class="num" id="benchTrk"></table>
     <textarea id="benchTa" readonly hidden></textarea>
     </div></div>
-  <div class="overlay" id="result" hidden><div class="card"><h1 id="resTitle">P1</h1><p class="sub num" id="resSub"></p><table class="num" id="resTable"></table><div class="laps" id="rLaps"></div><div class="row2"><button class="go" id="againBtn">다시 달리기 (Enter)</button><button class="go" id="chBtn" hidden>대회 순위 보기 (Enter)</button><button id="menuBtn">메뉴로</button></div></div></div>
+  <div class="overlay" id="result" hidden><div class="card"><h1 id="resTitle">P1</h1><p class="sub num" id="resSub"></p><p class="sub num" id="resFl" style="color:#c58bff;margin-top:-4px"></p><table class="num" id="resTable"></table><div class="laps" id="rLaps"></div><div class="row2"><button class="go" id="againBtn">다시 달리기 (Enter)</button><button class="go" id="chBtn" hidden>대회 순위 보기 (Enter)</button><button id="menuBtn">메뉴로</button></div></div></div>
   <div id="loading">서킷을 준비하는 중</div>
   <div id="err"><p>3D 그래픽(WebGL)을 불러오지 못했어요. 최신 Chrome, Edge, Safari에서 다시 열어주세요.</p></div>
 </div>
@@ -1978,7 +1978,7 @@ function stepRace(race,dt,inp){
   if(!race.go){race.go=true;const p=race.player;if(p.jump)addPen(race,p,5,'jump');if(!race.sess){race.stMis=[];for(const c of race.cars)if(!c.isP&&!c.gone&&!c.dnf)rollLaunch(race,c);}}
   if(race.stMis&&race.stMis.length&&race.t>(race.startT||0)+2){race.EV.push({type:'aiStart',l:race.stMis});race.stMis=null;}
   race.t+=dt;updWeather(race,dt);airStep(race,dt);
-  for(const c of race.cars){if(c.gone)continue;const before=c.prog;
+  for(const c of race.cars){if(c.gone)continue;const before=c.prog;if(c.pit)c.lapPit=true;
     if(c.pit)stepPit(race,c,dt,c.isP?inp:null);
     else if(c.isP){if(c.dnf){c.spd=0;c.vx=c.vy=c.r=0;c.thr=c.bp=0;}
       else{let I=c.wreck?{gas:false,brake:true,left:false,right:false,ers:false}:c.fin==null?inp:pilot(race,c,0.55);
@@ -1997,6 +1997,9 @@ function stepRace(race,dt,inp){
     if(la>lb&&c.fin==null){
       const inv=!!c.lapInv;
       if(lb>=0){const lt=race.t-c.lapStart;c.lastLap=lt;if(!inv&&(c.best==null||lt<c.best)){c.best=lt;if(c.dTr)c.bTr=c.dTr.slice();}if(c.dTr)c.dTr.fill(-1);if(!inv&&(c.bestEver==null||lt<c.bestEver))c.bestEver=lt;if(c.isP)race.EV.push({type:'lap',lt,inv,s:c.sec&&c.sec.done?c.sec.done.slice():null});}
+      // 11-06 윤택님: the race's fastest lap - not the opening lap, not a lap with a pit stop in it, not a deleted lap (track limits); no point for it (dropped in 2025, POINTS)
+      if(lb>=1&&!race.sess&&!race.form&&!inv&&!c.lapPit&&(!race.fl||c.lastLap<race.fl.t)){race.fl={id:c.id,t:c.lastLap,lap:lb+1,name:c.name,code:c.code};race.EV.push({type:'fl',me:!!c.isP,name:c.name,t:c.lastLap});}
+      c.lapPit=!!c.pit;
       c.lapInv=!!c.ex;
       c.lapStart=race.t;
       // 2026 Overtake Mode: within 1.0 s of the car ahead at the line -> +0.5 MJ and full deployment to 337 km/h for the next lap
@@ -6338,7 +6341,7 @@ function towerTouch(r,pp){const pl=race.player,S=race.sess,rowH=VH()<=370?13:15,
     else if(c.dnf||c.fail||c.gone){q='OUT';qc='out';}else if(c.pit){q='PIT';qc='pit';}
     else if(i===0){q=c.fin!=null?'체커':'리더';qc='ld';}
     else{const a=act[i-1],dl=a.prog-c.prog;if(dl>=N)q='+'+Math.floor(dl/N)+'랩';else q='+'+(dl*STEP/Math.max(20,(c.spd+a.spd)/2)).toFixed(1);}
-    h+=`<div class="r ${c.isP?'me':''}"><span class="p">${i+1}</span><span class="c" style="background:${TEAMS[c.team].p}"></span><span class="n">${c.code}${c.pen&&!S?`<em class="pn">+${c.pen}</em>`:''}</span><span class="q ${qc}">${q}</span></div>`;});
+    h+=`<div class="r ${c.isP?'me':''}"><span class="p">${i+1}</span><span class="c" style="background:${TEAMS[c.team].p}"></span><span class="n">${c.code}${!S&&race.fl&&race.fl.id===c.id?'<em class="flm">●</em>':''}${c.pen&&!S?`<em class="pn">+${c.pen}</em>`:''}</span><span class="q ${qc}">${q}</span></div>`;});
   return h;}
 let towerMode=['auto','short','off'].includes(loadLS('lightsout3d-tower'))?loadLS('lightsout3d-tower'):'auto';
 $('tower').addEventListener('pointerdown',e=>{if(!isTouch||!e.target.closest('.hd'))return;e.preventDefault();e.stopPropagation();towerMode=towerMode==='auto'?'short':towerMode==='short'?'off':'auto';saveLS('lightsout3d-tower',towerMode);hc.tw=null;towerT=0;toast(towerMode==='auto'?'순위표: 전체':towerMode==='short'?'순위표: 줄임':'순위표: 숨김','#fff',1.2);});
@@ -6378,7 +6381,7 @@ function drawHUD(dt){
     setT('pen',(pl.pen?'+'+pl.pen+'초':'')+(pl.strikes%5?(pl.pen?' · ':'')+'경고 '+Math.min(3,pl.strikes%5)+'/3':''));
     setT('lap',race.form?(race.form.kind==='start'?'포메이션 랩':'레드 플래그 재개'):Math.max(1,Math.min(race.laps,Math.floor(pl.prog/N)+1))+'/'+race.laps);}
   setT('tCur',fmt(state==='race'&&!race.form&&pl.fin==null&&pl.prog>=0&&!(pl.pit&&(pl.pit.state==='garage'||pl.pit.state==='red'))&&!(S&&pl.crossT<0)?race.t-pl.lapStart:0));setT('tLast',fmt(pl.lastLap));setT('tBest',fmt(bestLap));
-  {let fb=null;for(const c of race.cars)if(c.best!=null&&(fb==null||c.best<fb))fb=c.best;setT('tFast',fb==null?'-':fmt(fb));   // v12f: the fastest lap of the race so far, and the gap to my best lap at this point of the lap
+  {let fb=null;for(const c of race.cars)if(c.best!=null&&(fb==null||c.best<fb))fb=c.best;setT('tFast',race.fl&&!race.sess?fmt(race.fl.t)+' '+race.fl.code:fb==null?'-':fmt(fb));   // v12f: the fastest lap of the race so far, and the gap to my best lap at this point of the lap
    const dv=pl.dlt,el=$('tDelta'),cls=dv==null?'':dv<0?'neg':'pos';setT('tDelta',dv==null?'-':(dv<0?'-':'+')+Math.abs(dv).toFixed(3));if(el._c!==cls){el._c=cls;el.className=cls;}}
   if(spUntil&&performance.now()>spUntil){spUntil=0;$('hudTime').classList.remove('spOn');}   // 10-31: the sector popup's time is up
   const kmh=Math.round(Math.abs(pl.spd)*3.6);setT('spd',String(kmh));
@@ -6498,6 +6501,7 @@ function showResults(){
   const pts=c=>{const i=r.indexOf(c);return classed(race,c)&&i<10?POINTS[i]:0;};
   $('resTitle').textContent=pl.dnf?'리타이어 (DNF)':pl.dsq?'실격 (DSQ)':'P'+pp+(pp===1?' 우승!':(pp<=3?' 포디움!':' 완주'))+(pts(pl)?' · '+pts(pl)+'점':'');
   $('resSub').textContent=pl.dnf?'사고로 레이스를 끝내지 못했어요 · 레이스 베스트 '+fmt(pl.best):pl.dsq?'실격: 우천 타이어 없이 2가지 드라이 컴파운드를 쓰지 않았어요':('그리드 P'+pl.grid+' → P'+pp+'   레이스 베스트 '+fmt(pl.best)+'   전략 '+pl.stints.join('→')+(pl.penTot?'   페널티 '+pl.penTot+'초 (피트 소화 '+pl.served+'초)':''));
+  {const f=race.fl;$('resFl').textContent=f?'패스티스트 랩: '+(f.id===pl.id?'내 차':f.name)+' · '+fmt(f.t)+' · '+f.lap+'랩째':'';}
   $('resTable').innerHTML=r.map((c,i)=>{let gap;
     if(c.fin!=null)gap=c.dsq?'DSQ':(i===0?fmt(tot(c)):'+'+(tot(c)-tot(lead)).toFixed(3))+(c.pen?' (+'+c.pen+'초)':'');
     else if(c.dnf||c.gone||c.fail)gap=classed(race,c)?'DNF · 완주 인정':'DNF';
@@ -6717,7 +6721,7 @@ function flagPanel(){const rc=race.rc,p=race.player,el=$('flag');let cls='',txt=
   el.className=cls?'show '+cls:'';if(cls)setT('flag',txt);}
 // v12j: on phones these race-control notes would only repeat the pill at the top: the pill flashes instead of a second line
 const FLAG_EV=new Set(['sc','vsc','vscEnding','scIn','restart','scGo','red','redResume','green']);let flagPulse=0;
-const MSG={colPen:e=>[e.me?(e.reck?'무리한 ':'')+'충돌 유발 페널티 +'+e.s+'초 · '+e.name+'와 접촉':e.name+(e.reck?' 무리한':'')+' 충돌 유발 +'+e.s+'초'+(e.vic?' · 내 차와 접촉':''),e.me?'#ff8a8a':'#f5c518'],pitRet:()=>['수리할 수 없는 손상 · 차고에서 리타이어','#ff3b30'],pitRetAI:e=>[e.name+' 수리 불가 · 리타이어','#ff8a8a'],wall:()=>[race.dmg==='off'?'월 히트! 타이어 손상':'월 히트!','#ff8a8a'],crash:e=>[e.name+' 크래시! 벽과 충돌','#ff8a8a'],wreck:()=>['크래시! 차가 크게 부서졌어요 · 리타이어','#ff3b30'],pitIn:()=>['피트 레인 진입 · 리미터 80','#f5c518'],pitStop:e=>e.pen?['정차 · 페널티 '+e.pen+'초 먼저 소화','#fff']:null,   // the stop timer shows a normal stop
+const MSG={fl:e=>['패스티스트 랩 · '+(e.me?'내 차':e.name)+' '+fmt(e.t),e.me?'#c58bff':'#a87be0'],colPen:e=>[e.me?(e.reck?'무리한 ':'')+'충돌 유발 페널티 +'+e.s+'초 · '+e.name+'와 접촉':e.name+(e.reck?' 무리한':'')+' 충돌 유발 +'+e.s+'초'+(e.vic?' · 내 차와 접촉':''),e.me?'#ff8a8a':'#f5c518'],pitRet:()=>['수리할 수 없는 손상 · 차고에서 리타이어','#ff3b30'],pitRetAI:e=>[e.name+' 수리 불가 · 리타이어','#ff8a8a'],wall:()=>[race.dmg==='off'?'월 히트! 타이어 손상':'월 히트!','#ff8a8a'],crash:e=>[e.name+' 크래시! 벽과 충돌','#ff8a8a'],wreck:()=>['크래시! 차가 크게 부서졌어요 · 리타이어','#ff3b30'],pitIn:()=>['피트 레인 진입 · 리미터 80','#f5c518'],pitStop:e=>e.pen?['정차 · 페널티 '+e.pen+'초 먼저 소화','#fff']:null,   // the stop timer shows a normal stop
   pitGo:e=>['GO! '+(e.mis?'피트 실수('+(e.mis==='stuck'?'바퀴가 안 빠짐':'휠건')+') · ':'')+(e.rep?'수리 완료 + ':'')+COMP[e.comp].name+' '+e.t.toFixed(1)+'초'+(e.best?' · 이번 레이스 최고 피트스톱':''),e.rep?'#ffb347':e.mis||e.t>3.5?'#ff8a8a':'#3ddc84'],
   aiPit:e=>e.mis?[e.name+' 피트 실수 · '+(e.mis==='stuck'?'바퀴가 안 빠져 ':'휠건 문제 ')+e.t.toFixed(1)+'초','#ffb347']:[e.name+' '+e.t.toFixed(1)+'초 피트스톱 · 이번 레이스 최고','#3ddc84'],
   aiStart:e=>['출발 실수 · '+e.l.map(x=>x.name+(x.kind==='stall'?' 그리드에 멈춤':' 휠스핀')).join(' · '),'#ffb347'],flat:()=>['타이어가 완전히 주저앉았어요 · 피트로!','#ff3b30'],pitOut:()=>{const p=race.player,C=COMP[p.ty.comp],T=(p.ty.temp[0]+p.ty.temp[1]+p.ty.temp[2]+p.ty.temp[3])/4;return T<C.win[0]-8?['피트 아웃 · 직접 운전 · 타이어가 차가워요 (그립 ↓, 한 바퀴 안에 데워져요)','#8ecae6']:['피트 아웃 · 직접 운전','#fff'];},
