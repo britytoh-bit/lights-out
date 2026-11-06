@@ -1406,7 +1406,7 @@ function boxBusy(race,c){return race.cars.some(o=>o!==c&&!o.gone&&o.team===c.tea
 // v11f: the corner speeds ahead (a little under the racing line's), reachable with firm braking (14 m/s2) - the pit autopilot
 // uses it on the exit road and while joining so it never arrives at a corner too fast
 function pitAheadV(c,ti,g,fac){let v=VMAX;for(let k=0;k<=50;k+=2){const vk=profAt(wrap(ti.i+k),g)*fac,d=Math.max(0,k*STEP-ti.along);v=Math.min(v,Math.sqrt(vk*vk+2*14*d));}return v;}
-const HAND_T=0.6,PIT_ASSIST=2;   // 11-06 윤택님: after the pit exit hands over, the autopilot keeps steering along the road for 2 s unless the driver steers (near the edge on a gentle bend, hands off for a second took the car 2-3 m off the road at 4 of 28 circuits)
+const HAND_T=1.0,PIT_ASSIST=2;   // 11-06 윤택님: after the pit exit hands over, the autopilot keeps steering along the road for 2 s unless the driver steers (near the edge on a gentle bend, hands off for a second took the car 2-3 m off the road at 4 of 28 circuits)
    // 11-05: seconds the autopilot's steering takes to fade out under the driver's. It let go at once: up to full lock and 63 deg/s gone in a frame, mid-corner
 // v11f: joining the track. Some pit exits feed straight into a corner (Monaco's: the pit-exit line runs on through turn 1), so the car
 // is not handed back at the end of the exit road: it keeps driving itself on the pit side of the track, at a speed that makes the
@@ -1439,8 +1439,13 @@ function joinStep(race,c,dt,inp){
   // the most the road turns anywhere ahead (an S-bend comes back to the same heading at its end, so the end alone looked straight: Silverstone, Yas)
   const a0=Math.atan2(t[1],t[0]),bmax=n=>{let mx=0;for(let k=5;k<=n;k+=5){const q=T[wrap(ti.i+k)];let d=Math.atan2(q[1],q[0])-a0;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;mx=Math.max(mx,Math.abs(d));}return mx;};
   const bN=bmax(Math.max(15,Math.min(60,Math.round(c.spd*1.5/STEP)))),bF=bmax(Math.max(30,Math.min(110,Math.round(c.spd*2.6/STEP))));   // ~1.5 s and ~2.6 s ahead
-  const onT=pp.jT>0.25&&Math.abs(c.lat)<HALF-0.8,gent=bN<0.8&&Math.abs(hd)<0.3;
-  if(onT&&((human&&gent)||(pp.jT>20&&gent)||(!yl&&Math.abs(hd)<0.09&&bN<0.17&&bF<0.25&&!need&&!c.braking))){
+  // 11-06 2nd (윤택님 on the phone at Sakhir: still swapped mid-corner): the pit exit joins 14 m before turn 1 and bN came out 0.166 against 0.17 on the
+  // way out of it (curvature 0.037), so it let go there - a value near its threshold. Now only off the corner: no real curvature here and on the
+  // next ~1.5 s, and (on its own) 2 s of straight ahead. The driver's steering (phone tilt or a thumb on the pad counts at once) waits for the same straight
+  // (a long gentle sweep with no straight - Shanghai, Vegas, the alpine track - kept the driver's steering waiting 13-41 s: the driver's own steering,
+  // or 12 s on, may take it on a sweep too; a real corner (Sakhir turn 1 is 0.04-0.06) still waits)
+  const onT=pp.jT>0.25&&Math.abs(c.lat)<HALF-0.8,strt=TR.K[ti.i]<0.006&&bN<0.17,swp=TR.K[ti.i]<0.008&&bN<0.35&&Math.abs(hd)<0.2;
+  if(onT&&((human&&swp)||(pp.jT>12&&swp)||(strt&&!yl&&Math.abs(hd)<0.09&&bF<0.25&&NEXTC[ti.i]>=Math.max(40,c.spd*2)&&!need&&!c.braking))){
     c.pit=null;c.lane=c.laneT=Math.max(-HALF+1.6,Math.min(HALF-1.6,c.lat));c.rlw=0;c.passT=race.t+2;if(c.r!=null)c.r=om;if(c.isP){c.vx=c.spd;c.vy=0;c.bp=0;c.assT=race.t+PIT_ASSIST;race.EV.push({type:'pitOut'});}}}   // (no step: it keeps the turn it was in, and neither the brake pedal nor the speed left from the pit entry comes back)
 function stepPit(race,c,dt,inp){
   // 11-04: the pit road is paved. stepPlayer no longer runs in here, so whatever it saw on its last step stayed for the whole stop: one wheel on the grass
@@ -6715,7 +6720,7 @@ const FLAG_EV=new Set(['sc','vsc','vscEnding','scIn','restart','scGo','red','red
 const MSG={colPen:e=>[e.me?(e.reck?'무리한 ':'')+'충돌 유발 페널티 +'+e.s+'초 · '+e.name+'와 접촉':e.name+(e.reck?' 무리한':'')+' 충돌 유발 +'+e.s+'초'+(e.vic?' · 내 차와 접촉':''),e.me?'#ff8a8a':'#f5c518'],pitRet:()=>['수리할 수 없는 손상 · 차고에서 리타이어','#ff3b30'],pitRetAI:e=>[e.name+' 수리 불가 · 리타이어','#ff8a8a'],wall:()=>[race.dmg==='off'?'월 히트! 타이어 손상':'월 히트!','#ff8a8a'],crash:e=>[e.name+' 크래시! 벽과 충돌','#ff8a8a'],wreck:()=>['크래시! 차가 크게 부서졌어요 · 리타이어','#ff3b30'],pitIn:()=>['피트 레인 진입 · 리미터 80','#f5c518'],pitStop:e=>e.pen?['정차 · 페널티 '+e.pen+'초 먼저 소화','#fff']:null,   // the stop timer shows a normal stop
   pitGo:e=>['GO! '+(e.mis?'피트 실수('+(e.mis==='stuck'?'바퀴가 안 빠짐':'휠건')+') · ':'')+(e.rep?'수리 완료 + ':'')+COMP[e.comp].name+' '+e.t.toFixed(1)+'초'+(e.best?' · 이번 레이스 최고 피트스톱':''),e.rep?'#ffb347':e.mis||e.t>3.5?'#ff8a8a':'#3ddc84'],
   aiPit:e=>e.mis?[e.name+' 피트 실수 · '+(e.mis==='stuck'?'바퀴가 안 빠져 ':'휠건 문제 ')+e.t.toFixed(1)+'초','#ffb347']:[e.name+' '+e.t.toFixed(1)+'초 피트스톱 · 이번 레이스 최고','#3ddc84'],
-  aiStart:e=>['출발 실수 · '+e.l.map(x=>x.name+(x.kind==='stall'?' 그리드에 멈춤':' 휠스핀')).join(' · '),'#ffb347'],flat:()=>['타이어가 완전히 주저앉았어요 · 피트로!','#ff3b30'],pitOut:()=>{const p=race.player,C=COMP[p.ty.comp],T=(p.ty.temp[0]+p.ty.temp[1]+p.ty.temp[2]+p.ty.temp[3])/4;return T<C.win[0]-8?['피트 아웃 · 타이어가 차가워요 (그립 ↓, 한 바퀴 안에 데워져요)','#8ecae6']:['피트 아웃','#fff'];},
+  aiStart:e=>['출발 실수 · '+e.l.map(x=>x.name+(x.kind==='stall'?' 그리드에 멈춤':' 휠스핀')).join(' · '),'#ffb347'],flat:()=>['타이어가 완전히 주저앉았어요 · 피트로!','#ff3b30'],pitOut:()=>{const p=race.player,C=COMP[p.ty.comp],T=(p.ty.temp[0]+p.ty.temp[1]+p.ty.temp[2]+p.ty.temp[3])/4;return T<C.win[0]-8?['피트 아웃 · 직접 운전 · 타이어가 차가워요 (그립 ↓, 한 바퀴 안에 데워져요)','#8ecae6']:['피트 아웃 · 직접 운전','#fff'];},
   tl:e=>['트랙 리밋 위반 '+e.n+'회 · 이번 랩 기록 삭제','#ffb347'],bw:()=>['흑백기 · 다음 위반부터 시간 페널티','#ffb347'],tlpen:e=>['트랙 리밋 페널티 +'+e.s+'초'+(e.reset?' · 위반 카운트 초기화':''),'#ff5a4f'],
   cut:e=>['코스 밖으로 나가 '+(e.gt||0).toFixed(1)+'초 이득 · +'+e.s+'초','#ff5a4f'],lastChance:()=>['마지막 랩! 두 번째 컴파운드를 아직 안 썼어요','#ffb347'],
   jump:e=>['부정 출발 · +'+e.s+'초 페널티','#ff5a4f'],jumpWarn:()=>['차가 먼저 움직였어요 · 부정 출발','#ff5a4f'],ovt:()=>['오버테이크 모드 · 이번 랩 +0.5MJ','#b16cff'],
