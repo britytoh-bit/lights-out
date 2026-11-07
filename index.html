@@ -1405,7 +1405,8 @@ function unsafeRelease(race,c){if((c.pit.held||0)>(race.cars.some(o=>o!==c&&o.te
 function boxBusy(race,c){return race.cars.some(o=>o!==c&&!o.gone&&o.team===c.team&&o.pit&&(o.pit.state==='stop'||(o.pit.state==='garage'&&!o.inGarage)));}
 // v11f: the corner speeds ahead (a little under the racing line's), reachable with firm braking (14 m/s2) - the pit autopilot
 // uses it on the exit road and while joining so it never arrives at a corner too fast
-function pitAheadV(c,ti,g,fac){let v=VMAX;for(let k=0;k<=50;k+=2){const vk=profAt(wrap(ti.i+k),g)*fac,d=Math.max(0,k*STEP-ti.along);v=Math.min(v,Math.sqrt(vk*vk+2*14*d));}return v;}
+// 11-08 윤택님 「자동운전에서 코너같은곳은 너무 속도가 느린데」: past the pit-exit line it drove 0.9 x the centre-line plan braking at 14 m/s2 (63-95 % of the field's corner speed). Now the field's own pace: the racing-line plan x the average AI skill of this difficulty, its braking
+function pitAheadV(race,c,ti,tg){const D=DIFF[race.diff]||DIFF.normal,sk=(D[0]+D[1])/2,bA=brakeAcc(c.spd,tg.brk)*0.92;let v=VMAX;for(let k=0;k<=100;k+=2){const vk=profAtRL(wrap(ti.i+k),tg.lat)*sk,d=Math.max(0,k*STEP-ti.along);v=Math.min(v,Math.sqrt(vk*vk+2*bA*d));}return v;}
 const HAND_T=1.0,PIT_ASSIST=2;   // 11-06 윤택님: after the pit exit hands over, the autopilot keeps steering along the road for 2 s unless the driver steers (near the edge on a gentle bend, hands off for a second took the car 2-3 m off the road at 4 of 28 circuits)
    // 11-05: seconds the autopilot's steering takes to fade out under the driver's. It let go at once: up to full lock and 63 deg/s gone in a frame, mid-corner
 // v11f: joining the track. Some pit exits feed straight into a corner (Monaco's: the pit-exit line runs on through turn 1), so the car
@@ -1424,7 +1425,7 @@ function joinStep(race,c,dt,inp){
   const la=4+Math.abs(c.spd)*0.4,li=wrap(ti.i+Math.round(la/STEP)),p=P[li],tt=T[li],lt=PSj*(alg?Math.max(PSj*c.lat,HALF-1.1):yl?HALF-1.1:HALF-2.3),tx=p[0]-tt[1]*lt,tz=p[1]+tt[0]*lt;   // (v12d: Yas joins from the far side)
   let da=Math.atan2(tz-c.z,tx-c.x)-c.a;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;
   const om=Math.max(-2.5,Math.min(2.5,2*Math.sin(da)/la*Math.max(c.spd,2)));c.a+=om*dt;if(c.va!=null)c.va=c.a;c.st+=(Math.max(-1,Math.min(1,om*1.2))-c.st)*Math.min(1,6*dt);
-  const vt=Math.min(pitAheadV(c,ti,g,0.9),vAh,scCapV(race,c));   // (v13m: behind the red-flag safety car)
+  const vt=Math.min(pitAheadV(race,c,ti,tyreGrip(c)),vAh,scCapV(race,c));   // (v13m: behind the red-flag safety car)
   if(c.spd<vt)c.spd=Math.min(vt,c.spd+ACC*0.9*dt);else c.spd=Math.max(vt,c.spd-(12+0.3*c.spd)*dt);
   c.braking=c.spd<v0-0.01;c.boost=false;c.thr=c.spd>v0+0.01?1:c.braking?0:0.4;c.latG=c.spd*om;c.lonG=(c.spd-v0)/Math.max(dt,1e-4);
   move(c,dt);tyreStep(race,c,dt,c.latG,c.lonG,0);
@@ -1496,7 +1497,7 @@ function stepPit(race,c,dt,inp){
   if(r0<limIn){vt=Math.sqrt(PIT.LIMIT*PIT.LIMIT+2*22*Math.max(0,(limIn-r0)*STEP-ti.along));
     if(pp.state==='in'&&!pp.redQ){pp.vIn=Math.min(pp.vIn==null?Math.max(c.spd+0.3,PIT.LIMIT):pp.vIn,vt);vt=pp.vIn;}}   // 11-04: on the way in it only slows down (it went to full power for 0.3 s at the entry, then braked at 2.2 g: the car nodded and the view bounced)
   else if(r0<limOut)vt=PIT.LIMIT;
-  else vt=Math.min(vt,profAt(wrap(c.idx+3),1)*0.96,pitAheadV(c,ti,tyreGrip(c).lat,0.9));   // pit exit road: no faster than the track allows just ahead, nor than the next corner allows (v11f)
+  else vt=Math.min(vt,pitAheadV(race,c,ti,tyreGrip(c)));   // pit exit road: no faster than the track allows just ahead, nor than the next corner allows (v11f)
   if(PIT.lrm)vt=Math.min(vt,Math.max(12,Math.sqrt(20*PIT.lrm[Math.max(0,Math.min(PIT.Z,r0))])));   // tight bends in the pit road itself (never a crawl)
   {const VP=pitVP(),q=Math.max(0,Math.min(PIT.Z,r0+ti.along/STEP)),a=Math.floor(q),b=Math.min(PIT.Z,a+1);vt=Math.min(vt,VP[a]+(VP[b]-VP[a])*(q-a));}
   if(pp.state==='in'){let stopAt=pp.redQ?redQR(pp.q):pp.box-(boxBusy(race,c)?3:0);/* v12i: right behind the team-mate's car, 3 steps */const d=(stopAt-r0)*STEP-ti.along;
