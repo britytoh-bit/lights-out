@@ -906,6 +906,12 @@ const PIT=(()=>{
     const rad=r=>{r=Math.max(5,Math.min(Z-5,r));const a=lp(r-5),b=lp(r),c=lp(r+5),ab=Math.hypot(b[0]-a[0],b[1]-a[1]),bc=Math.hypot(c[0]-b[0],c[1]-b[1]),ac=Math.hypot(c[0]-a[0],c[1]-a[1]),cr=Math.abs((b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]));return cr<1e-6?1e9:ab*bc*ac/(2*cr);};
     for(let it=0;it<40;it++){let ch=false;for(let r=5;r<=Z-5;r++)if(rad(r)<12&&prof[r]>HALF+0.5){prof[r]=Math.max(HALF+0.5,prof[r]-0.4);ch=true;}if(!ch)break;
       for(let r=1;r<Z;r++)prof[r]=Math.min(prof[r],(prof[r-1]+prof[r]+prof[r+1])/3+0.3);}
+    // 11-08 윤택님 (마드링, 레드 플래그 때 피트 입구 「펜스 바깥으로 차」): a bend on the pit side just after the entry pulled the lane back to the track edge after it had
+    // swung out (Madring r 18-54: 13.5 m -> 7 m -> 15 m), and its outer wall with it - out past the track's fence line, then hard against the car. A swing out and back
+    // within ~120 m (either side) back to the track edge now stays at that line (not the Yas tunnel lane)
+    if(!d.tun){const Wh=60,q=prof.slice();for(let r=0;r<=Z;r++){let mL=1e9,mR=1e9;for(let k=Math.max(0,r-Wh);k<=r;k++)mL=Math.min(mL,q[k]);for(let k=r;k<=Math.min(Z,r+Wh);k++)mR=Math.min(mR,q[k]);const cp=Math.max(mL,mR);if(cp<HALF+2.5)prof[r]=Math.min(q[r],cp);}
+      // ... and the lane never swings out or back faster than 0.8 m per 2 m (Austin r 96-102 stepped 8 m in 12 m: cars bound for their box ran 0.4 m past its outer wall)
+      const G=0.8;for(let r=ri+1;r<=Z-ro;r++)prof[r]=Math.min(prof[r],prof[r-1]+G);for(let r=Z-ro-1;r>=ri;r--)prof[r]=Math.min(prof[r],prof[r+1]+G);}
     const tun=d.tun?pitTunnel(d.tun,E,Z,OFF,side,prof,lp):null;   // v12d: Yas Marina's exit tunnel (prof < 0 beyond it)
     const lr=new Float32Array(Z+1);for(let r=0;r<=Z;r++)lr[r]=rad(r);const lrm=new Float32Array(Z+1);for(let r=0;r<=Z;r++){let m=1e9;for(let k=0;k<=12&&r+k<=Z;k++)m=Math.min(m,lr[r+k]);lrm[r]=m;}
     return {E,Z,RAMP,RX,OFF,LIMIT,side,prof,lrm,BS,box:t=>g0+t*BS,wallIn:HALF+2.2,wallInB:tun&&d.tun.wb||HALF+2.2,tun};}   // wallInB: the wall beside the Yas exit road (far side)
@@ -3255,6 +3261,10 @@ mk(ring(2048,256,23,0.08,0.2,[110,125,140],[150,160,170],1),2450,240,80);}
    add(wall(i=>PS*(PIT.wallIn+0.3),1.2,4.6,pw),fenceM);
    // outer wall of pit lane (where there are no garages)
    add(wall(i=>PS*(pl(i)+ext(i)+0.2),0,1.1,k=>both(k)&&!inGar(k)&&!inGar(wrap(k+1)),PS>0),wallM,true,true);
+   // 11-08: where the pit zone begins and ends, the track's barrier (up to sample E-1 / from E+Z+1) and the pit road's outer wall (from E / up to E+Z) left one 2 m section
+   // open between them, and the lane's asphalt began a section late: a gap in the fence and a strip of bare ground at every pit entry and exit. That section is joined now
+   {const k0=wrap(PIT.E-1),k1=wrap(PIT.E+PIT.Z),jn=k=>k===k0||(!tn&&k===k1);[o1,o2]=sg(i=>pl(i)-3.2,i=>pl(i)+ext(i));add(ribbon(o1,o2,0,jn,i=>0.028+pitDv(i),true),plM,true);
+    add(wall(i=>PS*(inZ(i)?pl(i)+ext(i)+0.2:(PS>0?LPv(i):LNv(i))),0,1.1,jn,PS>0),wallM,true,true);}
    // v12d (Yas): the exit road on the far side, from the top of its ramp out of the tunnel to the merge - asphalt from its wall (from the
    // track's edge once the wall has ended), edge lines and an outer wall; the strip of run-off between the track and the wall; the wall
    // itself (concrete, sponsor boards on both faces, a fence on top) all along the tunnel and the exit road
@@ -6643,7 +6653,7 @@ function drawHUD(dt){
     else if(race.form)pi=race.form.kind==='start'?'포메이션 랩 · 타이어 온도를 올려두세요':'세이프티카 뒤 그리드로 · 추월 금지';
     else if(needsSecond(pl))pi=`<span class="warn">2가지 컴파운드 의무 미이행</span> · ${isTouch?'PIT 버튼으':'B 키'}로 요청`;
     else pi='전략: '+pl.stints.join(' → ')+(usedWet(pl)?' · 우천 타이어 사용(2컴파운드 의무 면제)':'');
-    if(pl.pen&&pl.fin==null)pi+=`<br><span class="warn">미소화 페널티 ${pl.pen}초 · 피트 정차 때 소화</span>`;
+    if(pl.pen&&pl.fin==null)pi+=`<br><span class="warn">미소화 페널티 ${pl.pen}초 · 정비 피트스톱 때 소화(안 하면 결과에 가산)</span>`;
     if(pi!==hc.pitInfo){hc.pitInfo=pi;$('pitInfo').innerHTML=pi;const pm=pi.startsWith('전략:')?'':pi;$('pitMsg').innerHTML=pm;hc.pmT=pm?6:0;}
     // 11-04: from one lap before the pit window, once a lap: the window, what a stop costs here, where the car would come out
     {const lp=Math.floor(pl.prog/N);if(lp!==hc.advL){hc.advL=lp;const a=!S&&!race.form&&!pl.pit&&!pl.pitReq&&pl.fin==null&&race.rc.flag==='green'&&lp+1<race.laps?pitAdvice(race,pl):null;
