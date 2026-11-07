@@ -4922,11 +4922,17 @@ function wheelTextures(tm){
 // the wings' sponsor decals stay the game's own. It loads in the background: until it is in - or if it never loads (offline
 // first visit, an old browser) - the cars are the procedural ones below, and the next race (or the menu) picks it up.
 const CAR_GLB='car-f1.glb';
-function loadCarModel(kit){if(!THREE.GLTFLoader)return;
-  new THREE.GLTFLoader().load(CAR_GLB,g=>{try{
+// 11-08 윤택님 (a procedural car on the formation lap, on the phone): a load that failed was never tried again, and a race started before the model
+// was in kept the procedural cars. Now: up to 3 more tries (1.5 / 3 / 4.5 s apart), the race start waits for it (whenCar), and only then the fallback - with a
+// small note in the corner and the console saying why
+function carFail(why,n){if(n<3){console.warn('car model: try '+(n+2)+' ('+why+')');setTimeout(()=>loadCarModel(KIT_L,n+1),1500*(n+1));return;}window.__CARGLB={ok:false,why};carMark(why);}
+function carMark(why){console.warn('car model: the procedural cars ('+why+')');let d=$('glbWarn');if(!d){d=document.createElement('div');d.id='glbWarn';d.style.cssText='position:fixed;left:4px;bottom:2px;font:10px/1.2 sans-serif;color:#fff;opacity:.5;z-index:99;pointer-events:none';document.body.appendChild(d);}d.textContent='차 모델 예비 ('+why+')';}
+let KIT_L=null;
+function loadCarModel(kit,n=0){if(!THREE.GLTFLoader)return;KIT_L=kit;
+  new THREE.GLTFLoader().load(CAR_GLB+(n?'?try='+n:''),g=>{try{
     const Q={},need=['paint','black','carbon','generic','chrome','mirror','tcam','strut','ductL','ductR','far_paint','far_dark'],ex=g.scene.userData||{};
     g.scene.traverse(o=>{if(o.isMesh){Q[o.name]=o.geometry;if(o.name==='carbon')Q.carbonMap=o.material.map;if(o.name==='generic')Q.genericMap=o.material.map;}});
-    if(!need.every(n=>Q[n])){window.__CARGLB={ok:false,why:'parts'};return;}
+    if(!need.every(n=>Q[n])){carFail('parts',n);return;}
     const Phys=THREE.MeshPhysicalMaterial||THREE.MeshStandardMaterial;
     Q.carbonM=new Phys({map:Q.carbonMap||null,color:0x9a9ca2,roughness:0.42,metalness:0.15,clearcoat:0.3,clearcoatRoughness:0.25,envMapIntensity:0.45});
     Q.genericM=new THREE.MeshStandardMaterial({map:Q.genericMap||null,roughness:0.5,metalness:0.25});
@@ -4952,9 +4958,9 @@ function loadCarModel(kit){if(!THREE.GLTFLoader)return;
      Q.pylon=mergeGeos(L);}
     Q.latLight=mergeGeos(Q.mir.filter(Boolean).map(b=>new THREE.BoxGeometry(0.04,0.02,0.014).translate(b[0]+0.02,b[1],b[2]+Math.sign(b[2])*(b[3]+0.008))));
     kit.pxCg=mergeGeos([kit.geo.fw.xP,kit.geo.fw.xN,kit.geo.fw.rx,Q.pylon]);
-    kit.glb=Q;window.__CARGLB={ok:true,t:Math.round(performance.now())};
+    kit.glb=Q;window.__CARGLB={ok:true,t:Math.round(performance.now()),n};{const d=$('glbWarn');if(d&&(typeof state==='undefined'||state==='menu'))d.remove();}
     if(typeof state!=='undefined'&&state==='menu'&&KIT===kit)setupRace();   // the menu's cars at once; a race in progress keeps its cars
-  }catch(e){console.warn('car model',e);window.__CARGLB={ok:false,why:String(e)};}},undefined,()=>{window.__CARGLB={ok:false,why:'load'};});}
+  }catch(e){console.warn('car model',e);carFail(String(e).slice(0,60),n);}},undefined,e=>carFail('load'+(e&&e.target&&e.target.status?' '+e.target.status:''),n));}
 // the model's paint is the procedural car's own livery texture (teamMats: M.paint), mapped by the UVs the GLB carries in that
 // layout (colour split, cut line, number, names, sponsors, finish map); here only the team's black for the model's dark panels
 function glbMats(kit,ti){kit.teamCache=kit.teamCache||{};const tc=kit.teamCache[ti]||(kit.teamCache[ti]={});if(tc.gBlack)return tc;
@@ -5886,7 +5892,8 @@ function warmUp(){if(!renderer||!scene)return;const prev=renderer.getRenderTarge
     for(const mt of ms)for(const k in mt){const t=mt[k];if(t&&t.isTexture&&!seen.has(t)&&t.image){seen.add(t);renderer.initTexture(t);}}});}catch(e){}}
 function fmtClock(t){t=Math.max(0,Math.ceil(t));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');}
 // o: {mode, gridOrder, skills} - a race after qualifying keeps the grid and the drivers' pace from the sessions
-function startRace(o){o=o||{mode:gameMode};const mode=o.mode||gameMode;lastStart=o;FF=false;if(camera.clearViewOffset)camera.clearViewOffset();
+function startRace(o){if(THREE.GLTFLoader&&!window.__CARGLB){if(isTouch)prepMobile();initAudio();whenCar(()=>startRace(o));return;}   // 11-08: the car model first (the sound and the phone set-up still in the tap)
+  o=o||{mode:gameMode};const mode=o.mode||gameMode;lastStart=o;FF=false;if(camera.clearViewOffset)camera.clearViewOffset();
   document.body.classList.remove('inmenu');document.body.classList.add('racing');if(isTouch)prepMobile();initAudio();if(PREV){PREV.stop();PREV=null;}if(SND.eng)EngineSound.reset(SND.eng);if(AC&&AC.state==='suspended')AC.resume();
   ['menu','result','pause','sess'].forEach(id=>$(id).hidden=true);
   setupRace(mode,o);warmUp();race.champ=!!o.champ;
@@ -6093,7 +6100,8 @@ const TUT_STEPS=[
   {h:'끝!',t:()=>'잘했어요. 이제 메뉴에서 레이스를 시작해 보세요. 여기서 계속 연습해도 돼요.'}];
 // a race started right after the page loads (tutorial, the performance test) waits up to 10 s for the 3D car model -
 // a race in progress keeps the cars it started with, so without this it ran in the old procedural car
-function whenCar(fn,n=0){if(THREE.GLTFLoader&&!window.__CARGLB&&n<50){$('loading').style.display='flex';$('loading').textContent='차량을 불러오는 중';setTimeout(()=>whenCar(fn,n+1),200);return;}
+function whenCar(fn,n=0){if(THREE.GLTFLoader&&!window.__CARGLB&&n<300){$('loading').style.display='flex';$('loading').textContent='차량을 불러오는 중'+(n>=25?' · '+Math.round(n/5)+'초':'');setTimeout(()=>whenCar(fn,n+1),200);return;}
+  if(THREE.GLTFLoader&&!window.__CARGLB){window.__CARGLB={ok:false,why:'timeout'};carMark('60초 초과');}   // 11-08: (was 10 s, then the race went on without it)
   $('loading').style.display='none';fn();}
 function tutStart(force){if(TRK.id!==TUT_TRK){saveLS('lightsout3d-tutgo','1');saveLS('lightsout3d-tutret',TRK.id);saveLS('lightsout3d-track',TUT_TRK);
     $('loading').style.display='flex';$('loading').textContent='튜토리얼 서킷을 불러오는 중';setTimeout(()=>location.reload(),30);return;}
