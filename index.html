@@ -1233,8 +1233,8 @@ function lapRef(){let t=0;for(let i=0;i<N;i++)t+=STEP/Math.max(8,PROF[i]);return
 let PITLOSS=null;function pitLoss(){if(PITLOSS==null){let tr=0;for(let r=0;r<=PIT.Z;r++)tr+=STEP/Math.max(8,PROF[wrap(PIT.E+r)])*1.14;
   PITLOSS=(PIT.Z-PIT.RAMP-PIT.RX)*STEP/(80/3.6)+(PIT.RAMP+PIT.RX)*STEP/32-tr+5+2.6;}return PITLOSS;}
 // AI by difficulty: mistakes, how readily it defends, late braking when passing, how often the team reacts to a rival's stop, how far from the best plan it may pick
-// 11-06 윤택님 「연석도 밟고, 레이트 브레이킹, 방어·공격 운전, 난이도에 다 반영」. dW: line width (m, hard over the kerbs, easy clear of them). brk: how hard it plans to brake (later as it goes up), atkBrk: when attacking a car, brkA: what it then really brakes at. close: how close it sits (m) before pulling out, atkRate: how fast it moves across to pass, passK: how soon it tries again, insK: how much it wants the inside. defFar: how far from the corner it covers (m), defHold: how long (s), defNext: how soon again (s). apex: how far it may miss an apex (m)
-const AIK={easy:{err:1.7,def:0.35,late:0.5,react:0.25,noise:10,dW:-0.8,brk:0.8,atkBrk:0.86,brkA:0.92,close:9.5,atkRate:0.9,passK:1.3,insK:0.5,defFar:160,defHold:1.8,defNext:11,apex:1.2},normal:{err:1,def:0.65,late:0.8,react:0.6,noise:5,dW:0,brk:0.9,atkBrk:0.96,brkA:0.92,close:8,atkRate:1.3,passK:1,insK:1,defFar:220,defHold:2.6,defNext:7,apex:0.35},hard:{err:0.5,def:0.9,late:1,react:0.9,noise:1.5,dW:0.45,brk:0.97,atkBrk:1.02,brkA:1,close:7.4,atkRate:1.9,passK:0.7,insK:1.6,defFar:260,defHold:3.3,defNext:6.5,apex:0.15}};
+// 11-06 윤택님 「연석도 밟고, 레이트 브레이킹, 방어·공격 운전, 난이도에 다 반영」. dW: line width (m, hard over the kerbs, easy clear of them). brk: how hard it plans to brake (later as it goes up), atkBrk: when attacking a car, brkA: what it then really brakes at. close: how close it sits (m) before pulling out, atkRate: how fast it moves across to pass, passK: how soon it tries again, insK: how much it wants the inside. defFar: how far from the corner it covers (m), defHold: how long (s), defNext: how soon again (s). apex: how far it may miss an apex (m). off: how often a big stop ends off the road (aiOffRoll: a lock-up into the run-off, two wheels off at the exit, a spin)
+const AIK={easy:{err:1.7,def:0.35,late:0.5,react:0.25,noise:10,dW:-0.8,brk:0.8,atkBrk:0.86,brkA:0.92,close:9.5,atkRate:0.9,passK:1.3,insK:0.5,defFar:160,defHold:1.8,defNext:11,apex:1.2,off:0.005},normal:{err:1,def:0.65,late:0.8,react:0.6,noise:5,dW:0,brk:0.9,atkBrk:0.96,brkA:0.92,close:8,atkRate:1.3,passK:1,insK:1,defFar:220,defHold:2.6,defNext:7,apex:0.35,off:0.0032},hard:{err:0.5,def:0.9,late:1,react:0.9,noise:1.5,dW:0.45,brk:0.97,atkBrk:1.02,brkA:1,close:7.4,atkRate:1.9,passK:0.7,insK:1.6,defFar:260,defHold:3.3,defNext:6.5,apex:0.15,off:0.0014}};
 // lap time lost over a stint against a new soft (1 % of grip is about 0.25 % of a lap, measured on the AI, 11-04); a stint past its life costs a lot
 function stintCost(comp,laps,race,LT){const C=COMP[comp],wl=0.75/(C.life*race.tyreLaps);let s=0;for(let i=0;i<laps;i++)s+=LT*0.25*(1-C.grip*wearF((i+0.5)*wl,C));return s+(laps*wl>0.98?60:0);}
 // one- and two-stop plans from the tyre the car starts on, the stints split by tyre life; the team's noise makes the field differ
@@ -1761,15 +1761,47 @@ const aiNear=o=>!!o&&!o.gone&&(!o.pit||o.pit.state==='join')&&Math.abs(gapTo(AIC
     for(const s of[-1,1]){const t=orl+s*off,room=ALM+0.3-Math.abs(bo+t);if(room<0||!aiFree(t)||!aiClear(t,o)||(ASP&&!o.dnf&&!o.fail&&o.spd>AIC.spd*0.8-1&&Math.abs(t-cur)>2))continue;   // (11-06: off the start, round a car that got away clearly slower - it used to be followed)
       const sc=Math.min(room,2)-0.8*Math.abs(t-cur)+(AIC.passO===o.id&&AIC.passS===s?3:0)+(AIC.ps&&NEXTC[AIC.idx]<250&&cornerSide(AIC.idx)===s?1.5*AIC.ps.agg*AK.insK:0);if(sc>bm){bm=sc;best=t;bs=s;}}
     if(best!=null){AIC.passO=o.id;AIC.passS=bs;}else if(AIC.passO===o.id)AIC.passO=null;return best;};   // (v12i: no room any more: no longer passing that car)
+// 11-07 윤택님 「여기 AI들은 코스 밖 이탈 절대 안 하지, 그래블 빠지거나」: the AI's aim point was always clamped inside the road and its mistakes
+// (c.err) only cost speed, so no AI car ever left it. Now a big stop can end off the road: 'lock' brakes late (a locked wheel) and runs
+// straight on into the run-off or gravel, 'wide' puts two wheels off at the corner exit, 'spin' loses the rear there (the hit spin, spunT).
+// Off the road the surface slows it as it does the player's; it rejoins at the edge once nobody is coming (c.ofs, aiOffSteer).
+// Only where there is room before the barrier, never with a car alongside, off the start, under flags or yellows.
+function aiOffRoll(race,c,K,press,gU){const wr=(c.ty.wear[0]+c.ty.wear[1]+c.ty.wear[2]+c.ty.wear[3])/4,wet=Math.min(1,(race.wx&&race.wx.wet)||0);
+  const p=K.off*(1.6-c.ps.cons)*(1+2*wr*wr)*(1+1.5*wet)*(press?1.5:1)*(c.passO!=null||c.defHold>race.t?1.6:1);if(c.rnd()>=p)return false;
+  const sd=-cornerSide(c.idx),i0=wrap(c.idx+Math.round(NEXTC[c.idx]/STEP));let room=1e9;for(let k=0;k<50;k+=5){const i=wrap(i0+k);room=Math.min(room,sideLimit(i,sd)-TR.HW[i]);}const big=c.spd>profAtRL(i0,gU)+15;   // big: a real stop (over 54 km/h off)
+  let behind=1e9;for(const o of race.cars){if(o===c||o.gone||o.pit)continue;const d=gapTo(c,o)*STEP;if(d<0)behind=Math.min(behind,-d);}
+  const q=c.rnd();let k=q>0.96?'spin':big?(q<0.65?'lock':null):q<0.4?'wide':null;if(!k)return false;   // a big stop: mostly a lock-up; otherwise two wheels off now and thenif(k==='spin'&&(behind<120||STREET))k='wide';if(k!=='wide'&&room<8)k='wide';if(room<2.6)return false;
+  c.ofs={k,sd,ph:k==='lock'?'go':'pre',t:race.t,t0:race.t,inC:false,L:k==='wide'?0.5+0.5*c.rnd():Math.min(room-5.5,2.5+c.rnd()*4)};
+  if(k==='lock'){c.aiLk=0.6+c.rnd()*0.4;const t0=T[c.idx],t1=T[wrap(c.idx+25)];c.aiLkW=(t0[0]*t1[1]-t0[1]*t1[0])>0?1:0;}
+  c.errN++;c.ofN=(c.ofN||0)+1;race.EV.push({type:k==='lock'?'aiOffL':k==='wide'?'aiOffW':'aiOffS',code:c.code});return true;}
+// where an excursion steers (the aim point's offset across the road); it also keeps c.lane where the car is, for the others' predictions
+function aiOffSteer(race,c,dt,tl,b0){const o=c.ofs,i=c.idx,hw=TR.HW[i],a=c.lat*o.sd,end=()=>{c.ofs=null;c.lane=c.laneT=Math.max(-hw+1,Math.min(hw-1,c.lat))-b0;return tl;};
+  if(race.rc.flag!=='green'&&o.ph!=='back'){o.ph='back';o.j=c.lat;}
+  if(o.ph==='pre'){if(NEXTC[i]===0)o.inC=true;else if(o.inC){o.t=race.t;   // out of the corner: now
+      let rm=1e9,ro=1e9;for(let k=0;k<40;k+=4){const j=wrap(i+k);ro=Math.min(ro,sideLimit(j,o.sd)-TR.HW[j]);rm=Math.min(rm,ro,sideLimit(j,-o.sd)-TR.HW[j]);}   // the room where it really happens (the exit): a spin slides either way
+      if(o.k==='spin'&&rm<8){o.k='wide';o.L=0.6;}if(ro<3.4)return end();o.L=Math.min(o.L,ro-2.4);
+      if(o.k==='spin'){c.spunT=1.6+c.rnd()*0.9;c.spunR=(c.rnd()<0.5?-1:1)*(2.6+c.rnd()*1.6);c.spunV=c.a;c.spd*=0.85;o.ph='back';o.j=c.lat;return tl;}o.ph='go';}
+    if(race.t-o.t0>10)return end();return tl;}
+  if(o.ph==='go'){if(o.k==='lock'&&!o.inC){if(NEXTC[i]>0)return race.t-o.t0>8?end():tl;o.inC=true;o.t=race.t;}   // braking late (it brakes less, stepAI) on its line, then runs straight on
+    const L=hw+o.L;c.lane=c.laneT=c.lat-b0;
+    if(a>=L-0.4||race.t-o.t>(o.k==='wide'?2:3.5)||(o.k==='lock'&&c.spd<14)){if(o.k==='wide')return end();o.ph='back';o.j=c.lat;}
+    return o.sd*L;}
+  if(Math.abs(c.lat)<hw-0.8)return end();
+  let clear=true;for(const x of race.cars){if(x===c||x.gone||x.pit||x.dnf)continue;const d=gapTo(c,x)*STEP;if(d<5&&d>-(15+2.2*x.spd)&&x.lat*o.sd>hw-5&&!x.ofs){clear=false;break;}}
+  o.w=(o.w||0)+dt;o.hold=!clear&&o.w<5;
+  o.j=o.hold?o.sd*Math.max(Math.abs(o.j),Math.min(a,hw+1.3)):o.j-o.sd*1.6*dt;   // waits (making room at the edge), or comes back across at 1.6 m/s
+  c.lane=c.laneT=c.lat-b0;return o.j;}
 function stepAI(race,c,dt){
   if(c.gone)return;
   trackInfo(c);
+  {const S=surfaceAt(c.idx,c.lat),off=S===SURF.grass||S===SURF.gravel;c.off=off;c.surf=off||c.ofs?S:SURF.track;}   // 11-07: off the road an AI car slows like the player's (dust, grip, rolling resistance below)
   if(c.dnf){c.spd=0;c.braking=false;c.boost=false;return;}
   if(c.spunT>0){c.spunT-=dt;c.boost=false;c.braking=true;c.spd=Math.max(0,c.spd-13*dt);   // 11-05: spun by a hit: it slides on the way it was going while it turns, then lines up with the track again and drives on
     if(c.spunT>0.45){c.a+=c.spunR*dt;c.spunR*=Math.exp(-1.2*dt);}else{const t=T[c.idx];let d=Math.atan2(t[1],t[0])-c.a;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;c.a+=d*Math.min(1,dt*7);c.spunV=c.a;}
     const h=c.a;c.a=c.spunV;move(c,dt);const moved=c.a;barrier(race,c);if(c.a===moved)c.a=h;else c.spunV=c.a;return;}
   if(race.t<(race.startT||0)+c.react)return;
-  const rc=race.rc,tg=tyreGrip(c),v0=c.spd,yl=yellowAt(race,c.idx),neutral=rc.flag!=='green'||yl>0||(rc.noPass&&rc.noPass[c.id]!=null&&c.prog<rc.noPass[c.id]);
+  const rc=race.rc,tg=tyreGrip(c),v0=c.spd,sOff=c.off&&!c.fail?c.surf:null,yl=yellowAt(race,c.idx),neutral=rc.flag!=='green'||yl>0||(rc.noPass&&rc.noPass[c.id]!=null&&c.prog<rc.noPass[c.id]);
+  if(sOff){tg.lat*=sOff.g;tg.brk*=sOff.br;tg.trc*=sOff.tr;}   // (tg is the car's own object, made afresh every call)
   if(!c.stEnd&&(race.t>=(race.startT||0)+c.react+8||NEXTC[c.idx]<=120))c.stEnd=true;   // off the grid until ~8 s or the run-up to the first corner
   const startPh=!c.stEnd;   // cars hold their column there and only make small moves (they used to swerve left-right across the field)
   const r=zoneR(c.idx);
@@ -1801,6 +1833,7 @@ function stepAI(race,c,dt){
   const near=aiNear;
   if(!c.fail&&(near(c.sP)||near(c.sN))){const hi=near(c.sP)?pathLat(c.sP,li)-2.9:1e9,lo=near(c.sN)?pathLat(c.sN,li)+2.9:-1e9;
     if(hi<lo)tl=(hi+lo)/2;else if(tl>hi)tl=hi;else if(tl<lo)tl=lo;tl=Math.max(-LAl,Math.min(LAl,tl));}
+  if(c.ofs)tl=aiOffSteer(race,c,dt,tl,b0);
   const tx=p[0]-tt[1]*tl,tz=p[1]+tt[0]*tl;
   let da=Math.atan2(tz-c.z,tx-c.x)-c.a;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;
   const want=2*Math.sin(da)/la*Math.max(c.spd,3),wmax=(TR.BK[c.idx]?aMaxB(c.spd,tg.lat,c.idx,want>=0?1:-1):aMax(c.spd,tg.lat))/Math.max(c.spd,1);
@@ -1819,7 +1852,7 @@ function stepAI(race,c,dt){
   let obst=null,od=1e9,vSafe=1e9,pitAhead=false,sideP=null,sideN=null,threat=null,tth=1e9,stickD=null,atk=null,atkD=-1e9;const bA=brakeAcc(c.spd,tg.brk)*0.92;AI_NEAR.length=0;
   for(const o of race.cars){if(o===c||o.gone)continue;
     const ramp=!!o.pit&&(o.pit.state==='join'||o.pit.state==='in'&&zoneR(o.idx)<Math.min(PIT.RAMP,40));   // turning into the pit lane: still next to the track (v13k: and a car merging out of it - the field drove into it blind)
-    if(o.pit&&!ramp)continue;if(o.dnf&&Math.abs(o.lat)>TR.HW[o.idx]+0.8)continue;const dp=gapTo(c,o),dl=o.lat-c.lat,dlp=dp>0?Math.min(Math.abs(dl),Math.abs(o.lat-pathLat(c,o.idx)),dp<40?meetDl(c,o,dp):9):Math.abs(dl);   // dlp: also against where this car's line will be, and where both lines meet
+    if(o.pit&&!ramp)continue;if((o.dnf||o.ofs&&Math.abs(o.lat-c.lat)>3.2)&&Math.abs(o.lat)>TR.HW[o.idx]+0.8)continue;   /* (11-07: a car off in the run-off, well clear, is no traffic - under a yellow it was a lead to follow at its gravel speed) */const dp=gapTo(c,o),dl=o.lat-c.lat,dlp=dp>0?Math.min(Math.abs(dl),Math.abs(o.lat-pathLat(c,o.idx)),dp<40?meetDl(c,o,dp):9):Math.abs(dl);   // dlp: also against where this car's line will be, and where both lines meet
     if(dp>-5&&dp<16)AI_NEAR.push(o);   // for picking a free side
     if((!ramp||o.pit.state==='join')&&Math.abs(dp)<3.2&&Math.abs(dl)<3.2){if(dl>=0){if(!sideP||dl<sideP.lat-c.lat)sideP=o;}else if(!sideN||dl>sideN.lat-c.lat)sideN=o;}   // overlapping, side by side
     if(dp<0&&dp>-14&&dp>atkD&&!o.dnf&&!o.pit&&Math.abs(dl)<5){atk=o;atkD=dp;}   // 11-04: the car attacking it
@@ -1871,6 +1904,7 @@ function stepAI(race,c,dt){
   // 11-07 윤택님 「스타트 때 가운데로 쭉 가면 다 추월」: it let go at 8 m/s2 at most, below what a car pulls from low speed (~11-13), so off the line every
   // car with one ahead in its column was held to 0.8 g for 4-7 s of the first 7 (141-149 km/h at 5 s against 190 for the pole and for the player in the
   // free middle): over 334 simulated starts a player flat out down the middle gained 4.5 places by turn 1. Now it lets go as fast as the car can pull (off the start)
+  if(c.ofs&&c.ofs.ph==='back'&&Math.abs(c.lat)>TR.HW[c.idx]-0.8)tgt=Math.min(tgt,c.ofs.hold?10:Math.max(15,pa*0.65));   // rejoining: slowly, and it waits at the edge for the cars coming
   tgt=Math.max(0,tgt);   // a car queueing behind a stopped one waits; it never reverses
   const hardT=tgt;tgt=Math.max(0,Math.min(tgt,soft));
   const wasB=!!c.boost;c.braking=c.spd>hardT+1;c.boost=false;
@@ -1880,7 +1914,8 @@ function stepAI(race,c,dt){
    if(heavy&&!c.hvB&&!c.fail&&!c.pit&&rc.flag==='green'&&!(c.aiLk>0)){const pL=0.006*(tg.brk<0.92?2.5:1)*(1+3*Math.min(1,(race.wx&&race.wx.wet)||0))*(lead&&lead!==rc.sc&&ld<12?2:1);
      if(c.rnd()<pL){const t0=T[c.idx],t1=T[wrap(c.idx+25)];c.aiLk=0.3+c.rnd()*0.45;c.aiLkW=(t0[0]*t1[1]-t0[1]*t1[0])>0?1:0;}
      // 11-04: other mistakes at the start of a big stop: runs wide, loses the rear on the way out, misses the apex - with worn tyres, in the wet, under pressure
-     if(c.ps&&!race.sess&&!c.err){const wr=(c.ty.wear[0]+c.ty.wear[1]+c.ty.wear[2]+c.ty.wear[3])/4,pE=0.0025*AIK[race.diff].err*(1.6-c.ps.cons)*(1+2*wr*wr)*(1+3*Math.min(1,(race.wx&&race.wx.wet)||0))*(lead&&lead!==rc.sc&&ld<12?1.5:1);
+     if(!c.ofs&&!c.err&&c.ps&&!race.sess&&!neutral&&!startPh&&!c.avoid&&!c.pitReq&&!c.blue&&!c.giveBack&&aiOffRoll(race,c,K,!!lead&&lead!==rc.sc&&ld<12,gU)){}
+     else if(c.ps&&!race.sess&&!c.err){const wr=(c.ty.wear[0]+c.ty.wear[1]+c.ty.wear[2]+c.ty.wear[3])/4,pE=0.0025*AIK[race.diff].err*(1.6-c.ps.cons)*(1+2*wr*wr)*(1+3*Math.min(1,(race.wx&&race.wx.wet)||0))*(lead&&lead!==rc.sc&&ld<12?1.5:1);
        if(c.rnd()<pE){const q=c.rnd();c.errN++;if(q<0.45){c.err={k:'wide',t:race.t+1.6,f:0.9};if(!c.avoid)c.laneT-=cornerSide(c.idx)*2.5;}else if(q<0.75){c.err={k:'snap',t:race.t+1,f:0.93};c.ty.wear[2]+=0.01;c.ty.wear[3]+=0.01;}else c.err={k:'slow',t:race.t+1.8,f:0.95};}}}
    if(heavy&&!c.hvB&&!c.fail&&!c.pit&&!c.avoid&&!lead&&c.passO==null&&c.ps&&rc.flag==='green'&&Math.abs(c.laneT)<0.4&&K.apex)c.laneT=-cornerSide(c.idx)*c.rnd()*K.apex*(1.3-c.ps.cons);   // nobody hits every apex: the line differs a little, more on the easier levels
    c.hvB=heavy;}
@@ -1888,9 +1923,10 @@ function stepAI(race,c,dt){
   else if(c.spd<tgt){const po=c.passO!=null?race.cars[c.passO]:null,atkB=!!po&&!po.gone&&!po.pit&&po!==lead&&Math.abs(po.lat-c.lat)>1.5&&gapTo(c,po)>-2&&gapTo(c,po)<20;   // v12i: and while it is alongside that car, passing it
     const wantB=!neutral&&((!!lead&&lead!==sc&&ld<30)||atkB||c.defHold>race.t)&&TR.K[c.idx]<0.002&&c.ers>(wasB?0.15:0.3);c.boost=wantB;   // (v12i: once on it stays on to 0.15 MJ - it flickered on and off at 0.3)
     const gA=9.81*TR.G[c.idx];c.spd=Math.min(Math.min(hardT*(wantB?(c.ovt?1.045:1.025):1),soft),c.spd+Math.max(0.3-gA,driveAcc(c.spd,Math.min(1,tg.trc),wantB?PH.Pb:0,(ae===2?0.9:ae===1?0.95:1)*(1-(c.tow||0)))*(c.lf!=null&&race.t<(race.startT||0)+c.react+2.5?c.lf:1)-gA)*dt);}   // (v12i: the boost no longer takes it past the car it follows - it then had to brake back; 11-06: lf - its launch, rollLaunch)
-  else if(c.spd>hardT)c.spd=Math.max(tgt,c.spd-Math.max(1,brakeAcc(c.spd,tg.brk)*(c.spd>hardT+5?1.03:K.brkA)*(c.aiLk>0?0.82:1)+9.81*TR.G[c.idx])*dt);   // a corner, a stopped car, a flag: brakes (closing fast on a car ahead: harder; slope included; a locked wheel brakes less)
+  else if(c.spd>hardT)c.spd=Math.max(tgt,c.spd-Math.max(1,brakeAcc(c.spd,tg.brk)*(c.spd>hardT+5?1.03:K.brkA)*(c.aiLk>0?0.82:1)*(c.ofs&&c.ofs.k==='lock'&&c.ofs.ph==='go'?0.8:1)+9.81*TR.G[c.idx])*dt);   // a corner, a stopped car, a flag: brakes (closing fast on a car ahead: harder; slope included; a locked wheel brakes less)
   else{const lift=4+0.14*c.spd,dA=Math.min(brakeAcc(c.spd,tg.brk)*0.92,Math.max(lift,needA*1.15));if(dA>lift+3)c.braking=true;   // v12i: traffic only: lift off (drag and engine braking, ~1.6 g at 300 km/h),
-    c.spd=Math.max(tgt,c.spd-Math.max(0.5,dA+9.81*TR.G[c.idx])*dt);}                                                         // brakes only as hard as the car ahead needs
+    c.spd=Math.max(tgt,c.spd-Math.max(0.5,dA+9.81*TR.G[c.idx])*dt);}
+  if(sOff){const v=c.spd;c.spd=Math.max(0,v-((sOff.rr||0)+(sOff.rl||0)*Math.max(0,Math.min(1,(60-v)/38)))*Math.max(0.2,Math.min(1,v/15))*dt);}   // the player's off-road rolling resistance (stepPlayer)                                                         // brakes only as hard as the car ahead needs
   if(c.boost)c.ers=Math.max(0,c.ers-0.35*dt);else c.ers=Math.min(ERS_MAX+(c.ovtE||0),c.ers+(c.braking?0.3:0.02)*dt);
   c.latG=c.spd*om;c.lonG=(c.spd-v0)/Math.max(dt,1e-4);c.aS=(c.aS||0)+(c.lonG-(c.aS||0))*Math.min(1,dt*15);   // aS: smoothed, what the cars behind go by
   move(c,dt);barrier(race,c);if(!c.fail)checkPitEntry(race,c);
@@ -1932,10 +1968,10 @@ function standards(race,dt){colResolve(race);
   for(const c of cs){if(!live(c)){c.sR=null;c.dfz=null;continue;}const r=c.isP?c.lat-RLA.lat[c.idx]:(c.lane||0);c.sRv=c.sR==null?0:Math.max(-10,Math.min(10,(c.sRv||0)+((r-c.sR)/Math.max(dt,1e-4)-(c.sRv||0))*Math.min(1,dt*4)));c.sR=r;}   // sR: the AI's chosen offset from its own line (its lane), the player's offset from the racing line (a move must also be one across the road); sRv: how fast that changes (m/s, ~0.25 s smoothing)
   const M=race.colM||(race.colM={}),pk=(a,b)=>Math.min(a.id,b.id)*64+Math.max(a.id,b.id);
   if(race.sess||race.form||race.rc.flag!=='green'||race.t-(race.startT||0)<COL.lateT){for(const c of cs){c.dfz=null;c.offS=false;}return;}
-  for(const y of cs){if(!live(y))continue;const off=Math.abs(y.lat)>TR.HW[y.idx]+1.45,was=y.offS;y.offS=off;if(!off||was||y.spd<20||y.spunT>0||Math.abs(y.slideAng||0)>0.35)continue;   // y has just gone off the road
+  for(const y of cs){if(!live(y))continue;const off=Math.abs(y.lat)>TR.HW[y.idx]+1.45,was=y.offS;y.offS=off;if(!off||was||y.ofs||y.spd<20||y.spunT>0||Math.abs(y.slideAng||0)>0.35)continue;   // y has just gone off the road
     for(const x of cs){if(x===y||!live(x))continue;const g=Math.abs(gapTo(x,y))*STEP,dl=y.lat-x.lat;if(g>STD.ovl||Math.abs(dl)>3.2||Math.sign(y.lat)*dl<=0)continue;   // x alongside, on the track side of y
       if(x.sRv*Math.sign(dl)>=STD.rv&&race.t-(M[pk(x,y)]??-99)>=COL.cool){y.forcedT=race.t;stdPen(race,x,y,'force');}}}   // x moving over into y: no car's width left (contact is judged by colJudge instead)
-  for(const c of cs){if(!live(c)||c.spd<25||c.spunT>0||c.avoid||c.ygb||c.giveBack||c.blue||c.unjam){c.dfz=null;continue;}
+  for(const c of cs){if(!live(c)||c.spd<25||c.spunT>0||c.ofs||c.avoid||c.ygb||c.giveBack||c.blue||c.unjam){c.dfz=null;continue;}
     let o=null,bd=STD.near,ah=false;for(const x of cs){if(x===c||!live(x))continue;const d=gapTo(c,x)*STEP;if(d>0&&d<STD.ahead)ah=true;else if(d<0&&-d<bd){bd=-d;o=x;}}
     if(!o||ah||c.passO!=null||TR.K[c.idx]>=0.004){c.dfz=null;continue;}   // (both moves on the straight: a corner exit drifting out is not a move)
     let z=c.dfz;if(!z||z.id!==o.id||race.t-z.t>6)z=c.dfz={id:o.id,piv:c.sR,pL:c.lat,dir:0,n:0,t:race.t,t0:race.t,b:null};
@@ -2166,7 +2202,7 @@ function raceControl(race,dt){
   if(p.fin==null&&!p.pit){const yz=rc.yellows.find(z=>wrap(p.idx-z.i0)<=z.len);
     const restricted=(rc.flag!=='green'&&race.t-rc.since>2)||(yz&&race.t-yz.since>1)||(rc.noPass&&rc.noPass[p.id]!=null&&p.prog<rc.noPass[p.id]);
     for(const o of race.cars){if(o===p||o.gone)continue;const rel=o.prog-p.prog,st=rel>1.5?1:rel<-1.5?-1:(p.relPrev[o.id]||0);
-      if(restricted&&p.relPrev[o.id]===1&&st===-1&&Math.abs(rel)<20&&!o.pit&&!o.fail&&!o.dnf&&o.fin==null&&!(p.passPen&&p.passPen[o.id]>race.t-20)){
+      if(restricted&&p.relPrev[o.id]===1&&st===-1&&Math.abs(rel)<20&&!o.pit&&!o.fail&&!o.dnf&&!o.ofs&&o.fin==null&&!(p.passPen&&p.passPen[o.id]>race.t-20)){
         (p.passPen=p.passPen||{})[o.id]=race.t;addPen(race,p,5,'illegalPass',{code:o.code,why:rc.flag!=='green'?rc.flag:(yz?'yellow':'restart')});}
       else if(rc.flag==='green'&&!race.sess&&p.relPrev[o.id]===1&&st===-1&&Math.abs(rel)<20&&!o.pit&&!o.fail&&!o.dnf&&o.fin==null&&race.t-(p.offT??-99)<2&&!p.giveBack){   // v12h: the player passed with the wheels off the track
         p.giveBack={ix:race.cars.indexOf(o),code:o.code,until:race.t+15,lap1:p.prog<N};p.gbT=race.t;if(p.ex)p.ex.passed=true;race.EV.push({type:'giveBack',code:o.code,name:o.name});}
