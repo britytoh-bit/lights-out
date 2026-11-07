@@ -1234,7 +1234,7 @@ let PITLOSS=null;function pitLoss(){if(PITLOSS==null){let tr=0;for(let r=0;r<=PI
   PITLOSS=(PIT.Z-PIT.RAMP-PIT.RX)*STEP/(80/3.6)+(PIT.RAMP+PIT.RX)*STEP/32-tr+5+2.6;}return PITLOSS;}
 // AI by difficulty: mistakes, how readily it defends, late braking when passing, how often the team reacts to a rival's stop, how far from the best plan it may pick
 // 11-06 윤택님 「연석도 밟고, 레이트 브레이킹, 방어·공격 운전, 난이도에 다 반영」. dW: line width (m, hard over the kerbs, easy clear of them). brk: how hard it plans to brake (later as it goes up), atkBrk: when attacking a car, brkA: what it then really brakes at. close: how close it sits (m) before pulling out, atkRate: how fast it moves across to pass, passK: how soon it tries again, insK: how much it wants the inside. defFar: how far from the corner it covers (m), defHold: how long (s), defNext: how soon again (s). apex: how far it may miss an apex (m). off: how often a big stop ends off the road (aiOffRoll: a lock-up into the run-off, two wheels off at the exit, a spin)
-const AIK={easy:{err:1.7,def:0.35,late:0.5,react:0.25,noise:10,dW:-0.8,brk:0.8,atkBrk:0.86,brkA:0.92,close:9.5,atkRate:0.9,passK:1.3,insK:0.5,defFar:160,defHold:1.8,defNext:11,apex:1.2,off:0.005},normal:{err:1,def:0.65,late:0.8,react:0.6,noise:5,dW:0,brk:0.9,atkBrk:0.96,brkA:0.92,close:8,atkRate:1.3,passK:1,insK:1,defFar:220,defHold:2.6,defNext:7,apex:0.35,off:0.0032},hard:{err:0.5,def:0.9,late:1,react:0.9,noise:1.5,dW:0.45,brk:0.97,atkBrk:1.02,brkA:1,close:7.4,atkRate:1.9,passK:0.7,insK:1.6,defFar:260,defHold:3.3,defNext:6.5,apex:0.15,off:0.0014}};
+const AIK={easy:{err:1.7,def:0.35,late:0.5,react:0.25,noise:10,dW:-0.8,brk:0.8,atkBrk:0.86,brkA:0.92,close:9.5,atkRate:0.9,passK:1.3,insK:0.5,defFar:160,defHold:1.8,defNext:11,apex:1.2,off:0.005,blkW:3.2},normal:{err:1,def:0.65,late:0.8,react:0.6,noise:5,dW:0,brk:0.9,atkBrk:0.96,brkA:0.92,close:8,atkRate:1.3,passK:1,insK:1,defFar:220,defHold:2.6,defNext:7,apex:0.35,off:0.0032,blkW:2.8},hard:{err:0.5,def:0.9,late:1,react:0.9,noise:1.5,dW:0.45,brk:0.97,atkBrk:1.02,brkA:1,close:7.4,atkRate:1.9,passK:0.7,insK:1.6,defFar:260,defHold:3.3,defNext:6.5,apex:0.15,off:0.0014,blkW:2.5}};   // blkW: how close (m across) a defending car may come to the lane it picked before it picks again
 // lap time lost over a stint against a new soft (1 % of grip is about 0.25 % of a lap, measured on the AI, 11-04); a stint past its life costs a lot
 function stintCost(comp,laps,race,LT){const C=COMP[comp],wl=0.75/(C.life*race.tyreLaps);let s=0;for(let i=0;i<laps;i++)s+=LT*0.25*(1-C.grip*wearF((i+0.5)*wl,C));return s+(laps*wl>0.98?60:0);}
 // one- and two-stop plans from the tyre the car starts on, the stints split by tyre life; the team's noise makes the field differ
@@ -1741,7 +1741,8 @@ function aiWantsPit(race,c){
 function cornerSide(i){const q=wrap(i+Math.round(NEXTC[i]/STEP)+20),a=T[wrap(q-20)],b=T[q];return a[0]*b[1]-a[1]*b[0]>0?1:-1;}
 const AI_NEAR=[],AI_LIMA=HALF-0.9;   // cars near an AI car this step; how far over an AI car may go to make room
 // where a car will be at track index i if it keeps its line and offset (the steering keeps it inside the track); the player: where it is
-const pathLat=(c,i)=>{if(c.isP||c.lane==null||c.pit)return c.lat;   // (v13k: a car merging from the pits still holds its lane from before the stop)
+const pathLat=(c,i)=>{if(c.isP){const d=wrap(i-c.idx);if(!c.latV||d>N/2)return c.lat;const L=TR.HW[i]+0.5;return Math.max(-L,Math.min(L,c.lat+c.latV*Math.min(0.8,d*STEP/Math.max(c.spd,5))));}   // 11-07: the player moving across: where it will be (up to 0.8 s on) - it was taken to stay where it is, so a defending move was seen late
+  if(c.lane==null||c.pit)return c.lat;   // (v13k: a car merging from the pits still holds its lane from before the stop)
 const b=(c.rlw||0)*AL.lat[i],L=Math.max(TR.HW[i]-0.9,Math.abs(b));return Math.max(-L,Math.min(L,b+c.lane));};
 // how far apart sideways the two paths are where car c would catch car o (o dp samples ahead): two parallel lines can meet at a corner
 const meetDl=(c,o,dp)=>{const tm=Math.min(1.6,Math.max(0,dp*STEP-4)/Math.max(1,c.spd-o.spd)),m=wrap(o.idx+Math.round(o.spd*tm/STEP));return Math.abs(pathLat(o,m)-pathLat(c,m));};
@@ -1892,7 +1893,8 @@ function stepAI(race,c,dt){
   c.ygb=!!lead&&!!lead.isP&&!!lead.giveBack&&race.cars[lead.giveBack.ix]===c;   // 11-05: the player is giving this car its place back: it goes by at once (it used to settle in 9 m behind, and the player took the penalty)
   if(lead&&!(lead===obst&&oSide!=null)){const gm=ld*STEP+((lead.al||0)-(c.al||0)),cl=c.spd-lead.spd,atk=c.passO===lead.id&&!neutral;   // atk: pulling out to pass it - closer, and with some speed in hand
     soft=Math.min(soft,c.ygb?lead.spd+Math.max(-2,Math.min(6,0.5*(gm-6))):lead.spd+Math.max(-3,Math.min(atk?3:2.5,0.35*(gm-(atk?K.close:9)))));
-    needA=cl>0?cl*cl/(2*Math.max(0.3,gm-6.7)):0;if(!neutral&&(c.ygb||race.t>c.passT)&&!c.pitReq&&!c.fail&&lead!==sc){const t=pickSide(lead,c.ygb?2.8:3.4);if(t!=null)c.laneT=t;else c.laneT=startPh?stFun(c,race,c.lat-b0):c.laneT*0.5;c.passT=race.t+(c.ps?2.4-1.6*c.ps.agg:1.6)*K.passK;}}   // no room to pass: fall in behind, on the line
+    needA=cl>0?cl*cl/(2*Math.max(0.3,gm-6.7)):0;const blk=c.passO===lead.id&&!c.ygb&&gm>2.7&&race.t>(c.blkT||0)&&Math.abs(relOf(lead)-c.laneT)<K.blkW;if(blk)c.blkT=race.t+0.6;   // 11-07 윤택님 「방어라인 잡으면 그냥 박아버리네」: the car it is passing has moved into the lane it chose (it is less than half a car alongside): pick again now - the other side (a crossover) or fall in behind. It used to wait for passT (1.6-3 s) still aiming at that car (AIK blkW: easy gives way sooner)
+    if(!neutral&&(c.ygb||blk||race.t>c.passT)&&!c.pitReq&&!c.fail&&lead!==sc){const t=pickSide(lead,c.ygb?2.8:3.4);if(t!=null)c.laneT=t;else c.laneT=startPh?stFun(c,race,c.lat-b0):c.laneT*0.5;c.passT=race.t+(c.ps?2.4-1.6*c.ps.agg:1.6)*K.passK;}}   // no room to pass: fall in behind, on the line
   else if(startPh&&!obst&&!c.pitReq&&!c.fail&&!(c.defHold>race.t))c.laneT=stFun(c,race,c.laneT);
   else if(!obst&&race.t>c.passT&&!c.pitReq&&!c.fail&&c.rlw>0.5&&!(c.defHold>race.t)&&!(c.dfz&&c.dfz.n>=1)){c.laneT*=Math.exp(-0.8*dt);if(!neutral&&c.rnd()<0.002&&Math.abs(c.laneT)<0.3){const t=(c.rnd()*2-1)*1.0;if(freeAt(t))c.laneT=t;}}   // (off the start, on plain lanes, a car keeps its lane: the field no longer funnels into the middle)   // back onto the line after a pass or the start; now and then a slightly different line
   if(threat&&!c.fail&&!c.pitReq){const s=c.lat>=threat.lat?1:-1,tr=relOf(threat);let t=tr+s*3.0;if(Math.abs(b0+t)>LIMA||!freeAt(t))t=tr-s*3.0;if(Math.abs(b0+t)<=LIMA&&freeAt(t))c.laneT=t;}   // a car much faster from behind: get out of its way
@@ -2334,7 +2336,7 @@ function formStep(race,dt,inp){const F=race.form,rc=race.rc;if(!F||F.done)return
     if(c.isP&&!c.fAuto){c.stillT=Math.abs(c.spd)<2?(c.stillT||0)+dt:0;
       const idle=c.stillT>(F.kind==='start'?Math.max(6,0.5*c.fk+8-F.t+6):8)&&F.t>0.5*c.fk+6;   // not moving off the grid / stopped on track: line the car up automatically
       if(c.fTgt-c.prog<FORM_AUTO||F.autoP||idle){c.fAuto=true;c.spd=Math.max(0,c.spd);c.lane=c.laneT=c.lat;c.rlw=0;c.va=c.a;c.vx=c.spd;c.vy=0;c.r=0;race.EV.push({type:'formAuto',idle});}
-      else{stepPlayer(race,c,dt,inp);continue;}}
+      else{const l0=c.lat;stepPlayer(race,c,dt,inp);c.latV=(c.latV||0)+(Math.max(-8,Math.min(8,(c.lat-l0)/Math.max(dt,1e-4)))-(c.latV||0))*Math.min(1,dt*8);continue;}}
     formAI(race,c,dt);}
   collide(race);
   const left=race.cars.some(c=>c.fk!=null&&!c.parked&&!c.gone&&!c.dnf);
