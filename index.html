@@ -5778,7 +5778,7 @@ function audioUpdate(dt){
   SND.T+=dt;
   const V=engineVoices();SND.eng=V.eng;SND.vox=V.vox;
   const pl=race.player,sp=Math.abs(pl.spd),auto=!!pl.pit||pl.fin!=null,pLim=!!pl.pit&&(pl.pit.state==='in'||pl.pit.state==='out')&&zoneR(pl.idx)>=PIT.RAMP&&zoneR(pl.idx)<PIT.Z-PIT.RX,   // v11f: on the speed-limited stretch of the pit lane
-    thr=(auto?(pl.pit&&pl.pit.state!=='stop'?(!pLim&&pl.thr!=null&&pl.pit.state==='in'?pl.thr:!pLim&&pl.thr!=null&&(pl.pit.state==='out'||pl.pit.state==='join')?Math.max(0.45,pl.thr):0.45):0):(state==='countdown'?(key.gas?1:0):(pl.thr!=null?pl.thr:(key.gas?1:0))));
+    thr=(auto?(pl.pit&&pl.pit.state!=='stop'?(!pLim&&pl.thr!=null&&pl.pit.state==='in'?pl.thr:!pLim&&pl.thr!=null&&(pl.pit.state==='out'||pl.pit.state==='join')?Math.max(0.45,pl.thr):0.45):0):(state==='countdown'?((isTouch?key.gridGas:key.gas)?1:0):(pl.thr!=null?pl.thr:(key.gas?1:0))));
   const e=SND.eng,inCar=!outCam(CAMS[camMode])&&!key.look;let rpm=curRpm;
   if(pl.pit&&sp>0.3&&pl.pit.state!=='stop')rpm=Math.max(rpm,8000);   // slow in the pit lane the clutch holds the revs (sound only)
   if(pl.spinR&&thr>0.5)rpm=Math.min(12700,rpm*1.1);   // wheelspin: revs flare
@@ -5832,7 +5832,7 @@ function audioUpdate(dt){
     const snap=v.sw===1;v.sw=0;v.fade=Math.min(1,(v.fade||0)+dt/0.15);if(snap)EngineSound.setLitePu(v,TEAM_PU[o.c.team]);
     const c=o.c,d=Math.max(1.5,o.d),ux=-o.dx/d,uz=-o.dz/d,cvx=Math.cos(c.a)*c.spd,cvz=Math.sin(c.a)*c.spd;
     const vs=cvx*ux+cvz*uz,vl=-(pvx*ux+pvz*uz),dop=Math.max(0.6,Math.min(1.6,(343+vl)/(343-vs)));
-    const kmh=Math.abs(c.spd)*3.6,[,rr]=gearRpm(kmh),rp=c.spd<1?(race.t<(c.react0??c.react)?12400+Math.sin(SND.T*7.3+i*1.7)*420+Math.sin(SND.T*23+i*2.3)*180:3900):rr;
+    const kmh=Math.abs(c.spd)*3.6,[,rr]=gearRpm(kmh),rp=c.spd<1?(state!=='countdown'&&race.t<(c.react0??c.react)?12400+Math.sin(SND.T*7.3+i*1.7)*420+Math.sin(SND.T*23+i*2.3)*180:3900):rr;
     const att=Math.pow(Math.min(1,7/d),1.15)*v.fade*kA,tcv=snap?0.002:0.03;
     {const hvc=c.braking&&c.spd>22&&!c.pit,cl=hvc?0.6:c.braking?0.05:(c.pit?0.5:(c.spd<1&&race.t<(c.react0??c.react)?0.8:1)),rq=hvc?Math.max(rp,10200):rp;EngineSound.setLite(v,t,rq,dop,0.6*att*(0.4+0.6*cl)*(inCar?0.75:1)*EngineSound.P.vox,600+1700*Math.min(1,20/d)+cl*700,tcv);}
     if(v.pan){const right=(rx*o.dx+rz*o.dz)/d;v.pan.pan.setTargetAtTime(Math.max(-0.9,Math.min(0.9,right)),t,snap?0.002:0.06);}});
@@ -6215,7 +6215,7 @@ function mobileInput(dt){if(!isTouch)return;
   key.ers=touchErs||autoErs();
   const tGas=touchGas||tapGas,tBrk0=touchBrake||tapBrk,tBrk=tBrk0&&!(tGas&&pedLast==='gas');tapGas=tapBrk=false;   // 11-01: a tap shorter than a frame still reaches the car once; 11-04: both pedals down, the one pressed last counts (gas was dead until the brake finger had lifted)
   key.quickPed=true;
-  if(state==='countdown'){key.gas=autoGas||tGas;key.brake=true;}   // held on the grid, launches at lights out
+  if(state==='countdown'){key.gas=autoGas||tGas;key.gridGas=tGas;key.brake=true;}   // held on the grid, launches at lights out
   else if(state==='race'){key.gas=tBrk?false:(autoGas?true:tGas);key.brake=tBrk;}
   if(steerMode==='tilt')$('tiltDot').style.left=(50+tiltAxis*46)+'%';}
 // 0 = 손가락 이동이 그대로 조향 (예전), 1 = 중앙이 가장 둔함. 미세 조정이 어려우면 올리고, 둔하면 내린다.
@@ -6545,7 +6545,8 @@ function drawHUD(dt){
   if(kmh<12)SND.launch=1;else if(kmh>=90||g>1)SND.launch=0;   // v11f: a launch starts from (almost) a standstill - a hairpin exit is not one
   if(SND.launch&&g===1&&(pl.thr||0)>0.3&&kmh<90&&!pl.pit)rpm=Math.max(rpm,8000+kmh*15);   // 11-05 윤택님: held at 12 000 on the grid, the revs fall to 8000 as the clutch bites and climb from there (the slip ends near 85 km/h, where first gear takes over)
   if(state==='countdown'){gs='N';
-    if(key.gas){SND.holdT=(SND.holdT||0)-dt;if(SND.holdT<=0){SND.holdT=0.12+Math.random()*0.3;SND.holdTg=11850+Math.random()*300;}   // 11-05 윤택님: the pedal holds the revs at 12 000 on the grid, wandering a little
+    if(isTouch?key.gridGas:key.gas){   // 11-08: the finger on the pedal, not the auto throttle - off it the engine idles
+     SND.holdT=(SND.holdT||0)-dt;if(SND.holdT<=0){SND.holdT=0.12+Math.random()*0.3;SND.holdTg=11850+Math.random()*300;}   // 11-05 윤택님: the pedal holds the revs at 12 000 on the grid, wandering a little
       SND.hold=(SND.hold||12000)+((SND.holdTg||12400)-(SND.hold||12000))*Math.min(1,dt*9);rpm=SND.hold+(Math.random()-0.5)*80;}
     else rpm=3900;}
   SND.lt=state==='countdown'?0:(SND.lt==null?9:SND.lt+dt);curRpm+=(rpm-curRpm)*Math.min(1,dt*(rpm<curRpm-250?(SND.lt<0.45?9:38):18));curGear=gs;   // v11e: the revs fall fast on an upshift (11-04: 65-100 ms from peak to trough, measured)

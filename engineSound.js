@@ -98,8 +98,8 @@ const EngineSound=(()=>{
   // o: {t, dt, rpm (the game's), thr 0..1, gear, inCar, dop (doppler), grid (on the start lights), pitLim}
   function update(v,o){const S=v.S,M=MODE,t=o.t,dt=o.dt;
     const T0=(P.rec||P.old?TOP:SYNTOP)[v.pu]||12000;let r=mapRpm(o.rpm,v.pu),th=o.thr;
-    if(o.grid){   // the revs held high on the grid, wandering; they do not wait for the pedal
-      if(!S.onGrid){S.onGrid=true;S.gT=0;S.gR=lerp(P.gridLo,P.gridHi,Math.random());}
+    if(o.grid&&o.thr>0.5){   // the revs held high on the grid, wandering - only while the pedal is down (11-08 윤택님: off the pedal it idles, the game's 3900)
+      if(!S.onGrid){S.onGrid=true;S.gT=0;S.gR=o.rpm;}
       S.gT-=dt;if(S.gT<=0){S.gT=0.3+Math.random()*0.5;S.gTg=lerp(P.gridLo,P.gridHi,Math.random());}
       S.gR+=(S.gTg-S.gR)*Math.min(1,dt*9);r=mapRpm(S.gR,v.pu);th=Math.max(th,0.65);}
     else if(S.onGrid)S.onGrid=false;   // lights out: the game's revs (the launch: down to 8000 as the clutch bites, then up through first) take over
