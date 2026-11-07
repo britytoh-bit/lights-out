@@ -1797,6 +1797,12 @@ function aiOffSteer(race,c,dt,tl,b0){const o=c.ofs,i=c.idx,hw=TR.HW[i],a=c.lat*o
 // takes only AI_OFFP of that difference, eased in and out at 1 per second. Not for every car off its line: cars alongside then ran wide into each other
 // (contacts +0.56 a race over 72 simulated races).
 const AI_OFFP=0.3,AI_OFFG=25;
+// 11-07 윤택님 「스타트에 가운데가 뚫려 있어」: off the grid the cars held their columns (±3.2 m) for up to 8 s - the middle stayed empty. Now from
+// t0 s after its launch each column closes in over t1 s to ±m from the middle (the cars are staggered 8 m, so the rows zip together, slipstreaming the
+// car diagonally ahead). Only ever inwards: no car is sent back out. blk: the most one covering move takes it across. rate: how fast the lane follows
+// there (0.9 elsewhere: at that the field was still ~2.5 m out at 5 s), vmax: at most that many m/s across off the grid (a pass attempt there too)
+const ST_F={t0:0.5,t1:2.0,m:1.7,blk:1.6,rate:1.5,vmax:2.2};
+function stFun(c,race,l){const w=Math.max(0,Math.min(1,(race.t-(race.startT||0)-c.react-ST_F.t0)/ST_F.t1)),m=3.2-(3.2-ST_F.m)*w;return Math.abs(l)>m?Math.sign(l)*m:l;}
 function stepAI(race,c,dt){
   if(c.gone)return;
   trackInfo(c);
@@ -1829,7 +1835,7 @@ function stepAI(race,c,dt){
   else if(c.giveBack&&!c.fail&&!c.pitReq){const o=race.cars[c.giveBack.ix];if(o){const sd=o.lat>c.lat?-1:1;c.laneT=sd*lim-b0;}}   // v12h: giving back a place taken off the track: move over
   if(!c.fail){if(c.avHi!=null&&c.laneT>c.avHi-b0)c.laneT=c.avHi-b0;if(c.avLo!=null&&c.laneT<c.avLo-b0)c.laneT=c.avLo-b0;   // a car alongside: leave it room, never steer into it
    if(c.avHi!=null&&c.avLo!=null)c.laneT=(c.avHi+c.avLo)/2-b0;c.laneT=Math.max(-LA0-b0,Math.min(LA0-b0,c.laneT));}   // (a broken-down car still pulls off the track)
-  {const atkMv=!c.fail&&!c.avoid&&!c.ygb&&!(c.defHold>race.t)&&c.passO!=null&&!neutral;let dL=(c.laneT-c.lane)*Math.min(1,(c.fail?1.5:c.avoid?2.6:c.ygb?2.2:c.blue&&race.sess?2.4:c.defHold>race.t?1.8:atkMv?K.atkRate:0.9)*dt);if(atkMv||(!c.fail&&!c.avoid&&!c.ygb&&c.defHold>race.t))dL=Math.max(-3*dt,Math.min(3*dt,dL));c.lane+=dL;}   // (moving out to pass or to cover: at most 3 m/s across, faster it swiped the car beside it)
+  {const atkMv=!c.fail&&!c.avoid&&!c.ygb&&!(c.defHold>race.t)&&c.passO!=null&&!neutral;let dL=(c.laneT-c.lane)*Math.min(1,(c.fail?1.5:c.avoid?2.6:c.ygb?2.2:c.blue&&race.sess?2.4:c.defHold>race.t?1.8:atkMv?K.atkRate:startPh?ST_F.rate:0.9)*dt);if(atkMv||(!c.fail&&!c.avoid&&!c.ygb&&c.defHold>race.t))dL=Math.max(-3*dt,Math.min(3*dt,dL));if(startPh&&!c.fail)dL=Math.max(-ST_F.vmax*dt,Math.min(ST_F.vmax*dt,dL));c.lane+=dL;}   // (moving out to pass or to cover: at most 3 m/s across, faster it swiped the car beside it)
   const la=4+c.spd*0.35,li=wrap(c.idx+Math.round(la/STEP)),p=P[li],tt=T[li],bl=c.rlw*AL.lat[li],LAl=Math.max(Math.min(LIMA,TR.HW[li]-0.9),Math.abs(bl));
   let tl=c.fail?bl+c.lane:Math.max(-LAl,Math.min(LAl,bl+c.lane));
   const creep=!c.fail&&!c.pit&&c.creepT>race.t&&!!c.obstP&&!c.obstP.gone;   // v13: still stuck 4 s on: creep past it at walking pace, a car's width clear
@@ -1886,9 +1892,13 @@ function stepAI(race,c,dt){
   c.ygb=!!lead&&!!lead.isP&&!!lead.giveBack&&race.cars[lead.giveBack.ix]===c;   // 11-05: the player is giving this car its place back: it goes by at once (it used to settle in 9 m behind, and the player took the penalty)
   if(lead&&!(lead===obst&&oSide!=null)){const gm=ld*STEP+((lead.al||0)-(c.al||0)),cl=c.spd-lead.spd,atk=c.passO===lead.id&&!neutral;   // atk: pulling out to pass it - closer, and with some speed in hand
     soft=Math.min(soft,c.ygb?lead.spd+Math.max(-2,Math.min(6,0.5*(gm-6))):lead.spd+Math.max(-3,Math.min(atk?3:2.5,0.35*(gm-(atk?K.close:9)))));
-    needA=cl>0?cl*cl/(2*Math.max(0.3,gm-6.7)):0;if(!neutral&&(c.ygb||race.t>c.passT)&&!c.pitReq&&!c.fail&&lead!==sc){const t=pickSide(lead,c.ygb?2.8:3.4);if(t!=null)c.laneT=t;else c.laneT=startPh?c.lat-b0:c.laneT*0.5;c.passT=race.t+(c.ps?2.4-1.6*c.ps.agg:1.6)*K.passK;}}   // no room to pass: fall in behind, on the line
+    needA=cl>0?cl*cl/(2*Math.max(0.3,gm-6.7)):0;if(!neutral&&(c.ygb||race.t>c.passT)&&!c.pitReq&&!c.fail&&lead!==sc){const t=pickSide(lead,c.ygb?2.8:3.4);if(t!=null)c.laneT=t;else c.laneT=startPh?stFun(c,race,c.lat-b0):c.laneT*0.5;c.passT=race.t+(c.ps?2.4-1.6*c.ps.agg:1.6)*K.passK;}}   // no room to pass: fall in behind, on the line
+  else if(startPh&&!obst&&!c.pitReq&&!c.fail&&!(c.defHold>race.t))c.laneT=stFun(c,race,c.laneT);
   else if(!obst&&race.t>c.passT&&!c.pitReq&&!c.fail&&c.rlw>0.5&&!(c.defHold>race.t)&&!(c.dfz&&c.dfz.n>=1)){c.laneT*=Math.exp(-0.8*dt);if(!neutral&&c.rnd()<0.002&&Math.abs(c.laneT)<0.3){const t=(c.rnd()*2-1)*1.0;if(freeAt(t))c.laneT=t;}}   // (off the start, on plain lanes, a car keeps its lane: the field no longer funnels into the middle)   // back onto the line after a pass or the start; now and then a slightly different line
   if(threat&&!c.fail&&!c.pitReq){const s=c.lat>=threat.lat?1:-1,tr=relOf(threat);let t=tr+s*3.0;if(Math.abs(b0+t)>LIMA||!freeAt(t))t=tr-s*3.0;if(Math.abs(b0+t)<=LIMA&&freeAt(t))c.laneT=t;}   // a car much faster from behind: get out of its way
+  // 11-07: off the grid, a car coming up the middle beside it (closing, 3-12 m back): the car ahead covers it - one move across into its path, once a start
+  if(startPh&&atk&&c.ps&&!c.stD&&!threat&&!c.fail&&!c.pitReq&&!obst&&race.t>(race.startT||0)+c.react+0.6&&atkD<-1.5&&atkD>-6&&atk.spd>c.spd+0.5){const sd=Math.sign(atk.lat-c.lat),gp=Math.abs(atk.lat-c.lat);
+    if(sd===-Math.sign(c.lat)&&gp>1.2){c.stD=true;if(c.rnd()<K.def*(0.5+0.5*c.ps.def)){const t=c.lat+sd*Math.min(ST_F.blk,gp-0.6)-b0;if(clearTo(t,atk)){c.laneT=t;c.defHold=race.t+K.defHold;c.defN++;c.stBlk=true;}}}}
   // 11-04: defending: a car attacking from behind into a corner: one move to the inside, before it is alongside, once a straight
   if(atk&&c.ps&&!threat&&!neutral&&!startPh&&!c.fail&&!c.pitReq&&!c.blue&&!c.giveBack&&!obst&&!c.braking&&!(c.dfz&&c.dfz.n>=1)&&race.t>c.defNext&&NEXTC[c.idx]<K.defFar&&NEXTC[c.idx]>40&&atkD<-1.5){c.defNext=race.t+K.defNext;
     if(c.rnd()<K.def*(0.5+0.5*c.ps.def)){const t=cornerSide(c.idx)*lim*0.75-b0;if(clearTo(t,atk)){c.laneT=t;c.defHold=race.t+K.defHold;c.defN++;}}}
@@ -2378,7 +2388,7 @@ function formPark(race,c){const s=c.fSlot;c.idx=s.idx;c.x=s.x;c.z=s.z;c.a=s.a;c.
   if(c.isP)race.EV.push({type:'parked'});}
 // everyone is in the grid boxes: back to racing rules for the start (the start lights follow)
 function formEnd(race){const F=race.form,rc=race.rc;if(!F)return;
-  for(const c of race.cars){c.parked=false;c.fAuto=false;c.fOut=false;c.fk=null;c.fGo=false;c.passT=0;c.blue=null;c.ex=null;c.lane=c.laneT=c.lat;c.rlw=0;c.stEnd=false;c.passO=null;}
+  for(const c of race.cars){c.parked=false;c.fAuto=false;c.fOut=false;c.fk=null;c.fGo=false;c.passT=0;c.blue=null;c.ex=null;c.lane=c.laneT=c.lat;c.rlw=0;c.stEnd=false;c.passO=null;c.stD=false;c.stBlk=false;}
   rc.flag='green';rc.sc=null;rc.vsc=null;rc.noPass=null;rc.go=false;rc.yellows=[];rc.redFast=false;
   if(F.kind==='start'){race.t=0;for(const c of race.cars){c.lapStart=0;c.crossT=-99;}}
   else{rc.red=null;race.restart=true;for(const c of race.cars)c.lapInv=true;}
@@ -5926,20 +5936,20 @@ const LIV_PRESETS=[
  {name:'프리즘',L:{D:'#1b1c21',W:null,wt:null,K:'#0c0d10',KC:1,A:'#f4f4f6',M:'prism',cut:'split',fin:'matte',spine:1}}];    // matte black and carbon, a spectrum band
 let LED=null;   // {ti, L, num, name} while the editor is open
 function leCur(){return LED;}
-function leOpen(){const ti=teamSel,c=LIVC[ti];LED={ti,L:Object.assign({},LIV[ti],{spine:LIV[ti].spine?1:0,wt:LIV[ti].wt||'none'}),num:(c&&c.num)||ti*2+2,name:(c&&c.name)||''};
+function leOpen(){const ti=teamSel,c=LIVC[ti];LED={ti,L:Object.assign({},LIV[ti],{spine:LIV[ti].spine?1:0,wt:LIV[ti].wt||'none'}),num:(c&&c.num)||ti*2+2,name:(c&&c.name)||''};LED.L0=JSON.stringify(LED.L);LED.C0=c&&c.L||null;   // 11-07: the paint as opened - a number or name change alone keeps it (the team art 'tbl' was saved as null: plain cars)
   $('leTeam').textContent=TEAMS[ti].name;$('leNum').value=LED.num;$('leName').value=LED.name;$('leName').placeholder=TEAMS0[ti].short;leSync();$('menu').hidden=true;$('livEd').hidden=false;document.body.classList.add('lived');}
 function leClose(){mDraw=30;$('livEd').hidden=true;$('menu').hidden=false;document.body.classList.remove('lived');LED=null;if(camera.clearViewOffset)camera.clearViewOffset();}
 function leSync(){if(!LED)return;const L=LED.L;
   document.querySelectorAll('#livEd .sws').forEach(d=>{const k=d.dataset.k,v=k==='W'?(L.W||'none'):L[k];d.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v?'true':'false'));const inp=d.querySelector('input');if(inp&&v&&v!=='none')inp.value=v;});
   document.querySelectorAll('#lePre button').forEach(b=>{const P=LIV_PRESETS[+b.dataset.p].L;b.setAttribute('aria-pressed',P.D===L.D&&P.A===L.A&&P.M===L.M&&P.cut===L.cut&&P.fin===L.fin?'true':'false');});
   document.querySelectorAll('#livEd .lseg').forEach(d=>{const k=d.dataset.k,v=String(k==='wt'?(L.W?L.wt||'engine':'none'):k==='K'&&L.KC?'carbon':L[k]);d.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v?'true':'false'));});}
-let leT=0;function leApply(){if(!LED)return;const {ti,L}=LED;
+let leT=0;function leApply(){if(!LED)return;const {ti,L}=LED,painted=JSON.stringify(L)!==LED.L0;
   // wing colours follow the choices: front flaps in the accent colour (or black on a light car), endplates in the main colour
-  L.flap=L.wt==='nose'&&L.W?L.W:L.D;L.endp=L.D;L.rflap=L.W&&L.wt!=='none'?L.W:(lumOf(L.D)>0.8?L.A:L.D);
+  if(painted){L.flap=L.wt==='nose'&&L.W?L.W:L.D;L.endp=L.D;L.rflap=L.W&&L.wt!=='none'?L.W:(lumOf(L.D)>0.8?L.A:L.D);}
   const n=Math.round(+$('leNum').value)||0,used=new Set(TEAMS.flatMap((t,i)=>[i*2+2,i*2+3]).filter(x=>x!==ti*2+2));
   let msg='';if(n>=1&&n<=99&&!used.has(n))LED.num=n;else if($('leNum').value!=='')msg='번호는 1~99 중 다른 차가 쓰지 않는 번호만 돼요.';
   LED.name=($('leName').value||'').toUpperCase().replace(/[^A-Z0-9 \-]/g,'').slice(0,10).trim();$('leMsg').textContent=msg;
-  LIVC[ti]={L:{D:L.D,W:L.wt==='none'?null:L.W,wt:L.wt==='none'?null:L.wt,K:L.K,KC:L.KC?1:0,A:L.A,M:L.M,cut:L.cut,fin:L.fin,spine:+L.spine,flap:L.flap,endp:L.endp,rflap:L.rflap,art:L.art==='cobalt'?'cobalt':null},num:LED.num,name:LED.name};
+  LIVC[ti]=!painted?Object.assign(LED.C0?{L:LED.C0}:{},{num:LED.num,name:LED.name}):{L:{D:L.D,W:L.wt==='none'?null:L.W,wt:L.wt==='none'?null:L.wt,K:L.K,KC:L.KC?1:0,A:L.A,M:L.M,cut:L.cut,fin:L.fin,spine:+L.spine,flap:L.flap,endp:L.endp,rflap:L.rflap,art:L.art==='cobalt'?'cobalt':null},num:LED.num,name:LED.name};
   saveLS('lightsout3d-liv',JSON.stringify(LIVC));applyLivData(ti);
   clearTimeout(leT);leT=setTimeout(()=>{dropTeamMats(ti);if(state==='menu')setupRace();refreshTeamButtons();},120);}
 function refreshTeamButtons(){document.querySelectorAll('#teamSel button').forEach(b=>{const t=TEAMS[+b.dataset.v],sw=b.querySelector('.sw');if(sw)sw.style.background=`linear-gradient(90deg,${t.p} 0 60%,${t.s} 60%)`;});}
@@ -7433,6 +7443,13 @@ function bumpy(i){return fbm(i/40,3.3,N/40,2,61);}
 // v12f: vertical curvature of the road (1/m; > 0 at the bottom of a dip), smoothed over ~20 m
 let VKA=null;function vkAt(i){if(!VKA){VKA=new Float32Array(N);const H=TR.H,d=3,raw=new Float32Array(N);for(let j=0;j<N;j++)raw[j]=(H[wrap(j-d)]-2*H[j]+H[wrap(j+d)])/((d*STEP)*(d*STEP));
     for(let j=0;j<N;j++){let s=0;for(let k=-4;k<=4;k++)s+=raw[wrap(j+k)];VKA[j]=s/9;}}return VKA[i];}
+// 11-07 윤택님 「플랫스팟 불 튀기는 것도 종종」: the load term above alone gave bursts of a frame or two (about one spark each - nothing to see). Now a
+// high load (pll over thr: fast, a bump, a dip) now and then starts a shower of the floor's skid blocks: t0..t0+t1 s at rate a second, at most one per
+// car every cd s, none while the pool is busy (live > cap) - the same 700-point pool and draw call, nothing new to upload
+const SPKS={thr:0.95,k:1.6,t0:0.25,t1:0.35,rate:170,cd:2.5,cap:420,sz:0.22};   // sz: a shower's points are larger (0.07 m was a pixel or two on a phone 20 m back)
+function skidShower(c,sp,pll,dt){c.spkC=(c.spkC||0)-dt;
+  if(!(c.spkT>0)){if(sp<45||c.spkC>0||pll<=SPKS.thr||Math.random()>=dt*SPKS.k*(pll-SPKS.thr))return 0;c.spkT=SPKS.t0+SPKS.t1*Math.random();c.spkC=SPKS.cd+c.spkT;}
+  c.spkT-=dt;return SPK&&SPK.live>SPKS.cap?0:SPKS.rate*(quality==='low'?0.5:1);}
 function particles(dt){
   if(!SPK||!race)return;
   if(state==='race'||state==='done'){
@@ -7446,9 +7463,9 @@ function particles(dt){
       // speed; less with the rear wing open), a bump, and a compression (the bottom of a dip: speed^2 x the road's vertical curvature, as at
       // Eau Rouge) - so the sparks come at the highest speeds and in the dips; plus kerbs at speed and the nose under hard braking
       const dwl=PH.kD*sp*sp/(PH.m*9.81)*(c.aeroOpen===2?0.75:1),bmp=Math.max(0,Math.min(1,(bumpy(c.idx)-0.4)/0.4)),pll=0.75*dwl*(0.6+0.8*bmp)+Math.max(0,sp*sp*vkAt(c.idx)/9.81);
-      let rate=0;if(sp>45&&pll>1.5)rate+=Math.min(140,(pll-1.5)*160);if(onKerb&&sp>25)rate+=70;if(c.braking&&sp>70&&PROF[c.idx]>PROF[wrap(c.idx+8)]+3)rate+=35;
+      let rate=0;if(sp>45&&pll>1.5)rate+=Math.min(140,(pll-1.5)*160);rate+=skidShower(c,sp,pll,dt);if(onKerb&&sp>25)rate+=70;if(c.braking&&sp>70&&PROF[c.idx]>PROF[wrap(c.idx+8)]+3)rate+=35;
       let n=rate*dt;while(n>0){if(Math.random()<n){const lx=-2.05-Math.random()*0.2,lz=(Math.random()-0.5)*0.6;
-          emit(SPK,c.x+ca*lx-sa*lz,0.06,c.z+sa*lx+ca*lz,ca*c.spd*0.5+(Math.random()-0.5)*4,1+Math.random()*2.5,sa*c.spd*0.5+(Math.random()-0.5)*4,0.22+Math.random()*0.3,0.07+Math.random()*0.05,0,1,1,0.75+Math.random()*0.25,0.4);}n-=1;}
+          emit(SPK,c.x+ca*lx-sa*lz,0.06,c.z+sa*lx+ca*lz,ca*c.spd*0.5+(Math.random()-0.5)*4,1+Math.random()*2.5,sa*c.spd*0.5+(Math.random()-0.5)*4,0.22+Math.random()*0.3,(c.spkT>0?SPKS.sz:0.07)+Math.random()*0.05,0,1,1,0.75+Math.random()*0.25,0.4);}n-=1;}
       // tyre smoke (under/oversteer, lockups) and dust off track
       // v12h: tyre smoke per wheel: a locked wheel pours out white-blue smoke (a thick puff the moment it locks) - the player's and the AI's;
       // a scrubbing or spinning tyre a lighter haze (the player's)
