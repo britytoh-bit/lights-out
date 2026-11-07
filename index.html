@@ -4638,7 +4638,9 @@ const SPONSORS=[
   {n:'TELVORA',s:'MOBILE',bg:'#ff6a13',fg:'#ffffff',ac:'#ffffff',em:'arcs'},{n:'ZEPHYRA',s:'AIRWAYS',bg:'#0d2340',fg:'#ffffff',ac:'#d6a84a',em:'wing'},
   {n:'PYRRA',s:'FUELS',bg:'#ffd200',fg:'#161616',ac:'#e4002b',em:'flame'},{n:'CRESTWAVE',s:'BANK',bg:'#0f3d2e',fg:'#ffffff',ac:'#7fd6a4',em:'wave'},
   {n:'TEMPORIS',s:'TIMING',bg:'#111111',fg:'#e9d9a6',ac:'#e9d9a6',em:'dial',serif:true},{n:'VOLTARA',s:'BATTERIES',bg:'#ffffff',fg:'#141414',ac:'#22b24c',em:'batt'},
-  {n:'KORVANA',s:'COLA',bg:'#b0001e',fg:'#ffffff',ac:'#ffffff',em:'drop'},{n:'QUASARLINK',s:'DATA',bg:'#141414',fg:'#ffffff',ac:'#ff2fa0',em:'star'}];
+  {n:'KORVANA',s:'COLA',bg:'#b0001e',fg:'#ffffff',ac:'#ffffff',em:'drop'},{n:'QUASARLINK',s:'DATA',bg:'#141414',fg:'#ffffff',ac:'#ff2fa0',em:'star'},
+  {n:'KESTRALUX',s:'LIGHTING',bg:'#14202b',fg:'#ffffff',ac:'#ffb000',em:'star'},{n:'MIRANZO',s:'COFFEE',bg:'#3b2416',fg:'#f3e6d0',ac:'#d9a066',em:'drop'},
+  {n:'BRAXELL',s:'TOOLS',bg:'#f2f2f2',fg:'#1a1a1a',ac:'#e4002b',em:'chev'},{n:'NIMBORA',s:'HOSTING',bg:'#102a43',fg:'#ffffff',ac:'#5ad1ff',em:'arcs'}];   // 11-07: four more (the 3D car's decals)
 // per team: [title (engine cover, rear wing), sidepods, small (nose, endplates), halo, and two more minor partners filling the gaps on the body (v13g)]
 const TEAM_SP=[[0,2,11,5,7,9],[8,5,9,2,0,6],[1,10,6,0,3,8],[2,7,4,9,11,1],[9,3,0,11,5,8],[4,3,6,1,10,2],[5,0,7,10,2,9],[6,1,8,4,0,11],[3,11,5,7,1,4],[11,4,10,3,6,0],[7,8,2,6,5,10]];   // v12j: a fourth partner (halo band and the extra body decals)
 function drawEmblem(g,em,x,y,s,c){g.save();g.translate(x,y);g.scale(s,s);g.fillStyle=c;g.strokeStyle=c;g.lineJoin='round';g.lineCap='round';
@@ -4956,6 +4958,69 @@ function glbMats(kit,ti){kit.teamCache=kit.teamCache||{};const tc=kit.teamCache[
   const L=LIV[ti],Phys=THREE.MeshPhysicalMaterial||THREE.MeshStandardMaterial,lin=h=>new THREE.Color(h).convertSRGBToLinear();
   tc.gBlack=kit.glb.dbl(new Phys({color:lin(L.K),roughness:0.5,metalness:0.1,clearcoat:0.3,clearcoatRoughness:0.3,envMapIntensity:0.5}));
   return tc;}
+// 11-07 윤택님 (an onboard photo: the halo, the cockpit surround, the nose and the sidepod tops all covered in partners): the 3D car had
+// its logos only where its UVs happen to land in the livery texture - the halo (no UVs) was a bare black hoop from the T-cam.
+// Decal strips laid on the model's own surface: a polyline in reading order is pushed along -n onto the mesh (n 1 = top, 2 / -2 =
+// the +z / -z side), so they follow the halo's bend and the bodywork's curve. One shared sheet of all partners in white (1024x512,
+// 8:1 cells, each mark fitted to its cell), the ink per strip from the paint under it (vertex colour): one material for every team,
+// one draw call more per car. Each strip is as tall as the mark's own proportions allow along the path, up to hmax (what the surface
+// holds), and centred on the path - so a logo is never stretched.
+// SPD: [slot in the team's partners, n, on the halo, minor (dropped at the lowest setting), hmax (m), path [x,y,z]..., flat]. A strip that
+// still has a hole after shrinking is left out (no cut-off logos).
+const SPD=[[3,1,1,0,0.055,[[0.20,0.80,-0.285],[0.32,0.816,-0.288],[0.40,0.833,-0.283],[0.45,0.838,-0.274],[0.50,0.845,-0.26],[0.54,0.853,-0.239]]],
+  [6,1,1,0,0.055,[[0.54,0.853,0.239],[0.50,0.845,0.26],[0.45,0.838,0.274],[0.40,0.833,0.283],[0.32,0.816,0.288],[0.20,0.80,0.285]]],
+  [7,1,1,0,0.065,[[0.647,0.873,-0.143],[0.68,0.872,-0.10],[0.71,0.88,-0.05],[0.725,0.88,0],[0.71,0.88,0.05],[0.68,0.872,0.10],[0.647,0.873,0.143]]],
+  [3,-2,1,1,0.03,[[0.46,0.802,-0.316],[0.24,0.797,-0.316]],1],[6,2,1,1,0.03,[[0.24,0.797,0.316],[0.46,0.802,0.316]],1],   // the arms' outer faces: the cut-down halo is open there (no surface to drop onto), so a flat strip just off it (,1)
+  [0,1,0,0,0.11,[[1.08,0.67,-0.21],[1.08,0.67,0.21]]],   // (under the halo from the T-cam: the nose carries one across for that view)
+  [2,1,0,0,0.07,[[1.6,0.63,-0.11],[1.6,0.63,0.11]]],[6,1,0,1,0.09,[[1.85,0.58,0],[2.4,0.47,0]]],
+  [1,1,0,0,0.12,[[0.48,0.57,-0.475],[-0.2,0.57,-0.475]]],[1,1,0,0,0.12,[[-0.2,0.57,0.475],[0.48,0.57,0.475]]],   // (the pod tops read from outside the car, the halo and cockpit ones from the driver's seat)
+  [5,1,0,0,0.06,[[0.62,0.68,-0.235],[0.97,0.62,-0.235]]],[5,1,0,0,0.06,[[0.97,0.62,0.235],[0.62,0.68,0.235]]],
+  [4,2,0,1,0.1,[[-0.35,0.42,0.6],[0.35,0.42,0.6]]],[4,-2,0,1,0.1,[[0.35,0.42,-0.6],[-0.35,0.42,-0.6]]],
+  [7,2,0,1,0.075,[[-1.15,0.72,0.13],[-0.62,0.72,0.13]]],[7,-2,0,1,0.075,[[-0.62,0.72,-0.13],[-1.15,0.72,-0.13]]],[0,1,0,1,0.09,[[-0.42,0.93,0],[-1.05,0.80,0]]]];
+// one strip of height h and length lu centred on the path: 3 rows across, a column every ~3 cm; each vertex dropped onto the highest
+// surface under it (within 15 cm of the path). Returns positions, the strip's own (s,t) 0..1, and the paint's UV under its middle
+function spStrip(G,pts,n,hmax,asp,key,fl){const flat=(at,k)=>{if(!at)return null;const o=new Float32Array(at.count*k);for(let i=0;i<at.count;i++){o[i*k]=at.getX(i);o[i*k+1]=at.getY(i);if(k>2)o[i*k+2]=at.getZ(i);}return o;};   // (the loader hands interleaved attributes)
+  if(!G.userData.spP){G.userData.spP=flat(G.attributes.position,3);G.userData.spU=flat(G.attributes.uv,2);}
+  const P=G.userData.spP,UV=G.userData.spU,I=G.index?G.index.array:null,a=Math.abs(n),sg=Math.sign(n),i0=0,i1=a===1?2:1;
+  const nv=[0,a===1?1:0,a===2?sg:0],nT=I?I.length/3:P.length/9,vi=(t,k)=>I?I[t*3+k]:t*3+k;
+  const L=[0];for(let i=1;i<pts.length;i++)L.push(L[i-1]+Math.hypot(pts[i][i0]-pts[i-1][i0],pts[i][i1]-pts[i-1][i1]));const len=L[L.length-1];let hh=Math.min(hmax,len/asp);
+  const at=d=>{let i=1;while(i<pts.length-1&&L[i]<d)i++;const f=(d-L[i-1])/((L[i]-L[i-1])||1),A=pts[i-1],B=pts[i];return [[A[0]+(B[0]-A[0])*f,A[1]+(B[1]-A[1])*f,A[2]+(B[2]-A[2])*f],[B[0]-A[0],B[1]-A[1],B[2]-A[2]]];};
+  const d0=pts.reduce((q,p)=>q+p[a]*sg,0)/pts.length,cc=G.userData.spC||(G.userData.spC={});let cand=cc[key];
+  if(!cand){const m=hmax/2+0.03;let mn0=1e9,mx0=-1e9,mn1=1e9,mx1=-1e9;for(const p of pts){mn0=Math.min(mn0,p[i0]-m);mx0=Math.max(mx0,p[i0]+m);mn1=Math.min(mn1,p[i1]-m);mx1=Math.max(mx1,p[i1]+m);}
+    cand=cc[key]=[];for(let t=0;t<nT;t++){let a0=1e9,b0=-1e9,a1=1e9,b1=-1e9,dd=-1e9;for(let k=0;k<3;k++){const o=vi(t,k)*3;a0=Math.min(a0,P[o+i0]);b0=Math.max(b0,P[o+i0]);a1=Math.min(a1,P[o+i1]);b1=Math.max(b1,P[o+i1]);dd=Math.max(dd,P[o+a]*sg);}
+      if(b0>=mn0&&a0<=mx0&&b1>=mn1&&a1<=mx1&&dd>d0-0.2)cand.push(t);}}
+  // where the surface is narrower than the strip (the halo's ends) a slightly shorter, smaller strip; what still misses takes its column's middle depth
+  for(let tr=0;;tr++){const lu=hh*asp,s0=(len-lu)/2,nu=Math.max(4,Math.round(lu/0.03)),q=[];
+  for(let k=0;k<=nu;k++){const [p,T]=at(s0+lu*k/nu);T[a]=0;const tl=Math.hypot(T[0],T[1],T[2])||1;for(let j=0;j<3;j++)T[j]/=tl;
+    const U=[nv[1]*T[2]-nv[2]*T[1],nv[2]*T[0]-nv[0]*T[2],nv[0]*T[1]-nv[1]*T[0]];   // the letters' up: n x along
+    for(let r=0;r<3;r++){const o=(r/2-0.5)*hh;q.push([p[0]+U[0]*o,p[1]+U[1]*o,p[2]+U[2]*o]);}}
+  let cuv=null;const hit=(v,wantUV)=>{if(fl)return true;let best=-1e9,bu=null;for(const t of cand){const A=vi(t,0)*3,B=vi(t,1)*3,C=vi(t,2)*3,x=v[i0],y=v[i1];
+      const e0=P[B+i0]-P[A+i0],e1=P[B+i1]-P[A+i1],f0=P[C+i0]-P[A+i0],f1=P[C+i1]-P[A+i1],den=e0*f1-e1*f0;if(Math.abs(den)<1e-12)continue;
+      const u=((x-P[A+i0])*f1-(y-P[A+i1])*f0)/den,w=(e0*(y-P[A+i1])-e1*(x-P[A+i0]))/den;if(u<-1e-4||w<-1e-4||u+w>1+1e-4)continue;
+      const d=(P[A+a]+(P[B+a]-P[A+a])*u+(P[C+a]-P[A+a])*w)*sg;if(d>best&&Math.abs(d-d0)<0.15){best=d;if(wantUV&&UV){const ua=vi(t,0)*2,ub=vi(t,1)*2,uc=vi(t,2)*2;bu=[UV[ua]+(UV[ub]-UV[ua])*u+(UV[uc]-UV[ua])*w,UV[ua+1]+(UV[ub+1]-UV[ua+1])*u+(UV[uc+1]-UV[ua+1])*w];}}}
+    if(best<-1e8)return false;v[a]=(best+0.003)*sg;if(wantUV)cuv=bu;return true;};
+  const ok=q.map((v,i)=>hit(v,i===Math.floor(nu/2)*3+1)),pos=[],st=[];
+  if(!ok.every(Boolean)&&tr<4){hh*=0.85;continue;}
+  for(let i=0;i<q.length;i++)if(!ok[i]){const m=i-(i%3)+1;if(ok[m]){q[i][a]=q[m][a];ok[i]=true;}}
+  for(let k=0;k<nu;k++)for(let r=0;r<2;r++){const c=[k*3+r,(k+1)*3+r,(k+1)*3+r+1,k*3+r+1];if(!c.every(i=>ok[i]))continue;
+    for(const i of[c[0],c[1],c[2],c[0],c[2],c[3]]){pos.push(q[i][0],q[i][1],q[i][2]);st.push(Math.floor(i/3)/nu,(i%3)/2);}}
+  if(pos.length<nu*36)return {pos:[],st:[],cuv};return {pos,st,cuv};}}
+// the team's eight partners: the six of TEAM_SP and two more it does not carry
+function spSlots(ti){const sp=TEAM_SP[ti].slice(),ex=SPONSORS.map((_,i)=>i).filter(i=>!sp.includes(i));sp.push(ex[(ti*3)%ex.length],ex[(ti*3+5)%ex.length]);return sp;}
+function spDecals(kit,ti,M,isP){const Q=kit.glb,tc=kit.teamCache&&kit.teamCache[ti];if(!Q||!tc)return null;if(tc.spA&&(!isP||tc.spB))return tc;
+  if(!kit.spM){const c=mkCanvas(1024,512),g=c.getContext('2d'),tw=1100,th=150,tc0=mkCanvas(tw,th),tg=tc0.getContext('2d',{willReadFrequently:true});kit.spF=[];
+    SPONSORS.forEach((sp,i)=>{tg.clearRect(0,0,tw,th);drawBrand(tg,sp,0,0,tw,th,{col:'#ffffff'});const d=tg.getImageData(0,0,tw,th).data;let x0=tw,x1=0,y0=th,y1=0;   // drawBrand leaves wide margins: fit the ink itself to the cell
+      for(let y=0;y<th;y++)for(let x=0;x<tw;x++)if(d[(y*tw+x)*4+3]>8){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}if(x1<=x0){kit.spF[i]=[1,1];return;}
+      const bw=x1-x0+1,bh=y1-y0+1,k=Math.min(500/bw,56/bh),cx=(i%2)*512+256,cy=Math.floor(i/2)*64+32;g.drawImage(tc0,x0,y0,bw,bh,cx-bw*k/2,cy-bh*k/2,bw*k,bh*k);kit.spF[i]=[(bw*k+6)/512,(bh*k+6)/64];});   // the ink's share of the cell (+3 px each side)
+    const t=texFrom(c);kit.spM=new THREE.MeshStandardMaterial({map:t,vertexColors:true,transparent:true,depthWrite:false,roughness:0.4,metalness:0.1,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});}   // blended, not alpha-tested: small on screen the mipmaps thin the letters below any cut-off and they vanished
+  const L=LIV[ti],slots=spSlots(ti),img=M.paint.map&&M.paint.map.image,g=img&&img.getContext?img.getContext('2d'):null,col=new THREE.Color();
+  const inkAt=uv=>{if(!g||!uv)return inkOn(L.D);try{const W=img.width,H=img.height,px=g.getImageData(Math.max(0,Math.min(W-5,Math.round(uv[0]*W)-2)),Math.max(0,Math.min(H-5,Math.round((1-uv[1])*H)-2)),5,5).data;let l=0;
+    for(let i=0;i<px.length;i+=4)l+=0.2126*px[i]+0.7152*px[i+1]+0.0722*px[i+2];return l/(px.length/4)/255>0.55?'#111216':'#ffffff';}catch(e){return inkOn(L.D);}};   // dark ink on light paint
+  const geo=list=>{const pos=[],uv=[],cl=[];for(const b of list){const q=b.q,cu=(q%2)*0.5+0.25,cv=1-(Math.floor(q/2)+0.5)/8,du=0.5*b.f[0],dv=0.125*b.f[1];col.set(b.d[2]?inkOn(L.K):inkAt(b.cuv)).convertSRGBToLinear();
+      for(let i=0;i<b.pos.length/3;i++){pos.push(b.pos[i*3],b.pos[i*3+1],b.pos[i*3+2]);uv.push(cu+du*(b.st[i*2]-0.5),cv+dv*(b.st[i*2+1]-0.5));cl.push(col.r,col.g,col.b);}}
+    const m=new THREE.BufferGeometry();m.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));m.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));m.setAttribute('color',new THREE.Float32BufferAttribute(cl,3));m.computeVertexNormals();m.computeBoundingSphere();return m;};
+  const strips=tc.spS||(tc.spS=SPD.filter(d=>!(d[3]&&quality==='low')).map(d=>{const q=slots[d[0]],f=kit.spF[q];return Object.assign(spStrip(d[2]&&Q.halo?Q.halo:Q.paint,d[5],d[1],d[4],8*f[0]/f[1],SPD.indexOf(d),d[6]),{d,q,f});}));
+  if(!tc.spA)tc.spA=geo(strips);if(isP&&!tc.spB){tc.spB=geo(strips.filter(b=>!b.d[2]));tc.spH=geo(strips.filter(b=>b.d[2]));}return tc;}   // (body and halo apart only for the player's team: its halo ones go with the blurred halo)
 function buildCarKit(){
   const geo=buildCarGeometry();
   const tyreProfile=(hw,seg)=>{const pts=[[0.235,-hw],[0.3,-hw],[0.338,-hw*0.95],[0.356,-hw*0.8],[0.362,-hw*0.45],[0.362,hw*0.45],[0.356,hw*0.8],[0.338,hw*0.95],[0.3,hw],[0.235,hw]];
@@ -4982,6 +5047,7 @@ function buildCarKit(){
     tyreM:new THREE.MeshStandardMaterial({color:0x070707,roughness:0.82,envMapIntensity:0.5}),
     visorM:new THREE.MeshStandardMaterial({color:0x0c1016,roughness:0.04,metalness:0.95}),
     teams:TEAMS.map(()=>null),decal:{}};
+  kit.ring2=hw=>{const k=hw===WHL.hwf?'ring2F':'ring2R';return kit[k]||(kit[k]=mergeGeos([new THREE.RingGeometry(0.245,0.345,64).translate(0,0,hw+0.003),new THREE.RingGeometry(0.245,0.345,64).rotateY(Math.PI).translate(0,0,-(hw+0.003))]));};   // 11-07 윤택님: the compound colour on the inner sidewall as well (seen from the T-cam), same draw call and material
   if(typeof useTex==='function'){useTex(kit.carbonM,'map','carbon_c.jpg',{srgb:true,rep:[14,14]});useTex(kit.carbonM,'normalMap','carbon_n.jpg',{rep:[14,14],after:()=>kit.carbonM.normalScale.set(0.35,0.35)});}
   kit.decalBlur={};
   for(const [k,c,l] of[['S','#e10600','SOFT'],['M','#f5c518','MEDIUM'],['H','#f2f2f2','HARD'],['I','#3ddc84','INTERMEDIATE'],['W','#3b82f6','WET']]){kit.decal[k]=new THREE.MeshStandardMaterial({map:decalTex(c,l),roughness:0.85,polygonOffset:true,polygonOffsetFactor:-2});
@@ -5063,7 +5129,8 @@ function buildCar(kit,scene,c){
     tcPod=nb(Q.tcam,M.tcam);add(Q.pylon,kit.carbonM,body,true);
     const sn=nb(Q.strut,P.gBlack,true),hn=Q.halo?nb(Q.halo,P.gBlack,true):null;   // 10-29: the halo hoop is its own part (blurred in the cockpit view, like the pillar)
     if(c.isP){if(!kit.ghostM)ghostMat(kit);strut={n:sn,g:add(Q.strut,kit.ghostS,body)};strut.g.visible=false;strut.g.renderOrder=3;if(hn){halo={n:hn,g:add(Q.halo,kit.ghostM,body)};halo.g.visible=false;halo.g.renderOrder=3;}}
-    for(const [g,m] of[[Q.far_paint,M.paint],[Q.far_dark,Q.farDarkM]]){const me=add(g,m,body);me.visible=false;bodyF.push(me);}}
+    for(const [g,m] of[[Q.far_paint,M.paint],[Q.far_dark,Q.farDarkM]]){const me=add(g,m,body);me.visible=false;bodyF.push(me);}
+    const sd=spDecals(kit,c.team,M,c.isP);if(sd){if(c.isP){add(sd.spB,kit.spM,body);if(hn){const h=new THREE.Mesh(sd.spH,kit.spM);h.receiveShadow=true;hn.add(h);}}else add(sd.spA,kit.spM,body);}}   // 11-07: partners on the 3D car (the player's halo ones hang on the halo, so they go with it in the blurred cockpit view)
   else{
   add(G.paint,M.paint,body,true);if(M.podL===M.podR)add(G.pods,M.podL,body,true);else{add(G.podL,M.podL,body,true);add(G.podR,M.podR,body,true);}/* v12h: both sidepods in one mesh (one draw call less per car) */add(G.fin,M.fin,body,true);tcPod=add(G.tcam,M.tcam,body);if(c.isP){add(G.carbonP,kit.carbonM,body,true);   // v12i: the player's halo strut is its own mesh (soft in the cockpit view)
     if(!kit.ghostM)ghostMat(kit);
@@ -5075,7 +5142,7 @@ function buildCar(kit,scene,c){
     if(front){const ug=new THREE.Group();ug.position.set(x,0.36,s*zw);root.add(ug);add(kit.upright,kit.darkM,ug).position.z=-s*0.2;uprights.push(ug);
       if(Q){const d=add(s<0?Q.ductL:Q.ductR,Q.carbonM,ug,true);d.position.set(-x,-0.36,-s*zw);bodyN.push(d);}}
     const hw=front?WHL.hwf:WHL.hwr;add(front?kit.tyreF:kit.tyreR,kit.tyreM,spin,true);
-    const r=add(kit.ring,kit.decal[c.ty.comp],spin);r.position.z=s*(hw+0.003);if(s<0)r.rotation.y=Math.PI;rings.push(r);
+    const r=add(kit.ring2(hw),kit.decal[c.ty.comp],spin);if(s<0)r.rotation.y=Math.PI;rings.push(r);
     const cv=add(kit.cover,M.cover,spin);cv.position.z=s*(hw-0.012);if(s<0)cv.rotation.y=Math.PI;
     wheels.push(spin);if(front)fronts.push(piv);}
   const helmet=new THREE.Group();helmet.position.set(-0.28+ck.x,0.79+ck.y,0);body.add(helmet);add(kit.helmet,M.helmet,helmet);add(kit.visor,kit.visorM,helmet);   // in front of the roll hoop (it used to sit half inside the airbox)
@@ -5096,7 +5163,7 @@ function buildCar(kit,scene,c){
   const latM=new THREE.MeshBasicMaterial({color:0x1a0f00,toneMapped:false});add(Q?Q.latLight:kit.latLight,latM,body);
   scene.add(root);
   // level of detail: small parts drop out on distant cars (fewer draw calls with the whole field in view)
-  const L1=new Set([M.cover,M.helmet,kit.visorM,M.decal,M.tcam,kit.mirrorM,kit.darkM]),L2=new Set([M.flap,M.gur,M.rflap,M.fin,M.second,M.endp]),lod1=[],lod2=[],lod3=[],casters=[];
+  const L1=new Set([M.cover,M.helmet,kit.visorM,M.decal,M.tcam,kit.mirrorM,kit.darkM,kit.spM]),L2=new Set([M.flap,M.gur,M.rflap,M.fin,M.second,M.endp]),lod1=[],lod2=[],lod3=[],casters=[];
   const L3=new Set([G.fw.cP,G.fw.cN,G.fw.sP,G.fw.sN,G.fw.oP,G.fw.oN,G.rwC,G.rwS,kit.light]);   // v12c: far away (>140 m) only the body, pods, floor and tyres are drawn
   const L1G=new Set([kit.fflapP,kit.fflapN,kit.fflap2P,kit.fflap2N,kit.gurP,kit.gurN,kit.drs]);   // v12c: the thin flaps go with the small details (>30 m)
   root.traverse(o=>{if(!o.isMesh)return;if(o.castShadow)casters.push(o);if(L1G.has(o.geometry)||L1.has(o.material)||rings.includes(o))lod1.push(o);else if(L2.has(o.material)||o.geometry===kit.epLight||o.geometry===kit.latLight||(Q&&o.geometry===Q.latLight))lod2.push(o);else if(L3.has(o.geometry))lod3.push(o);});
@@ -5528,7 +5595,7 @@ function helmetTex(tm,num,ti){const c=mkCanvas(256,128),g=c.getContext('2d'),lum
 // forget one team's cached car materials (and free their textures) so the next build uses the new paint
 function dropTeamMats(ti){if(!KIT)return;const kill=m=>{if(!m)return;if(m.map)m.map.dispose();if(m.roughnessMap)m.roughnessMap.dispose();m.dispose();};
   for(const k of Object.keys(KIT.cache||{}))if(+k.split('_')[0]===ti){const m=KIT.cache[k];for(const n of['paint','fin','tcam','second','helmet'])kill(m[n]);if(m.cover){if(m.cover.map)m.cover.map.dispose();m.cover.dispose();}delete KIT.cache[k];}
-  const tc=KIT.teamCache&&KIT.teamCache[ti];if(tc){for(const n of['podR','flap','gur','endp','rflap','decal','gBlack'])kill(tc[n]);delete KIT.teamCache[ti];}}
+  const tc=KIT.teamCache&&KIT.teamCache[ti];if(tc){for(const n of['podR','flap','gur','endp','rflap','decal','gBlack'])kill(tc[n]);for(const n of['spA','spB','spH'])if(tc[n])tc[n].dispose();delete KIT.teamCache[ti];}}
 // 10-29 (phone at 52 fps): the ground (180k triangles, 8 km across) and the road surface (100k) were single meshes, so every
 // pass - the view, and again the mirror looking back - drew all of them. Cut into square tiles they are frustum-culled like
 // everything else. WORLD.ground / roadMesh stay the whole meshes (out of the scene) for anything that reads their geometry.
