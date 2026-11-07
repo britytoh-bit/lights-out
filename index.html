@@ -5833,7 +5833,7 @@ function audioUpdate(dt){
     const snap=v.sw===1;v.sw=0;v.fade=Math.min(1,(v.fade||0)+dt/0.15);if(snap)EngineSound.setLitePu(v,TEAM_PU[o.c.team]);
     const c=o.c,d=Math.max(1.5,o.d),ux=-o.dx/d,uz=-o.dz/d,cvx=Math.cos(c.a)*c.spd,cvz=Math.sin(c.a)*c.spd;
     const vs=cvx*ux+cvz*uz,vl=-(pvx*ux+pvz*uz),dop=Math.max(0.6,Math.min(1.6,(343+vl)/(343-vs)));
-    const kmh=Math.abs(c.spd)*3.6,[,rr]=gearRpm(kmh),rp=c.spd<1?(state!=='countdown'&&race.t<(c.react0??c.react)?12400+Math.sin(SND.T*7.3+i*1.7)*420+Math.sin(SND.T*23+i*2.3)*180:3900):rr;
+    const kmh=Math.abs(c.spd)*3.6,[,rr]=gearRpm(kmh),rp=c.spd<1?(state==='countdown'?(cdLit>0?11000+((i*37)%9-4)*90+Math.sin(SND.T*(5.1+(i%5)*0.7)+i*1.7)*520+Math.sin(SND.T*23+i*2.3)*200:3900+3600*Math.pow(Math.max(0,Math.sin(SND.T*(0.7+(i%7)*0.13)+i*2.1)),60)):race.t<(c.react0??c.react)?12400+Math.sin(SND.T*7.3+i*1.7)*420+Math.sin(SND.T*23+i*2.3)*180:3900):rr;   // 11-08 윤택님 (real F1): on the grid before the lights an idle with now and then a short blip; once the lights come on each car holds its launch revs (~10 000-12 000, each a little different, wandering)
     const att=Math.pow(Math.min(1,7/d),1.15)*v.fade*kA,tcv=snap?0.002:0.03;
     {const hvc=c.braking&&c.spd>22&&!c.pit,cl=hvc?0.6:c.braking?0.05:(c.pit?0.5:(c.spd<1&&race.t<(c.react0??c.react)?0.8:1)),rq=hvc?Math.max(rp,10200):rp;EngineSound.setLite(v,t,rq,dop,0.6*att*(0.4+0.6*cl)*(inCar?0.75:1)*EngineSound.P.vox,600+1700*Math.min(1,20/d)+cl*700,tcv);}
     if(v.pan){const right=(rx*o.dx+rz*o.dz)/d;v.pan.pan.setTargetAtTime(Math.max(-0.9,Math.min(0.9,right)),t,snap?0.002:0.06);}});
