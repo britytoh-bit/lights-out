@@ -183,15 +183,8 @@ body.touch #hudSpeed{bottom:94px} body.touch #tower{display:none} body.touch #ca
 @media (prefers-reduced-motion:reduce){ .badge.arm{animation:none} }
 #flag{position:absolute; left:50%; top:14px; transform:translateX(-50%); display:none; padding:6px 16px; border-radius:4px; font-size:19px; font-weight:800; pointer-events:none; z-index:4; text-align:center; white-space:nowrap; box-shadow:0 4px 18px rgba(0,0,0,.35)}
 #flag.show{display:block}
-/* 11-08: the VSC delta to the mini-sector minimum time - big, under the flag pill: + green (slower than the minimum, fine), - red (too fast) */
-#vscD{position:absolute; left:50%; top:58px; transform:translateX(-50%); display:none; pointer-events:none; z-index:4; text-align:center; padding:3px 16px 5px; border-radius:6px; background:rgba(10,12,16,.8); box-shadow:0 4px 18px rgba(0,0,0,.35); line-height:1; white-space:nowrap}
-#vscD.show{display:block} #vscD.bad{outline:2px solid #ff5a4f; outline-offset:-2px}
-#vscD span{display:block; font-size:12px; font-weight:700; color:#f5c518; letter-spacing:.04em; margin-top:2px}
-#vscD b{display:block; font-size:46px; font-weight:800; margin:1px 0} #vscD.ok b{color:#2fd06b} #vscD.bad b{color:#ff5a4f}
-#vscD i{display:block; font-style:normal; font-size:12px; font-weight:700; color:#fff}
-#vscD.ok i::after{content:'기준보다 느림 · 정상'} #vscD.bad i::after{content:'너무 빠름 · 속도를 줄이세요'}
-body.touch #vscD{top:calc(122px + var(--sat)); padding:2px 12px 4px}   /* (under the flag pill and the note row, above the car) */ body.touch #vscD b{font-size:36px}
-body.cine #vscD{display:none !important}
+/* 11-08: the VSC delta sits inside the yellow VSC pill (the big centre box hid the road): + green (slower than the minimum, fine), - red (too fast) */
+#flagD{display:none; margin:-3px 2px; padding:1px 7px 2px; border-radius:4px; background:#111; font-size:22px; line-height:1; vertical-align:-2px} #flagD.ok{display:inline-block; color:#2fd06b} #flagD.bad{display:inline-block; color:#ff5a4f}
 #mirFrame{position:absolute; display:none; pointer-events:none; border:4px solid #0d0e11; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.12); z-index:3}
 #pitT{position:absolute; left:50%; top:62px; transform:translateX(-50%); display:none; align-items:baseline; gap:10px; padding:5px 14px 6px; border-radius:4px; background:rgba(12,14,18,.84); border-left:4px solid var(--yellow); pointer-events:none; font-size:15px; color:var(--dim); z-index:4}
 #pitT.show{display:flex} #pitT b{font-size:30px; line-height:1; color:var(--ink); min-width:3.2ch; text-align:right} #pitT.ok b{color:var(--green)} #pitT.slow b{color:#ff5a4f}
@@ -532,8 +525,7 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
 <div id="wrap">
   <canvas id="gl"></canvas><div id="vig"></div><div id="hitfx"></div>
   <div class="hud num" id="hudTop"><div><span id="pos">P12</span><span class="small" id="posN">/22</span></div><div><span class="small" id="lapL">랩 </span><span id="lap">1/3</span></div><div id="pen" class="small" style="color:#ffb347"></div><div id="wxI" class="small"></div></div>
-  <div id="flag" class="num"></div>
-  <div id="vscD" class="num"><span>VSC 델타</span><b id="vscDv">+0.0</b><i></i></div>
+  <div id="flag" class="num"><span id="flagT"></span><b id="flagD"></b><span id="flagS"></span></div>
   <div id="pitT" class="num"><span id="pitTl">피트 스톱</span><b id="pitTv">0.0</b></div>
   <div id="pitMsg" class="num"></div>
   <div id="fpsBox" class="num" hidden></div>
@@ -6590,8 +6582,6 @@ function drawHUD(dt){
   setT('tCur',fmt(state==='race'&&!race.form&&pl.fin==null&&pl.prog>=0&&!(pl.pit&&(pl.pit.state==='garage'||pl.pit.state==='red'))&&!(S&&pl.crossT<0)?race.t-pl.lapStart:0));setT('tLast',fmt(pl.lastLap));setT('tBest',fmt(bestLap));
   {let fb=null;for(const c of race.cars)if(c.best!=null&&(fb==null||c.best<fb))fb=c.best;setT('tFast',race.fl&&!race.sess?fmt(race.fl.t)+' '+race.fl.code:fb==null?'-':fmt(fb));   // v12f: the fastest lap of the race so far, and the gap to my best lap at this point of the lap
    const dv=pl.dlt,el=$('tDelta'),cls=dv==null?'':dv<0?'neg':'pos';setT('tDelta',dv==null?'-':(dv<0?'-':'+')+Math.abs(dv).toFixed(3));if(el._c!==cls){el._c=cls;el.className=cls;}}
-  {const vd=race.rc.flag==='vsc'&&!race.sess&&!pl.pit&&pl.fin==null?pl.vd:null,el=$('vscD'),cls=vd?(vd.d<0?'show bad':'show ok'):'';   // 11-08: the VSC delta (its colours are the other way round from the lap delta: + is good)
-   if(vd)setT('vscDv',(vd.d<0?'−':'+')+Math.abs(vd.d).toFixed(1));if(el._c!==cls){el._c=cls;el.className=cls;}}
   if(spUntil&&performance.now()>spUntil){spUntil=0;$('hudTime').classList.remove('spOn');}   // 10-31: the sector popup's time is up
   const kmh=Math.round(Math.abs(pl.spd)*3.6);setT('spd',String(kmh));
   let [g,rpm]=gearRpm(Math.abs(pl.spd)*3.6,hudGear);
@@ -6912,7 +6902,7 @@ function cineCam(dt){const C=CINE;if(!C)return null;
     const pos=L(mx(0),mx(1),mx(2)),look=L(mx(3),mx(4),mx(5)),fov=mx(6);
     return {pos,look,fov,focus:[g.position.x,g.position.z]};}
   return null;}
-function flagPanel(){const rc=race.rc,p=race.player,el=$('flag');let cls='',txt='';
+function flagPanel(){const rc=race.rc,p=race.player,el=$('flag');let cls='',txt='',dv='',dc='',sx='';
   if(state==='race'||state==='done'){
     const S=race.sess;
     if(rc.flag==='formation'){cls='f';txt='FORMATION LAP · 추월 금지'+(isTouch?'':' · Enter 건너뛰기');}
@@ -6921,14 +6911,16 @@ function flagPanel(){const rc=race.rc,p=race.player,el=$('flag');let cls='',txt=
     else if(S&&p.blue){cls='b';txt='블루 플래그 · 플라잉 랩 차량 접근, 비켜주세요';}
     else if(S){}
     else if(rc.flag==='sc'){cls='sc';txt=rc.sc&&rc.sc.phase==='in'?'SAFETY CAR · 이번 랩 복귀 · 선두가 페이스 조절':rc.sc&&rc.sc.phase==='pit'?(rc.go?'재시작! · 컨트롤 라인까지 추월 금지':'재시작 대기 · 선두가 출발 시점 결정 · 추월 금지'):'SAFETY CAR · '+(rc.why==='debris'?'파편 수거 · ':'')+'추월 금지';}
-    else if(rc.flag==='vsc'){cls='vsc';txt=(rc.vsc&&rc.vsc.ending?'VSC ENDING · 곧 그린':'VSC · '+(rc.vsc&&rc.vsc.why==='debris'?'파편 수거 · ':rc.vsc&&rc.vsc.why==='test'?'시험 · ':'')+'델타 + 유지 · 추월 금지')+(rc.vscFast?' · 너무 빠름!':'');}
+    else if(rc.flag==='vsc'){cls='vsc';const vd=!p.pit&&p.fin==null?p.vd:null,end=rc.vsc&&rc.vsc.ending,why=rc.vsc&&rc.vsc.why==='debris'?'파편 수거 · ':rc.vsc&&rc.vsc.why==='test'?'시험 · ':'';   // 11-08: the delta number lives in the pill now (not in the pits or after the flag; sessions never get here)
+      if(vd){dv=(vd.d<0?'−':'+')+Math.abs(vd.d).toFixed(1);dc=vd.d<0?'bad':'ok';txt=end?'VSC ENDING · 델타 ':'VSC · '+why+'델타 ';sx=(end?' · 곧 그린':' · 추월 금지')+(rc.vscFast?' · 너무 빠름!':'');}
+      else txt=(end?'VSC ENDING · 곧 그린':'VSC · '+why+'델타 + 유지 · 추월 금지')+(rc.vscFast?' · 너무 빠름!':'');}
     else{const y=yellowAt(race,p.idx);if(y){cls='y';txt=(y>1?'더블 옐로':'옐로 플래그')+' · 감속, 추월 금지';}
       else if(p.giveBack){cls='y';txt=p.giveBack.code+'에게 자리 돌려주기 · '+Math.max(0,Math.ceil(p.giveBack.until-race.t))+'초'+(isTouch?'':' · 속도를 줄여 먼저 보내세요');}   // v12h
       else if(p.blue){cls='b';txt='블루 플래그 · 길을 비켜주세요';}
       else if(rc.noPass&&rc.noPass[p.id]!=null&&p.prog<rc.noPass[p.id]){cls='y';txt='컨트롤 라인까지 추월 금지';}
       else if(race.t<(rc.greenAt??-99)+4){cls='g';txt='GREEN';}}}
   if(cls&&isTouch){if(flagPulse>0)cls+=' pulse';if(toastT>0&&document.body.classList.contains('ph-port'))cls+=' tuck';}   // v12j: phones - the pill flashes when race control changes; in portrait a short note takes its line for a moment
-  el.className=cls?'show '+cls:'';if(cls)setT('flag',txt);}
+  el.className=cls?'show '+cls:'';if(cls){setT('flagT',txt);setT('flagD',dv);setT('flagS',sx);const D=$('flagD');if(D._c!==dc){D._c=dc;D.className=dc;}}}
 // v12j: on phones these race-control notes would only repeat the pill at the top: the pill flashes instead of a second line
 const FLAG_EV=new Set(['sc','vsc','vscEnding','scIn','restart','scGo','red','redResume','green']);let flagPulse=0;
 const MSG={fl:e=>['패스티스트 랩 · '+(e.me?'내 차':e.name)+' '+fmt(e.t),e.me?'#c58bff':'#a87be0'],colPen:e=>[e.me?(e.reck?'무리한 ':'')+'충돌 유발 페널티 +'+e.s+'초 · '+e.name+'와 접촉':e.name+(e.reck?' 무리한':'')+' 충돌 유발 +'+e.s+'초'+(e.vic?' · 내 차와 접촉':''),e.me?'#ff8a8a':'#f5c518'],pitRet:()=>['수리할 수 없는 손상 · 차고에서 리타이어','#ff3b30'],pitRetAI:e=>[e.name+' 수리 불가 · 리타이어','#ff8a8a'],wall:()=>[race.dmg==='off'?'월 히트! 타이어 손상':'월 히트!','#ff8a8a'],crash:e=>[e.name+' 크래시! 벽과 충돌','#ff8a8a'],wreck:()=>['크래시! 차가 크게 부서졌어요 · 리타이어','#ff3b30'],pitIn:()=>['피트 레인 진입 · 리미터 80','#f5c518'],pitStop:e=>e.pen?['정차 · 페널티 '+e.pen+'초 먼저 소화','#fff']:null,   // the stop timer shows a normal stop
