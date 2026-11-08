@@ -181,7 +181,7 @@ body.touch #hudSpeed{bottom:94px} body.touch #tower{display:none} body.touch #ca
 #gMeter{width:56px; height:56px; align-self:center; margin:0 -4px 0 -6px}
 .badge.air{display:none} .badge.air.on{display:inline-block; background:#2f6fd6; color:#fff} .badge.air.on.dirty{background:#d27a14; color:#111}
 @media (prefers-reduced-motion:reduce){ .badge.arm{animation:none} }
-#flag{position:absolute; left:50%; top:14px; transform:translateX(-50%); display:none; padding:6px 16px; border-radius:4px; font-size:19px; font-weight:800; pointer-events:none; z-index:4; text-align:center; white-space:nowrap; box-shadow:0 4px 18px rgba(0,0,0,.35)}
+#flag{position:absolute; left:50%; top:14px; transform:translateX(-50%); display:none; padding:6px 16px; border-radius:4px; font-size:19px; font-weight:800; pointer-events:none; z-index:4; text-align:center; white-space:nowrap; box-shadow:0 4px 18px rgba(0,0,0,.35); width:max-content}   /* 11-08: max-content - placed at left:50% it could only grow to the screen's right half, so in portrait (max-width 366) the VSC pill wrapped at 195 px into two lines over the tower and the buttons */
 #flag.show{display:block}
 /* 11-08: the VSC delta sits inside the yellow VSC pill (the big centre box hid the road): + green (slower than the minimum, fine), - red (too fast) */
 #flagD{display:none; margin:0 2px; padding:0 5px; border-radius:4px; background:#111; font-size:22px; line-height:1; vertical-align:-1px} body.touch #flagD{font-size:18px; padding:0 4px} #flagD.ok{display:inline-block; color:#2fd06b} #flagD.bad{display:inline-block; color:#ff5a4f}
@@ -3295,7 +3295,13 @@ mk(ring(2048,256,23,0.08,0.2,[110,125,140],[150,160,170],1),2450,240,80);}
    // 11-08: where the pit zone begins and ends, the track's barrier (up to sample E-1 / from E+Z+1) and the pit road's outer wall (from E / up to E+Z) left one 2 m section
    // open between them, and the lane's asphalt began a section late: a gap in the fence and a strip of bare ground at every pit entry and exit. That section is joined now
    {const k0=wrap(PIT.E-1),k1=wrap(PIT.E+PIT.Z),jn=k=>k===k0||(!tn&&k===k1);[o1,o2]=sg(i=>pl(i)-3.2,i=>pl(i)+ext(i));add(ribbon(o1,o2,0,jn,i=>0.028+pitDv(i),true),plM,true);
-    add(wall(i=>PS*(inZ(i)?pl(i)+ext(i)+0.2:(PS>0?LPv(i):LNv(i))),0,1.1,jn,PS>0),wallM,true,true);}
+    // 11-08: where the run-off is wide (Austin, Spielberg, Lusail, Monza, Barcelona) that one section stood square to the track, 10-30 m long. It now runs
+    // out at an angle (about 35 degrees off the track) from the barrier to the lane's outer wall, behind that wall inside the pit zone - where no car can be
+    // anyway, so the boundaries the cars drive to (sideLimit) are left as they were. A barrier that is not further out than the lane's wall keeps the one section
+    const bar=i=>PS>0?LPv(i):LNv(i),pw=i=>pl(i)+ext(i)+0.2,ov=new Map(),secs=new Set([k0]),nOf=d=>d>1?Math.min(25,Math.floor(PIT.Z/3),Math.round(d*1.43/STEP)):0;
+    {const B=bar(k0),n=nOf(B-pw(wrap(PIT.E))),W=pw(wrap(k0+n+1));if(n>0)for(let m=0;m<=n+1;m++){const i=wrap(k0+m);ov.set(i,m===0?B:Math.max(B+(W-B)*m/(n+1),pw(i)));secs.add(i);}secs.delete(wrap(k0+n+1));}
+    if(!tn){secs.add(k1);const B=bar(wrap(k1+1)),n=nOf(B-pw(k1)),s0=wrap(k1-n),W=pw(s0);if(n>0)for(let m=0;m<=n+1;m++){const i=wrap(s0+m);ov.set(i,m===n+1?B:Math.max(W+(B-W)*m/(n+1),pw(i)));secs.add(i);}secs.delete(wrap(k1+1));}
+    add(wall(i=>PS*(ov.has(i)?ov.get(i):inZ(i)?pw(i):bar(i)),0,1.1,k=>secs.has(k),PS>0),wallM,true,true);}
    // v12d (Yas): the exit road on the far side, from the top of its ramp out of the tunnel to the merge - asphalt from its wall (from the
    // track's edge once the wall has ended), edge lines and an outer wall; the strip of run-off between the track and the wall; the wall
    // itself (concrete, sponsor boards on both faces, a fence on top) all along the tunnel and the exit road
@@ -4713,15 +4719,17 @@ function buildCarGeometry(){
   return {paint:mergeGeos(paint),podL:pods[0],podR:pods[1],pods:mergeGeos(pods),fin,tcam,carbon:mergeGeos(carbon),carbonP:mergeGeos(carbon.filter(g=>g!==strut)),strut,strutG,dark:mergeGeos(dark),second:mergeGeos(second),metal:mergeGeos(metal),fw:fwing,rwC:rwingC,rwS:rwingS,rwD:rwingD,haloD};
 }
 // ---------- fictional sponsors (invented names and marks; no real brands) ----------
+// 11-08: eight renamed after a web check for real marks (VELTRAX ~ VOLTRAX/VELTRIX marks, SOLVIQ / QUBRIX / VOLTARA / NIMBORA / TEMPORIS existing
+// firms, products or a watch award of that name, ZEPHYRA a live US mark, PYRRA ~ Pyrrha) - the replacements returned no exact match
 const SPONSORS=[
-  {n:'HALCYRA',s:'ENERGY',bg:'#0b1f4a',fg:'#ffffff',ac:'#3ec5ff',em:'bolt'},{n:'VELTRAX',s:'LUBRICANTS',bg:'#c8102e',fg:'#ffffff',ac:'#ffffff',em:'chev'},
-  {n:'SOLVIQ',s:'CLOUD',bg:'#ffffff',fg:'#0e6f78',ac:'#18c3b4',em:'hex'},{n:'QUBRIX',s:'CHIPS',bg:'#1b1036',fg:'#ffffff',ac:'#9b6bff',em:'pix'},
-  {n:'TELVORA',s:'MOBILE',bg:'#ff6a13',fg:'#ffffff',ac:'#ffffff',em:'arcs'},{n:'ZEPHYRA',s:'AIRWAYS',bg:'#0d2340',fg:'#ffffff',ac:'#d6a84a',em:'wing'},
-  {n:'PYRRA',s:'FUELS',bg:'#ffd200',fg:'#161616',ac:'#e4002b',em:'flame'},{n:'CRESTWAVE',s:'BANK',bg:'#0f3d2e',fg:'#ffffff',ac:'#7fd6a4',em:'wave'},
-  {n:'TEMPORIS',s:'TIMING',bg:'#111111',fg:'#e9d9a6',ac:'#e9d9a6',em:'dial',serif:true},{n:'VOLTARA',s:'BATTERIES',bg:'#ffffff',fg:'#141414',ac:'#22b24c',em:'batt'},
+  {n:'HALCYRA',s:'ENERGY',bg:'#0b1f4a',fg:'#ffffff',ac:'#3ec5ff',em:'bolt'},{n:'VORKANE',s:'LUBRICANTS',bg:'#c8102e',fg:'#ffffff',ac:'#ffffff',em:'chev'},
+  {n:'CIRRAVO',s:'CLOUD',bg:'#ffffff',fg:'#0e6f78',ac:'#18c3b4',em:'hex'},{n:'ZORVIK',s:'CHIPS',bg:'#1b1036',fg:'#ffffff',ac:'#9b6bff',em:'pix'},
+  {n:'TELVORA',s:'MOBILE',bg:'#ff6a13',fg:'#ffffff',ac:'#ffffff',em:'arcs'},{n:'AVORELL',s:'AIRWAYS',bg:'#0d2340',fg:'#ffffff',ac:'#d6a84a',em:'wing'},
+  {n:'IGNEVA',s:'FUELS',bg:'#ffd200',fg:'#161616',ac:'#e4002b',em:'flame'},{n:'CRESTWAVE',s:'BANK',bg:'#0f3d2e',fg:'#ffffff',ac:'#7fd6a4',em:'wave'},
+  {n:'TIQORA',s:'TIMING',bg:'#111111',fg:'#e9d9a6',ac:'#e9d9a6',em:'dial',serif:true},{n:'AMPELON',s:'BATTERIES',bg:'#ffffff',fg:'#141414',ac:'#22b24c',em:'batt'},
   {n:'KORVANA',s:'COLA',bg:'#b0001e',fg:'#ffffff',ac:'#ffffff',em:'drop'},{n:'QUASARLINK',s:'DATA',bg:'#141414',fg:'#ffffff',ac:'#ff2fa0',em:'star'},
   {n:'KESTRALUX',s:'LIGHTING',bg:'#14202b',fg:'#ffffff',ac:'#ffb000',em:'star'},{n:'MIRANZO',s:'COFFEE',bg:'#3b2416',fg:'#f3e6d0',ac:'#d9a066',em:'drop'},
-  {n:'BRAXELL',s:'TOOLS',bg:'#f2f2f2',fg:'#1a1a1a',ac:'#e4002b',em:'chev'},{n:'NIMBORA',s:'HOSTING',bg:'#102a43',fg:'#ffffff',ac:'#5ad1ff',em:'arcs'}];   // 11-07: four more (the 3D car's decals)
+  {n:'BRAXELL',s:'TOOLS',bg:'#f2f2f2',fg:'#1a1a1a',ac:'#e4002b',em:'chev'},{n:'NUBRAVO',s:'HOSTING',bg:'#102a43',fg:'#ffffff',ac:'#5ad1ff',em:'arcs'}];   // 11-07: four more (the 3D car's decals)
 // per team: [title (engine cover, rear wing), sidepods, small (nose, endplates), halo, and two more minor partners filling the gaps on the body (v13g)]
 const TEAM_SP=[[0,2,11,5,7,9],[8,5,9,2,0,6],[1,10,6,0,3,8],[2,7,4,9,11,1],[9,3,0,11,5,8],[4,3,6,1,10,2],[5,0,7,10,2,9],[6,1,8,4,0,11],[3,11,5,7,1,4],[11,4,10,3,6,0],[7,8,2,6,5,10]];   // v12j: a fourth partner (halo band and the extra body decals)
 function drawEmblem(g,em,x,y,s,c){g.save();g.translate(x,y);g.scale(s,s);g.fillStyle=c;g.strokeStyle=c;g.lineJoin='round';g.lineCap='round';
@@ -4982,9 +4990,11 @@ function decalAtlas(tm,ti){   // wing decals: [0,0,640,128] rear flap, [640,0,38
 }
 function decalTex(color,label){
   const d=mkCanvas(256,256),g=d.getContext('2d');g.fillStyle='#141414';g.fillRect(0,0,256,256);
-  g.strokeStyle=color;g.lineWidth=7;g.beginPath();g.arc(128,128,106,0,Math.PI*2);g.stroke();
-  g.fillStyle='#d8d8d8';g.font='bold 17px Arial,sans-serif';g.textAlign='center';g.textBaseline='middle';
-  for(let k=0;k<2;k++){g.save();g.translate(128,128);g.rotate(k*Math.PI);const s='LIGHTS OUT  '+label;for(let i=0;i<s.length;i++){g.save();g.rotate(-0.95+i*0.12);g.translate(0,-90);g.fillText(s[i],0,0);g.restore();}g.restore();}
+  // 11-08: the band 4.5 cm wide (was 2 cm: from the T-cam it thinned to a hairline and the hard's white was lost), the lettering in the compound colour
+  // inside it (the ring only shows r 91..128 px of this canvas - the letters used to sit at r 90, half cut)
+  g.strokeStyle=color;g.lineWidth=17;g.beginPath();g.arc(128,128,110,0,Math.PI*2);g.stroke();
+  g.fillStyle=color;g.font='bold 11px Arial,sans-serif';g.textAlign='center';g.textBaseline='middle';
+  for(let k=0;k<2;k++){g.save();g.translate(128,128);g.rotate(k*Math.PI);const s='LIGHTS OUT  '+label;for(let i=0;i<s.length;i++){g.save();g.rotate(-0.8+i*0.085);g.translate(0,-96);g.fillText(s[i],0,0);g.restore();}g.restore();}
   return texFrom(d);
 }
 function wheelTextures(tm){
@@ -5054,9 +5064,11 @@ function glbMats(kit,ti){kit.teamCache=kit.teamCache||{};const tc=kit.teamCache[
 // holds), and centred on the path - so a logo is never stretched.
 // SPD: [slot in the team's partners, n, on the halo, minor (dropped at the lowest setting), hmax (m), path [x,y,z]..., flat]. A strip that
 // still has a hole after shrinking is left out (no cut-off logos).
-const SPD=[[3,1,1,0,0.055,[[0.20,0.80,-0.285],[0.32,0.816,-0.288],[0.40,0.833,-0.283],[0.45,0.838,-0.274],[0.50,0.845,-0.26],[0.54,0.853,-0.239]]],
-  [6,1,1,0,0.055,[[0.54,0.853,0.239],[0.50,0.845,0.26],[0.45,0.838,0.274],[0.40,0.833,0.283],[0.32,0.816,0.288],[0.20,0.80,0.285]]],
-  [7,1,1,0,0.065,[[0.647,0.873,-0.143],[0.68,0.872,-0.10],[0.71,0.88,-0.05],[0.725,0.88,0],[0.71,0.88,0.05],[0.68,0.872,0.10],[0.647,0.873,0.143]]],
+// 11-08 윤택님 (the halo's front partner too small to read from the T-cam, real cars carry one across the whole front): the front strip now runs from
+// bend to bend along the tube's centre with a taller cap, the arm strips stop where the bend starts
+const SPD=[[3,1,1,0,0.055,[[0.14,0.79,-0.284],[0.20,0.80,-0.285],[0.32,0.816,-0.288],[0.40,0.833,-0.283],[0.45,0.838,-0.274]]],
+  [6,1,1,0,0.055,[[0.45,0.838,0.274],[0.40,0.833,0.283],[0.32,0.816,0.288],[0.20,0.80,0.285],[0.14,0.79,0.284]]],
+  [7,1,1,0,0.07,[[0.536,0.853,-0.236],[0.567,0.855,-0.214],[0.596,0.857,-0.189],[0.62,0.866,-0.16],[0.64,0.873,-0.128],[0.656,0.874,-0.093],[0.666,0.875,-0.057],[0.671,0.876,-0.019],[0.671,0.876,0.019],[0.666,0.875,0.057],[0.656,0.874,0.093],[0.64,0.873,0.128],[0.62,0.866,0.16],[0.596,0.857,0.189],[0.567,0.855,0.214],[0.536,0.853,0.236]]],   // (on the tube's centre line: a circle r 0.272 about x 0.40, measured off the halo mesh; the old path ran 5 cm ahead of it, so the strip shrank to fit)
   [3,-2,1,1,0.03,[[0.46,0.802,-0.316],[0.24,0.797,-0.316]],1],[6,2,1,1,0.03,[[0.24,0.797,0.316],[0.46,0.802,0.316]],1],   // the arms' outer faces: the cut-down halo is open there (no surface to drop onto), so a flat strip just off it (,1)
   [0,1,0,0,0.11,[[1.08,0.67,-0.21],[1.08,0.67,0.21]]],   // (under the halo from the T-cam: the nose carries one across for that view)
   [2,1,0,0,0.07,[[1.6,0.63,-0.11],[1.6,0.63,0.11]]],[6,1,0,1,0.09,[[1.85,0.58,0],[2.4,0.47,0]]],
@@ -5137,10 +5149,12 @@ function buildCarKit(){
   kit.ring2=hw=>{const k=hw===WHL.hwf?'ring2F':'ring2R';return kit[k]||(kit[k]=mergeGeos([new THREE.RingGeometry(0.245,0.345,64).translate(0,0,hw+0.003),new THREE.RingGeometry(0.245,0.345,64).rotateY(Math.PI).translate(0,0,-(hw+0.003))]));};   // 11-07 윤택님: the compound colour on the inner sidewall as well (seen from the T-cam), same draw call and material
   if(typeof useTex==='function'){useTex(kit.carbonM,'map','carbon_c.jpg',{srgb:true,rep:[14,14]});useTex(kit.carbonM,'normalMap','carbon_n.jpg',{rep:[14,14],after:()=>kit.carbonM.normalScale.set(0.35,0.35)});}
   kit.decalBlur={};
-  for(const [k,c,l] of[['S','#e10600','SOFT'],['M','#f5c518','MEDIUM'],['H','#f2f2f2','HARD'],['I','#3ddc84','INTERMEDIATE'],['W','#3b82f6','WET']]){kit.decal[k]=new THREE.MeshStandardMaterial({map:decalTex(c,l),roughness:0.85,polygonOffset:true,polygonOffsetFactor:-2});
-    const d=mkCanvas(256,256),g=d.getContext('2d');g.fillStyle='#141414';g.fillRect(0,0,256,256);g.strokeStyle=c;g.lineWidth=9;g.globalAlpha=0.9;g.beginPath();g.arc(128,128,106,0,Math.PI*2);g.stroke();
-    g.globalAlpha=0.28;g.strokeStyle='#e8e8e8';g.lineWidth=16;g.beginPath();g.arc(128,128,90,0,Math.PI*2);g.stroke();
-    kit.decalBlur[k]=new THREE.MeshStandardMaterial({map:texFrom(d),roughness:0.85,polygonOffset:true,polygonOffsetFactor:-2});}
+  for(const [k,c,l] of[['S','#e10600','SOFT'],['M','#f5c518','MEDIUM'],['H','#f2f2f2','HARD'],['I','#3ddc84','INTERMEDIATE'],['W','#3b82f6','WET']]){const tx=decalTex(c,l);kit.decal[k]=new THREE.MeshStandardMaterial({map:tx,emissiveMap:tx,emissive:0xffffff,emissiveIntensity:0.15,roughness:0.85,polygonOffset:true,polygonOffsetFactor:-2});
+    // 11-08: spinning - the band as wide as the still one and the blurred lettering in the band's colour (it was a pale grey ring on every compound, so the
+    // hard's white band did not stand out from the rest); a little self-light so the inner sidewall, in the car's shadow, still shows its colour
+    const d=mkCanvas(256,256),g=d.getContext('2d');g.fillStyle='#141414';g.fillRect(0,0,256,256);g.strokeStyle=c;g.lineWidth=18;g.beginPath();g.arc(128,128,110,0,Math.PI*2);g.stroke();
+    g.globalAlpha=0.35;g.lineWidth=10;g.beginPath();g.arc(128,128,96,0,Math.PI*2);g.stroke();
+    const tb=texFrom(d);kit.decalBlur[k]=new THREE.MeshStandardMaterial({map:tb,emissiveMap:tb,emissive:0xffffff,emissiveIntensity:0.15,roughness:0.85,polygonOffset:true,polygonOffsetFactor:-2});}
   loadCarModel(kit);
   return kit;
 }
