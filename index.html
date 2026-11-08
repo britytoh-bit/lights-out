@@ -322,6 +322,7 @@ body.touch #tower .r .n{font-size:11px; letter-spacing:.05em}
 body.touch #tower .r .q{margin-left:auto; font-size:10px; color:#aeb7c2; letter-spacing:0}
 body.touch #tower .r .q.pit{color:#6fa8ff; font-weight:800} body.touch #tower .r .q.out{color:#ff6b6b; font-weight:800} body.touch #tower .r .q.ld{color:#2fd06b}
 body.touch #tower .r.me{background:#f5c518; color:#111} body.touch #tower .r.me .p, body.touch #tower .r.me .q, body.touch #tower .r.me .n{color:#111}
+body.touch #tower .wx{font-size:10px; line-height:14px; padding:0 7px; color:#8ecae6; font-weight:700; white-space:nowrap}
 body.touch #tower .gap{font-size:9px; line-height:8px; padding:0 0 1px 26px; color:#7d8692}
 body.touch #mini{border-radius:50%; background:rgba(9,11,15,.62); box-shadow:0 0 0 2px rgba(255,255,255,.16),0 2px 10px rgba(0,0,0,.4)}
 body.touch #topBtns{left:auto; transform:none; right:calc(8px + var(--sar)); top:calc(6px + var(--sat)); gap:7px}
@@ -1233,8 +1234,10 @@ const AERO=(()=>{const ok=i=>TR.K[i]<0.0025&&PROF[i]>=VMAX*0.93,z=new Uint8Array
   return z;})();
 function aeroState(race,c){if(race.rc.flag!=='green'||!AERO[c.idx]||c.braking||c.pit)return 0;return WET>0.45?1:2;}   // 2 open, 1 partial (wet), 0 corner mode
 function makeWeather(mode,laps,rnd){const dur=laps*LAPSEC,wx={mode,wet:0,rain:0,sched:[]};
-  if(mode==='rain'){wx.rain=0.55+rnd()*0.3;wx.wet=Math.min(1,wx.rain*1.1);wx.sched.push({t:0,to:wx.rain});if(rnd()<0.5)wx.sched.push({t:dur*(0.45+rnd()*0.3),to:0.38+rnd()*0.12});}   // 11-01 윤택님 (비로 해 뒀는데 1랩 뒤 맑아짐): the rain eases but stays rain (was 0.12-0.32: dur counts 58 s laps, so on a long lap it came in lap 1 of 3 and the track dried in ~40 s)
-  else if(mode==='mixed'){const t0=dur*(0.12+rnd()*0.3),pk=0.45+rnd()*0.45;wx.sched.push({t:t0,to:pk},{t:t0+dur*(0.28+rnd()*0.25),to:0});}
+  if(mode==='rain'){const hv=rnd()<0.5,q=rnd();wx.hv=hv;wx.rain=wx.r0=hv?0.78+rnd()*0.17:0.28+rnd()*0.2;wx.wet=Math.min(1,wx.rain*1.1);wx.sched.push({t:0,to:wx.rain});   // 11-09 윤택님 (폭우랑 노면만 젖는 비, 랜덤 - 인터·풀웻을 고르게): half heavy (track 0.86-1: full wets), half light (0.32-0.55: inters) - it was 0.55-0.85 (track 0.63-0.98, nearly always full wets)
+    if(hv){if(q<0.5)wx.sched.push({t:dur*(0.45+rnd()*0.3),to:0.36+rnd()*0.1});}   // heavy: half of them ease to inter weather (track 0.41-0.53: under the 0.55 where AI cars leave full wets - at 0.55-0.58 they stayed on wets ~2.5 s a lap slower at Monza)
+    else if(q<0.3)wx.sched.push({t:dur*(0.5+rnd()*0.25),to:0});else if(q<0.55)wx.sched.push({t:dur*(0.4+rnd()*0.3),to:0.16+rnd()*0.08});}   // light: some stop late (drying, slicks for the end?), some get lighter (inters near their edge). 11-01 윤택님 (비로 해 뒀는데 1랩 뒤 맑아짐): the rain eases but stays rain (was 0.12-0.32: dur counts 58 s laps, so on a long lap it came in lap 1 of 3 and the track dried in ~40 s)
+  else if(mode==='mixed'){const t0=dur*(0.12+rnd()*0.3),pk=rnd()<0.5?0.78+rnd()*0.17:0.28+rnd()*0.2;wx.sched.push({t:t0,to:pk},{t:t0+dur*(0.28+rnd()*0.25),to:0});}   // 11-09: the shower is a light one or a downpour (was 0.45-0.9)
   return wx;}
 function gripLat(v,off){return (15+0.35*Math.abs(v))*(off?0.45:1);}
 
@@ -1274,7 +1277,7 @@ function makeRace(teamIdx,laps,diff,sens,startComp,rnd,opts){
   let order=ai.slice(0,11).concat([me],ai.slice(11));
   if(opts.gridOrder){const by={};for(const e of order)by[e.code]=e;const o2=opts.gridOrder.map(k=>by[k]).filter(Boolean);if(o2.length===order.length)order=o2;}   // grid from qualifying
   const cars=order.map((e,k)=>{const backM=10+k*8,bs=Math.round(backM/STEP),idx=wrap(-bs),side=(k%2?3.2:-3.2),p=P[idx],t=T[idx];
-    let comp=e.isP?(startComp||'M'):(()=>{const q=rnd();if(wx.wet>0.72)return q<0.6?'W':'I';if(wx.wet>0.2)return 'I';return laps<5?(q<0.5?'S':'M'):(q<0.4?'S':q<0.85?'M':'H');})();
+    let comp=e.isP?(startComp||'M'):(()=>{const q=rnd();if(wx.wet>0.8)return 'W';if(wx.wet>0.72)return q<0.6?'W':'I';if(wx.wet>0.2)return 'I';return laps<5?(q<0.5?'S':'M'):(q<0.4?'S':q<0.85?'M':'H');})();
     return Object.assign(e,{id:k,x:p[0]-t[1]*side,z:p[1]+t[0]*side,a:Math.atan2(t[1],t[0]),spd:0,px:0,pz:0,idx,prog:-bs,lat:side,lane:side,laneT:side,st:0,
       ers:ERS_MAX,ovt:false,ovtE:0,crossT:-99,pen:0,penTot:0,served:0,relPrev:{},wxThr:0.2+rnd()*0.14,blueT:0,off:false,fin:null,react:0.12+0.35*rnd(),lapStart:0,lastLap:null,best:null,passT:0,boost:false,braking:false,slip:0,latG:0,lonG:0,grid:k+1,rnd,
       dmg:newDmg(),wreck:false,crash:false,ty:newTyres(comp,opts.formation?tyreT0(comp):(COMP[comp].wet?60:86)),used:new Set([comp]),stops:0,pit:null,pitReq:false,nextComp:null,pitThr:0.5+0.2*rnd(),stints:[comp],dsq:false,stopTimes:[]});});
@@ -6592,12 +6595,14 @@ function layoutTouchHUD(){if(!isTouch)return;
   hc.htH=ht.offsetHeight;}
 let TOUCH_KT=72;   // how far the steering knob travels each way (px)
 // v12f: the phone's timing tower - every car if they fit, else the top of the order and the cars around the player; intervals to the car ahead
-function towerTouch(r,pp){const pl=race.player,S=race.sess,rowH=VH()<=370?13:15,act=S?r.filter(c=>!c.gone):r;let maxR=Math.max(4,Math.floor((TOWER_H-25-18)/rowH));if(towerMode==='short')maxR=Math.min(maxR,8);   // v12g: tap the header for all rows / fewer / header only
+// 11-09 윤택님 (폭우·약한 비를 보고 인터/풀웻을 고르게): the weather line - on a phone it sits under the tower's header (the top bar that carries it on a PC is hidden there)
+const wxTxt=()=>race.wx.rain>0.05?(race.wx.rain>0.65?'폭우':'약한 비')+' · 노면 '+Math.round(WET*100)+'%':(WET>0.04?'노면 젖음 '+Math.round(WET*100)+'%':'');
+function towerTouch(r,pp){const pl=race.player,S=race.sess,rowH=VH()<=370?13:15,act=S?r.filter(c=>!c.gone):r,wt=wxTxt();let maxR=Math.max(4,Math.floor((TOWER_H-25-18)/rowH)-(wt?1:0));if(towerMode==='short')maxR=Math.min(maxR,8);   // v12g: tap the header for all rows / fewer / header only
   const hd=S?`<span>${S.kind==='practice'?'연습':'Q'+S.q}</span><b>${S.kind==='practice'?fmtClock(S.t):(S.chq?'체커기':fmtClock(S.len-S.t))}</b>`
     :`<span>${race.form?(race.form.kind==='start'?'포메이션':'재개'):'랩 '+Math.max(1,Math.min(race.laps,Math.floor(pl.prog/N)+1))+'/'+race.laps}</span><b>P${pp}/${race.cars.length}</b>`;
   const n=act.length,me=act.indexOf(pl);let show;
   if(n<=maxR)show=null;else{const k=maxR-1;show=new Set();if(me<k)for(let i=0;i<k;i++)show.add(i);else{for(let i=0;i<k-3;i++)show.add(i);for(const i of[me-1,me,me+1])if(i>=0&&i<n)show.add(i);}}
-  let h=`<div class="hd">${hd}<i>${towerMode==='auto'?'▾':'▸'}</i></div>`,last=-1;if(towerMode==='off')return h;
+  let h=`<div class="hd">${hd}<i>${towerMode==='auto'?'▾':'▸'}</i></div>`+(wt?`<div class="wx">${wt}</div>`:''),last=-1;if(towerMode==='off')return h;
   act.forEach((c,i)=>{if(show&&!show.has(i))return;if(last>=0&&i>last+1)h+='<div class="gap">⋯</div>';last=i;
     let q,qc='';if(S){q=c.best!=null?fmt(c.best):(c.pit?'PIT':'-');if(c.pit&&c.best==null)qc='pit';}
     else if(c.dnf||c.fail||c.gone){q='OUT';qc='out';}else if(c.pit){q='PIT';qc='pit';}
@@ -6676,7 +6681,7 @@ function drawHUD(dt){
   drawGMeter(pl,dt);
   for(let k=0;k<4;k++){const lk=(k<2&&(pl.lkS?pl.lkS[k]:pl.lockF))||(k>=2&&(pl.lockR||pl.spinR)),fs=!!(pl.flatW&&pl.flatW[k]>=0.25),st=lk?2:fs?1:0,el=$('ty'+k);   // v12h: per tyre; orange = flat spot
     if(el._lk!==st){el._lk=st;el.style.boxShadow=st===2?'0 0 0 3px #ff3b30 inset':st===1?'0 0 0 2px #ffb347 inset':'';}}
-  setT('wxI',race.wx.rain>0.05?'비 · 노면 '+Math.round(WET*100)+'%':(WET>0.04?'노면 젖음 '+Math.round(WET*100)+'%':''));flagPanel();
+  setT('wxI',wxTxt());flagPanel();
   // stationary time in the box, as the broadcast graphic shows it
   {const q=pl.pit,el=$('pitT');let cls='',lbl='피트 스톱',v=0;
    if(q&&q.state==='stop'&&q.stopT!=null){v=race.t-q.stopT;cls='show';if(q.pen&&v<q.pen)lbl='페널티 '+q.pen+'초 소화';}
