@@ -184,12 +184,12 @@ body.touch #hudSpeed{bottom:94px} body.touch #tower{display:none} body.touch #ca
 #flag{position:absolute; left:50%; top:14px; transform:translateX(-50%); display:none; padding:6px 16px; border-radius:4px; font-size:19px; font-weight:800; pointer-events:none; z-index:4; text-align:center; white-space:nowrap; box-shadow:0 4px 18px rgba(0,0,0,.35)}
 #flag.show{display:block}
 /* 11-08: the VSC delta sits inside the yellow VSC pill (the big centre box hid the road): + green (slower than the minimum, fine), - red (too fast) */
-#flagD{display:none; margin:-3px 2px; padding:1px 7px 2px; border-radius:4px; background:#111; font-size:22px; line-height:1; vertical-align:-2px} #flagD.ok{display:inline-block; color:#2fd06b} #flagD.bad{display:inline-block; color:#ff5a4f}
+#flagD{display:none; margin:0 2px; padding:0 5px; border-radius:4px; background:#111; font-size:22px; line-height:1; vertical-align:-1px} body.touch #flagD{font-size:18px; padding:0 4px} #flagD.ok{display:inline-block; color:#2fd06b} #flagD.bad{display:inline-block; color:#ff5a4f}
 #mirFrame{position:absolute; display:none; pointer-events:none; border:4px solid #0d0e11; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.12); z-index:3}
 #pitT{position:absolute; left:50%; top:62px; transform:translateX(-50%); display:none; align-items:baseline; gap:10px; padding:5px 14px 6px; border-radius:4px; background:rgba(12,14,18,.84); border-left:4px solid var(--yellow); pointer-events:none; font-size:15px; color:var(--dim); z-index:4}
 #pitT.show{display:flex} #pitT b{font-size:30px; line-height:1; color:var(--ink); min-width:3.2ch; text-align:right} #pitT.ok b{color:var(--green)} #pitT.slow b{color:#ff5a4f}
 body.touch #pitT{top:calc(92px + var(--sat)); font-size:12px} body.touch #pitT b{font-size:22px}
-#flag.y,#flag.sc{background:#f5c518; color:#111} #flag.vsc{background:#f5c518; color:#111; outline:3px solid #111; outline-offset:-6px}
+#flag.y,#flag.sc{background:#f5c518; color:#111} #flag.vsc{background:#f5c518; color:#111} #flag.vsc::before{content:''; position:absolute; inset:3px; border:3px solid #111; border-radius:2px; z-index:-1; pointer-events:none}   /* 11-08: the inner frame drawn under the text (an outline is painted over it and cut through the delta badge) */
 #flag.g{background:#1f9d4d; color:#fff} #flag.b{background:#1f55c8; color:#fff}
 #flag.r{background:#d3121b; color:#fff} #flag.f{background:rgba(12,14,18,.88); color:#fff; outline:2px solid #fff; outline-offset:-5px}
 #flag.chq{background:#f4f4f4; color:#111; outline:3px dashed #111; outline-offset:-5px}
