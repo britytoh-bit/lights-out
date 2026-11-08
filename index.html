@@ -1415,6 +1415,26 @@ function boxBusy(race,c){return race.cars.some(o=>o!==c&&!o.gone&&o.team===c.tea
 // uses it on the exit road and while joining so it never arrives at a corner too fast
 // 11-08 윤택님 「자동운전에서 코너같은곳은 너무 속도가 느린데」: past the pit-exit line it drove 0.9 x the centre-line plan braking at 14 m/s2 (63-95 % of the field's corner speed). Now the field's own pace: the racing-line plan x the average AI skill of this difficulty, its braking
 function pitAheadV(race,c,ti,tg){const D=DIFF[race.diff]||DIFF.normal,sk=(D[0]+D[1])/2,bA=brakeAcc(c.spd,tg.brk)*0.92;let v=VMAX;for(let k=0;k<=100;k+=2){const vk=profAtRL(wrap(ti.i+k),tg.lat)*sk,d=Math.max(0,k*STEP-ti.along);v=Math.min(v,Math.sqrt(vk*vk+2*bA*d));}return v;}
+// 11-08 윤택님 「피트출구 자동주행 때 서킷에서 오는 차량이랑 마주칠 상황에선 감속해서 접촉하지 말고」: the merge only gave way to a car level with it
+// or up to 12-30 m back, so a car coming down the track at full speed met it at the merge (Madring: contact; Monza, Sakhir: 2.2-2.4 m apart).
+// The player's autopilot now runs itself and each car behind a few seconds ahead (both at their line's speed, the car behind not braking for
+// it): if that car would be inside a safe gap once we are on the track, it lets it by - slower down the exit road so the car passes the merge
+// first (stopping short of the line if it must), or holding the edge and lifting once on the track. At most PIT_YT s of waiting in all.
+// A stopped (retired) car is not traffic. AI cars merge as before
+const PIT_YT=6,pitWkV=d=>Math.max(8,Math.sqrt(12*Math.max(0,d-8)));   // (pitWkV: the speed to go round a retired car d m ahead in the merge)
+function pitYield(race,c,ti,dMe,dt,near){const pp=c.pit,D=DIFF[race.diff]||DIFF.normal,sk=(D[0]+D[1])/2;let v=VMAX;pp.yld=false;
+  for(const o of race.cars){if(o===c||o.gone||o.pit||o.inGarage||o.dnf||o.spd<2)continue;const dm=gapTo(c,o)*STEP+(o.al||0)-(c.al||0);
+    // the end of the exit road (already on the track at Madring) and the merge: lift for a car level or just behind, keep 10 m + 0.25 s behind one just ahead (0.8 g at most; 8 m was too close when it braked across our nose into Austin's turn 1)
+    if(near&&dm>-12&&dm<60){if(dm<=0){v=Math.min(v,o.spd*0.85);pp.yld=true;}else v=Math.min(v,Math.sqrt(Math.max(0,o.spd*o.spd+16*(dm-10-0.25*o.spd))));continue;}
+    if((pp.yT||0)>=PIT_YT||o.spd<8||dm>-4||dm<-300)continue;
+    let sp=0,vp=Math.max(c.spd,1),so=dm,vo=o.spd,tm=null,tp=null,hit=false;const ko=o.skill||sk,fl=race.rc&&race.rc.flag!=='green';   // (fl: under a safety car or VSC the car behind keeps its speed) (our pick-up taken low: the exit road's own limits and the jerk limit made us later than ACC said, and the car came alongside)
+    for(let t=0;t<8;t+=0.1){vp=Math.min(vp+ACC*0.054,profAtRL(wrap(ti.i+Math.round(sp/STEP)),1)*sk);vo=Math.min(fl?o.spd:vo+ACC*0.09,profAtRL(wrap(ti.i+Math.round(so/STEP)),1)*ko);
+      sp+=vp*0.1;so+=vo*0.1;if(tp==null&&so>=dMe+15)tp=t;
+      if(sp>=dMe){if(tm==null)tm=t;const g=sp-so;if(g>-15&&g<10+0.35*vo+Math.max(0,vo*vo-vp*vp)/20){hit=true;break;}if(t>tm+3)break;}}
+    if(!hit)continue;   // (inside the gap: 10 m + 0.35 s, plus what it would take that car to come down to our speed at 1 g - a car 200 m back at 320 km/h was only seen once we were on the track)
+    // before the merge: slow so it passes the merge first. On the track: hold the edge (no hand-over) while it closes in - not slower (lifting kept it closing: Suzuka held the edge to the 6 s cap)
+    if(dMe>2){pp.yld=true;v=Math.min(v,dMe/((tp!=null?tp:(dMe+15-dm)/Math.max(vo,10))+0.5));}else if(dm>-120)pp.yld=true;}
+  if(pp.yld)pp.yT=(pp.yT||0)+dt;return v;}
 const HAND_T=1.0,PIT_ASSIST=2;   // 11-06 윤택님: after the pit exit hands over, the autopilot keeps steering along the road for 2 s unless the driver steers (near the edge on a gentle bend, hands off for a second took the car 2-3 m off the road at 4 of 28 circuits)
    // 11-05: seconds the autopilot's steering takes to fade out under the driver's. It let go at once: up to full lock and 63 deg/s gone in a frame, mid-corner
 // v11f: joining the track. Some pit exits feed straight into a corner (Monaco's: the pit-exit line runs on through turn 1), so the car
@@ -1426,14 +1446,16 @@ function joinStep(race,c,dt,inp){
   // steering into its line (it merged blind and got hit)
   // - and never run up the back of a car just ahead in its line (they were mostly slow through the corner after the exit)
   const PSj=pitSideR(PIT.Z);let yl=false,alg=false,vAh=1e9;
-  for(const o of race.cars){if(o===c||o.gone||o.pit||o.inGarage)continue;const dm=gapTo(c,o)*STEP;if(dm>-30&&dm<6&&PSj*o.lat>-1.5)yl=true;
+  let wk=null;   // 11-08: (the player) a retired car ahead in the merge - steer round it, do not stand behind it (the AI's merge still waits for it for ever)
+  for(const o of race.cars){if(o===c||o.gone||o.pit||o.inGarage)continue;const dm=gapTo(c,o)*STEP;if(c.isP&&(o.dnf||o.spd<2)){if(dm>-3&&dm<60&&PSj*o.lat>HALF-5.5&&(!wk||dm<gapTo(c,wk)*STEP))wk=o;continue;}if(dm>-30&&dm<6&&PSj*o.lat>-1.5)yl=true;
     if(dm>-7&&dm<7&&Math.abs(o.lat-c.lat)<3.8)alg=true;   // right alongside: not even to the edge - keep straight
     if(dm>-12&&dm<=0&&Math.abs(o.lat-c.lat)<2.6)vAh=Math.min(vAh,o.spd*0.85);   // its line overlaps ours (the racing line can hug the edge): lift and let it by
     if(dm>0&&dm<25&&Math.abs(o.lat-c.lat)<2.6)vAh=Math.min(vAh,o.spd*(dm<8?0.9:1));}
-  const la=4+Math.abs(c.spd)*0.4,li=wrap(ti.i+Math.round(la/STEP)),p=P[li],tt=T[li],lt=PSj*(alg?Math.max(PSj*c.lat,HALF-1.1):yl?HALF-1.1:HALF-2.3),tx=p[0]-tt[1]*lt,tz=p[1]+tt[0]*lt;   // (v12d: Yas joins from the far side)
+  const yv=c.isP?pitYield(race,c,ti,0,dt,true):VMAX;if(pp.yld)yl=true;   // 11-08: give way to a car coming down the track (pitYield)
+  const la=4+Math.abs(c.spd)*0.4,li=wrap(ti.i+Math.round(la/STEP)),p=P[li],tt=T[li],lt=wk?PSj*Math.min(PSj*wk.lat-3.2,HALF-1.1):PSj*(alg?Math.max(PSj*c.lat,HALF-1.1):yl?HALF-1.1:HALF-2.3),tx=p[0]-tt[1]*lt,tz=p[1]+tt[0]*lt;   // (v12d: Yas joins from the far side)
   let da=Math.atan2(tz-c.z,tx-c.x)-c.a;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;
   const om=Math.max(-2.5,Math.min(2.5,2*Math.sin(da)/la*Math.max(c.spd,2)));c.a+=om*dt;if(c.va!=null)c.va=c.a;c.st+=(Math.max(-1,Math.min(1,om*1.2))-c.st)*Math.min(1,6*dt);
-  const vt=Math.min(pitAheadV(race,c,ti,tyreGrip(c)),vAh,scCapV(race,c));   // (v13m: behind the red-flag safety car)
+  const vt=Math.min(pitAheadV(race,c,ti,tyreGrip(c)),vAh,yv,wk?pitWkV(gapTo(c,wk)*STEP):VMAX,scCapV(race,c));   // (v13m: behind the red-flag safety car)
   if(c.spd<vt)c.spd=Math.min(vt,c.spd+ACC*0.9*dt);else c.spd=Math.max(vt,c.spd-(12+0.3*c.spd)*dt);
   c.braking=c.spd<v0-0.01;c.boost=false;c.thr=c.spd>v0+0.01?1:c.braking?0:0.4;c.latG=c.spd*om;c.lonG=(c.spd-v0)/Math.max(dt,1e-4);
   move(c,dt);tyreStep(race,c,dt,c.latG,c.lonG,0);
@@ -1525,8 +1547,10 @@ function stepPit(race,c,dt,inp){
   for(const o of race.cars){if(o===c||o.gone||!o.pit||o.pit.state==='garage'||(c.pit.state==='out'&&o.pit.state==='in'&&o.pit.wait))continue;const dp=gapTo(c,o);if(dp>0&&dp<11&&Math.abs(o.lat-PIT.side*latAt(Math.max(r0,Math.min(PIT.Z,r0+dp-3))))<2.6)vt=o.spd<1&&dp>=3.6?Math.min(vt,Math.sqrt(2*4*(dp-3.6)*STEP)):Math.min(vt,dp<3.5?0:Math.max(0,o.spd-(dp<6?1.5:0)));}   // 11-06 QA: leaving the box, not behind a car waiting in the working lane for its team-mate (off this line: a car stood 15 s there)
   // v13k: the last 40 m of the exit road - where it runs beside the track (Austin: onto the racing line out of turn 1) - give
   // way to a car on the track that is level or just ahead in the same metres, before the merge, not after it
-  if(pp.state==='out'&&r0>PIT.Z-40)for(const o of race.cars){if(o===c||o.gone||o.pit||o.inGarage)continue;const dm=gapTo(c,o)*STEP;
+  if(pp.state==='out'&&r0>PIT.Z-40)for(const o of race.cars){if(o===c||o.gone||o.pit||o.inGarage||(c.isP&&(o.dnf||o.spd<2)))continue;const dm=gapTo(c,o)*STEP;
     if(dm>-12&&dm<25&&Math.abs(o.lat-c.lat)<2.6)vt=Math.min(vt,o.spd*(dm<=0?0.85:dm<8?0.9:1));}
+  if(c.isP&&pp.state==='out'&&r0>=PIT.Z-PIT.RX){const dMe=Math.max(0,(PIT.Z-1-r0)*STEP-ti.along);vt=Math.min(vt,pitYield(race,c,ti,dMe,dt,r0>PIT.Z-40));   // 11-08: past the line - let a car coming down the track pass the merge first
+    for(const o of race.cars)if(o!==c&&!o.gone&&!o.pit&&(o.dnf||o.spd<2)&&pitSideR(PIT.Z)*o.lat>HALF-5.5){const dm=gapTo(c,o)*STEP;if(dm>dMe-5&&dm<dMe+60)vt=Math.min(vt,pitWkV(dm));}}   // and slow for a retired car just past the merge (joinStep steers round it)
   vt=Math.min(vt,scCapV(race,c));   // v13m: red-flag restart - follow the safety car out of the pit lane
   // 11-04: small differences ease in. Following a car in the lane the gap flips between two steps every 2 m of road, so the speed sawed at 11 Hz (+12 / -18 m/s2): the nose nodded and the view with it
   // and the pedals come on and off over a third of a second (jerk limit): no step in the car's pitch at the start or the end of a stop. Below 8 m/s it is the box or the car ahead: straight to it
