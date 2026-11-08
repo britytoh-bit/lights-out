@@ -1423,12 +1423,14 @@ function pitAheadV(race,c,ti,tg){const D=DIFF[race.diff]||DIFF.normal,sk=(D[0]+D
 // it): if that car would be inside a safe gap once we are on the track, it lets it by - slower down the exit road so the car passes the merge
 // first (stopping short of the line if it must), or holding the edge and lifting once on the track. At most PIT_YT s of waiting in all.
 // A stopped (retired) car is not traffic. AI cars merge as before
-const PIT_YT=6,pitWkV=(c,o,d)=>Math.abs(c.lat-o.lat)<2.6?Math.max(1.5,Math.sqrt(16*Math.max(0,d-6))):Math.max(8,Math.sqrt(12*Math.max(0,d-8)));   // (pitWkV: the speed to go round a retired car d m ahead in the merge; 11-08 2nd: down to a crawl while still in its line - at 8 m/s, 10 m short of it, there was no room to get round and every circuit touched it)
+const PIT_YT=6,PIT_YT2=12,pitWkV=(c,o,d)=>Math.abs(c.lat-o.lat)<2.6?Math.max(1.5,Math.sqrt(16*Math.max(0,d-6))):Math.max(8,Math.sqrt(12*Math.max(0,d-8)));   // (pitWkV: the speed to go round a retired car d m ahead in the merge; 11-08 2nd: down to a crawl while still in its line - at 8 m/s, 10 m short of it, there was no room to get round and every circuit touched it)
 function pitYield(race,c,ti,dMe,dt,near){const pp=c.pit,D=DIFF[race.diff]||DIFF.normal,sk=(D[0]+D[1])/2;let v=VMAX;pp.yld=false;
   for(const o of race.cars){if(o===c||o.gone||o.pit||o.inGarage||o.dnf||o.spd<2)continue;const dm=gapTo(c,o)*STEP+(o.al||0)-(c.al||0);
+    // (11-08 3rd: one in our line and faster: no pick-up at all until it is by - at Montreal we crept at the end of the exit road, already on the track, and
+    // drove off at 0.85 x its speed with it 4-6 m behind in our line, hit as we joined)
     // the end of the exit road (already on the track at Madring) and the merge: lift for a car level or just behind, keep 10 m + 0.25 s behind one just ahead (0.8 g at most; 8 m was too close when it braked across our nose into Austin's turn 1)
-    if(near&&dm>-12&&dm<60){if(dm<=0){v=Math.min(v,o.spd*0.85);pp.yld=true;}else v=Math.min(v,Math.sqrt(Math.max(0,o.spd*o.spd+16*(dm-10-0.25*o.spd))));continue;}
-    if((pp.yT||0)>=PIT_YT||o.spd<8||dm>-4||dm<-300||o.id===pp.ySk)continue;
+    if(near&&dm>-12&&dm<60){if(dm<=0){v=Math.min(v,o.spd*0.85,Math.abs(o.lat-c.lat)<3.6&&o.spd>c.spd+1?Math.max(c.spd,2):VMAX);pp.yld=true;}else v=Math.min(v,Math.sqrt(Math.max(0,o.spd*o.spd+16*(dm-10-0.25*o.spd))));continue;}
+    if(((pp.yT||0)>=PIT_YT&&((pp.yT||0)>=PIT_YT2||!pitTail(race,o)))||o.spd<8||dm>-4||dm<-300||o.id===pp.ySk)continue;
     let sp=0,vp=Math.max(c.spd,1),so=dm,vo=o.spd,tm=null,tp=null,hit=false;const ko=o.skill||sk,fl=race.rc&&race.rc.flag!=='green';   // (fl: under a safety car or VSC the car behind keeps its speed) (our pick-up taken low: the exit road's own limits and the jerk limit made us later than ACC said, and the car came alongside)
     for(let t=0;t<8;t+=0.1){vp=Math.min(vp+ACC*0.054,profAtRL(wrap(ti.i+Math.round(sp/STEP)),1)*sk);vo=Math.min(fl?o.spd:vo+ACC*0.09,profAtRL(wrap(ti.i+Math.round(so/STEP)),1)*ko);
       sp+=vp*0.1;so+=vo*0.1;if(tp==null&&so>=dMe+15)tp=t;
@@ -1440,6 +1442,10 @@ function pitYield(race,c,ti,dMe,dt,near){const pp=c.pit,D=DIFF[race.diff]||DIFF.
     // before the merge: slow so it passes the merge first. On the track: hold the edge (no hand-over) while it closes in - not slower (lifting kept it closing: Suzuka held the edge to the 6 s cap)
     if(dMe>2){pp.yld=true;v=Math.min(v,dMe/((tp!=null?tp:(dMe+15-dm)/Math.max(vo,10))+0.5));}else if(dm>-120)pp.yld=true;}
   if(pp.yld)pp.yT=(pp.yT||0)+dt;return v;}
+// 11-08 3rd (qa_train, a train of 3-5 cars): past the 6 s cap it went in front of the last car of a train (Madring, 32 m back at 171 km/h). The tail of a train
+// (nobody close behind it, the one before it within 1.5 s) is still waited for, to PIT_YT2 at most; a car with more coming behind it is not (an endless stream does not hold
+// us for ever), nor a lone car that turns up after the cap (Vegas: one 112 m back at 241 km/h held us 2.4 s more and an AI out of the pits after us caught us up)
+function pitTail(race,o){const W=Math.max(40,1.5*o.spd);let fr=false;for(const q of race.cars){if(q===o||q.gone||q.pit||q.inGarage||q.dnf||q.isP)continue;const d=gapTo(o,q)*STEP;if(d<0&&d>-W)return false;if(d>0&&d<W)fr=true;}return fr;}
 const HAND_T=1.0,PIT_ASSIST=2;   // 11-06 윤택님: after the pit exit hands over, the autopilot keeps steering along the road for 2 s unless the driver steers (near the edge on a gentle bend, hands off for a second took the car 2-3 m off the road at 4 of 28 circuits)
    // 11-05: seconds the autopilot's steering takes to fade out under the driver's. It let go at once: up to full lock and 63 deg/s gone in a frame, mid-corner
 // v11f: joining the track. Some pit exits feed straight into a corner (Monaco's: the pit-exit line runs on through turn 1), so the car
@@ -1452,7 +1458,8 @@ function joinStep(race,c,dt,inp){
   // - and never run up the back of a car just ahead in its line (they were mostly slow through the corner after the exit)
   const PSj=pitSideR(PIT.Z);let yl=false,alg=false,vAh=1e9;
   let wk=null;   // 11-08: a retired car ahead in the merge - steer round it, do not stand behind it (11-08 2nd: the AI too - it stood behind one for ever, 7 cars at Baku)
-  for(const o of race.cars){if(o===c||o.gone||o.pit||o.inGarage)continue;const dm=gapTo(c,o)*STEP;if(o.dnf||o.spd<2){if(dm>-3&&dm<60&&PSj*o.lat>HALF-5.5&&(!wk||dm<gapTo(c,wk)*STEP))wk=o;continue;}if(dm>-30&&dm<6&&PSj*o.lat>-1.5)yl=true;
+  // 11-08 3rd: another car joining just ahead in our line is followed too - two joining cars did not see each other (Vegas: an AI out of the pits after us ran into us 8 times)
+  for(const o of race.cars){if(o===c||o.gone||o.inGarage)continue;if(o.pit){if(o.pit.state==='join'){const dm=gapTo(c,o)*STEP;if(dm>0&&dm<25&&Math.abs(o.lat-c.lat)<2.6)vAh=Math.min(vAh,o.spd*(dm<8?0.9:1));}continue;}const dm=gapTo(c,o)*STEP;if(o.dnf||o.spd<2){if(dm>-3&&dm<60&&PSj*o.lat>HALF-5.5&&(!wk||dm<gapTo(c,wk)*STEP))wk=o;continue;}if(dm>-30&&dm<6&&PSj*o.lat>-1.5)yl=true;
     if(dm>-7&&dm<7&&Math.abs(o.lat-c.lat)<3.8)alg=true;   // right alongside: not even to the edge - keep straight
     if(dm>-12&&dm<=0&&Math.abs(o.lat-c.lat)<2.6)vAh=Math.min(vAh,o.spd*0.85);   // its line overlaps ours (the racing line can hug the edge): lift and let it by
     if(dm>0&&dm<25&&Math.abs(o.lat-c.lat)<2.6)vAh=Math.min(vAh,o.spd*(dm<8?0.9:1));}
