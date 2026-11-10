@@ -630,6 +630,7 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
         <div class="touchOnly"><p class="label">페달 위치</p><div class="seg" id="pedSel"><button data-v="split" aria-pressed="true">양쪽</button><button data-v="right" aria-pressed="false">오른쪽</button></div></div>
         <div class="touchOnly"><p class="label">가속</p><div class="seg" id="agSel"><button data-v="auto" aria-pressed="true">자동 가속</button><button data-v="manual" aria-pressed="false">직접 가속<span class="rec">중급·상급 추천</span></button></div></div>
         <div><p class="label">날씨</p><div class="seg" id="wxSel"><button data-v="dry" aria-pressed="true">맑음</button><button data-v="mixed" aria-pressed="false">변덕</button><button data-v="rain" aria-pressed="false">비</button></div></div>
+        <div><p class="label">비 강도</p><div class="seg" id="rainSel"><button data-v="rnd" aria-pressed="true">랜덤</button><button data-v="light" aria-pressed="false">약한 비<span class="rec">인터</span></button><button data-v="heavy" aria-pressed="false">폭우<span class="rec">풀웻</span></button></div></div>
         <div><p class="label">차량 손상 (벽·접촉·펑처)</p><div class="seg" id="dmgSel"><button data-v="off" aria-pressed="false">끔</button><button data-v="normal" aria-pressed="true">보통</button><button data-v="sim" aria-pressed="false">리얼</button></div></div>
         <div><p class="label">사고 · 세이프티카</p><div class="seg" id="incSel"><button data-v="off" aria-pressed="false">없음</button><button data-v="real" aria-pressed="false">가끔</button><button data-v="often" aria-pressed="true">자주</button></div></div>
         <div class="keyOnly"><p class="label">스타트</p><div class="seg" id="stSel"><button data-v="manual" aria-pressed="true">수동</button><button data-v="auto" aria-pressed="false">자동</button></div></div>
@@ -1233,8 +1234,9 @@ const AERO=(()=>{const ok=i=>TR.K[i]<0.0025&&PROF[i]>=VMAX*0.93,z=new Uint8Array
   for(let k=0;k<N;){const i=(s0+k)%N;if(!ok(i)){k++;continue;}let L=0;while(L<N&&ok((s0+k+L)%N))L++;if(L*STEP>=160)for(let j=10;j<L-25;j++)z[(s0+k+j)%N]=1;k+=L;}
   return z;})();
 function aeroState(race,c){if(race.rc.flag!=='green'||!AERO[c.idx]||c.braking||c.pit)return 0;return WET>0.45?1:2;}   // 2 open, 1 partial (wet), 0 corner mode
-function makeWeather(mode,laps,rnd){const dur=laps*LAPSEC,wx={mode,wet:0,rain:0,sched:[]};
-  if(mode==='rain'){const hv=rnd()<0.5,q=rnd();wx.hv=hv;wx.rain=wx.r0=hv?0.78+rnd()*0.17:0.28+rnd()*0.2;wx.wet=Math.min(1,wx.rain*1.1);wx.sched.push({t:0,to:wx.rain});   // 11-09 윤택님 (폭우랑 노면만 젖는 비, 랜덤 - 인터·풀웻을 고르게): half heavy (track 0.86-1: full wets), half light (0.32-0.55: inters) - it was 0.55-0.85 (track 0.63-0.98, nearly always full wets)
+// 11-11 윤택님 「비 강도 조절 메뉴 - 인터 낄지 웻 낄지」: ri 'light' / 'heavy' picks the kind of rain (the menu's 비 강도), anything else is the 50 / 50 draw. Only for 비: 변덕 keeps its own
+function makeWeather(mode,laps,rnd,ri){const dur=laps*LAPSEC,wx={mode,wet:0,rain:0,sched:[]};
+  if(mode==='rain'){const r0=rnd(),hv=ri==='heavy'?true:ri==='light'?false:r0<0.5,q=rnd();wx.hv=hv;wx.rain=wx.r0=hv?0.78+rnd()*0.17:0.28+rnd()*0.2;wx.wet=Math.min(1,wx.rain*1.1);wx.sched.push({t:0,to:wx.rain});   // 11-09 윤택님 (폭우랑 노면만 젖는 비, 랜덤 - 인터·풀웻을 고르게): half heavy (track 0.86-1: full wets), half light (0.32-0.55: inters) - it was 0.55-0.85 (track 0.63-0.98, nearly always full wets)
     if(hv){if(q<0.5)wx.sched.push({t:dur*(0.45+rnd()*0.3),to:0.36+rnd()*0.1});}   // heavy: half of them ease to inter weather (track 0.41-0.53: under the 0.55 where AI cars leave full wets - at 0.55-0.58 they stayed on wets ~2.5 s a lap slower at Monza)
     else if(q<0.3)wx.sched.push({t:dur*(0.5+rnd()*0.25),to:0});else if(q<0.55)wx.sched.push({t:dur*(0.4+rnd()*0.3),to:0.16+rnd()*0.08});}   // light: some stop late (drying, slicks for the end?), some get lighter (inters near their edge). 11-01 윤택님 (비로 해 뒀는데 1랩 뒤 맑아짐): the rain eases but stays rain (was 0.12-0.32: dur counts 58 s laps, so on a long lap it came in lap 1 of 3 and the track dried in ~40 s)
   else if(mode==='mixed'){const t0=dur*(0.12+rnd()*0.3),pk=rnd()<0.5?0.78+rnd()*0.17:0.28+rnd()*0.2;wx.sched.push({t:t0,to:pk},{t:t0+dur*(0.28+rnd()*0.25),to:0});}   // 11-09: the shower is a light one or a downpour (was 0.45-0.9)
@@ -1273,7 +1275,7 @@ function pitAdvice(race,c){const ty=c.ty,C=COMP[ty.comp],w=avgWear(c),used=ty.di
   return {loss:pitLoss(),pos:rejoinPos(race,c),from:lap+Math.max(0,Math.round((C.cl-w)/r)),to:lap+Math.max(0,Math.round((1-w)/r)),left:Math.max(0,(1-w)/r),rate:r,life:k=>0.95*COMP[k].life/C.life/r};}
 function makeRace(teamIdx,laps,diff,sens,startComp,rnd,opts){
   rnd=rnd||Math.random;opts=opts||{};
-  const wx=makeWeather(opts.weather||'dry',opts.wxLaps||laps,rnd);WET=wx.wet;
+  const wx=makeWeather(opts.weather||'dry',opts.wxLaps||laps,rnd,opts.rainInt);WET=wx.wet;
   const [lo,hi]=DIFF[diff]||DIFF.normal;const ai=[];let me=null;
   TEAMS.forEach((tm,ti)=>tm.d.forEach((dr,di)=>{const e={team:ti,name:dr[0],code:dr[1],num:ti*2+di+2,isP:false};
     if(ti===teamIdx&&di===0){e.name='나';e.code='YOU';e.isP=true;me=e;}else{e.skill=opts.skills&&opts.skills[e.code]!=null?opts.skills[e.code]:lo+(hi-lo)*rnd();ai.push(e);}}));
@@ -2241,9 +2243,9 @@ function debrisHazard(race,c,big){const rc=race.rc;if(!rc||race.sess||race.form|
 // a car far off the road, spun round, or stopped: yellows in that marshal sector (double when it is stopped), kept up while it is there
 function offTrackYellows(race,dt){const rc=race.rc;if(race.form||rc.flag==='red'||rc.flag==='sc'||rc.flag==='vsc')return;   // (v12h: under the SC / VSC the whole lap is neutralised already: the queue crawling behind it is no hazard)
   for(const c of race.cars){if(c.gone||c.pit||c.fin!=null||c.dnf||c.inGarage){c.stopT=0;continue;}
-    const off=Math.abs(c.lat)-TR.HW[c.idx],v=Math.abs(c.spd),spun=Math.abs(c.slideAng||0)>1.1&&v>6;
+    const off=Math.abs(c.lat)-TR.HW[c.idx],v=Math.abs(c.spd),spun=(Math.abs(c.slideAng||0)>1.1&&v>6)||c.spunT>0.3;   // 11-11: an AI spin turns by spunT (its slideAng stays 0): no AI spin ever raised a yellow
     c.stopT=v<1.5?(c.stopT||0)+(dt||0):0;const stopped=c.stopT>2&&race.t>(race.startT||0)+8;   // v12h: really stopped (under ~5 km/h for 2 s), not slow in a queue
-    const bad=off>3||spun||stopped;if(!bad)continue;
+    const bad=off>3||spun||stopped||(off>1.2&&c.off&&v<20);if(!bad)continue;   // 11-11: all four wheels in the gravel / grass and slow (under ~72 km/h) - two wheels over at speed is still nothing
     const z=c.offY,dbl=stopped||off>8;
     if(z&&rc.yellows.includes(z)&&wrap(c.idx-z.i0)<=z.len+30){z.until=Math.max(z.until,race.t+6);if(dbl)z.dbl=true;z.len=Math.max(z.len,wrap(c.idx-z.i0)+10);}   // (v12h: a long trip off the track stretches its own zone)
     else c.offY=addYellow(race,c.idx,dbl,6);}}
@@ -5765,17 +5767,36 @@ const outCam=c=>c==='chase'||c==='far'||c==='tv';
 // the menu or a finish shot); then the rain box, the tunnel light, the effects and the car detail are measured from the player's car
 // (VP), not from a camera a couple of hundred metres away. TVS.s: the site in use - it changes (a cut) only when the car is 80 m past it.
 let TVON=false,LODK=1;const TVR=new THREE.Vector3(),TVS={s:null},VP=()=>TVON?TVR:camera.position;
+// 11-11 윤택님 「TV 시점이 건물·벽·나무에 가려짐, 특히 모나코」: on Monaco 37 % of the TV picture had something solid between the camera and the car (a ray test
+// against the whole scene, in the test only - 17 ms a ray, far too slow for a phone). tvSees is the cheap stand-in, every frame: the line from the camera
+// (TVH m up the post) to the car in 2 m steps against the buildings' ground plan (WORLD.occ: every building, stand and landmark, 1 m padded; taken as taller
+// than the line) and the ground (a hill, a crest). A site that cannot see the car is not picked; the one in use is dropped once it has not seen the car for
+// TV_BLK s (a lamp post's cell does not cut the picture), and is then not taken back for TV_BAN s (no cutting to and fro). When no tower sees the car, a
+// camera on a building or a pole: tvVirt, every TV_VS samples on both sides of the road (not in the pit, a tunnel, or within 3 m of a building's plan),
+// the furthest one ahead that sees it (longer shots: there are many). Nothing sees it: the chase view. Monaco (ray test, every 12 m of the lap):
+// something solid in the way 37 % of the TV picture -> 3 %; the TV view is on for 69 % of the lap (was 90 %, the rest is the chase view).
+const TVH=7.6,TV_BLK=0.15,TV_BAN=2.5,TV_VS=30;
+function tvVirt(){if(WORLD.tvV)return WORLD.tvV;const V=[],oc=WORLD.occ,tn=WORLD.tunnel;
+  for(let i=0,k=0;i<N;i+=TV_VS,k++)for(const sd of[1,-1]){if(zoneR(i)>=0||tn&&inRange(i,wrap(tn.i0-10),wrap(tn.i1+10)))continue;const o=sd*((sd>0?TR.LP[i]:TR.LN[i])+2.4),p=P[i],t=T[i],x=p[0]-t[1]*o,z=p[1]+t[0]*o;
+    let ok=!(WORLD.inWater&&WORLD.inWater(x,z));for(let a=0;ok&&a<6.28;a+=0.785)if(oc&&oc(x+3*Math.cos(a),z+3*Math.sin(a)))ok=false;if(ok)V.push({i,x,z,v:1});}
+  return WORLD.tvV=V;}
+function tvSees(q,pl){const ex=q.x,ez=q.z,ey=hXZ(ex,ez)+TVH,x=pl.x,z=pl.z,y=roadY(x,z,pl.idx)+0.8,dx=x-ex,dz=z-ez,n=Math.ceil(Math.hypot(dx,dz)/2),oc=WORLD.occ;
+  for(let k=2;k<n-1;k++){const u=k/n,px=ex+dx*u,pz=ez+dz*u;if(oc&&oc(px,pz)||hXZ(px,pz)>ey+(y-ey)*u-0.3)return false;}return true;}
 function tvPick(pl){const Ls=WORLD&&WORLD.tv,tn=WORLD&&WORLD.tunnel;if(!Ls||!Ls.length||pitTunSect(pl)||tn&&inRange(pl.idx,tn.i0,tn.i1))return null;   // in a tunnel: the chase view (the tunnel light and exposure go by the camera, for the whole screen)
- const sd=q=>{const d=wrap(q.i-pl.idx);return d>N/2?d-N:d;};
-  const c=TVS.s,dc=c?sd(c):-1e9;if(dc>=-40&&dc<=250)return c;   // (index steps of 2 m: keep it until the car is 80 m past)
-  let b=null,bd=1e9;for(const q of Ls){const d=sd(q);if(d>=5&&d<=120&&d<bd){bd=d;b=q;}}   // the next one ahead, at most ~240 m away (further, the car is a speck)
-  return TVS.s=b||(dc>=-90?c:null);}   // nothing ahead (a long gap, e.g. the pit straight): hold the last shot a little longer, then the chase view
+ const sd=q=>{const d=wrap(q.i-pl.idx);return d>N/2?d-N:d;},now=performance.now()/1000;
+  const c=TVS.s,dc=c?sd(c):-1e9;
+  if(c&&dc>=-40&&dc<=250){if(tvSees(c,pl)){TVS.bt=0;return c;}if(!TVS.bt)TVS.bt=now;if(now-TVS.bt<TV_BLK)return c;TVS.ban=c;TVS.banT=now+TV_BAN;}   // (index steps of 2 m: keep it until the car is 80 m past)
+  TVS.bt=0;let b=null,bd=1e9;
+  for(const q of Ls){if(q===TVS.ban&&now<TVS.banT)continue;const d=sd(q),k=d>=5&&d<=120?d:d<=-5&&d>=-35?200-d:1e9;if(k<bd&&tvSees(q,pl)){bd=k;b=q;}}   // the next one ahead (at most ~240 m: further, the car is a speck), else one just behind (watching it go away)
+  if(!b)for(const q of tvVirt()){if(q===TVS.ban&&now<TVS.banT)continue;const d=sd(q),k=d>=5&&d<=120?200-d:d<=-5&&d>=-35?400-d:1e9;if(k<bd&&tvSees(q,pl)){bd=k;b=q;}}
+  if(!b&&c&&c!==TVS.ban&&dc>=-90&&tvSees(c,pl))b=c;   // nothing ahead (a long gap, e.g. the pit straight): hold the last shot a little longer, then the chase view
+  return TVS.s=b;}
 // v12j: the pause buttons say what is on right now, instead of just "켜기/끄기"
 function pauseLabels(){const m=$('mirBtn'),h=$('haloBtn');
   if(m)m.textContent='룸미러: '+(MIR&&MIR.on?'켬':'끔');
   if(h)h.textContent='헤일로 블러: '+(typeof HALOGH!=='undefined'&&HALOGH?'켬':'끔');
   const f=$('fpsBtn');if(f)f.textContent='FPS 표시: '+(FPSON?'켬':'끔');}
-function toggleMirror(){if(!MIR){toast('룸미러를 쓸 수 없어요','#fff');return;}MIR.on=!MIR.on;saveLS('lightsout3d-mirror',MIR.on?'1':'0');toast(MIR.on?'룸미러 켬':'룸미러 끔','#fff');pauseLabels();}
+function toggleMirror(){if(!MIR){toast('룸미러를 쓸 수 없어요','#fff');return;}MIR.on=!MIR.on;saveLS('lightsout3d-mirror',MIR.on?'1':'0');if(isTouch)layoutTouchHUD();toast(MIR.on?'룸미러 켬':'룸미러 끔','#fff');pauseLabels();}
 function cycleCam(){camMode=(camMode+1)%CAMS.length;saveLS('lightsout3d-cam',CAMS[camMode]);toast(CAMNAME[CAMS[camMode]]+' 시점 ('+(camMode+1)+'/'+CAMS.length+')','#fff');}
 function setSens(v){sens=Math.max(1,Math.min(5,v));saveLS('lightsout3d-sens',sens);if(race)race.sens=sens;skillUI();document.querySelectorAll('#sensSel button, #pSensSel button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.v===sens?'true':'false'));}   // v12j: the pause copy too
 addEventListener('keydown',e=>{
@@ -5978,7 +5999,7 @@ let rlMode=loadLS('lightsout3d-rl')||'corners';if(!['corners','full','off'].incl
 let brakeAs=[1,2].includes(+loadLS('lightsout3d-bas'))?+loadLS('lightsout3d-bas'):0,skReady=false;
 function applyRL(){skillUI();if(!WORLD||!WORLD.rlFull)return;WORLD.rlFull.visible=rlMode==='full';WORLD.rlCorn.visible=rlMode==='corners';}
 let damageMode=['off','normal','sim'].includes(loadLS('lightsout3d-dmg'))?loadLS('lightsout3d-dmg'):'normal';
-let weather=loadLS('lightsout3d-wx')||'dry',incidents=loadLS('lightsout3d-inc')||'often',startMode=loadLS('lightsout3d-st')||'manual',SCM=null,EXPO=0.72;
+let weather=loadLS('lightsout3d-wx')||'dry',rainInt=['light','heavy'].includes(loadLS('lightsout3d-rain'))?loadLS('lightsout3d-rain'):'rnd',incidents=loadLS('lightsout3d-inc')||'often',startMode=loadLS('lightsout3d-st')||'manual',SCM=null,EXPO=0.72;
 let startComp=['S','M','H','I','W'].includes(loadLS('lightsout3d-sc'))?loadLS('lightsout3d-sc'):'M',state='loading',race=null,meshes=[],SW=null,teamSel=(x=>x!=null&&x!==''&&TEAMS[+x]?+x:9)(loadLS('lightsout3d-team')),laps=[3,5,10].includes(+loadLS('lightsout3d-laps'))?+loadLS('lightsout3d-laps'):3,diff=['easy','normal','hard'].includes(loadLS('lightsout3d-diff'))?loadLS('lightsout3d-diff'):'normal',cdT=0,cdLit=0,cdHold=1,doneT=0,toastT=0,towerT=0,sessionBest=null;
 let gameMode=['race','quali','practice'].includes(loadLS('lightsout3d-mode'))?loadLS('lightsout3d-mode'):'race',formOn=(loadLS('lightsout3d-fml')||'on')==='on',FF=false,pausedFrom='race',lastStart=null;
 const lightCols=(()=>{let h='';for(let i=0;i<5;i++)h+='<div class="col"><div class="bulb"></div><div class="bulb"></div></div>';$('lights').innerHTML=h;return [...document.querySelectorAll('#lights .col')];})();
@@ -5991,9 +6012,11 @@ function togglePit(){if(!race||state!=='race')return;const p=race.player;if(p.pi
 function setNext(k){if(!race||state==='menu')return;const p=race.player;if(p.pit&&!['in','red','garage'].includes(p.pit.state))return;p.nextComp=k;const a=!COMP[k].wet&&!race.sess?pitAdvice(race,p):null;toast('다음 타이어: '+COMP[k].name+(a?' · 약 '+Math.round(a.life(k))+'랩':''),COMP[k].col);}
 function cycleNext(){const p=race&&race.player;if(!p)return;const o=['S','M','H','I','W'];setNext(o[(o.indexOf(p.nextComp||p.ty.comp)+1)%5]);}
 let toastHold=0;
-function toast(m,c,d,hold){if(!hold&&performance.now()<toastHold)return;if(hold)toastHold=performance.now()+hold;const t=$('toast');t.textContent=m;t.style.color=c||'#fff';t.style.opacity=1;toastT=d||1.8;}
+// 11-11 윤택님 「패널티·타이어 변경 팝업이 너무 오래 시야를 가림」: every note at most TOAST_MAX s (penalties were 2.6, damage 2.4, instructions 3.6), and on a phone
+// it sits in the top band (layoutTouchHUD: the row under the race-control pill; the mirror's row is only kept free while the mirror is on)
+const TOAST_MAX=2;function toast(m,c,d,hold){d=Math.min(d||1.8,TOAST_MAX);if(hold)hold=Math.min(hold,1500);if(!hold&&performance.now()<toastHold)return;if(hold)toastHold=performance.now()+hold;const t=$('toast');t.textContent=m;t.style.color=c||'#fff';t.style.opacity=1;toastT=d||1.8;}
 function setupRace(mode,o){o=o||{};mDraw=40;podiumEnd(false);meshes.forEach(m=>scene.remove(m.root));resetSkids();if(WORLD&&WORLD.crew)WORLD.crew.ready=false;clearDebris();
-  const opts={weather,incidents,damage:damageMode,aeroAuto:aeroMode==='auto',assist:isTouch&&assistMode==='off'?'offTouch':assistMode,formation:mode==='race'&&formOn,gridOrder:o.gridOrder,skills:o.skills};
+  const opts={weather,rainInt,incidents,damage:damageMode,aeroAuto:aeroMode==='auto',assist:isTouch&&assistMode==='off'?'offTouch':assistMode,formation:mode==='race'&&formOn,gridOrder:o.gridOrder,skills:o.skills};
   if(mode==='quali'||mode==='practice')race=makeSession(teamSel,mode,diff,sens,null,Object.assign(opts,{comp:startComp}));
   else race=makeRace(teamSel,laps,diff,sens,startComp,null,opts);
   race.bAs=brakeAs;
@@ -6070,12 +6093,12 @@ let mMode=loadLS('lightsout3d-mmode')||(CH?'champ':'normal'),chLen=+loadLS('ligh
 // 11-04: the menu: a short list at home, one topic per page. The controls keep their ids and handlers; they are only moved to their row.
 const MPAGES={track:[[null,[['chBox','대회','서킷을 이어 달리며 순위별 점수를 합산해요'],['chTrkNote'],['trkSel']]],['도로',[['wdSel','도로 폭']]]],
   team:[[null,[['teamSel'],['livBtn']]]],
-  race:[['레이스',[['modeSel','진행 방식'],['lapSel','랩 수'],['difSel','AI 난이도'],['scSel','스타트 타이어']]],['날씨와 시간',[['wxSel','날씨','변덕은 도중에 비가 와요'],['todSel','시간대']]],['규칙',[['fmlSel','포메이션 랩','출발 전에 한 바퀴 돌아요'],['incSel','사고와 세이프티카'],['dmgSel','차량 손상','보통: 내 차는 크게 부딪혀도 대부분 피트에서 고쳐요 · 리얼: 부러진 서스펜션·큰 충격·찢어진 사이드포드는 리타이어 · 끔: 손상 없음']]]],
+  race:[['레이스',[['modeSel','진행 방식'],['lapSel','랩 수'],['difSel','AI 난이도'],['scSel','스타트 타이어']]],['날씨와 시간',[['wxSel','날씨','변덕은 도중에 비가 와요'],['rainSel','비 강도','약한 비는 노면만 젖어 인터, 폭우는 풀웻'],['todSel','시간대']]],['규칙',[['fmlSel','포메이션 랩','출발 전에 한 바퀴 돌아요'],['incSel','사고와 세이프티카'],['dmgSel','차량 손상','보통: 내 차는 크게 부딪혀도 대부분 피트에서 고쳐요 · 리얼: 부러진 서스펜션·큰 충격·찢어진 사이드포드는 리타이어 · 끔: 손상 없음']]]],
   drive:[[null,[['skSel','실력'],['skNote'],['tutBtn']]],['조작',[['smSel','조향 방식'],['sensSel','조향 감도','1이 가장 부드러워요'],['pedSel','페달 위치','양쪽은 브레이크가 왼쪽이에요'],['agSel','가속'],['stSel','스타트','수동은 부정 출발을 판정해요']]],['보조',[['asSel','주행 보조','잠김과 스핀을 잡아줘요'],['basSel','브레이크 보조','너무 빠르면 대신 밟아요. 늦게 밟고 싶으면 끄세요'],['rlSel','레이싱 라인'],['aeroSel','직선 모드 날개']]]],
   set:[['그래픽',[['qSel','그래픽'],['aqSel','자동 화질 조절','프레임이 떨어지면 효과를 줄여요'],['crowdSel','관중 표시','끄면 조금 가벼워져요']]],['소리',[['sndPrev','엔진 소리'],['sndTune','소리 튜닝','모드와 울림을 귀로 맞춰요']]],['성능 측정',[['bvSel','측정 시점'],['bwSel','측정 날씨'],['benchBtn','자동 성능 측정','28개 서킷을 돌며 재요. 15~20분 걸리니 충전기에 꽂아 두세요']]],['도움말',[['touchHelp'],['mKeys']]]]};
 const MNAMES={track:'서킷',team:'팀',race:'레이스 설정',drive:'운전',set:'그래픽과 기타'};
 function mOpen(k){$('mHome').hidden=!!k;$('mPage').hidden=!k;for(const n in MPAGES){const on=n===k;$('mP_'+n).hidden=!on;if(on)$('mP_'+n).scrollTop=0;}if(k)$('mPgT').textContent=k==='track'&&mMode==='champ'?'대회와 서킷':MNAMES[k];}
-function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={easy:'AI 쉬움',normal:'AI 보통',hard:'AI 어려움'}[diff]||'',w={dry:'맑음',mixed:'변덕',rain:'비'}[weather]||'';
+function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={easy:'AI 쉬움',normal:'AI 보통',hard:'AI 어려움'}[diff]||'',w=weather==='rain'?{light:'약한 비',heavy:'폭우'}[rainInt]||'비(랜덤)':{dry:'맑음',mixed:'변덕'}[weather]||'';
   set('mV_team',TEAMS[teamSel].name);set('mV_race',gameMode==='practice'?['연습 주행',w].join(', '):[(gameMode==='quali'?'예선 후 ':'')+laps+'랩',d,w].join(', '));
   set('mV_drive',[{tilt:'기울이기',drag:'드래그',buttons:'버튼'}[steerMode],autoGas?'자동 가속':'직접 가속'].join(', '));set('mV_set','그래픽 '+({high:'높음',medium:'보통',low:'부드럽게'}[quality]||''));}
 (function menuBuild(){const card=document.querySelector('#menu .card'),h1=card.querySelector('h1'),st=$('startBtn'),help=card.querySelector('.keys');help.id='mKeys';
@@ -6115,7 +6138,7 @@ function seg(id,cb){document.querySelectorAll('#'+id+' button').forEach(b=>b.add
 seg('mMode',v=>{mMode=v;saveLS('lightsout3d-mmode',v);mApply();});seg('modeSel',v=>{gameMode=v;saveLS('lightsout3d-mode',v);updStartBtn();});seg('fmlSel',v=>{formOn=v==='on';saveLS('lightsout3d-fml',v);});
 document.querySelectorAll('#modeSel button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===gameMode?'true':'false'));document.querySelectorAll('#fmlSel button').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.v==='on')===formOn?'true':'false'));updStartBtn();
 // 11-05: these four were not kept: every reload (each 대회 round goes through one, changing circuit too) put them back to the defaults
-seg('teamSel',v=>{teamSel=+v;saveLS('lightsout3d-team',v);if(state==='menu')setupRace();});seg('lapSel',v=>{laps=+v;saveLS('lightsout3d-laps',v);});seg('scSel',v=>{startComp=v;saveLS('lightsout3d-sc',v);if(state==='menu')setupRace();});seg('difSel',v=>{diff=v;saveLS('lightsout3d-diff',v);});seg('sensSel',v=>setSens(+v));segPick(['lapSel'],laps);segPick(['scSel'],startComp);segPick(['difSel'],diff);
+seg('teamSel',v=>{teamSel=+v;saveLS('lightsout3d-team',v);if(state==='menu')setupRace();});seg('lapSel',v=>{laps=+v;saveLS('lightsout3d-laps',v);});seg('scSel',v=>{startComp=v;scAuto=false;saveLS('lightsout3d-sc',v);if(state==='menu')setupRace();});seg('difSel',v=>{diff=v;saveLS('lightsout3d-diff',v);});seg('sensSel',v=>setSens(+v));segPick(['lapSel'],laps);segPick(['scSel'],startComp);segPick(['difSel'],diff);
 seg('trkSel',v=>{if(v!==TRK.id){saveLS('lightsout3d-track',v);$('loading').style.display='flex';$('loading').textContent='서킷을 불러오는 중';setTimeout(()=>location.reload(),30);}});
 document.querySelectorAll('#wdSel button').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.v==='wide')===ROAD_WIDE?'true':'false'));
 seg('wdSel',v=>{if((v==='wide')!==ROAD_WIDE){saveLS('lightsout3d-width',v);$('loading').style.display='flex';$('loading').textContent='서킷을 다시 만드는 중';setTimeout(()=>location.reload(),30);}});   // v12c: the road is built at load
@@ -6125,7 +6148,12 @@ let autoQ=loadLS('lightsout3d-autoq')==='off'?'off':'on';
 seg('aqSel',v=>{autoQ=v==='off'?'off':'on';saveLS('lightsout3d-autoq',autoQ);});
 seg('crowdSel',v=>{crowdOn=v==='on';saveLS('lightsout3d-crowd',v);applyCrowd();});segPick(['crowdSel'],crowdOn?'on':'off');
 seg('qSel',v=>{if(v!==quality){quality=v;saveLS('lightsout3d-q2',v);location.reload();}});
-seg('wxSel',v=>{weather=v;saveLS('lightsout3d-wx',v);if(state==='menu')setupRace();});seg('incSel',v=>{incidents=v;saveLS('lightsout3d-inc',v);});seg('dmgSel',v=>{damageMode=v;saveLS('lightsout3d-dmg',v);});seg('stSel',v=>{startMode=v;saveLS('lightsout3d-st',v);});$('sndPrev').addEventListener('click',()=>previewEngine());seg('asSel',v=>{assistMode=v;saveLS('lightsout3d-assist',v);if(state==='menu')setupRace();skillUI();});seg('aeroSel',v=>{aeroMode=v;saveLS('lightsout3d-aero',v);if(state==='menu')setupRace();applyMobileClasses();});seg('rlSel',v=>{rlMode=v;saveLS('lightsout3d-rl',v);applyRL();});
+seg('wxSel',v=>{weather=v;saveLS('lightsout3d-wx',v);rainRow();if(v==='rain')rainTyre();else if(COMP[startComp].wet&&scAuto)setSC('M');if(state==='menu')setupRace();});
+seg('rainSel',v=>{rainInt=v;saveLS('lightsout3d-rain',v);rainTyre();if(state==='menu')setupRace();});
+// the rain's strength known in the menu, the start tyre follows it (inters / full wets) - still changeable. scAuto: set by this, so 맑음 puts it back on mediums
+let scAuto=false;function setSC(k){startComp=k;saveLS('lightsout3d-sc',k);document.querySelectorAll('#scSel button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===k?'true':'false'));scAuto=COMP[k].wet;}
+function rainTyre(){if(weather!=='rain'||rainInt==='rnd')return;const k=rainInt==='heavy'?'W':'I';if(startComp!==k)setSC(k);}
+function rainRow(){const r=$('rainSel').closest('.mRow');if(r)r.style.display=weather==='rain'?'':'none';}rainRow();seg('incSel',v=>{incidents=v;saveLS('lightsout3d-inc',v);});seg('dmgSel',v=>{damageMode=v;saveLS('lightsout3d-dmg',v);});seg('stSel',v=>{startMode=v;saveLS('lightsout3d-st',v);});$('sndPrev').addEventListener('click',()=>previewEngine());seg('asSel',v=>{assistMode=v;saveLS('lightsout3d-assist',v);if(state==='menu')setupRace();skillUI();});seg('aeroSel',v=>{aeroMode=v;saveLS('lightsout3d-aero',v);if(state==='menu')setupRace();applyMobileClasses();});seg('rlSel',v=>{rlMode=v;saveLS('lightsout3d-rl',v);applyRL();});
 // ---- livery editor ----
 const LE_SW=['#ffffff','#f2f4f7','#cfd5dc','#dcc9a2','#2b2e34','#3a1fb8','#3dffc0','#101c3f','#d9824a','#e2185b','#ff9a1f','#ff4d6d','#6a1030','#e3b448','#5f6e26','#00b7ff','#ff2d95','#ffd014','#e9edf1','#9aa3ad','#4a4f57','#131417','#c40d20','#e8321e','#ff6a13','#ff8200','#ffb000','#f2d600','#b5e61d','#86c20a','#2eaf4a','#1a4d33','#0b817e','#1fc7c1','#34d1ff','#1f5fd6','#15285e','#0b1a3a','#5a2ca0','#8b3fd9','#e5287f','#ff4fa3','#b8662e','#d9ae48','#c7a15a','#e8dcb5'];
 // v12: ready-made schemes (original designs: colour pairs picked to stay clear of the real teams' schemes, built from the editor's own layouts and textures)
@@ -6169,11 +6197,11 @@ $('leReset').addEventListener('click',()=>{if(!LED)return;const ti=LED.ti;delete
 $('leRand').addEventListener('click',()=>{if(!LED)return;const pick=a=>a[Math.floor(Math.random()*a.length)],L=LED.L;
   L.D=pick(LE_SW);do{L.A=pick(LE_SW);}while(L.A===L.D);L.W=Math.random()<0.45?pick(['#ffffff','#e9edf1','#131417',pick(LE_SW)]):null;L.wt=L.W?pick(['engine','nose','cockpit']):'none';
   L.cut=pick(['rise','slash','step','late','split','fade','solid']);L.K=pick(['#0c0d10','#2b2e35','#101a33']);L.KC=Math.random()<0.2?1:0;L.M=pick(['none','pixels','dots','chevrons','hatch','rays','diamonds','scales','lines','shards','pin','circuit','glitch','prism']);L.fin=pick(['gloss','gloss','satin','matte','metal']);L.spine=Math.random()<0.5?1:0;leSync();leApply();});
-[['wxSel',()=>weather],['incSel',()=>incidents],['dmgSel',()=>damageMode],['stSel',()=>startMode],['aeroSel',()=>aeroMode],['asSel',()=>assistMode],['rlSel',()=>rlMode],['aqSel',()=>autoQ]].forEach(([id,g])=>document.querySelectorAll('#'+id+' button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===g()?'true':'false')));
+[['wxSel',()=>weather],['rainSel',()=>rainInt],['incSel',()=>incidents],['dmgSel',()=>damageMode],['stSel',()=>startMode],['aeroSel',()=>aeroMode],['asSel',()=>assistMode],['rlSel',()=>rlMode],['aqSel',()=>autoQ]].forEach(([id,g])=>document.querySelectorAll('#'+id+' button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===g()?'true':'false')));
 document.querySelectorAll('#qSel button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===quality?'true':'false'));setSens(sens);
 // ===== mobile controls =====
 let pedPos=loadLS('lightsout3d-ped')||'split',steerMode=loadLS('lightsout3d-sm')||'drag',autoGas=(loadLS('lightsout3d-ag')||'auto')==='auto',tiltAxis=0,tiltRef=null,tiltLast=null,tiltOK=false,dragAxis=0,touchGas=false,touchBrake=false,touchErs=false,autoErsOn=false;
-let tiltDeg=0;const TF={x:0,dx:0,b:0,on:false};   // v13b-c: tilt angle, One Euro filter state, drifting neutral
+let tiltDeg=0;const TF={x:0,y:0,dx:0,b:0,on:false};   // v13b-c: tilt angle, One Euro filter state, drifting neutral
 function applyMobileClasses(){$('mAero').style.display=aeroMode==='manual'?'':'none';const b=document.body.classList;b.remove('sm-tilt','sm-drag','sm-buttons');b.add('sm-'+steerMode);b.toggle('autogas',autoGas);$('mCal').style.display=steerMode==='tilt'?'':'none';}
 // v12j: the same controls sit in the pause card, so they can be changed without leaving the race. Both copies are kept in step.
 function segPick(ids,val){for(const id of ids){const el=$(id);if(!el)continue;el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===String(val)?'true':'false'));}}
@@ -6291,7 +6319,25 @@ $('ctlHelp').addEventListener('click',()=>{$('ctlHelp').hidden=true;if(state==='
 //    feels better simply because a finger does not shake, so it needs no filter at all.
 function onMotion(e){const g=e.accelerationIncludingGravity;if(!g||g.x==null)return;const ax=g.x,ay=g.y,inPlane=Math.hypot(ax,ay);if(inPlane<3)return;
   const ang=Math.atan2(ax,ay);tiltLast=ang;tiltOK=true;if(tiltRef==null)tiltRef=ang;let d=ang-tiltRef;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;
-  tiltDeg=-d*180/Math.PI;}
+  const now=e.timeStamp||performance.now(),dt=TG.t?Math.min(0.1,Math.max(0,(now-TG.t)/1000)):0,rr=e.rotationRate,w=rr&&rr.alpha;TG.t=now;
+  if(TG.ref!==tiltRef){TG.ref=tiltRef;TG.f=null;}   // new zero (calibration, a new race): start again from the accelerometer
+  tiltDeg=tiltFuse(-d*180/Math.PI,w!=null&&isFinite(w)?w:null,dt);}
+// 11-11 윤택님 「기울이기 조향 감도 - 스무스함 부족」: the angle came from the accelerometer alone, and that one also feels every push of the hands (a 0.1 m/s²
+// jolt reads as 0.6 deg of tilt). The gyro (rotationRate.alpha: the turn about the screen's normal, the way a wheel turns) does not, and has no delay, but
+// drifts - so the two are blended (complementary filter): the gyro moves it, the accelerometer pulls it back over TG_TAU s. Phones differ in the sign and
+// in deg/s vs rad/s (old Android), so that is learnt from the first moves (accelerometer change against the gyro's, 0.2 s pieces, |r| > 0.85, 1 or 57.3);
+// until then, without a gyro, or if the two ever part by 25 deg, it is the accelerometer as before. Synthetic phone (tilt.js: 60 Hz sensor, 0.5 deg of hand jolt,
+// a 9 Hz tremor, gyro noise and drift), with the two stages below: the steering's frame-to-frame shake -32..-74 % (60 and 120 Hz screens, sensitivity 1-5),
+// the time to follow a turn the same (within 3 ms on average); slow sway while holding still -10..+16 % (the cost of the quicker stages).
+const TG={K:0,f:null,t:0,ref:null,cA:0,cG:0,ct:0,sxy:0,sxx:0,syy:0,n:0},TG_TAU=0.5;
+function tiltFuse(acc,w,dt){const G=TG;if(w==null||!dt){G.f=null;return acc;}
+  if(G.f==null){G.f=acc;G.cA=acc;G.cG=0;G.ct=0;}
+  if(!G.K){G.cG+=w*dt;G.ct+=dt;if(G.ct>=0.2){const A=acc-G.cA,g=G.cG;if(Math.abs(g)>1.5||Math.abs(A)>3){G.sxy+=A*g;G.sxx+=g*g;G.syy+=A*A;G.n++;}G.cA=acc;G.cG=0;G.ct=0;
+      if(G.n>=6){const r=G.sxy/Math.sqrt(G.sxx*G.syy+1e-9),k=G.sxy/(G.sxx+1e-9),a=Math.abs(k);if(Math.abs(r)>0.85){const u=a>0.6&&a<1.6?1:a>34&&a<92?57.2958:0;if(u)G.K=Math.sign(k)*u;}if(G.n>=40)G.sxy=G.sxx=G.syy=G.n=0;}}
+    G.f=acc;return acc;}
+  G.f+=G.K*w*dt;G.f+=(acc-G.f)*(1-Math.exp(-dt/TG_TAU));
+  if(Math.abs(G.f-acc)>25){G.K=0;G.sxy=G.sxx=G.syy=G.n=0;G.f=acc;}   // they disagree: learn again
+  return G.f;}
 // One Euro filter: the cutoff follows how fast the phone is turning. Held still it filters hard and the
 // shake disappears; thrown into a corner it lets the movement through almost untouched.
 //  · FULL = tilt (deg) for full lock. 5 reaches it at 12 deg.
@@ -6303,18 +6349,21 @@ function tiltStep(dt){
   const FULL=[34,26,20,16,12][si],dz=[3.0,2.2,1.6,1.2,0.9][si],EXPO=[.55,.40,.28,.18,.10][si],
         MINC=[0.8,1.0,1.3,1.7,2.2][si],BETA=[.015,.022,.030,.040,.055][si];
   const al=c=>{const r=2*Math.PI*c*dt;return r/(r+1);};
-  if(!TF.on){TF.x=tiltDeg;TF.dx=0;TF.b=0;TF.on=true;}
+  if(!TF.on){TF.x=TF.y=tiltDeg;TF.dx=0;TF.b=0;TF.on=true;}
   const v=(tiltDeg-TF.x)/Math.max(dt,1e-4);
   TF.dx+=al(1.4)*(v-TF.dx);
-  TF.x+=al(MINC+BETA*Math.abs(TF.dx))*(tiltDeg-TF.x);
+  // 11-11: two smoothing stages, each 2.5 x as quick, instead of one: the same follow, a 9 Hz tremor cut ~2.5 x more. TF.y is what steers.
+  {const a2=al((MINC+BETA*Math.abs(TF.dx))*2.5);TF.x+=a2*(tiltDeg-TF.x);TF.y+=a2*(TF.x-TF.y);}
   // v13c: the neutral follows how the phone is actually being held. Drag steering gets this for free -
   // wherever the finger lands is centre, and letting go is centre again - while tilt had one fixed zero
   // from the calibration tap. Leave a corner without putting the phone back at exactly that angle and the
   // car kept turning. Only drifts while barely steering, and slowly (6 s), so a long sweeping corner is
   // not quietly unwound.
-  const dev=TF.x-TF.b;
+  const dev=TF.y-TF.b;
   if(Math.abs(dev)<FULL*0.3)TF.b+=dev*(1-Math.exp(-dt/6));
-  const deg=TF.x-TF.b,raw=Math.abs(deg)<dz?0:Math.max(-1,Math.min(1,(deg-Math.sign(deg)*dz)/(FULL-dz))),
+  // 11-11: the dead zone eases in (quadratic over dz..2dz) - it was a hard edge, the steering jumped from flat to its full slope there: a notch felt right at
+  // the small corrections. The same full lock at FULL.
+  const deg=TF.y-TF.b,ae=Math.abs(deg),sz=ae<dz?0:ae<2*dz?(ae-dz)*(ae-dz)/(2*dz):ae-1.5*dz,raw=Math.sign(deg)*Math.min(1,sz/(FULL-1.5*dz)),
         sgn=raw<0?-1:1,mag=Math.abs(raw);
   tiltAxis=sgn*((1-EXPO)*mag+EXPO*mag*mag*mag);}
 function lockLandscape(tries){tries=tries||0;
@@ -6600,11 +6649,11 @@ function layoutTouchHUD(){if(!isTouch)return;
   if(!port){const L=Math.max(twr.right,mr?mr.right:0)+10,Rf=tbr.left-10,Rm=Math.min(htr.left,hsr.left>W/2&&hsr.top<htr.bottom+80?hsr.left:1e9)-10;
     // v12j: 룸미러를 화면 맨 위 가운데로 올리고(실제 룸미러 자리), 메시지 줄을 그 아래로 내린다.
     // 예전에는 미러가 메시지 아래라서 가로로 든 휴대폰에서는 앞을 보는 자리 한가운데에 걸렸다.
-    hc.mirY=sa.t+4;const y0=sa.t+4+mirSize().h+8;
+    hc.mirY=sa.t+4;let mo=false;try{mo=!!(MIR&&MIR.on);}catch(e){}const y0=mo?sa.t+4+mirSize().h+8:sa.t+6;   // 11-11: mirror off (the phone default) - the pill and the notes go up into its row, off the road ahead
     set($('flag'),{left:C(L,Rf),top:y0,maxWidth:Math.max(120,Rf-L),whiteSpace:'normal'});
     set($('pitMsg'),{left:C(L,Rm),top:y0+30,bottom:null,maxWidth:Math.max(120,Rm-L)});
     set($('toast'),{left:C(L,Rm),top:y0+30,maxWidth:Math.max(140,Rm-L)});
-    set($('pitT'),{top:y0+104});}
+    set($('pitT'),{top:y0+58});}
   else{const L=sa.l+12,R2=W-sa.r-12,yB=Math.max(mr?mr.bottom:tTop+TOWER_H,hsr.bottom)+10;
     set($('flag'),{left:C(L,R2),top:sa.t+4,maxWidth:R2-L,whiteSpace:'normal'});
     set($('toast'),{left:C(L,R2),top:sa.t+4,maxWidth:R2-L});
@@ -6704,7 +6753,7 @@ function drawHUD(dt){
   // stationary time in the box, as the broadcast graphic shows it
   {const q=pl.pit,el=$('pitT');let cls='',lbl='피트 스톱',v=0;
    if(q&&q.state==='stop'&&q.stopT!=null){v=race.t-q.stopT;cls='show';if(q.pen&&v<q.pen)lbl='페널티 '+q.pen+'초 소화';}
-   else if(q&&q.state==='out'&&q.relT!=null&&q.stopT!=null&&race.t-q.relT<3){v=q.relT-q.stopT;const w=v-(q.pen||0);cls='show '+(w<2.6?'ok':w>4?'slow':'');lbl=q.pen?'정차 (페널티 '+q.pen+'초 포함)':'정차 시간';}
+   else if(q&&q.state==='out'&&q.relT!=null&&q.stopT!=null&&race.t-q.relT<1.2){v=q.relT-q.stopT;const w=v-(q.pen||0);cls='show '+(w<2.6?'ok':w>4?'slow':'');lbl=q.pen?'정차 (페널티 '+q.pen+'초 포함)':'정차 시간';}
    if(el._c!==cls){el._c=cls;el.className=cls;}if(cls){setT('pitTl',lbl);setT('pitTv',v.toFixed(1)+'초');}}
   tyreT-=dt;if(tyreT<=0){tyreT=0.15;const ty=pl.ty,C=COMP[ty.comp];
     $('tyC').textContent=ty.comp;$('tyC').style.borderColor=C.col;setT('tyName',C.name);setT('tyLaps',(ty.dist/(N*STEP)).toFixed(1)+'랩 사용');
@@ -6734,11 +6783,11 @@ function drawHUD(dt){
     if(pi!==hc.pitInfo){hc.pitInfo=pi;$('pitInfo').innerHTML=pi;const pm=pi.startsWith('전략:')?'':pi;$('pitMsg').innerHTML=pm;hc.pmT=pm?6:0;}
     // 11-04: from one lap before the pit window, once a lap: the window, what a stop costs here, where the car would come out
     {const lp=Math.floor(pl.prog/N);if(lp!==hc.advL){hc.advL=lp;const a=!S&&!race.form&&!pl.pit&&!pl.pitReq&&pl.fin==null&&race.rc.flag==='green'&&lp+1<race.laps?pitAdvice(race,pl):null;
-      if(a&&lp+1>=a.from-1){const t=(a.to<=lp+1?'타이어 한계':'피트 창 '+a.from+'~'+a.to+'랩')+' · 손실 '+Math.round(a.loss)+'초 · 지금 들어가면 P'+a.pos;$('pitMsg').textContent=t;hc.pmT=6;}}}}
+      if(a&&lp+1>=a.from-1){const t=(a.to<=lp+1?'타이어 한계':'피트 창 '+a.from+'~'+a.to+'랩')+' · 손실 '+Math.round(a.loss)+'초 · 지금 들어가면 P'+a.pos;$('pitMsg').textContent=t;hc.pmT=4;}}}}
   if(isTouch){if((hc.htN=(hc.htN||0)+1)%30===0&&$('hudTime').offsetHeight!==hc.htH)layoutTouchHUD();   // v13j: not every frame - reading it forces a layout
     // v13h: the pill used to come back for 4 s on every new lap as well. On a phone it sits over
     // the road ahead, so with the pit window open the same 'new tyres' line blocked the view once
-    // a lap, all race. It now shows only when what it says changes (6 s, set where pi is built),
+    // a lap, all race. It now shows only when what it says changes (4 s, set where pi is built),
     // and it still stays up the whole time in the pit lane and under a red flag.
     {
      const tk=toastT>0&&!document.body.classList.contains('ph-port');   // v12j: landscape - a short note takes the pit line's row for a moment (the pit line waits, its time paused)
@@ -7003,7 +7052,10 @@ function flagPanel(){const rc=race.rc,p=race.player,el=$('flag');let cls='',txt=
       const gb=p.vgb&&Object.values(p.vgb)[0],gbs=gb?' · '+gb.code+'에게 자리 돌려주기 '+Math.max(0,Math.ceil(gb.until-race.t))+'초':'';
       if(vd){dv=vscDf(vd.d);dc=vd.d<0?'bad':'ok';txt=end?'VSC ENDING · 델타 ':'VSC · '+why+'델타 ';sx=(gbs||(end?' · 곧 그린':' · 추월 금지'))+(rc.vscFast?' · 너무 빠름!':'');}
       else txt=(end?'VSC ENDING · 곧 그린':'VSC · '+why+'델타 + 유지 · 추월 금지')+gbs+(rc.vscFast?' · 너무 빠름!':'');}
-    else{const y=yellowAt(race,p.idx);if(y){cls='y';txt=(y>1?'더블 옐로':'옐로 플래그')+' · 감속, 추월 금지';}
+    else{const y=yellowAt(race,p.idx),ya=y||p.pit||p.fin!=null?null:yellowAhead(race,p);
+      if(isTouch){const z=y?race.rc.yellows.find(q=>wrap(p.idx-q.i0)<=q.len):ya&&ya.z;if(z&&z!==flagYz)flagPulse=2.2;flagYz=z;}   // 11-11: the pill flashes once when a yellow comes up
+      if(y){cls='y';txt=(y>1?'더블 옐로':'옐로 플래그')+' · 감속, 추월 금지';}
+      else if(ya){cls='y';txt=(ya.z.dbl?'더블 옐로':'옐로 플래그')+' '+ya.m+'m 앞 · 감속 준비';}
       else if(p.vgb&&Object.keys(p.vgb).length){const g=Object.values(p.vgb)[0];cls='y';txt='VSC 중 추월 · '+g.code+'에게 자리 돌려주기 · '+Math.max(0,Math.ceil(g.until-race.t))+'초';}   // (the VSC is over, the place is still owed)
       else if(p.giveBack){cls='y';txt=p.giveBack.code+'에게 자리 돌려주기 · '+Math.max(0,Math.ceil(p.giveBack.until-race.t))+'초'+(isTouch?'':' · 속도를 줄여 먼저 보내세요');}   // v12h
       else if(p.blue){cls='b';txt='블루 플래그 · 길을 비켜주세요';}
@@ -7012,6 +7064,9 @@ function flagPanel(){const rc=race.rc,p=race.player,el=$('flag');let cls='',txt=
   if(cls&&isTouch){if(flagPulse>0)cls+=' pulse';if(toastT>0&&document.body.classList.contains('ph-port'))cls+=' tuck';}   // v12j: phones - the pill flashes when race control changes; in portrait a short note takes its line for a moment
   el.className=cls?'show '+cls:'';if(cls){setT('flagT',txt);setT('flagD',dv);setT('flagS',sx);const D=$('flagD');if(D._c!==dc){D._c=dc;D.className=dc;}}}
 // v12j: on phones these race-control notes would only repeat the pill at the top: the pill flashes instead of a second line
+// 11-11 윤택님 「AI 차가 서킷 밖으로 나갔는데 옐로가 안 뜨는 것 같음」: the zone (where passing is banned) starts 110 m before the car, a second and a half at
+// racing speed - a yellow came and went before it was ever seen. The pill now says it from 300 m out (10 m steps); the rules are the zone's as before.
+let flagYz=null;function yellowAhead(race,p){let b=null,bd=151;for(const z of race.rc.yellows){const d=wrap(z.i0-p.idx);if(d>0&&d<bd){bd=d;b=z;}}return b?{z:b,m:Math.max(10,Math.round(bd*STEP/10)*10)}:null;}
 const FLAG_EV=new Set(['sc','vsc','vscEnding','scIn','restart','scGo','red','redResume','green']);let flagPulse=0;
 const MSG={fl:e=>['패스티스트 랩 · '+(e.me?'내 차':e.name)+' '+fmt(e.t),e.me?'#c58bff':'#a87be0'],colPen:e=>[e.me?(e.reck?'무리한 ':'')+'충돌 유발 페널티 +'+e.s+'초 · '+e.name+'와 접촉':e.name+(e.reck?' 무리한':'')+' 충돌 유발 +'+e.s+'초'+(e.vic?' · 내 차와 접촉':''),e.me?'#ff8a8a':'#f5c518'],pitRet:()=>['수리할 수 없는 손상 · 차고에서 리타이어','#ff3b30'],pitRetAI:e=>[e.name+' 수리 불가 · 리타이어','#ff8a8a'],wall:()=>[race.dmg==='off'?'월 히트! 타이어 손상':'월 히트!','#ff8a8a'],crash:e=>[e.name+' 크래시! 벽과 충돌','#ff8a8a'],wreck:()=>['크래시! 차가 크게 부서졌어요 · 리타이어','#ff3b30'],pitIn:()=>['피트 레인 진입 · 리미터 80','#f5c518'],pitStop:e=>e.pen?['정차 · 페널티 '+e.pen+'초 먼저 소화','#fff']:null,   // the stop timer shows a normal stop
   pitGo:e=>['GO! '+(e.mis?'피트 실수('+(e.mis==='stuck'?'바퀴가 안 빠짐':'휠건')+') · ':'')+(e.rep?'수리 완료 + ':'')+COMP[e.comp].name+' '+e.t.toFixed(1)+'초'+(e.best?' · 이번 레이스 최고 피트스톱':''),e.rep?'#ffb347':e.mis||e.t>3.5?'#ff8a8a':'#3ddc84'],
@@ -7147,7 +7202,7 @@ function sync(dt){
   headLat+=((pl.latG||0)*-0.0035-headLat)*Math.min(1,dt*6);headLon+=((pl.lonG||0)*0.0022-headLon)*Math.min(1,dt*6);
   headLat=Math.max(-0.09,Math.min(0.09,headLat));headLon=Math.max(-0.07,Math.min(0.05,headLon));
   const pitCam=!!(pInfo&&(pInfo.ph==='stop'||(pInfo.ph==='in'&&(Math.abs(pl.spd)<9||CAMPIT)&&pl.pit.box-zoneR(pl.idx)<=8)||(pInfo.ph==='out'&&race.t-pInfo.car.pit.relT<0.9)));
-  const lookBack=!!key.look&&!pitCam&&cm!=='tv'&&(state==='race'||state==='done'||state==='countdown');CAMLOOK=lookBack;CAMPIT=pitCam;
+  const lookBack=!!key.look&&!pitCam&&(state==='race'||state==='done'||state==='countdown');   // 11-11 윤택님 「TV 시점에서 뒤 보기 - 화면은 그대로, 소리만 커짐」: the TV view was left out here but not in the sound (audioUpdate: !key.look), so holding 뒤 kept the trackside picture and switched to the car's sound. Now it looks back from behind the car like the other outside views (a look-back button that does nothing reads as broken), and the sound goes with the pictureCAMLOOK=lookBack;CAMPIT=pitCam;
   pm.helmet.visible=pitCam||lookBack||cm!=='cockpit'||!!CINE;if(SW)SW.g.visible=!pitCam&&!lookBack&&(cm==='cockpit'||cm==='tcam')&&!CINE;if(pm.tcPod)pm.tcPod.visible=!(cm==='tcam'&&!pitCam&&!lookBack&&!CINE);
   {const gh=HALOGH&&cm==='cockpit'&&!pitCam&&!lookBack&&!CINE;for(const h of[pm.strut,pm.halo])if(h&&h.g.visible!==gh){h.g.visible=gh;h.n.visible=!gh;}}   // v12i: G key / pause menu   // the T-cam sits in that pod
   const sp=Math.abs(pl.spd)/VMAX;shakeT+=dt;
@@ -7173,7 +7228,7 @@ function sync(dt){
   else if(cm==='cockpit'){const ex=-0.36+pm.ck.x+(pm.ck.ex||0)+headLon+JOLT.x;L(ex,0.87+pm.ck.y+(pm.ck.ey||0)+vib+pm.body.position.y+gy+ex*gs,headLat+JOLT.z,eye,true);L(30,(pm.ck.ly??0.45)-headLon*4+pitch*30+gy+gs*30,pl.st*1.6,look,false);camera.fov=(pm.ck.fov||62)+8*sp;camera.near=0.1;chaseInit=false;}
   else if(cm==='tcam'){const Q=TCAMP,by=pm.body.position.y,ah=20,qx=Q.x+pm.ck.tx+JOLT.x*0.5,qy=Q.y+pm.ck.ty;L(qx,qy+by+vib*0.6+gy+qx*gs,Q.z+JOLT.z*0.5,eye,true);   // fixed to the car: it pitches with the road and the body, no look into the corners
     L(qx+ah,qy+by+gy-ah*Math.tan(Q.pitch)+(pitch+gs)*ah,Q.z,look,true);camera.fov=Q.fov+Q.fovS*sp;camera.near=Q.near;chaseInit=false;}
-  else if(cm==='tv'&&(tvS=tvPick(pl))){const ey=hXZ(tvS.x,tvS.z)+7.6;eye.set(tvS.x,ey,tvS.z);look.set(PX,0.5+gy,PZ);   // v14b: TV view, zoomed to ~9 m of picture at the car
+  else if(cm==='tv'&&(tvS=tvPick(pl))){const ey=hXZ(tvS.x,tvS.z)+TVH;eye.set(tvS.x,ey,tvS.z);look.set(PX,0.5+gy,PZ);   // v14b: TV view, zoomed to ~9 m of picture at the car
     camera.fov=Math.max(2.5,Math.min(45,2*Math.atan(4.5/Math.min(1,camera.aspect)/Math.max(1,eye.distanceTo(look)))*180/Math.PI));camera.near=2;chaseInit=false;TVR.set(PX,1.2+gy,PZ);}
   else{const far=cm==='far',bk=far?11.5:7.5,ah=far?9:6;L(-bk,(far?3.8:2.4)+gy-KP*gs*bk,0,eye,false);if(!chaseInit){chasePos.copy(eye);chaseInit=true;}chasePos.lerp(eye,Math.min(1,dt*(far?6:8)));eye.copy(chasePos);
     if(pitTunSect(pl))pitTunCam(eye);else if(HD.on)eye.y=Math.max(eye.y,hXZ(eye.x,eye.z)+Math.max(0,gy-hXZ(pl.x,pl.z))+1.0);eye.y+=vib*3;L(ah,(far?1.2:1.0)+gy+KP*gs*ah,0,look,true);camera.fov=(far?54:60)+10*sp+(pl.boost?3:0);camera.near=far?0.4:0.3;}   // (v12d: in the Yas exit tunnel the camera stays between its walls and under its roof)
