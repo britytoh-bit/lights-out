@@ -1106,9 +1106,9 @@ const TEAMS=[
  {name:'레드 버팔로',short:'BUFFALO',p:'#2450c4',s:'#d01a14',d:[['제이 오카베','OKA'],['도윤 서','SEO']]},
  {name:'캐딜런',short:'CADILLON',p:'#eceef0',s:'#111318',d:[['벤 애쉬포드','ASH'],['레미 뒤발','DUV']]}
 ];
-const DIFF={easy:[0.80,0.90],normal:[0.87,0.965],hard:[0.93,1.0]};
+const DIFF={easy:[0.80,0.90],normal:[0.87,0.965],hard:[0.975,1.0]};   // a driver's pace (skill x the speed plan). 11-11 hard 0.93-1.0 -> 0.975-1.0: skill also caps the top speed, the slowest hard car was 7 % off the fastest
 // AI pace on the racing line: a lap this fraction of the old (v9.1, centreline) AI lap at the same skill - game values
-const PACE_RATIO={easy:1.0,normal:0.97,hard:0.94};
+const PACE_RATIO={easy:1.0,normal:0.97,hard:0.94};   // (hard: not used since 11-11, AIK.hard.gam)
 // steering speed per sensitivity setting (lock per second). v12f: keys turn in about twice as fast as before ([1.4,1.95,2.6,3.4,4.4]
 // felt slow to answer: ~0.35 s to 90 % of the turn at the default setting), a little less at high speed; analogue input (drag / tilt)
 // follows the finger at the old rate
@@ -1224,7 +1224,7 @@ function lapModel(v,ds){let s=v[0],t=0;for(let lap=0;lap<2;lap++)for(let i=0;i<N
 // old centreline lap. The line is worth much more at Monaco than at Monza, so a fixed setting would change the difficulty from circuit
 // to circuit. (Only corners and braking change; the top speed does not.)
 const GRIPUSE={};
-function gripUse(diff){const d=AIK[diff]?diff:'normal',r=PACE_RATIO[d],NL=aiLine('normal');AL=aiLine(d);if(GRIPUSE[d]!=null)return GRIPUSE[d];
+function gripUse(diff){const d=AIK[diff]?diff:'normal',r=PACE_RATIO[d],NL=aiLine('normal');AL=aiLine(d);if(GRIPUSE[d]!=null)return GRIPUSE[d];if(AIK[d].gam)return GRIPUSE[d]=AIK[d].gam;
   const tOld=lapModel(PROFS[0].p,STEP),v=new Float32Array(N),T=g=>{for(let i=0;i<N;i++)v[i]=profOf(NL.P,i,g);return lapModel(v,NL.ds);};   // on the normal level's line and braking: the difficulty's own line and braking then come on top of its share of the grip (recalculated on them, a wider line and later braking took grip away and the hard AI braked softer)
   let lo=0.3,hi=1;if(T(hi)>=r*tOld)return GRIPUSE[d]=hi;if(T(lo)<=r*tOld)return GRIPUSE[d]=lo;
   for(let it=0;it<18;it++){const m=(lo+hi)/2;if(T(m)>r*tOld)lo=m;else hi=m;}return GRIPUSE[d]=(lo+hi)/2;}
@@ -1245,9 +1245,13 @@ function gripLat(v,off){return (15+0.35*Math.abs(v))*(off?0.45:1);}
 function lapRef(){let t=0;for(let i=0;i<N;i++)t+=STEP/Math.max(8,PROF[i]);return t*1.14;}
 let PITLOSS=null;function pitLoss(){if(PITLOSS==null){let tr=0;for(let r=0;r<=PIT.Z;r++)tr+=STEP/Math.max(8,PROF[wrap(PIT.E+r)])*1.14;
   PITLOSS=(PIT.Z-PIT.RAMP-PIT.RX)*STEP/(80/3.6)+(PIT.RAMP+PIT.RX)*STEP/32-tr+5+2.6;}return PITLOSS;}
+// 11-11 윤택님 「어려움이 하나도 안 어렵다」: gam - the share of the tyre grip, fixed against the track's own limit. Hard used PACE_RATIO (a share of the old centreline AI lap), so it
+// gave away what the racing line is worth: gam 0.58-0.92 by circuit, alone at skill 1 +0.5 to +16.5 % (median ~8 %) off the ideal lap (racing line, full grip, braking 1, lapModel), the
+// slowest hard car +4 to +23 %; a racing-line bot in the player's car (real physics, analogue steering) was +1 to +7 %. Now 0.96 of the grip, braking at the limit (brk 1), skill 0.975-1.0:
+// alone +0.6 % (fastest) / +2.0 % (slowest) off the ideal lap, median of 28 circuits. No extra grip or power, no catch-up: only the line, the braking and the corner speeds.
 // AI by difficulty: mistakes, how readily it defends, late braking when passing, how often the team reacts to a rival's stop, how far from the best plan it may pick
 // 11-06 윤택님 「연석도 밟고, 레이트 브레이킹, 방어·공격 운전, 난이도에 다 반영」. dW: line width (m, hard over the kerbs, easy clear of them). brk: how hard it plans to brake (later as it goes up), atkBrk: when attacking a car, brkA: what it then really brakes at. close: how close it sits (m) before pulling out, atkRate: how fast it moves across to pass, passK: how soon it tries again, insK: how much it wants the inside. defFar: how far from the corner it covers (m), defHold: how long (s), defNext: how soon again (s). apex: how far it may miss an apex (m). off: how often a big stop ends off the road (aiOffRoll: a lock-up into the run-off, two wheels off at the exit, a spin)
-const AIK={easy:{err:1.7,def:0.35,late:0.5,react:0.25,noise:10,dW:-0.8,brk:0.8,atkBrk:0.86,brkA:0.92,close:9.5,atkRate:0.9,passK:1.3,insK:0.5,defFar:160,defHold:1.8,defNext:11,apex:1.2,off:0.005,blkW:3.2},normal:{err:1,def:0.65,late:0.8,react:0.6,noise:5,dW:0,brk:0.9,atkBrk:0.96,brkA:0.92,close:8,atkRate:1.3,passK:1,insK:1,defFar:220,defHold:2.6,defNext:7,apex:0.35,off:0.0032,blkW:2.8},hard:{err:0.5,def:0.9,late:1,react:0.9,noise:1.5,dW:0.45,brk:0.97,atkBrk:1.02,brkA:1,close:7.4,atkRate:1.9,passK:0.7,insK:1.6,defFar:260,defHold:3.3,defNext:6.5,apex:0.15,off:0.0014,blkW:2.5}};   // blkW: how close (m across) a defending car may come to the lane it picked before it picks again
+const AIK={easy:{err:1.7,def:0.35,late:0.5,react:0.25,noise:10,dW:-0.8,brk:0.8,atkBrk:0.86,brkA:0.92,close:9.5,atkRate:0.9,passK:1.3,insK:0.5,defFar:160,defHold:1.8,defNext:11,apex:1.2,off:0.005,blkW:3.2},normal:{err:1,def:0.65,late:0.8,react:0.6,noise:5,dW:0,brk:0.9,atkBrk:0.96,brkA:0.92,close:8,atkRate:1.3,passK:1,insK:1,defFar:220,defHold:2.6,defNext:7,apex:0.35,off:0.0032,blkW:2.8},hard:{gam:0.96,err:0.35,def:0.9,late:1,react:0.9,noise:1.5,dW:0.45,brk:1,atkBrk:1.02,brkA:1,close:7.4,atkRate:1.9,passK:0.7,insK:1.6,defFar:260,defHold:3.3,defNext:6.5,apex:0.15,off:0.001,blkW:2.5}};   // blkW: how close (m across) a defending car may come to the lane it picked before it picks again
 // lap time lost over a stint against a new soft (1 % of grip is about 0.25 % of a lap, measured on the AI, 11-04); a stint past its life costs a lot
 function stintCost(comp,laps,race,LT){const C=COMP[comp],wl=0.75/(C.life*race.tyreLaps);let s=0;for(let i=0;i<laps;i++)s+=LT*0.25*(1-C.grip*wearF((i+0.5)*wl,C));return s+(laps*wl>0.98?60:0);}
 // one- and two-stop plans from the tyre the car starts on, the stints split by tyre life; the team's noise makes the field differ
@@ -1855,12 +1859,15 @@ const AI_OFFP=0.3,AI_OFFG=25;
 // back of the car ahead at a 4 m centre gap while it was already slower (~2.5 such touches a race, mostly the player's car). Now: a car whose back is past this
 // car's nose, that the nose would come within NOSE.m of in the next half second (both going straight on, the collide discs), sets a soft limit: its speed along
 // this car's way less NOSE.k per metre short. Cars alongside (back not past the nose) are left to the side rules.
-const NOSE={m:0.4,h:1.2,k:4};
+// 11-11 (the hard AI now as fast as the line allows, it sat on slower cars' gearboxes in the hairpins - rear touches 1.75 -> 2.9 a race, Monaco/Montreal 1.75 -> 4.4):
+// cm - a car in another lane counts as 'going past alongside' only once it is NOSE.cm m across (it touched at 1.5-2 m in the hairpins); sv/sg - following a car
+// slower than sv m/s (a slow corner) it keeps up to sg m more gap (the lines cross there, the centre-line gap overstates the room)
+const NOSE={m:0.4,h:1.2,k:4,cm:2.3,sv:28,sg:3};
 function aiNose(c){const ca=Math.cos(c.a),sa=Math.sin(c.a),fx=c.x+ca*1.6,fz=c.z+sa*1.6;let v=1e9;
   for(const o of AI_NEAR){if(o.gone)continue;const oa=Math.cos(o.a),ob=Math.sin(o.a),rx=o.x-oa*1.6-fx,rz=o.z-ob*1.6-fz;if(rx*ca+rz*sa<0.3||rx*rx+rz*rz>144)continue;
     const ov=o.va!=null?o.va:o.spunT>0?o.spunV:o.a,ux=Math.cos(ov)*o.spd,uz=Math.sin(ov)*o.spd,vx=ux-ca*c.spd,vz=uz-sa*c.spd;let dm=1e9;
     for(const q of[-1.6,0,1.6]){const px=o.x+oa*q-fx,pz=o.z+ob*q-fz;for(const u of[0,0.25,0.5])dm=Math.min(dm,Math.hypot(px+vx*u,pz+vz*u));}
-    const cl=dm-2.15,cm=Math.abs(aiRel(o)-c.laneT)>=2.6,dl=Math.abs(o.lat-c.lat),mm=!cm&&dl>0.9&&dl<2.6?NOSE.h:NOSE.m;if(cl<mm){const va=ux*ca+uz*sa;v=Math.min(v,Math.max(0,cm?va+5*Math.max(0,cl):va-NOSE.k*(mm-cl)));}}
+    const cl=dm-2.15,dl=Math.abs(o.lat-c.lat),cm=Math.abs(aiRel(o)-c.laneT)>=2.6&&dl>=NOSE.cm,mm=!cm&&dl>0.9&&dl<2.6?NOSE.h:NOSE.m;if(cl<mm){const va=ux*ca+uz*sa;v=Math.min(v,Math.max(0,cm?va+5*Math.max(0,cl):va-NOSE.k*(mm-cl)));}}
   return v;}
 // 11-07 윤택님 「스타트에 가운데가 뚫려 있어」: off the grid the cars held their columns (±3.2 m) for up to 8 s - the middle stayed empty. Now from
 // t0 s after its launch each column closes in over t1 s to ±m from the middle (the cars are staggered 8 m, so the rows zip together, slipstreaming the
@@ -1956,7 +1963,7 @@ function stepAI(race,c,dt){
   let soft=1e9,needA=0;
   c.ygb=!!lead&&!!lead.isP&&(!!lead.giveBack&&race.cars[lead.giveBack.ix]===c||!!(lead.vgb&&lead.vgb[c.id]));   // 11-05: the player is giving this car its place back: it goes by at once (it used to settle in 9 m behind, and the player took the penalty)
   if(lead&&!(lead===obst&&oSide!=null)){const gm=ld*STEP+((lead.al||0)-(c.al||0)),cl=c.spd-lead.spd,atk=c.passO===lead.id&&!neutral;   // atk: pulling out to pass it - closer, and with some speed in hand
-    soft=Math.min(soft,c.ygb?lead.spd+(Math.abs(lead.lat-c.lat)>2.4?6:Math.max(-2,Math.min(6,0.5*(gm-6)))):lead.spd+Math.max(-3,Math.min(atk?3:2.5,0.35*(gm-(atk?K.close:9)))));
+    soft=Math.min(soft,c.ygb?lead.spd+(Math.abs(lead.lat-c.lat)>2.4?6:Math.max(-2,Math.min(6,0.5*(gm-6)))):lead.spd+Math.max(-3,Math.min(atk?3:2.5,0.35*(gm-(atk?K.close:9)-Math.max(0,Math.min(NOSE.sg,(NOSE.sv-lead.spd)*0.3))))));
     needA=cl>0?cl*cl/(2*Math.max(0.3,gm-6.7)):0;const blk=c.passO===lead.id&&!c.ygb&&gm>2.7&&race.t>(c.blkT||0)&&Math.abs(relOf(lead)-c.laneT)<K.blkW;if(blk)c.blkT=race.t+0.6;   // 11-07 윤택님 「방어라인 잡으면 그냥 박아버리네」: the car it is passing has moved into the lane it chose (it is less than half a car alongside): pick again now - the other side (a crossover) or fall in behind. It used to wait for passT (1.6-3 s) still aiming at that car (AIK blkW: easy gives way sooner)
     if((!neutral||c.ygb)&&(c.ygb||blk||race.t>c.passT)&&!c.pitReq&&!c.fail&&lead!==sc){const t=pickSide(lead,c.ygb?2.8:3.4);if(t!=null)c.laneT=t;else c.laneT=startPh?stFun(c,race,c.lat-b0):c.laneT*0.5;c.passT=race.t+(c.ps?2.4-1.6*c.ps.agg:1.6)*K.passK;}}   // no room to pass: fall in behind, on the line
   else if(startPh&&!obst&&!c.pitReq&&!c.fail&&!(c.defHold>race.t))c.laneT=stFun(c,race,c.laneT);
