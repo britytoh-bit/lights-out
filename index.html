@@ -5331,16 +5331,21 @@ function spDecals(kit,ti,M,isP){const Q=kit.glb,tc=kit.teamCache&&kit.teamCache[
     const m=new THREE.BufferGeometry();m.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));m.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));m.setAttribute('color',new THREE.Float32BufferAttribute(cl,3));m.computeVertexNormals();m.computeBoundingSphere();return m;};
   const strips=tc.spS||(tc.spS=SPD.filter(d=>!(d[3]&&quality==='low')).map(d=>{const q=slots[d[0]],f=kit.spF[q];return Object.assign(spStrip(d[2]&&Q.halo?Q.halo:Q.paint,d[5],d[1],d[4],8*f[0]/f[1],SPD.indexOf(d),d[6]),{d,q,f});}));
   if(!tc.spA)tc.spA=geo(strips);if(isP&&!tc.spB){tc.spB=geo(strips.filter(b=>!b.d[2]));tc.spH=geo(strips.filter(b=>b.d[2]));}return tc;}   // (body and halo apart only for the player's team: its halo ones go with the blurred halo)
+// 11-11: a wheel rim's barrel with its faces turned in (seen through the open centre of a tyre), r a little over the opening so its flat sides leave no slit
+function rimBarrel(r,h,seg){const b=new THREE.CylinderGeometry(r,r,h,seg,1,true).rotateX(Math.PI/2),ix=b.index.array,n=b.attributes.normal.array;
+  for(let i=0;i<ix.length;i+=3){const q=ix[i];ix[i]=ix[i+2];ix[i+2]=q;}for(let i=0;i<n.length;i++)n[i]=-n[i];b.attributes.uv.array.fill(0);return b;}
 function buildCarKit(){
   const geo=buildCarGeometry();
-  const tyreProfile=(hw,seg)=>{const pts=[[0.235,-hw],[0.3,-hw],[0.338,-hw*0.95],[0.356,-hw*0.8],[0.362,-hw*0.45],[0.362,hw*0.45],[0.356,hw*0.8],[0.338,hw*0.95],[0.3,hw],[0.235,hw]];
+  const tyreProfile=(hw,seg,open)=>{const pts=[[0.235,-hw],[0.3,-hw],[0.338,-hw*0.95],[0.356,-hw*0.8],[0.362,-hw*0.45],[0.362,hw*0.45],[0.356,hw*0.8],[0.338,hw*0.95],[0.3,hw],[0.235,hw]];
     const g=new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),seg||48);g.rotateX(Math.PI/2);
     // 10-30: a disc across the tyre's middle plane (both faces) — the open centre read as see-through from the inboard side; same draw call
-    const d=Math.max(16,(seg||48)>>1),dc=()=>{const c=new THREE.CircleGeometry(0.236,d);c.attributes.uv.array.fill(0);return c;};return mergeGeos([g,dc(),dc().rotateY(Math.PI)]);};   // (11-11: the discs read one plain texel of a tread map)
+    // 11-11 윤택님 「뒷바퀴 안쪽 투명」: from behind / at an angle the eye passed the disc's edge into the tube between it and the sidewall, where the tyre's
+    // inside faces are culled - the road showed through. The rim's barrel (rimBarrel) closes the tube from the inside, same draw call
+    const d=Math.max(16,(seg||48)>>1),dc=()=>{const c=new THREE.CircleGeometry(0.236,d);c.attributes.uv.array.fill(0);return c;};return mergeGeos(open?[g,dc(),dc().rotateY(Math.PI)]:[g,dc(),dc().rotateY(Math.PI),rimBarrel(0.238,2*hw,d)]);};   // open: the pit crews' loose wheels (a rim cover on both faces already)   // (11-11: the discs read one plain texel of a tread map)
   const Phys=THREE.MeshPhysicalMaterial||THREE.MeshStandardMaterial;
   const kit={geo,tyreF:tyreProfile(WHL.hwf),tyreR:tyreProfile(WHL.hwr),ring:new THREE.RingGeometry(0.245,0.345,64),
     // v12h: lighter wheels for what is never seen close: the far-car stand-ins and (below the top setting) the pit crews' loose wheels
-    tyreFlo:tyreProfile(WHL.hwf,24),tyreRlo:tyreProfile(WHL.hwr,24),ringLo:new THREE.RingGeometry(0.245,0.345,24),coverLo:new THREE.CircleGeometry(0.24,16),tyrePit:tyreProfile(WHL.hwr,12),ringPit:new THREE.RingGeometry(0.245,0.345,12),coverPit:new THREE.CircleGeometry(0.24,10),
+    tyreFlo:tyreProfile(WHL.hwf,24),tyreRlo:tyreProfile(WHL.hwr,24),ringLo:new THREE.RingGeometry(0.245,0.345,24),coverLo:new THREE.CircleGeometry(0.24,16),tyrePit:tyreProfile(WHL.hwr,12,1),tyreRw:tyreProfile(WHL.hwr,48,1),tyreRwLo:tyreProfile(WHL.hwr,24,1),ringPit:new THREE.RingGeometry(0.245,0.345,12),coverPit:new THREE.CircleGeometry(0.24,10),
     // v12h (2026 cars): red LED strips on the rear-wing endplates (they flash with the rear light) and amber lateral lights on the mirror tips
     epLight:mergeGeos([-1,1].map(s=>new THREE.BoxGeometry(0.012,0.2,0.024).translate(-2.572,0.88,s*0.475))),latLight:mergeGeos([-1,1].map(s=>new THREE.BoxGeometry(0.07,0.022,0.014).translate(0.29,0.705,s*0.633))),upright:new THREE.CylinderGeometry(0.2,0.2,0.1,18).rotateX(Math.PI/2),cover:new THREE.CircleGeometry(0.24,40),
     helmet:(()=>{const g=new THREE.SphereGeometry(0.135,24,16);g.scale(1.12,1,0.95);return g;})(),
@@ -5661,7 +5666,7 @@ function buildSafetyCar(scene){
     r.strokeStyle='#a9afb6';r.lineWidth=3;r.beginPath();r.moveTo(64+Math.cos(a)*13,64+Math.sin(a)*13);r.lineTo(64+Math.cos(a+0.12)*54,64+Math.sin(a+0.12)*54);r.stroke();}
   r.fillStyle='#1d1f22';r.beginPath();r.arc(64,64,14,0,Math.PI*2);r.fill();r.fillStyle='#c8ccd1';r.beginPath();r.arc(64,64,6,0,Math.PI*2);r.fill();
   const tyre=new THREE.MeshStandardMaterial({color:0x101113,roughness:0.88}),rimM=new THREE.MeshStandardMaterial({map:texFrom(rcv),alphaTest:0.5,metalness:0.6,roughness:0.3}),wheels=[];
-  const tG=mergeGeos([new THREE.CylinderGeometry(0.345,0.345,0.27,28,1,true).rotateX(Math.PI/2),new THREE.RingGeometry(0.255,0.345,28).translate(0,0,0.135),new THREE.RingGeometry(0.255,0.345,28).rotateY(Math.PI).translate(0,0,-0.135)]),
+  const tG=mergeGeos([new THREE.CylinderGeometry(0.345,0.345,0.27,28,1,true).rotateX(Math.PI/2),new THREE.RingGeometry(0.255,0.345,28).translate(0,0,0.135),new THREE.RingGeometry(0.255,0.345,28).rotateY(Math.PI).translate(0,0,-0.135),rimBarrel(0.258,0.27,20),new THREE.CircleGeometry(0.256,20),new THREE.CircleGeometry(0.256,20).rotateY(Math.PI)]),   // 11-11: barrel + a disc in the middle: the inner side (and between the spokes) was open to the road
     fG=new THREE.CircleGeometry(0.262,24);
   for(const [wx,wz] of[[1.42,0.835],[1.42,-0.835],[-1.3,0.84],[-1.3,-0.84]]){const w=new THREE.Group();w.position.set(wx,0.32,wz);g.add(w);
     const t=new THREE.Mesh(tG,tyre);t.castShadow=true;w.add(t);
@@ -5723,9 +5728,9 @@ function buildPitCrew(scene,W,kit){
   for(let q=0;q<2;q++){dg.save();dg.translate(128,128);dg.rotate(q*Math.PI);const tx='LIGHTS OUT';for(let i=0;i<tx.length;i++){dg.save();dg.rotate(-0.55+i*0.12);dg.translate(0,-90);dg.fillText(tx[i],0,0);dg.restore();}dg.restore();}
   const NW=NT*16;C.NW=NW;
   const hiW=typeof quality==='undefined'||quality==='high';   // v12h: 176 loose wheels: ~211k triangles at full detail, ~97k with the light wheels
-  C.wT=mk(hiW?kit.tyreR:kit.tyreRlo,kit.tyreM,NW,true);C.wR=mk(hiW?kit.ring:kit.ringLo,new THREE.MeshStandardMaterial({map:texFrom(dC),roughness:0.85,polygonOffset:true,polygonOffsetFactor:-2}),NW*2,false);
+  C.wT=mk(hiW?kit.tyreRw:kit.tyreRwLo,kit.tyreM,NW,true);C.wR=mk(hiW?kit.ring:kit.ringLo,new THREE.MeshStandardMaterial({map:texFrom(dC),roughness:0.85,polygonOffset:true,polygonOffsetFactor:-2}),NW*2,false);
   C.wC=mk(hiW?kit.cover:kit.coverLo,new THREE.MeshStandardMaterial({color:0x2a2c31,roughness:0.35,metalness:0.7}),NW*2,false);
-  if(hiW){C.geoHi=[kit.tyreR,kit.ring,kit.cover];C.geoLo=[kit.tyrePit,kit.ringPit,kit.coverPit];C.near=true;}   // swapped by distance in pitFx
+  if(hiW){C.geoHi=[kit.tyreRw,kit.ring,kit.cover];C.geoLo=[kit.tyrePit,kit.ringPit,kit.coverPit];C.near=true;}   // swapped by distance in pitFx
   C.compCol={};for(const k in COMP)C.compCol[k]=new THREE.Color(COMP[k].col).convertSRGBToLinear();
   const fA=(i,o)=>{const p=P[i],t=T[i];return {x:p[0]-t[1]*o,z:p[1]+t[0]*o,a:Math.atan2(t[1],t[0])};};C.frameAt=fA;
   // release-light gantry at every box (red while the crew works, green = go)
