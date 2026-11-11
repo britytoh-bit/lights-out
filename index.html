@@ -1832,9 +1832,13 @@ function carDyn(c,h,S,sw,tg,asst,inp){
 function addPen(race,c,sec,type,extra){c.pen+=sec;c.penTot+=sec;if(c.isP)race.EV.push(Object.assign({type,s:sec},extra||{}));}
 // Track limits: the real rule is all four wheels past the white line. The game is more forgiving: the car counts as off only
 // when its inner wheels are about half a metre onto the kerb (car centre 1.45 m past the line) for at least 0.4 s and 12 m.
-// 1st-2nd noted, 3rd black-and-white flag, 4th +5s, 5th +10s,
-// then the tally resets and the cycle repeats (as the stewards applied it at the 2023 Austrian GP).
-// Leaving the track and gaining a lasting advantage: +5s straight away.
+// 1st-2nd noted, 3rd black-and-white flag, 4th and each one after +5s, no reset (11-12: FIA 2026 Penalty Guidelines, race: "3rd offence -
+// B/W, 4th and each additional - 5s"; it was 4th +5s, 5th +10s, then the tally started again as at the 2023 Austrian GP).
+// Leaving the track and gaining a lasting advantage. 11-12: FIA 2026 Driving Standards Guidelines F / B1.8.6 - the race director may let the
+// driver give the whole of it back. A gain under CUT_MIN s is not judged (a strike like any excursion; bot sweep of 622 excursions on 28 tracks:
+// 90 % of the time differences under 0.25 s, deliberate straight-on cuts 0.64-1.8 s); a bigger one gives CUT_GB s to lift and give it all
+// back (raceControl): given back, a strike only; kept, +5s and no strike (Driving Standards Guidelines, strikes: exception iv). It was +5s at once.
+const CUT_MIN=0.5,CUT_GB=12;
 // 11-06: the gain is measured against the white line on the side it left by (the legal path; against the centre line every cut apex of a
 // slow corner looked like 6-9 m gained), and it must also have saved time: the legal line at its own pace (speed on leaving / the plan's).
 // A car beached in the gravel for 20 s no longer gets 'gained an advantage' as well.
@@ -1849,16 +1853,16 @@ function trackLimits(race,c,ti,dt){
   for(let q=ex.prog0;q<c.prog;q++)add(wrap(q),STEP);add(ti.i,ti.along);add(wrap(ex.prog0),-ex.al0);   // (along: the metres past each end's sample - prog alone moves in 2 m steps)
   const gain=leg-ex.dist,gt=tL-ex.dur;
   c.lapInv=true;
-  if(!c.isP){if(!race.sess&&gain>3+0.05*ex.dist&&gt>0.1)addPen(race,c,5,'cut');return;}   // 11-11: an AI car (its escape-road runs only, stepAI): the same +5 s for a gain; no strikes
+  if(!c.isP){if(!race.sess&&gain>3+0.05*ex.dist&&gt>CUT_MIN)cutOpen(race,c,gain,gt,ex);return;}   // 11-11: an AI car (its escape-road runs only, stepAI): the same +5 s for a gain (11-12: and the same time to give it back); no strikes
   if(race.sess){race.EV.push({type:'tlq'});return;}   // practice / qualifying: the lap time is deleted, no penalties
   if(ex.passed)return;   // (v12h: it gained a place: the give-back rule deals with it)
-  if(gain>3+0.05*ex.dist&&gt>0.1){c.cutPend={t:race.t,gain,gt};return;}   // (v12h: judged 1.5 s later - a pass completed just after rejoining is handled by the give-back rule instead)
-  c.strikes++;
-  const k=(c.strikes-1)%5+1;
-  if(k<3)race.EV.push({type:'tl',n:c.strikes});
-  else if(k===3)race.EV.push({type:'bw'});
-  else addPen(race,c,k===4?5:10,'tlpen',{reset:k===5});
+  if(gain>3+0.05*ex.dist&&gt>CUT_MIN){cutOpen(race,c,gain,gt,ex);return;}   // (v12h: a pass completed just after rejoining is handled by the place give-back rule instead - raceControl)
+  tlStrike(race,c);
 }
+function tlStrike(race,c,gb){const n=++c.strikes;   // gb: a cut whose gain was given back
+  if(n<3)race.EV.push({type:'tl',n,gb});else if(n===3)race.EV.push({type:'bw',gb});else addPen(race,c,5,'tlpen',{n,gb});}
+function cutOpen(race,c,gain,gt,ex){const cp=c.cutPend;if(cp){cp.gain+=gain;cp.gt+=gt;cp.until=race.t+CUT_GB;return;}   // (cut again before giving the first back: one sum)
+  c.cutPend={t:race.t,gain,gt,lost:0,until:race.t+CUT_GB,g:ex.g,vg:Math.max(0,c.spd)};}
 // v12i: a stop the car cannot put off (repairs, a puncture, the wrong tyres for the weather)
 function aiPitUrgent(race,c){const d=c.dmg;if(d&&(Math.max(d.fp,d.fn)>=0.35||d.rw>=0.3||Math.max(d.sd[0],d.sd[1])>=0.4||Math.max(d.sus[0],d.sus[1],d.sus[2],d.sus[3])>=0.3||d.pk[0]+d.pk[1]+d.pk[2]+d.pk[3]>0.25))return true;
   const w=race.wx.wet,cur=c.ty.comp,isW=COMP[cur].wet;return (!isW&&w>c.wxThr)||(cur==='I'&&w>0.8)||(cur==='W'&&w<0.55)||(cur==='I'&&w<0.1+c.wxThr*0.25&&race.wx.rain<0.1);}
@@ -2345,7 +2349,7 @@ function updWeather(race,dt){const wx=race.wx;
 // - too fast), judged at the end of each mini-sector: the first one too fast is a warning, the 2nd +5 s, the 3rd a warning, the 4th +5 s more, then no more
 // (11-11: FIA 2026 F1 Penalty Guidelines - 2-3 sectors too fast 5 s, 4 sectors 10 s; it was +5 s for every one after the first, 10 s for 3). No forced slowing.
 // Not judged: the part-sector the VSC (or the pit exit) starts in, the pit lane. Game values: k (35 % slower, real VSC deltas are 30-40 %), len (one sector per ~350 m).
-const VSC_P={k:1.35,len:350,lo:10,hi:20,tau:2,ai:[0.1,0.5]},VSC_GB=15;   // VSC_GB: seconds to give a place taken under the VSC back (then no penalty)
+const VSC_P={k:1.35,len:350,lo:10,hi:20,tau:2,ai:[0.1,0.5]},VSC_GB=15,BLUE_W=20,BLUE_P=15;   // VSC_GB: seconds to give a place taken under the VSC back (then no penalty)
 // 11-08: in the wet the reference is the field's normal time in the wet (the grip of the right tyre for the track now, WGRIP): it was the dry time, only 0-7 % slower than
 // racing in heavy rain (dry: 9-16 %). Set when each VSC starts (startVSC clears it) and kept for that VSC.
 function vscRef(race){if(race.vscR)return race.vscR;const D=DIFF[race.diff]||DIFF.normal,sk=(D[0]+D[1])/2,wg=Math.max(...Object.keys(WGRIP).map(k=>wetGrip(k,WET)))/WGRIP.S[0],g=(race.gam||1)*wg,v=new Float32Array(N),ds=AL.ds,dt=new Float64Array(N),cum=new Float64Array(N+1);
@@ -2471,7 +2475,14 @@ function raceControl(race,dt){
   // 2024, less on a crowded first lap). Off the track = all four wheels past the white line (not at the pit entry / exit).
   for(const c of race.cars){if(c.pit||c.gone||c.fin!=null||race.form)continue;const r=zoneR(c.idx);if(Math.abs(c.lat)>TR.HW[c.idx]+1.45&&!(r>=0&&r<PIT.Z&&Math.sign(c.lat)===pitSideR(r)))c.offT=race.t;}
   for(const c of race.cars){const g=c.giveBack;if(!g||c.isP)continue;const o=race.cars[g.ix];if(!o||o.gone||o.dnf||o.pit||c.pit||c.fin!=null||o.prog-c.prog>1.5||race.t>g.until)c.giveBack=null;}
-  if(p.cutPend&&race.t-p.cutPend.t>1.5){const cp=p.cutPend;p.cutPend=null;if(!(p.gbT!=null&&p.gbT>=cp.t-2.5))addPen(race,p,5,'cut',{gain:cp.gain,gt:cp.gt});}   // a corner cut that gained time (no place)
+  for(const c of race.cars){const cp=c.cutPend;if(!cp)continue;   // a corner cut that gained time (no place). 11-12: given back in time - no penalty (it was +5 s 1.5 s after rejoining)
+    if(c.gone||c.dnf||c.gbT!=null&&c.gbT>=cp.t-2.5){c.cutPend=null;continue;}   // (the player took a place off the track: the give-back rule deals with it)
+    if(rc.flag!=='green'||c.pit){cp.until+=dt;cp.vg=Math.max(0,c.spd);continue;}   // (the clock stops under SC / VSC / red and in the pit lane)
+    const v=Math.max(0,c.spd),ref=cp.vg=Math.max(5,Math.min(profAt(c.idx,cp.g),cp.vg+Math.max(0.3,driveAcc(cp.vg,1)-9.81*TR.G[c.idx])*dt));   // a car going on flat out from where it rejoined (lapModel's acceleration; the plan has none)
+    if(v<0.75*ref)cp.lost+=dt*(1-v/ref);   // slowed well below it (the 75 % of the place give-back rule): the time it loses counts as given back
+    if(cp.lost>=cp.gt){c.cutPend=null;if(c.isP)tlStrike(race,c,true);}
+    else if(race.t>cp.until||c.fin!=null){c.cutPend=null;addPen(race,c,5,'cut',{gain:cp.gain,gt:cp.gt});}
+    else if(c.isP&&!cp.ann&&race.t-cp.t>1.5){cp.ann=true;cp.until=race.t+CUT_GB;race.EV.push({type:'cutGB',gt:cp.gt,s:CUT_GB});}}   // (said 1.5 s on: a pass just after rejoining goes to the give-back rule)
   if(p.giveBack){const g=p.giveBack,o=race.cars[g.ix];if(rc.flag!=='green')g.until+=dt;   // (the clock stops under SC / VSC)
     if(!o||o.gone||o.dnf||o.pit||o.fin!=null||p.pit||p.fin!=null)p.giveBack=null;
     else if(o.prog-p.prog>1.5){p.giveBack=null;race.EV.push({type:'givenBack',code:o.code,name:o.name});}
@@ -2498,8 +2509,15 @@ function raceControl(race,dt){
   // blue flags for cars about to be lapped
   for(const c of race.cars){c.blue=null;if(rc.flag!=='green'||c.fin!=null||c.pit||c.dnf||c.gone||c.fail)continue;
     for(const b of race.cars){if(b===c||b.pit||b.gone||b.dnf||b.fin!=null)continue;const g=c.prog+N-b.prog;if(g>0&&g<30){c.blue=b;break;}}}
-  if(p.blue){p.blueT+=dt;if(!p.blueOn){p.blueOn=true;race.EV.push({type:'blue'});}if(p.blueT>12){p.blueT=0;addPen(race,p,5,'bluePen');}}
-  else{p.blueOn=false;p.blueT=Math.max(0,p.blueT-dt);}
+  // 11-12: a warning at BLUE_W s of blue, +5 s BLUE_P s after it, and the clock starts again once that car is by (it was +5 s at 12 s of blue,
+  // summed over every car lapping it). FIA 2026 Driving Standards Guidelines K sets no time: the car must be let by on the next straight.
+  // Bot races (5 circuits, 18 laps): a car that moved over at once still had blue for 15-26 s (the lapping AI is slow to go by) - its blue
+  // penalties 52 -> 4; moving over on straights only 86 -> 16; never 207 -> 65
+  {const o=p.blueBy!=null&&race.cars.find(c=>c.id===p.blueBy);if(o&&o.prog-p.prog>N+1.5){p.blueT=0;p.blueW=false;p.blueBy=null;}}
+  if(p.blue){p.blueBy=p.blue.id;p.blueT+=dt;if(!p.blueOn){p.blueOn=true;race.EV.push({type:'blue'});}
+    if(p.blueT>BLUE_W&&!p.blueW){p.blueW=true;race.EV.push({type:'blueWarn',s:BLUE_P});}
+    if(p.blueT>BLUE_W+BLUE_P){p.blueT=0;p.blueW=false;addPen(race,p,5,'bluePen');}}
+  else{p.blueOn=false;p.blueT=Math.max(0,p.blueT-dt);if(!p.blueT)p.blueW=false;}
 }
 
 // ---------------- red flag ----------------
@@ -6927,7 +6945,7 @@ function drawHUD(dt){
     setT('lapL',S.kind==='practice'?'':'Q'+S.q+' ');setT('lap',S.kind==='practice'?fmtClock(S.t)+' · '+(pl.laps?pl.laps.length:0)+'랩':(S.chq?'체커기':fmtClock(S.len-S.t)));
     setT('pen',pl.gridPen?'그리드 -'+pl.gridPen:'');}
   else{setT('pos','P'+pp);setT('posN','/'+race.cars.length);setT('lapL',race.form?'':'랩 ');
-    setT('pen',(pl.pen?'+'+pl.pen+'초':'')+(pl.strikes%5?(pl.pen?' · ':'')+'경고 '+Math.min(3,pl.strikes%5)+'/3':''));
+    setT('pen',(pl.pen?'+'+pl.pen+'초':'')+(pl.strikes?(pl.pen?' · ':'')+'경고 '+Math.min(3,pl.strikes)+'/3':''));
     setT('lap',race.form?(race.form.kind==='start'?'포메이션 랩':'레드 플래그 재개'):Math.max(1,Math.min(race.laps,Math.floor(pl.prog/N)+1))+'/'+race.laps);}
   setT('tCur',fmt(state==='race'&&!race.form&&pl.fin==null&&pl.prog>=0&&!(pl.pit&&(pl.pit.state==='garage'||pl.pit.state==='red'))&&!(S&&pl.crossT<0)?race.t-pl.lapStart:0));setT('tLast',fmt(pl.lastLap));setT('tBest',fmt(bestLap));
   {let fb=null;for(const c of race.cars)if(c.best!=null&&(fb==null||c.best<fb))fb=c.best;setT('tFast',race.fl&&!race.sess?fmt(race.fl.t)+' '+race.fl.code:fb==null?'-':fmt(fb));   // v12f: the fastest lap of the race so far, and the gap to my best lap at this point of the lap
@@ -7275,7 +7293,8 @@ function flagPanel(){const rc=race.rc,p=race.player,el=$('flag');let cls='',txt=
       else if(ya){cls='y';txt=(ya.z.dbl?'더블 옐로':'옐로 플래그')+' '+ya.m+'m 앞 · 감속 준비';}
       else if(p.vgb&&Object.keys(p.vgb).length){const g=Object.values(p.vgb)[0];cls='y';txt='VSC 중 추월 · '+g.code+'에게 자리 돌려주기 · '+Math.max(0,Math.ceil(g.until-race.t))+'초';}   // (the VSC is over, the place is still owed)
       else if(p.giveBack){cls='y';txt=p.giveBack.code+'에게 자리 돌려주기 · '+Math.max(0,Math.ceil(p.giveBack.until-race.t))+'초'+(isTouch?'':' · 속도를 줄여 먼저 보내세요');}   // v12h
-      else if(p.blue){cls='b';txt='블루 플래그 · 길을 비켜주세요';}
+      else if(p.cutPend&&p.cutPend.ann){const cp=p.cutPend;cls='y';txt='이득 '+Math.max(0.1,cp.gt-cp.lost).toFixed(1)+'초 돌려주기 · '+Math.max(0,Math.ceil(cp.until-race.t))+'초'+(isTouch?'':' · 속도를 줄이세요');}   // 11-12
+      else if(p.blue){cls='b';txt=p.blueW?'블루 플래그 경고 · 비켜주세요 · '+Math.max(0,Math.ceil(BLUE_W+BLUE_P-p.blueT))+'초':'블루 플래그 · 길을 비켜주세요';}
       else if(rc.noPass&&rc.noPass[p.id]!=null&&p.prog<rc.noPass[p.id]){cls='y';txt='컨트롤 라인까지 추월 금지';}
       else if(race.t<(rc.greenAt??-99)+4){cls='g';txt='GREEN';}}}
   if(cls&&isTouch){if(flagPulse>0)cls+=' pulse';if(toastT>0&&document.body.classList.contains('ph-port'))cls+=' tuck';}   // v12j: phones - the pill flashes when race control changes; in portrait a short note takes its line for a moment
@@ -7289,8 +7308,8 @@ const MSG={fl:e=>['패스티스트 랩 · '+(e.me?'내 차':e.name)+' '+fmt(e.t)
   pitGo:e=>['GO! '+(e.mis?'피트 실수('+(e.mis==='stuck'?'바퀴가 안 빠짐':'휠건')+') · ':'')+(e.rep?'수리 완료 + ':'')+COMP[e.comp].name+' '+e.t.toFixed(1)+'초'+(e.best?' · 이번 레이스 최고 피트스톱':''),e.rep?'#ffb347':e.mis||e.t>3.5?'#ff8a8a':'#3ddc84'],
   aiPit:e=>e.mis?[e.name+' 피트 실수 · '+(e.mis==='stuck'?'바퀴가 안 빠져 ':'휠건 문제 ')+e.t.toFixed(1)+'초','#ffb347']:[e.name+' '+e.t.toFixed(1)+'초 피트스톱 · 이번 레이스 최고','#3ddc84'],
   aiStart:e=>['출발 실수 · '+e.l.map(x=>x.name+(x.kind==='stall'?' 그리드에 멈춤':' 휠스핀')).join(' · '),'#ffb347'],flat:()=>['타이어가 완전히 주저앉았어요 · 피트로!','#ff3b30'],pitOut:()=>{const p=race.player,C=COMP[p.ty.comp],T=(p.ty.temp[0]+p.ty.temp[1]+p.ty.temp[2]+p.ty.temp[3])/4;return T<C.win[0]-8?['피트 아웃 · 직접 운전 · 타이어가 차가워요 (그립 ↓, 한 바퀴 안에 데워져요)','#8ecae6']:['피트 아웃 · 직접 운전','#fff'];},
-  tl:e=>['트랙 리밋 위반 '+e.n+'회 · 이번 랩 기록 삭제','#ffb347'],bw:()=>['흑백기 · 다음 위반부터 시간 페널티','#ffb347'],tlpen:e=>['트랙 리밋 페널티 +'+e.s+'초'+(e.reset?' · 위반 카운트 초기화':''),'#ff5a4f'],
-  cut:e=>['코스 밖으로 나가 '+(e.gt||0).toFixed(1)+'초 이득 · +'+e.s+'초','#ff5a4f'],lastChance:()=>['마지막 랩! 두 번째 컴파운드를 아직 안 썼어요','#ffb347'],
+  tl:e=>[(e.gb?'이득 반납 완료 · ':'')+'트랙 리밋 위반 '+e.n+'회 · 이번 랩 기록 삭제','#ffb347'],bw:e=>[(e.gb?'이득 반납 완료 · ':'')+'흑백기 · 트랙 리밋 3회, 다음부터 넘을 때마다 +5초','#ffb347'],tlpen:e=>[(e.gb?'이득 반납 완료 · ':'')+'트랙 리밋 위반 '+e.n+'회 · +'+e.s+'초','#ff5a4f'],
+  cut:e=>['코스 밖 이득 '+(e.gt||0).toFixed(1)+'초 미반납 · +'+e.s+'초','#ff5a4f'],cutGB:e=>['코스 밖으로 나가 '+e.gt.toFixed(1)+'초 이득 · 속도를 줄여 돌려주세요 ('+e.s+'초 안에, 안 하면 +5초)','#ffb347'],lastChance:()=>['마지막 랩! 두 번째 컴파운드를 아직 안 썼어요','#ffb347'],
   jump:e=>['부정 출발 · +'+e.s+'초 페널티','#ff5a4f'],jumpWarn:()=>['차가 먼저 움직였어요 · 부정 출발','#ff5a4f'],ovt:()=>['오버테이크 모드 · 이번 랩 +0.5MJ · 337km/h까지 최대 출력','#b16cff'],
   rainSoon:()=>['무전: 곧 비가 옵니다','#8ecae6'],rain:()=>['비가 내리기 시작했어요','#8ecae6'],rainStop:()=>['비가 그쳤어요 · 노면이 마르는 중','#8ecae6'],
   xover:e=>['무전: '+COMP[e.comp].name+' 타이어로 바꿀 타이밍','#8ecae6'],fail:e=>[e.name+' 차량 이상 · 감속','#ffb347'],dnf:e=>e.code==='YOU'?['리타이어 · 레이스 종료','#ff3b30']:[e.name+' 리타이어 · 옐로 플래그','#f5c518'],
@@ -7309,7 +7328,7 @@ const MSG={fl:e=>['패스티스트 랩 · '+(e.me?'내 차':e.name)+' '+fmt(e.t)
   flatSpot:e=>['플랫 스팟 · '+['왼쪽 앞','오른쪽 앞','왼쪽 뒤','오른쪽 뒤'][e.k]+' 타이어 (타이어를 바꿀 때까지 진동)','#ffb347'],
   std:e=>{const k={weave:'방어 중 두 번 움직임',brake:'제동 중 방어 이동',force:'상대를 코스 밖으로 밀어냄',btest:'불필요한 급제동'}[e.k];return[e.me?k+' 페널티 +'+e.s+'초 · '+e.name+' 상대':e.name+' '+k+' +'+e.s+'초'+(e.vic?' · 내 차 상대':''),e.me?'#ff8a8a':'#f5c518'];},
   illegalPass:e=>[({sc:'세이프티카 중',vsc:'VSC 중',yellow:'옐로 구간',restart:'재시작 전',red:'레드 플래그 중'}[e.why]||'규정 위반')+' 추월 · +'+e.s+'초','#ff5a4f'],
-  blue:()=>['블루 플래그 · 뒤차에게 길을 비켜주세요','#6aa7ff'],bluePen:e=>['블루 플래그 무시 · +'+e.s+'초','#ff5a4f'],finish:()=>['체커기!','#fff'],contact:()=>['접촉!','#ffb347']};
+  blue:()=>['블루 플래그 · 뒤차에게 길을 비켜주세요','#6aa7ff'],blueWarn:e=>['블루 플래그 무시 경고 · 뒤차에게 길을 비켜주세요 ('+e.s+'초 안에, 안 하면 +5초)','#ffb347'],bluePen:e=>['블루 플래그 무시 · +'+e.s+'초','#ff5a4f'],finish:()=>['체커기!','#fff'],contact:()=>['접촉!','#ffb347']};
 function handleEvents(){
   for(const e of race.EV){
     if(e.type==='dmg'){onDamage(e);continue;}
