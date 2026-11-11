@@ -534,6 +534,36 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
   #mList{margin-top:20px} #menu .mItem{min-height:64px} .mItem b{font-size:20px} .mItem span{font-size:15.5px}
   #menu #startBtn{min-height:72px; font-size:24px}
 }
+/* 11-12 윤택님 「움직이는 애니메이션이었음 좋겠는데 처음 켰을 때 라이츠아웃 화면」: once a tab, at the start - the five start lights come on one by one and go out
+   together (LIGHTS OUT), then the menu slides in; a tap skips it. Behind the menu the still 3D frame drifts slowly - a CSS zoom on the canvas: the scene is not drawn
+   again, so the menu costs what it did (off on 부드럽게). Opacity and transform only (no repaint). None of it with reduced motion. */
+#intro{position:absolute; inset:0; z-index:40; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px; background:radial-gradient(ellipse at 50% 45%,#1b1d23 0%,#0b0c10 72%); cursor:pointer}
+#intro[hidden]{display:none}
+#intro .inL{display:flex; gap:16px; padding:16px 20px; border-radius:16px; background:#121317; box-shadow:inset 0 0 0 2px #25272d,0 12px 40px rgba(0,0,0,.6)}
+#intro .inL i{position:relative; width:38px; height:38px; border-radius:50%; background:#2b1311; box-shadow:inset 0 0 0 3px #3b1b18}
+#intro .inL i::after{content:''; position:absolute; inset:0; border-radius:50%; background:radial-gradient(circle at 40% 36%,#ff8f85 0,#ff3b30 45%,#c41d14 100%); box-shadow:0 0 22px 6px rgba(255,45,30,.55); opacity:0}
+#intro.go .inL i::after{animation:inOn .08s .2s linear forwards,inOff .06s 1.75s linear forwards}
+#intro.go .inL i:nth-child(2)::after{animation-delay:.48s,1.75s} #intro.go .inL i:nth-child(3)::after{animation-delay:.76s,1.75s}
+#intro.go .inL i:nth-child(4)::after{animation-delay:1.04s,1.75s} #intro.go .inL i:nth-child(5)::after{animation-delay:1.32s,1.75s}
+#intro .inT{font-family:"Saira Condensed","Arial Narrow",sans-serif; font-weight:800; font-style:italic; font-size:54px; line-height:1; letter-spacing:1px; color:#fff; opacity:0}
+#intro.go .inT{animation:inTxt .4s 1.75s cubic-bezier(.2,.8,.2,1) forwards}
+#intro.go{animation:inFade .45s 2.05s ease-in forwards}
+@container (min-height:560px){#intro .inL{gap:22px; padding:20px 26px} #intro .inL i{width:54px; height:54px} #intro .inT{font-size:78px}}
+@keyframes inOn{to{opacity:1}} @keyframes inOff{from{opacity:1} to{opacity:0}}
+@keyframes inTxt{from{opacity:0; transform:scale(.86)} to{opacity:1; transform:none}}
+@keyframes inFade{to{opacity:0}}
+#menu.mEnter #mHomeL h1{animation:mInL .55s cubic-bezier(.2,.8,.2,1) both}
+#menu.mEnter #mMode{animation:mInU .45s .06s cubic-bezier(.2,.8,.2,1) both}
+#menu.mEnter .mItem{animation:mInU .45s .1s cubic-bezier(.2,.8,.2,1) both}
+#menu.mEnter .mItem:nth-child(2){animation-delay:.14s} #menu.mEnter .mItem:nth-child(3){animation-delay:.18s} #menu.mEnter .mItem:nth-child(4){animation-delay:.22s} #menu.mEnter .mItem:nth-child(5){animation-delay:.26s}
+#menu.mEnter #startBtn{animation:mInR .55s .2s cubic-bezier(.2,.8,.2,1) both}
+@keyframes mInL{from{opacity:0; transform:translateX(-28px)}} @keyframes mInU{from{opacity:0; transform:translateY(12px)}} @keyframes mInR{from{opacity:0; transform:translateX(36px)}}
+body.inmenu:not(.lived):not(.q-low) #gl{animation:mDrift 26s ease-in-out 2 alternate; transform-origin:70% 58%}   /* in and back out once (52 s), then still: an idle menu costs nothing */
+body.inmenu:has(#mPage:not([hidden])) #gl{animation-play-state:paused}   /* a settings page covers it */
+@keyframes mDrift{from{transform:none} to{transform:scale(1.06) translate(1%,.5%)}}   /* (grows round the car and eases right: the nose stays clear of the menu panel) */
+#menu .mItem,#menu #startBtn{transition:transform .12s ease,background .12s}
+#menu .mItem:active{transform:scale(.985)} #menu #startBtn:active{transform:scale(.97)}
+@media (prefers-reduced-motion:reduce){#intro{display:none !important} #menu.mEnter *{animation:none !important} body.inmenu #gl{animation:none !important} #menu .mItem:active,#menu #startBtn:active{transform:none}}
 </style>
 <script>
 /* 터치 확대 막기 — iOS Safari 는 viewport 의 user-scalable=no 를 무시한다.
@@ -719,6 +749,7 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
     <textarea id="benchTa" readonly hidden></textarea>
     </div></div>
   <div class="overlay" id="result" hidden><div class="card"><h1 id="resTitle">P1</h1><p class="sub num" id="resSub"></p><p class="sub num" id="resFl" style="color:#c58bff;margin-top:-4px"></p><table class="num" id="resTable"></table><div class="laps" id="rLaps"></div><div class="row2"><button class="go" id="againBtn">다시 달리기 (Enter)</button><button class="go" id="chBtn" hidden>대회 순위 보기 (Enter)</button><button id="menuBtn">메뉴로</button></div></div></div>
+  <div id="intro" hidden aria-hidden="true"><div class="inL"><i></i><i></i><i></i><i></i><i></i></div><b class="inT">LIGHTS OUT</b></div>
   <div id="loading">서킷을 준비하는 중</div>
   <div id="err"><p>3D 그래픽(WebGL)을 불러오지 못했어요. 최신 Chrome, Edge, Safari에서 다시 열어주세요.</p></div>
 </div>
@@ -8315,7 +8346,7 @@ function frame(now){
   // 11-04: nothing moves behind the menu: draw until the car stands in its place, then stop (the menu scrolled in jerks on top of the whole 3D scene)
   if(state==='menu'&&!BENCH&&!LED&&!$('menu').hidden&&--mDraw<0){mDraw=0;requestAnimationFrame(frame);return;}
   sync(dt);
-  if(state==='menu'){orbit+=dt*(LED?0.2:0.12);const pl=race.player;const gy=roadY(pl.x,pl.z,pl.idx),od=LED?6.2:7.5;camera.position.set(pl.x+Math.cos(orbit)*od,(LED?1.9:1.6)+gy,pl.z+Math.sin(orbit)*od);
+  if(state==='menu'){orbit+=dt*(LED?0.2:0.12);const pl=race.player;const mS=LED?null:menuShot(pl);if(mS)orbit=mS.a;const gy=roadY(pl.x,pl.z,pl.idx),od=LED?6.2:mS.d;camera.position.set(pl.x+Math.cos(orbit)*od,(LED?1.9:1.6)+gy,pl.z+Math.sin(orbit)*od);
     if(camera.setViewOffset){const w=VW(),h=VH(),port=w<h;camera.setViewOffset(w,h,LED?(port?0:-Math.min(210,w*0.21)):-w*0.3,LED&&port?h*0.26:0,w,h);}camera.fov=45;camera.near=0.25;camera.lookAt(pl.x,0.5+gy,pl.z);camera.updateProjectionMatrix();meshes[race.cars.indexOf(pl)].helmet.visible=true;if(SW)SW.g.visible=false;}
   if(WORLD.waterTex){WORLD.waterTex.offset.x+=dt*0.004;WORLD.waterTex.offset.y+=dt*0.0025;}
   // v12j: the whole shadow map is redrawn every frame; once the governor decides the device is struggling (PERF.shHalf) it is
@@ -8323,10 +8354,25 @@ function frame(now){
   SHF++;particles(dt);drawHUD(dt);audioUpdate(dt);drawMini();renderer.shadowMap.needsUpdate=(!PERF.shHalf||(SHF&1)===0);render();renderMirror();drawHudMirror();drawDrops(dt);perfGovernor(dt);
   requestAnimationFrame(frame);
 }
+// 11-12: the menu shot - from the road side of the car (a fixed world angle put the camera behind the catch fence at Silverstone), ahead of it, else behind or
+// beside it, 10 m away (the whole car clear of the menu panel on a phone), 8 or 6.5 m on a narrow road: the first of those with no other car within 4 m of the
+// camera and the camera on the road. {a: angle round the car (orbit), d: distance}
+function menuShot(pl){const t=T[pl.idx],s=pl.lat>=0?1:-1;let r0=null;
+  for(const [f,l,d] of [[0.75,0.66,10],[-0.6,0.8,10],[0.3,0.95,10],[0.75,0.66,8],[-0.6,0.8,8],[0.75,0.66,6.5],[-0.6,0.8,6.5]]){const dx=t[0]*f+s*t[1]*l,dz=t[1]*f-s*t[0]*l,r={a:Math.atan2(dz,dx),d},x=pl.x+dx*d,z=pl.z+dz*d,lat=pl.lat-s*l*d;if(!r0)r0=r;
+    if(Math.abs(lat)<TR.HW[pl.idx]-0.5&&race.cars.every(c=>c===pl||c.gone||Math.hypot(c.x-x,c.z-z)>4))return r;}
+  return r0;}
+// 11-12 윤택님 「처음 켰을 때 라이츠아웃 화면 움직이는 애니메이션」 (CSS #intro): once a tab - a track change reloads the page, not again then; not for the tutorial
+// circuit or a performance test. Ends with its fade (animationend), a tap, or after 6 s whatever happens.
+function menuIntro(){const el=$('intro');let seen=false,rm=false;try{seen=!!sessionStorage.getItem('lightsout3d-intro');}catch(e){}try{rm=matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
+  if(!el||seen||rm||state!=='menu'||loadLS('lightsout3d-tutgo')==='1'||benchLoad())return;try{sessionStorage.setItem('lightsout3d-intro','1');}catch(e){}
+  const enter=()=>{const m=$('menu');if(m.classList.contains('mEnter'))return;m.classList.add('mEnter');setTimeout(()=>m.classList.remove('mEnter'),1300);},   // the menu slides in under the fade
+    end=()=>{if(el.hidden)return;el.hidden=true;el.classList.remove('go');enter();};
+  el.hidden=false;el.classList.add('go');el.addEventListener('animationstart',e=>{if(e.animationName==='inFade')enter();});el.addEventListener('animationend',e=>{if(e.animationName==='inFade')end();});el.addEventListener('click',end);   /* (a click, not pointerdown: the tap must not land on the menu underneath) */setTimeout(end,6000);}
 function boot(){
   try{initWorld();}catch(e){console.error(e);$('err').style.display='flex';}
   setupRace();updateMenuBest();state='menu';document.body.classList.add('inmenu');$('menu').hidden=false;$('loading').style.display='none';$('fpsBox').hidden=!FPSON;
   if(benchLoad())whenCar(benchBoot);else benchBoot();
+  menuIntro();
   if(loadLS('lightsout3d-tutgo')==='1'){saveLS('lightsout3d-tutgo','');saveLS('lightsout3d-skill',loadLS('lightsout3d-skill')||'seen');tutStart();}   // 10-31: the tutorial circuit has loaded
   else if(!loadLS('lightsout3d-skill')){$('menu').hidden=true;$('skill').hidden=false;}   // first launch: pick a skill level once
   requestAnimationFrame(frame);
