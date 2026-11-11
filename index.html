@@ -173,7 +173,7 @@ body.touch #hudSpeed{bottom:94px} body.touch #tower{display:none} body.touch #ca
 @container (max-width:640px){ #tower{display:none} #pos{font-size:32px} #spd{font-size:44px} #hudTime{min-width:150px} #hudTime .cur b{font-size:20px} .bulb{width:22px;height:22px} .two{grid-template-columns:1fr} }
 @media (prefers-reduced-motion:reduce){ #toast,#lights{transition:none} }
 .badge{display:inline-block; font-size:11px; font-weight:800; padding:1px 6px; border-radius:2px; margin:5px 4px 0 0; background:rgba(255,255,255,.1); color:var(--dim); letter-spacing:.03em}
-.badge.on{background:#3ddc84; color:#0b0d10} .badge.ovt.on{background:#b16cff; color:#fff}
+.badge.on{background:#3ddc84; color:#0b0d10} .badge.ovt.on{background:#b16cff; color:#fff} .badge.ovt.pend{background:rgba(177,108,255,.25); color:#e3d0ff} .badge.ovt.pend.ok{background:rgba(177,108,255,.55); color:#fff}
 .badge.arm{background:#f5c518; color:#111; animation:armb .7s steps(2,start) infinite} @keyframes armb{50%{opacity:.45}}
 /* v12f: sector lights (current lap: purple = fastest of all, green = personal best, yellow = slower), G-meter, slipstream / dirty-air badge */
 #hudTime .secs{display:flex; gap:3px; margin:2px 0 3px} #hudTime .secs i{flex:1; height:5px; border-radius:1px; background:rgba(255,255,255,.13)}
@@ -381,7 +381,7 @@ body.touch.ph-land #hudSpeed .ers>div:last-child{order:3; width:auto; display:fl
 body.touch.ph-land #hudSpeed.dk1>#tyMini i{width:18px; height:18px; border-width:3px; font-size:9px} body.touch.ph-land #hudSpeed.dk1 #tyMini b{font-size:9px} body.touch.ph-land #hudSpeed.dk1>.ers{width:84px} body.touch.ph-land #hudSpeed.dk1 #spd, body.touch.ph-land #hudSpeed.dk1 #gear{font-size:26px}
 body.touch.ph-land #hudSpeed.dk2{gap:7px; padding:12px 9px 5px} body.touch.ph-land #hudSpeed.dk2>.ers{width:60px} body.touch.ph-land #hudSpeed.dk2 #ersT{font-size:9px}
 body.touch.ph-land.ph-narrow #steerPad{width:228px}
-body.touch #hudSpeed .badge:not(.on):not(.arm){display:none}   /* only what is happening now: straight mode, overtake, tow */
+body.touch #hudSpeed .badge:not(.on):not(.arm):not(.pend){display:none}   /* only what is happening now: straight mode, overtake (and its gap before the line), tow */
 body.touch #hudSpeed .badge{margin:0 4px 0 0}
 body.touch.ph-land #spd{font-size:30px; min-width:2.4ch; text-align:right} body.touch.ph-land #gear{font-size:30px; padding:0 7px}
 body.touch.ph-small.ph-land #spd{font-size:26px} body.touch.ph-small.ph-land #gear{font-size:26px} body.touch.ph-small.ph-land #hudSpeed{gap:8px; padding:12px 9px 5px}
@@ -683,11 +683,11 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
         <span><kbd>↑</kbd> <kbd>W</kbd></span><span>가속</span>
         <span><kbd>Space</kbd> <kbd>↓</kbd> <kbd>S</kbd></span><span>브레이크 / 후진</span>
         <span><kbd>←</kbd><kbd>→</kbd> <kbd>A</kbd><kbd>D</kbd></span><span>조향 (길게 누를수록 더 꺾임)</span>
-        <span><kbd>Shift</kbd></span><span>부스트 (배터리 전력) · 앞차와 1초 이내로 라인 통과 시 다음 랩 오버테이크 모드</span>
+        <span><kbd>Shift</kbd></span><span>부스트 (배터리 전력) · 앞차와 1초 이내로 결승선 통과 시 다음 한 랩 오버테이크 모드(337km/h까지 최대 출력 + 배터리 0.5MJ, 비 올 땐 없음)</span>
         <span><kbd>주행 보조</kbd></span><span>높음: 잠김·휠스핀 없음 · 보통: 코너에서 브레이크를 세게 밟거나 연석·젖은 노면에서 잠길 수 있음 · 끔: 브레이크를 끝까지 밟으면 저속에서 잠겨요, 가속도 직접 조절</span>
         <span><kbd>휠락</kbd></span><span>속도가 떨어지면 다운포스가 줄어 같은 브레이크에도 잠기기 쉬워요 · 돌면서 밟으면 안쪽 앞바퀴부터 잠겨요 (연기, 핸들이 안 먹고 바깥으로 밀림) · 오래 잠기면 플랫 스팟이 생겨 타이어를 바꿀 때까지 떨려요 (타이어 표시 주황 테두리)</span>
         <span><kbd>L</kbd></span><span>레이싱 라인 가이드: 코너만 → 전체 → 끔 (빨강 제동 · 노랑 코너 · 초록 가속) · AI 차들도 같은 라인을 따라 달려요 (추월·방어할 땐 잠깐 벗어남)</span>
-        <span><kbd>E</kbd></span><span>직선 모드(액티브 에어로) 날개 열기 · 직선 구간에서만 열리고, 브레이크를 밟거나 가속을 떼면 자동으로 닫혀요</span>
+        <span><kbd>E</kbd></span><span>직선 모드(액티브 에어로) 날개 열기 · 서킷마다 정해진 직선 구간(3초 넘게 전속력으로 달리는 직선, 모나코는 없음)에서만 열려요. 앞차와 간격은 상관없이 모든 차가 써요. 브레이크를 밟거나 가속을 떼면 자동으로 닫혀요</span>
         <span><kbd>B</kbd> · <kbd>1</kbd>~<kbd>5</kbd></span><span>피트 요청 · 교체할 타이어 (소프트/미디엄/하드/인터/풀 웻) · 부서진 부품(노즈·리어 윙·서스펜션)과 펑처는 피트에서 모두 수리</span>
         <span><kbd>Space</kbd>+<kbd>↑</kbd></span><span>수동 스타트: 브레이크 밟은 채 회전수 올리고 대기 → 불 꺼지면 스페이스 떼기 (먼저 움직이면 +5초)</span>
         <span><kbd>포메이션</kbd></span><span>그리드 순서대로 한 바퀴, 추월 금지 · 좌우로 흔들어 타이어 데우기 · 그리드 300m 전부터 자동 정렬 · <kbd>Enter</kbd> 건너뛰기</span>
@@ -1293,11 +1293,17 @@ function gripUse(diff){const d=AIK[diff]?diff:'normal',r=PACE_RATIO[d],NL=aiLine
   const tOld=lapModel(PROFS[0].p,STEP),v=new Float32Array(N),T=g=>{for(let i=0;i<N;i++)v[i]=profOf(NL.P,i,g);return lapModel(v,NL.ds);};   // on the normal level's line and braking: the difficulty's own line and braking then come on top of its share of the grip (recalculated on them, a wider line and later braking took grip away and the hard AI braked softer)
   let lo=0.3,hi=1;if(T(hi)>=r*tOld)return GRIPUSE[d]=hi;if(T(lo)<=r*tOld)return GRIPUSE[d]=lo;
   for(let it=0;it<18;it++){const m=(lo+hi)/2;if(T(m)>r*tOld)lo=m;else hi=m;}return GRIPUSE[d]=(lo+hi)/2;}
-// 2026 active aero: 'straight mode' zones on long straights (all cars, no gap rule)
-const AERO=(()=>{const ok=i=>TR.K[i]<0.0025&&PROF[i]>=VMAX*0.93,z=new Uint8Array(N);let s0=0;while(s0<N&&ok(s0))s0++;
-  for(let k=0;k<N;){const i=(s0+k)%N;if(!ok(i)){k++;continue;}let L=0;while(L<N&&ok((s0+k+L)%N))L++;if(L*STEP>=160)for(let j=10;j<L-25;j++)z[(s0+k+j)%N]=1;k+=L;}
+// 2026 active aero: 'straight mode' activation zones - every car, no gap rule (FIA 2026 Sporting Regulations B7.1.1-2: only inside the zones the FIA
+// sets for each circuit, opened by the driver, shut by braking or lifting). 11-11 윤택님 「직선이면 무조건 열리나」: every flat-out straight of 160 m was a zone;
+// now only one that lasts more than three seconds, the test the FIA names for a zone (formula1.com, Monaco 2026). That gives the zone count of the
+// FIA circuit maps at Monza 4, Silverstone 4, Austin 2, Monaco 0 (Spa 3 of 5, Miami 2 of 3); Monza's 112 m between the Lesmos (1.2 s) no longer opens.
+// AERO[i]: the zone's number round the lap (1 = the one over or after the line, as on the FIA maps), AERO.n: how many
+const AERO=(()=>{const ok=i=>TR.K[i]<0.0025&&PROF[i]>=VMAX*0.93,z=new Uint8Array(N),zs=[];let s0=0;while(s0<N&&ok(s0))s0++;
+  for(let k=0;k<N;){const i=(s0+k)%N;if(!ok(i)){k++;continue;}let L=0;while(L<N&&ok((s0+k+L)%N))L++;
+    if(L*STEP>=160){let t=0;for(let j=10;j<L-25;j++)t+=STEP/PROF[(s0+k+j)%N];if(t>3)zs.push([(s0+k+10)%N,L-35]);}k+=L;}
+  const at=q=>q[0]+q[1]>N?q[0]-N:q[0];zs.sort((a,b)=>at(a)-at(b));zs.forEach((q,n)=>{for(let j=0;j<q[1];j++)z[(q[0]+j)%N]=n+1;});z.n=zs.length;
   return z;})();
-function aeroState(race,c){if(race.rc.flag!=='green'||!AERO[c.idx]||c.braking||c.pit)return 0;return WET>0.45?1:2;}   // 2 open, 1 partial (wet), 0 corner mode
+function aeroState(race,c){if(race.rc.flag!=='green'||!AERO[c.idx]||c.braking||c.pit)return 0;return WET>0.45?1:2;}   // 2 open, 1 partial (wet: low grip, B7.1.2b), 0 corner mode
 // 11-11 윤택님 「비 강도 조절 메뉴 - 인터 낄지 웻 낄지」: ri 'light' / 'heavy' picks the kind of rain (the menu's 비 강도), anything else is the 50 / 50 draw. Only for 비: 변덕 keeps its own
 function makeWeather(mode,laps,rnd,ri){const dur=laps*LAPSEC,wx={mode,wet:0,rain:0,sched:[]};
   if(mode==='rain'){const r0=rnd(),hv=ri==='heavy'?true:ri==='light'?false:r0<0.5,q=rnd();wx.hv=hv;wx.rain=wx.r0=hv?0.78+rnd()*0.17:0.28+rnd()*0.2;wx.wet=Math.min(1,wx.rain*1.1);wx.sched.push({t:0,to:wx.rain});   // 11-09 윤택님 (폭우랑 노면만 젖는 비, 랜덤 - 인터·풀웻을 고르게): half heavy (track 0.86-1: full wets), half light (0.32-0.55: inters) - it was 0.55-0.85 (track 0.63-0.98, nearly always full wets)
@@ -1701,9 +1707,9 @@ function stepPlayer(race,c,dt,inp){
   {let d=c.va-c.a;c.vx=c.spd*Math.cos(d);c.vy=c.spd*Math.sin(d);}
   const v0=Math.hypot(c.vx,c.vy),av=Math.abs(v0);
   c.boost=!!(inp.ers&&c.ers>0.02&&inp.gas&&!c.bAs&&c.vx>10);
-  // electric boost: full 350 kW deployment ramps down from 290 km/h to zero at 355 km/h;
-  // Overtake Mode holds full deployment to 337 km/h (ramp to 355 km/h after that is a game assumption)
-  const kmh=av*3.6;c.beff=c.boost?(c.ovt?(kmh<337?1:Math.max(0,1-(kmh-337)/18)):(kmh<290?1:Math.max(0,1-(kmh-290)/65))):0;
+  // electric boost: the ERS-K power limit of FIA 2026 Technical Regulations C5.2.8 as a share of 350 kW - 1800-5v kW below 340 km/h, then 6900-20v
+  // (full to 290, 100 kW at 340, none from 345 km/h; it was taken to fade to 355); Overtake Mode 7100-20v (full to 337.5, none from 355 km/h)
+  const kmh=av*3.6;c.beff=c.boost?Math.max(0,Math.min(1,(c.ovt?7100-20*kmh:kmh<340?1800-5*kmh:6900-20*kmh)/350)):0;
   const sw=S===SURF.track?1:S===SURF.paint?1-0.35*WET:S===SURF.kerb?1-0.25*WET:S===SURF.runoff?1-0.1*WET:1-0.3*WET;
   const n=Math.max(1,Math.ceil(dt/0.004)),h=dt/n;let slipMax=0,lockT=0;
   const SM=surfMix(ti.i,ti.off);c.kerbW=kerbWheels(ti.i,ti.off);
@@ -2293,8 +2299,8 @@ function stepRace(race,dt,inp){
       c.lapStart=race.t;
       // 2026 Overtake Mode: within 1.0 s of the car ahead at the line -> +0.5 MJ and full deployment to 337 km/h for the next lap
       c.ovt=false;if(c.ovtE){c.ovtE=0;c.ers=Math.min(c.ers,ERS_MAX);}
-      if(lb>=0&&race.rc.flag==='green'&&!race.rc.noPass&&!race.sess){let a=null,bd=1e9;for(const o of race.cars){if(o===c||o.gone||o.dnf)continue;const d=o.prog-c.prog;if(d>0&&d<bd){bd=d;a=o;}}
-        if(a&&a.crossT>0&&race.t-a.crossT<1.0&&Math.floor(a.prog/N)===la){c.ovt=true;c.ovtE=0.5;c.ers+=0.5;if(c.isP)race.EV.push({type:'ovt'});}}
+      if(lb>=0&&race.rc.flag==='green'&&!race.rc.noPass&&!race.sess&&WET<=0.45){/* (off in low grip, B7.2.3d) */let a=null,bd=1e9;for(const o of race.cars){if(o===c||o.gone||o.dnf)continue;const d=o.prog-c.prog;if(d>0&&d<bd){bd=d;a=o;}}
+        if(a&&a.crossT>0&&race.t-a.crossT<1.0&&Math.floor(a.prog/N)===la){c.ovt=true;c.ovtE=0.5;c.ers+=0.5;if(c.isP)race.EV.push({type:'ovt'});}}   // (B7.2.4c: one detection a lap, used anywhere until the next; the 0.5 MJ is more energy it may recover that lap, C5.2.10 - with no lap limit on recovery here, given at once)
       c.crossT=race.t;
       if(race.sess)sessLap(race,c,lb,inv);
       if(c.prog>=race.laps*N){c.fin=race.t;c.dsq=needsSecond(c);race.finished.push(c);if(c.isP)race.EV.push({type:'finish'});}
@@ -2405,6 +2411,7 @@ function onDNF(race,c){const rc=race.rc,off=Math.abs(c.lat)-TR.HW[c.idx],r=c.rnd
   if(rc.flag==='green'){if(mode==='vsc')startVSC(race);else if(mode==='sc')startSC(race);}}
 function startVSC(race,why){const rc=race.rc;rc.flag='vsc';rc.since=race.t;race.vscR=null;rc.vsc={end:race.t+20+Math.random()*10,ending:false,cnt:{},pw:false,why:why||''};for(const c of race.cars)c.vd=null;race.EV.push({type:'vsc',why:why||''});}
 function startSC(race,why){const rc=race.rc,L=race.cars.find(c=>c.id===rc.leaderId)||race.player;rc.flag='sc';rc.since=race.t;rc.why=why||'';
+  for(const c of race.cars)if(c.ovt){c.ovt=false;c.ovtE=0;c.ers=Math.min(c.ers,ERS_MAX);}   // 11-11: Overtake Mode is switched off when the safety car comes out (B7.2.3c)
   rc.go=false;rc.sc={prog:L.prog+75,spd:Math.max(35,L.spd*0.7),on:true,lights:true,phase:'out',clear:race.t+38+Math.random()*14,lat:0,x:0,z:0,a:0,idx:0,relP:null};placeSC(rc.sc);race.EV.push({type:'sc',why:why||''});}
 // 11-04: the heading follows the road smoothly (it was the direction of the current 2 m piece: up to 13 deg in one step at Monaco) plus the angle of its move across the road
 function placeSC(sc,dt){const f0=Math.floor(sc.prog),i=wrap(f0),j=wrap(f0+1),f=sc.prog-f0,p=P[i],q=P[j],a=T[i],b=T[j],tx=a[0]+(b[0]-a[0])*f,tz=a[1]+(b[1]-a[1])*f,lat=sc.lat||0;
@@ -6941,10 +6948,13 @@ function drawHUD(dt){
   {const n=Math.max(0,Math.min(15,Math.round((curRpm-9000)/3300*15)));if(hc.rev!==n){hc.rev=n;$('rev').style.setProperty('--n',n);if(isTouch)revDots(n);}}   // v11: rev lights, the same scale as the steering-wheel LEDs
   setT('gear',gs);$('ers').style.transform='scaleX('+Math.min(1,pl.ers/ERS_MAX).toFixed(3)+')';$('ersBox').classList.toggle('on',pl.boost);setT('ersT','배터리 '+pl.ers.toFixed(1)+'MJ'+(pl.boost?' · 부스트':''));
   {const arm=!pl.aeroOpen&&pl.smZone&&!race.aeroAuto&&state==='race';$('bSM').className='badge'+(pl.aeroOpen?' on':arm?' arm':'');
-   setT('bSM',isTouch?'직선':(pl.aeroOpen===1?'직선 모드(부분)':arm?'직선 모드 · E':'직선 모드'));$('mAero').classList.toggle('on',!!pl.aeroOpen);
+   {const zn=AERO[pl.idx]&&pl.smZone?' '+AERO[pl.idx]+'/'+AERO.n:'';setT('bSM',isTouch?'직선'+zn:(pl.aeroOpen===1?'직선 모드(부분)':'직선 모드')+zn+(arm?' · E':''));}/* 11-11: which zone (2/4) */$('mAero').classList.toggle('on',!!pl.aeroOpen);
    if(arm&&!race.smHintOn&&(race.smHint||0)<2){race.smHint=(race.smHint||0)+1;toast(isTouch?'직선 모드 구간 · 직선 버튼으로 날개 열기':'직선 모드 구간 · E 키로 날개 열기','#3ddc84',2.2);}
    race.smHintOn=!!pl.smZone;
-   if(!!pl.aeroOpen!==!!SND.aero){SND.aero=!!pl.aeroOpen;if(state==='race')sfx(SND.aero?'aeroOpen':'aeroClose');}}if(isTouch)setT('bOVT','OVT');$('bOVT').classList.toggle('on',!!pl.ovt);
+   if(!!pl.aeroOpen!==!!SND.aero){SND.aero=!!pl.aeroOpen;if(state==='race')sfx(SND.aero?'aeroOpen':'aeroClose');}}{let tx=isTouch?'OVT':'오버테이크',g=9;   // 11-11: the last 600 m before the line, the gap to the car ahead it will be judged on (1.0 s) - 'OVT 0.8'
+   if(!pl.ovt&&state==='race'&&race.rc.flag==='green'&&!race.rc.noPass&&!race.sess&&WET<=0.45&&pl.prog>0&&!pl.pit&&(N-pl.prog%N)*STEP<600){let a=null,bd=1e9;for(const o of race.cars){if(o===pl||o.gone||o.dnf||o.pit)continue;const d=o.prog-pl.prog;if(d>0&&d<bd&&Math.floor(o.prog/N)-Math.floor(pl.prog/N)<=1){bd=d;a=o;}}
+     if(a)g=bd*STEP/Math.max(pl.spd,20);if(g<2)tx=(isTouch?'OVT ':'오버테이크 판정 ')+g.toFixed(1)+(isTouch?'':'초');}
+   setT('bOVT',tx);const e=$('bOVT');e.classList.toggle('on',!!pl.ovt);e.classList.toggle('pend',g<2);e.classList.toggle('ok',g<=1);}
   // v12f: slipstream / dirty air, sector lights, G-meter
   {const tw=pl.tow||0,dr=pl.dirty||0,cor=Math.abs(pl.latG||0)>9,el=$('bAir'),cls=dr>0.03&&cor?'badge air on dirty':tw>0.06&&!pl.pit?'badge air on':'badge air';
    if(el.className!==cls)el.className=cls;setT('bAir',cls.includes('dirty')?(isTouch?'난기류 -'+Math.round(dr*100)+'%':'더티 에어 -'+Math.round(dr*100)+'%'):cls.includes('on')?(isTouch?'토우':'슬립스트림'):'');}
@@ -7277,7 +7287,7 @@ const MSG={fl:e=>['패스티스트 랩 · '+(e.me?'내 차':e.name)+' '+fmt(e.t)
   aiStart:e=>['출발 실수 · '+e.l.map(x=>x.name+(x.kind==='stall'?' 그리드에 멈춤':' 휠스핀')).join(' · '),'#ffb347'],flat:()=>['타이어가 완전히 주저앉았어요 · 피트로!','#ff3b30'],pitOut:()=>{const p=race.player,C=COMP[p.ty.comp],T=(p.ty.temp[0]+p.ty.temp[1]+p.ty.temp[2]+p.ty.temp[3])/4;return T<C.win[0]-8?['피트 아웃 · 직접 운전 · 타이어가 차가워요 (그립 ↓, 한 바퀴 안에 데워져요)','#8ecae6']:['피트 아웃 · 직접 운전','#fff'];},
   tl:e=>['트랙 리밋 위반 '+e.n+'회 · 이번 랩 기록 삭제','#ffb347'],bw:()=>['흑백기 · 다음 위반부터 시간 페널티','#ffb347'],tlpen:e=>['트랙 리밋 페널티 +'+e.s+'초'+(e.reset?' · 위반 카운트 초기화':''),'#ff5a4f'],
   cut:e=>['코스 밖으로 나가 '+(e.gt||0).toFixed(1)+'초 이득 · +'+e.s+'초','#ff5a4f'],lastChance:()=>['마지막 랩! 두 번째 컴파운드를 아직 안 썼어요','#ffb347'],
-  jump:e=>['부정 출발 · +'+e.s+'초 페널티','#ff5a4f'],jumpWarn:()=>['차가 먼저 움직였어요 · 부정 출발','#ff5a4f'],ovt:()=>['오버테이크 모드 · 이번 랩 +0.5MJ','#b16cff'],
+  jump:e=>['부정 출발 · +'+e.s+'초 페널티','#ff5a4f'],jumpWarn:()=>['차가 먼저 움직였어요 · 부정 출발','#ff5a4f'],ovt:()=>['오버테이크 모드 · 이번 랩 +0.5MJ · 337km/h까지 최대 출력','#b16cff'],
   rainSoon:()=>['무전: 곧 비가 옵니다','#8ecae6'],rain:()=>['비가 내리기 시작했어요','#8ecae6'],rainStop:()=>['비가 그쳤어요 · 노면이 마르는 중','#8ecae6'],
   xover:e=>['무전: '+COMP[e.comp].name+' 타이어로 바꿀 타이밍','#8ecae6'],fail:e=>[e.name+' 차량 이상 · 감속','#ffb347'],dnf:e=>e.code==='YOU'?['리타이어 · 레이스 종료','#ff3b30']:[e.name+' 리타이어 · 옐로 플래그','#f5c518'],
   vsc:e=>[e.why==='debris'?'버추얼 세이프티카 (VSC) · 트랙 위 파편 수거':e.why==='test'?'버추얼 세이프티카 (VSC) · 시험 발동':'버추얼 세이프티카 (VSC)','#f5c518'],
@@ -7371,8 +7381,8 @@ function sync(dt){
     {let d;if(c.isP&&!c.pit&&c.delta!=null)d=c.delta;else{const v=Math.abs(c.spd),om=v>0.5?(c.latG||0)/v:0;d=Math.atan(PH.L*om/Math.max(v,4))+0.03*Math.max(-1,Math.min(1,c.st||0));}
      d=Math.max(-0.36,Math.min(0.36,d));m.steer=(m.steer||0)+(d-(m.steer||0))*Math.min(1,dt*14);
      m.fronts.forEach((f,j)=>f.rotation.y=-m.steer+m.toe[j]);m.uprights.forEach((f,j)=>f.rotation.y=-m.steer+m.toe[j]);}
-    {const ao=c.aeroOpen||0,k=Math.min(1,dt*9);   // straight mode flattens the flaps (rear half-open when wet), corner mode restores them
-     for(const pv of m.drs.children){const u=pv.userData,t=ao===2?u.o:ao===1?(u.o+u.c)/2:u.c;pv.rotation.z+=(t-pv.rotation.z)*k;}
+    {const ao=c.aeroOpen||0,k=Math.min(1,dt*9);   // straight mode flattens the flaps (wet, low grip: the front ones only - B7.1.1d, it was the rear half-open), corner mode restores them
+     for(const pv of m.drs.children){const u=pv.userData,t=ao===2?u.o:u.c;pv.rotation.z+=(t-pv.rotation.z)*k;}
      for(const pv of m.ffp){const u=pv.userData,t=ao>=1?u.o:u.c;pv.rotation.z+=(t-pv.rotation.z)*k;}}
     if(m.sw){const th=Math.max(-1.6,Math.min(1.6,(m.steer||0)/Math.max(0.05,steerMax(Math.abs(c.spd)))*0.95));m.sw.g.rotation.x=th;   // shows the assist's counter-steer
       const co=Math.cos(th),si=Math.sin(th);
