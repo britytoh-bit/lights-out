@@ -5178,7 +5178,7 @@ function buildCarKit(){
   const tyreProfile=(hw,seg)=>{const pts=[[0.235,-hw],[0.3,-hw],[0.338,-hw*0.95],[0.356,-hw*0.8],[0.362,-hw*0.45],[0.362,hw*0.45],[0.356,hw*0.8],[0.338,hw*0.95],[0.3,hw],[0.235,hw]];
     const g=new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),seg||48);g.rotateX(Math.PI/2);
     // 10-30: a disc across the tyre's middle plane (both faces) — the open centre read as see-through from the inboard side; same draw call
-    const d=Math.max(16,(seg||48)>>1);return mergeGeos([g,new THREE.CircleGeometry(0.236,d),new THREE.CircleGeometry(0.236,d).rotateY(Math.PI)]);};
+    const d=Math.max(16,(seg||48)>>1),dc=()=>{const c=new THREE.CircleGeometry(0.236,d);c.attributes.uv.array.fill(0);return c;};return mergeGeos([g,dc(),dc().rotateY(Math.PI)]);};   // (11-11: the discs read one plain texel of a tread map)
   const Phys=THREE.MeshPhysicalMaterial||THREE.MeshStandardMaterial;
   const kit={geo,tyreF:tyreProfile(WHL.hwf),tyreR:tyreProfile(WHL.hwr),ring:new THREE.RingGeometry(0.245,0.345,64),
     // v12h: lighter wheels for what is never seen close: the far-car stand-ins and (below the top setting) the pit crews' loose wheels
@@ -5208,6 +5208,27 @@ function buildCarKit(){
     const d=mkCanvas(256,256),g=d.getContext('2d');g.fillStyle='#141414';g.fillRect(0,0,256,256);g.strokeStyle=c;g.lineWidth=18;g.beginPath();g.arc(128,128,110,0,Math.PI*2);g.stroke();
     g.globalAlpha=0.35;g.lineWidth=10;g.beginPath();g.arc(128,128,96,0,Math.PI*2);g.stroke();
     const tb=texFrom(d);kit.decalBlur[k]=new THREE.MeshStandardMaterial({map:tb,emissiveMap:tb,emissive:0xffffff,emissiveIntensity:0.15,roughness:0.85,polygonOffset:true,polygonOffsetFactor:-2});}
+  // 11-11 윤택님 「인터·풀웻 타이어 홈」: the tread pattern of the two wet compounds as a small colour map on the tyre's running face (slicks stay plain).
+  // One tile drawn in real proportions (circumference x the face's width), then laid onto the lathe's uneven profile rows (u: round the tyre,
+  // v: profile point 0..9; the face is points 3..6). Inter: narrow chevron sipes + two fine grooves; full wet: two wide grooves + deep sweeping
+  // channels. A second, blurred copy (each row averaged round the tyre) is used while the wheel spins fast, like the compound band.
+  // Phone budget: 128x512 per map (4 maps, ~1 MB with mipmaps), no normal map, no extra draw calls (the tyre mesh swaps its material).
+  kit.tread={};
+  for(const [k,rep,draw] of [['I',24,(g,w,h)=>{g.strokeStyle='#0a0a0a';g.lineCap='round';
+      for(const y of[-0.42,0.42]){g.lineWidth=h*0.022;g.beginPath();g.moveTo(-4,h/2*(1+y));g.lineTo(w+4,h/2*(1+y));g.stroke();}
+      g.lineWidth=w*0.085;for(const s of[-1,1])for(const x0 of[-1,0,1]){g.beginPath();for(let q=0;q<=10;q++){const t=q/10,x=(x0+0.12+0.5*t+0.06*t*t)*w,y=s*(0.12+0.86*t);g.lineTo(x,h/2*(1+y));}g.stroke();}}],
+    ['W',16,(g,w,h)=>{g.strokeStyle='#060606';g.lineCap='round';
+      for(const y of[-0.36,0.36]){g.lineWidth=h*0.075;g.beginPath();g.moveTo(-4,h/2*(1+y));g.lineTo(w+4,h/2*(1+y));g.stroke();}
+      g.lineWidth=w*0.16;for(const s of[-1,1])for(const x0 of[-1,0,1]){g.beginPath();for(let q=0;q<=12;q++){const t=q/12,x=(x0+0.05+0.62*t*t)*w,y=s*(0.06+0.98*t);g.lineTo(x,h/2*(1+y));}g.stroke();}}]]){
+    const src=mkCanvas(128,256),sg=src.getContext('2d');sg.fillStyle='#303030';sg.fillRect(0,0,128,256);draw(sg,128,256);
+    const dst=mkCanvas(128,512),dg=dst.getContext('2d'),PL=[-1,-1,-0.95,-0.8,-0.45,0.45,0.8,0.95,1,1];dg.fillStyle='#303030';dg.fillRect(0,0,128,512);
+    for(let y=0;y<512;y++){const v=1-(y+0.5)/512,j=Math.min(8,Math.floor(v*9)),f=v*9-j,x=PL[j]+(PL[j+1]-PL[j])*f;if(Math.abs(x)>0.8)continue;
+      dg.drawImage(src,0,Math.min(255,Math.floor((x/0.8+1)/2*256)),128,1,0,y,128,1);}
+    const blr=mkCanvas(128,512),bg=blr.getContext('2d'),id=dg.getImageData(0,0,128,512).data;
+    for(let y=0;y<512;y++){let r=0;for(let x=0;x<128;x++)r+=id[(y*128+x)*4];r=Math.round(r/128);bg.fillStyle=`rgb(${r},${r},${r})`;bg.fillRect(0,y,128,1);}
+    const mk=c=>{const t=texFrom(c,true);t.repeat.set(rep,1);return new THREE.MeshStandardMaterial({map:t,roughness:0.82,envMapIntensity:0.5});};
+    kit.tread[k]={s:mk(dst),b:mk(blr)};}
+  kit.tyreMat=(comp,fast)=>{const t=kit.tread[comp];return t?(fast?t.b:t.s):kit.tyreM;};
   loadCarModel(kit);
   return kit;
 }
@@ -5273,7 +5294,7 @@ function tearGeo(k,A,v){const s=k?1:-1;let sd=(Math.abs(Math.round(A.x*97))+(A.d
 function tearSet(kit,m,k,A,v){tearMats(kit);const t=(m.tear||(m.tear=[null,null])),q=t[k]||(t[k]={h:new THREE.Mesh(new THREE.BufferGeometry(),kit.tearH),r:new THREE.Mesh(new THREE.BufferGeometry(),kit.tearM),b:-1});
   if(!t[k].on){t[k].on=true;m.body.add(q.h);m.body.add(q.r);}q.h.visible=q.r.visible=true;const b=Math.floor(v*8);if(b===q.b)return;q.b=b;q.h.geometry.dispose();q.r.geometry.dispose();const [H,G]=tearGeo(k,A||{x:0.05,dir:-1},Math.min(1,0.14+b/8));q.h.geometry=H;q.r.geometry=G;}
 // precompiled with the race's other shaders, so the first tear does not stutter
-function tearPre(kit){tearMats(kit);const g=new THREE.Group(),[H,G]=tearGeo(0,{x:0,dir:1},0.2);g.add(new THREE.Mesh(H,kit.tearH),new THREE.Mesh(G,kit.tearM));g.scale.setScalar(0.001);g.position.y=-50;return g;}
+function tearPre(kit){tearMats(kit);const g=new THREE.Group(),[H,G]=tearGeo(0,{x:0,dir:1},0.2);g.add(new THREE.Mesh(H,kit.tearH),new THREE.Mesh(G,kit.tearM));if(kit.tread)for(const k in kit.tread)g.add(new THREE.Mesh(H,kit.tread[k].s),new THREE.Mesh(H,kit.tread[k].b));g.scale.setScalar(0.001);g.position.y=-50;return g;}
 function buildCar(kit,scene,c){
   const M=teamMats(kit,c.team,c.num,c.isP?null:c.code,!!kit.glb),root=new THREE.Group(),body=new THREE.Group(),G=kit.geo;root.add(body);
   const add=(g,m,par,cast)=>{const me=new THREE.Mesh(g,m);me.castShadow=!!cast;me.receiveShadow=true;(par||body).add(me);return me;};
@@ -5290,12 +5311,12 @@ function buildCar(kit,scene,c){
     if(!kit.ghostM)ghostMat(kit);
     strut={n:add(G.strut,kit.carbonM,body,true),g:add(G.strutG,kit.ghostS,body)};strut.g.visible=false;strut.g.renderOrder=3;}
   else add(G.carbon,kit.carbonM,body,true);add(G.dark,kit.darkM);add(G.second,M.second,body,true);add(G.metal,kit.mirrorM);add(G.haloD,M.decal,body);}   // v12j: the halo's sponsor decals
-  const wheels=[],fronts=[],rings=[],uprights=[];
+  const wheels=[],fronts=[],rings=[],uprights=[],tyres=[];
   for(const [x,front] of[[WHL.xf,true],[WHL.xr,false]])for(const s of[-1,1]){const zw=front?WHL.zf:WHL.zr;
     const piv=new THREE.Group();piv.position.set(x,0.36,s*zw);root.add(piv);const spin=new THREE.Group();piv.add(spin);
     if(front){const ug=new THREE.Group();ug.position.set(x,0.36,s*zw);root.add(ug);add(kit.upright,kit.darkM,ug).position.z=-s*0.2;uprights.push(ug);
       if(Q){const d=add(s<0?Q.ductL:Q.ductR,Q.carbonM,ug,true);d.position.set(-x,-0.36,-s*zw);bodyN.push(d);}}
-    const hw=front?WHL.hwf:WHL.hwr;add(front?kit.tyreF:kit.tyreR,kit.tyreM,spin,true);
+    const hw=front?WHL.hwf:WHL.hwr;tyres.push(add(front?kit.tyreF:kit.tyreR,kit.tyreMat?kit.tyreMat(c.ty.comp,false):kit.tyreM,spin,true));
     const r=add(kit.ring2(hw),kit.decal[c.ty.comp],spin);if(s<0)r.rotation.y=Math.PI;rings.push(r);
     const cv=add(kit.cover,M.cover,spin);cv.position.z=s*(hw-0.012);if(s<0)cv.rotation.y=Math.PI;
     wheels.push(spin);if(front)fronts.push(piv);}
@@ -5331,7 +5352,7 @@ function buildCar(kit,scene,c){
     if(Q){if(!kit.shG)kit.shG=mergeGeos([Q.far_paint,Q.far_dark,kit.pxT]);const sh=new THREE.Mesh(kit.shG,Q.farDarkM);sh.receiveShadow=false;sh.layers.set(1);body.add(sh);
       const keep=new Set([G.fw.cP,G.fw.cN,G.fw.sP,G.fw.sN,G.rwC,G.rwS]);for(const o of casters)o.castShadow=false;casters.length=0;casters.push(sh);
       root.traverse(o=>{if(o.isMesh&&keep.has(o.geometry))casters.push(o);});for(const o of casters)o.castShadow=true;}}
-  return {lod1,lod2,lod3,casters,px,pxHide,lodLv:0,root,body,wheels,fronts,uprights,helmet,tcPod,drs,ffp,fw,rw,nose:null,noseAnim:null,rwSpare:null,rwAnim:null,ck,mirF:Q?Q.mir:null,fixV:null,dmgKey:'',toe:[0,0,0,0],cam:[0,0,0,0],pkAny:false,dmgRoll:0,dmgPitch:0,rlM,latM,spinF:0,spinR:0,pitch:0,roll:0,steer:0,sw:null,rings,comp:c.ty.comp,strut,halo};
+  return {lod1,lod2,lod3,casters,px,pxHide,lodLv:0,root,body,wheels,fronts,uprights,helmet,tcPod,drs,ffp,fw,rw,nose:null,noseAnim:null,rwSpare:null,rwAnim:null,ck,mirF:Q?Q.mir:null,fixV:null,dmgKey:'',toe:[0,0,0,0],cam:[0,0,0,0],pkAny:false,dmgRoll:0,dmgPitch:0,rlM,latM,spinF:0,spinR:0,pitch:0,roll:0,steer:0,sw:null,rings,tyres,comp:c.ty.comp,strut,halo};
 }
 function buildSteeringWheel(kit,c){
   // v11b: a modern F1-style wheel (an original design, no team's real wheel): flat-topped faceplate, sculpted grips with a band in the
@@ -7194,7 +7215,7 @@ function sync(dt){
       const co=Math.cos(th),si=Math.sin(th);
       const cl=m.sw.col,wsc=cl.scale.x,wp=cl.position,tc=Math.cos(cl.rotation.z),ts=Math.sin(cl.rotation.z);m.sw.arms.forEach(a=>{const sd=a.userData.s,hx=-0.1,hy=-0.01,hz=sd*0.17,y1=hy*co-hz*si,z1=hy*si+hz*co,wx=wp.x+(hx*tc-y1*ts)*wsc,wy=wp.y+(hx*ts+y1*tc)*wsc,wz=z1*wsc;
         _v.set(wx,wy,wz);const sh=_armS.set(-0.3+m.ck.x,0.3+m.ck.y,sd*0.36),dir=_armD.copy(_v).sub(sh),L=dir.length();a.position.copy(sh);a.quaternion.setFromUnitVectors(_up,dir.normalize());a.scale.set(1,L,1);a.visible=m.sw.g.visible;});}
-    {const fast=Math.abs(c.spd)>14;if(m.comp!==c.ty.comp||m.fast!==fast){m.comp=c.ty.comp;m.fast=fast;m.rings.forEach(r=>r.material=(fast?KIT.decalBlur:KIT.decal)[c.ty.comp]);}}
+    {const fast=Math.abs(c.spd)>14;if(m.comp!==c.ty.comp||m.fast!==fast){m.comp=c.ty.comp;m.fast=fast;m.rings.forEach(r=>r.material=(fast?KIT.decalBlur:KIT.decal)[c.ty.comp]);if(m.tyres&&KIT.tyreMat)m.tyres.forEach(t=>t.material=KIT.tyreMat(c.ty.comp,fast));}}
     }   // ← v13d farLod
     // v12h: 2026 rules - the rear light (and the endplate strips) flash in every reduced-speed situation: SC, VSC, red flag, a double-waved
     // yellow, the pit limiter on, and as the rain light on inters / wets (also a car with a failure); three quick flashes at a time when the
@@ -7498,7 +7519,7 @@ function pitFx(dt){
     if(car){const m=meshes[race.cars.indexOf(car)];
       if(ph==='stop'&&wt>=0){const jf=jackLift(tl,wt,false),jr=jackLift(tl,wt,true);m.jack=(jf+jr)/2;m.jackP=(jf-jr)/3.47;
         for(let w=0;w<4;w++){const T=tl.W[w],pv=m.wheels[w].parent,s=(w%2)?1:-1;pv.position.z=s*(Math.abs(wZ(w))+wheelOut(T,wt));pv.visible=!(wt>=T.o1&&wt<T.n1);
-          m.rings[w].material=(m.fast?KIT.decalBlur:KIT.decal)[wt<T.n1?tl.oldComp:tl.newComp];}}
+          m.rings[w].material=(m.fast?KIT.decalBlur:KIT.decal)[wt<T.n1?tl.oldComp:tl.newComp];if(m.tyres&&KIT.tyreMat)m.tyres[w].material=KIT.tyreMat(wt<T.n1?tl.oldComp:tl.newComp,m.fast);}}
       else{m.jack=0;m.jackP=0;for(let w=0;w<4;w++){const pv=m.wheels[w].parent;pv.position.z=wZ(w);pv.visible=true;}}
       const live=ph==='stop'&&tl&&wt>=0;m.noseAnim=live&&tl.nose?noseAnimAt(tl.nose,wt):null;m.rwAnim=live&&tl.rwj?noseAnimAt(tl.rwj,wt):null;m.fixV=live?fixViewAt(tl,wt):null;}
     // release light
