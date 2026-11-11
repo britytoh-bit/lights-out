@@ -2152,9 +2152,13 @@ const STD={near:22,ahead:30,mv:2,side:1.4,bmv:1.0,ovl:4.5,rv:1.0};
 function stdPen(race,c,o,k,inf){const M=race.colM||(race.colM={}),key=4096+Math.min(c.id,o.id)*64+Math.max(c.id,o.id);if(race.t-(M[key]??-99)<COL.cool)return;M[key]=race.t;
   addPen(race,c,5,'std',{me:true,k,name:o.name});if(!c.isP)race.EV.push({type:'std',s:5,me:false,k,name:c.name,code:c.code,vic:o.isP});if(race.stdLog)race.stdLog.push(Object.assign({t:race.t,who:c.id,o:o.id,k},inf));}
 // 11-07 윤택님 「추월 직전 앞차가 급브레이크 밟으면 패널티」: braking hard with a car right behind where nothing needs it - the racing line's braking curve
-// (AI: over the next BT.T s, at its own pace; the player: no corner within BT.pT s, on the line or the centre line) allows clearly more (FIA ISC App. L Ch. IV 2 c: erratic or unnecessary manoeuvres; a 'brake test'). Not: corner braking, a mistake (lock-up, off, spin),
+// (AI: over the next BT.T s, at its own pace; the player: no corner within BT.pT s, on the line or the centre line) allows clearly more (FIA ISC App. L Ch. IV 2 e: driving erratically or unnecessarily slowly; a 'brake test'). Not: corner braking, a mistake (lock-up, off, spin),
 // damage, flags, the pit approach, the start, traffic ahead, the brake assist braking for the player. The player (a person braking) only well clear of any corner (pT, pMg, pDv). 5 s; a hit from behind
 // that follows is not also the car behind's fault (colResolve). Values are game values.
+// 11-11 윤택님 「앞차 추월하고 코너에서 급브레이크 밟으면 계속 페널티」: for the player 'well clear of a corner' was a speed margin (8 m/s under the line's
+// corner speed), and a person braking for a fast corner goes that far under it easily: braking to ~120 km/h for a 210 km/h corner with the car just
+// passed 10 m behind drew +5 s at 5 of 22 Silverstone corners in the sim. Braking for a corner is not a brake test, however early or hard (the car behind
+// has to allow for it): the player's braking is judged only with no corner within BT.pT s at its speed (NEXTC), as the line above meant.
 const BT={d:20,dl:1.8,a:9,T:0.5,mg:4,dv:6,pA:11,pT:4,pMg:8,pDv:9,clr:50};
 function vLineAhead(c,g,T,cl){const n=Math.max(4,Math.round(c.spd*T/STEP));let v=1e9;for(let j=0;j<=n;j+=2){const i=wrap(c.idx+j);v=Math.min(v,profAtRL(i,g),cl?profAt(i,g,0.2):1e9);}return v;}   // cl (the player): the centre-line plan too - a kink the line takes flat can look like a corner from the middle of the road
 function brakeTest(race,dt){const cs=race.cars,ok=c=>!c.gone&&!c.pit&&!c.fail&&!c.dnf&&!c.inGarage&&c.fin==null;
@@ -2165,7 +2169,7 @@ function brakeTest(race,dt){const cs=race.cars,ok=c=>!c.gone&&!c.pit&&!c.fail&&!
     const sc=race.rc.sc;if(sc&&sc.on&&gapTo(c,sc)*STEP>0&&gapTo(c,sc)*STEP<BT.clr*2)ah=true;
     if(o&&o.spd>=c.spd-1)c.btV=o.id;else{o=null;const v=c.btL>0?cs.find(x=>x.id===c.btV):null;if(v&&ok(v)&&gapTo(c,v)<0&&-gapTo(c,v)*STEP<BT.d*1.5){o=v;od=-gapTo(c,v)*STEP;}}   // the car right behind when the braking began stays the one braked on (it may swerve or brake too)
     if(ah||!o){c.btL=Math.max(0,(c.btL||0)-dt*4);continue;}
-    const g=P?tyreGrip(c).lat*(race.gam||1):(c.gU||1),vL=vLineAhead(c,g,P?BT.pT:BT.T,P)*(P?1:c.skill||1);if(c.spd>vL-(P?BT.pMg:BT.mg)){c.btL=Math.max(0,(c.btL||0)-dt*4);continue;}
+    const g=P?tyreGrip(c).lat*(race.gam||1):(c.gU||1),vL=vLineAhead(c,g,P?BT.pT:BT.T,P)*(P?1:c.skill||1);if(c.spd>vL-(P?BT.pMg:BT.mg)||P&&NEXTC[c.idx]<c.spd*BT.pT){c.btL=Math.max(0,(c.btL||0)-dt*4);continue;}
     c.btL=(c.btL||0)-c.bA*dt;if(c.btL>=(P?BT.pDv:BT.dv)){c.btL=0;const M=race.colM||(race.colM={}),key=4096+Math.min(c.id,o.id)*64+Math.max(c.id,o.id);if(race.t-(M[key]??-99)>=COL.cool){c.btT=race.t;c.btO=o.id;}stdPen(race,c,o,'btest',{bd:od,v:c.spd,vL,a:c.bA,isP:P,lane:c.lane,def:c.defHold>race.t,pass:c.passO!=null});}}}
 function standards(race,dt){colResolve(race);if(!race.sess&&!race.form&&race.rc.flag==='green'&&race.t-(race.startT||0)>=COL.lateT)brakeTest(race,dt);
   const cs=race.cars,live=c=>!c.gone&&!c.pit&&!c.fail&&!c.dnf&&!c.inGarage&&c.fin==null;
