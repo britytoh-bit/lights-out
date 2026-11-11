@@ -7497,6 +7497,50 @@ function stepRain(dt){if(!RAIN||!race)return;const rain=race.wx.rain;RAIN.L.visi
     if(d[k+1]<cam.y-5||d[k+1]<gy0){d[k+1]=cam.y+14+Math.random()*8;d[k]=cam.x+(Math.random()-0.5)*56;d[k+2]=cam.z+(Math.random()-0.5)*56;}
     const o=i*6;if(i<n&&(TVON||x*x+z*z>12||d[k+1]>cam.y+2)){pos[o]=d[k];pos[o+1]=d[k+1];pos[o+2]=d[k+2];pos[o+3]=d[k]+vx*tau;pos[o+4]=d[k+1]+fall*tau*1.6;pos[o+5]=d[k+2]+vz*tau;}else{pos[o]=pos[o+3]=d[k];pos[o+1]=pos[o+4]=-100;pos[o+2]=pos[o+5]=d[k+2];}}
   RAIN.g.attributes.position.needsUpdate=true;}
+// 11-11 윤택님 「비오는날엔 약간 물방울같은거 맺혀있게 화면효과해줘 시야가 너무방해되지않는 선에서」: water drops on the lens / visor while it rains.
+// A screen-space scene of at most DRP.M small quads drawn over the finished picture: one draw call, and only while a drop is on the glass
+// (no rain: no drops, nothing drawn; a dry race never even builds it). No refraction pass - it needs a copy of the whole frame every frame,
+// a full-screen read on a phone's GPU. The texture carries the look of one instead: a lens drop shows the scene upside down, so the bright
+// sky sits in its bottom half and the dark road in its top half, with a dark rim and a glint. Drops land only at the edges (the ellipse
+// cx x cy over the middle, where the road ahead is, stays clear; one that slides or is blown into it goes at once), sit a few seconds, the
+// big ones run down; at speed the airflow blows them outwards, stretched. More in heavy rain; none in the TV view or a cinematic (cuts
+// would leave them hanging from one camera to the next), none on 부드럽게 (quality low); after the rain they dry off over a few seconds.
+const DRP={M:28,rate:11,cx:0.56,cy:0.56,cy0:-0.1,peak:0.8,blow:0.3};
+let DROP=null;
+function initDrops(){const M=DRP.M,cv=mkCanvas(64,64),g=cv.getContext('2d'),c=32,R=29;
+  g.beginPath();g.arc(c,c,R,0,7);g.clip();
+  let gr=g.createLinearGradient(0,c-R,0,c+R);gr.addColorStop(0,'rgba(28,32,36,.55)');gr.addColorStop(0.45,'rgba(120,128,136,.16)');gr.addColorStop(0.8,'rgba(212,220,226,.42)');gr.addColorStop(1,'rgba(238,242,246,.6)');g.fillStyle=gr;g.fillRect(0,0,64,64);
+  gr=g.createRadialGradient(c,c,R*0.7,c,c,R);gr.addColorStop(0,'rgba(18,22,26,0)');gr.addColorStop(1,'rgba(18,22,26,.5)');g.fillStyle=gr;g.fillRect(0,0,64,64);
+  gr=g.createRadialGradient(c-9,c-11,0,c-9,c-11,7);gr.addColorStop(0,'rgba(255,255,255,.95)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,64,64);
+  const geo=new THREE.BufferGeometry(),pos=new Float32Array(M*12),uv=new Float32Array(M*8),a=new Float32Array(M*4),ix=[];
+  for(let i=0;i<M;i++){uv.set([0,0,1,0,1,1,0,1],i*8);const o=i*4;ix.push(o,o+1,o+2,o,o+2,o+3);}
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));geo.setAttribute('a',new THREE.BufferAttribute(a,1));geo.setIndex(ix);
+  const mat=new THREE.ShaderMaterial({uniforms:{map:{value:texFrom(cv,false,true)}},transparent:true,depthTest:false,depthWrite:false,
+    vertexShader:'attribute float a;varying vec2 vU;varying float vA;void main(){vU=uv;vA=a;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:'uniform sampler2D map;varying vec2 vU;varying float vA;void main(){vec4 t=texture2D(map,vU);gl_FragColor=vec4(t.rgb,t.a*vA);}'});
+  const m=new THREE.Mesh(geo,mat),s=new THREE.Scene();m.frustumCulled=false;s.add(m);
+  DROP={s,geo,pos,a,cam:new THREE.OrthographicCamera(-1,1,1,-1,-1,1),d:[],acc:0};}
+const inClear=(x,y,A,k)=>(x/(DRP.cx*A*k))**2+((y-DRP.cy0)/(DRP.cy*k))**2<1;
+function drawDrops(dt){
+  const on=(state==='race'||state==='done'||state==='countdown'||state==='paused')&&quality!=='low';
+  if(!DROP){if(!on||!race.wx.sched.length)return;initDrops();renderer.compile(DROP.s,DROP.cam);}   // built (and its shader compiled) at the start of a race that may rain, not with a stutter when the rain comes
+  const D=DROP.d;if(!on||TVON||CINE){D.length=0;return;}
+  const b=renderer.getDrawingBufferSize(_dbs),A=b.x/b.y,cam=DROP.cam;if(cam.right!==A){cam.left=-A;cam.right=A;cam.updateProjectionMatrix();}
+  const rain=race.wx.rain,s=Math.min(1,Math.abs(race.player.spd)/70),blow=DRP.blow*s*s;
+  if(state!=='paused'){
+    if(rain>=0.05&&TUNF<0.3){DROP.acc+=dt*DRP.rate*rain**1.5;
+      for(;DROP.acc>=1;DROP.acc--){if(D.length>=DRP.M)continue;let x,y,k=0;do{x=(Math.random()*2-1)*A;y=Math.random()*2-1;}while(inClear(x,y,A,1)&&++k<20);
+        const r=0.018+Math.random()*(0.02+0.026*rain),big=r>0.042;D.push({x,y,r,t:0,T:big?3+Math.random()*3:2+Math.random()*3,sl:big?0.03+Math.random()*0.06:0,vx:0,vy:0});}}
+    for(let i=D.length-1;i>=0;i--){const d=D[i],l=Math.hypot(d.x/A,d.y)||1;d.vx=d.x/A/l*blow;d.vy=d.y/l*blow-d.sl*(1-0.7*s);
+      d.x+=d.vx*dt;d.y+=d.vy*dt;d.t+=dt*(inClear(d.x,d.y,A,0.9)?6:1);if(d.t>=d.T||Math.abs(d.x)>A+0.1||Math.abs(d.y)>1.1)D.splice(i,1);}}
+  const n=D.length;if(!n)return;   // nothing on the glass: no draw call
+  const P=DROP.pos,AL=DROP.a;
+  for(let i=0;i<n;i++){const d=D[i],v=Math.hypot(d.vx,d.vy),f=d.t/d.T;let ux=0,uy=1;if(v>0.01){ux=d.vx/v;uy=d.vy/v;if(uy<0){ux=-ux;uy=-uy;}}   // stretched along its run, its sky side kept down
+    const L=d.r*(1+Math.min(1.6,v*6)),W=d.r,px=uy*W,py=-ux*W,qx=ux*L,qy=uy*L,o=i*12;
+    P[o]=d.x-px-qx;P[o+1]=d.y-py-qy;P[o+3]=d.x+px-qx;P[o+4]=d.y+py-qy;P[o+6]=d.x+px+qx;P[o+7]=d.y+py+qy;P[o+9]=d.x-px+qx;P[o+10]=d.y-py+qy;
+    AL[i*4]=AL[i*4+1]=AL[i*4+2]=AL[i*4+3]=DRP.peak*Math.min(1,d.t/0.06)*(f>0.7?(1-f)/0.3:1);}
+  DROP.geo.setDrawRange(0,n*6);DROP.geo.attributes.position.needsUpdate=true;DROP.geo.attributes.a.needsUpdate=true;
+  const ac=renderer.autoClear;renderer.autoClear=false;renderer.render(DROP.s,cam);renderer.autoClear=ac;}
 // ---- pit stop choreography: 11 crews of 18 (3 per wheel, 2 jacks, 2 stabilisers, chief, front wing) ----
 const CRW={J:Array.from({length:15},()=>new THREE.Vector3()),d:new THREE.Vector3(),bn:new THREE.Vector3(),x:new THREE.Vector3(),y:new THREE.Vector3(),z:new THREE.Vector3(),
   m:new THREE.Matrix4(),m2:new THREE.Matrix4(),q:new THREE.Quaternion(),s:new THREE.Vector3(),e:new THREE.Euler(0,0,0,'YXZ'),hm:new THREE.Vector3(),wp:new Float32Array(16),tp:new Float32Array(16),
@@ -8200,7 +8244,7 @@ function frame(now){
   if(WORLD.waterTex){WORLD.waterTex.offset.x+=dt*0.004;WORLD.waterTex.offset.y+=dt*0.0025;}
   // v12j: the whole shadow map is redrawn every frame; once the governor decides the device is struggling (PERF.shHalf) it is
   // redrawn every other frame instead - a shadow one frame behind is not visible, and it is a large slice of work.
-  SHF++;particles(dt);drawHUD(dt);audioUpdate(dt);drawMini();renderer.shadowMap.needsUpdate=(!PERF.shHalf||(SHF&1)===0);render();renderMirror();drawHudMirror();perfGovernor(dt);
+  SHF++;particles(dt);drawHUD(dt);audioUpdate(dt);drawMini();renderer.shadowMap.needsUpdate=(!PERF.shHalf||(SHF&1)===0);render();renderMirror();drawHudMirror();drawDrops(dt);perfGovernor(dt);
   requestAnimationFrame(frame);
 }
 function boot(){
