@@ -2301,9 +2301,10 @@ function updWeather(race,dt){const wx=race.wx;
 // ---------------- race control: yellow flags, VSC, safety car, blue flags ----------------
 // 11-08 윤택님 「VSC 때 몇 km/h로 맞춰야 할지 몰라 페널티」: the VSC as it is really run - a minimum time for each mini-sector (VSC_P.k x the field's normal time
 // there: the racing-line plan x this level's average AI skill, with the engine's pull out of the corners), the delta to it on screen (+ slower than the minimum: fine,
-// - too fast), judged at the end of each mini-sector: the first one too fast is a warning, each one after that +5 s (at most VSC_P.cap a VSC). No forced slowing.
+// - too fast), judged at the end of each mini-sector: the first one too fast is a warning, the 2nd +5 s, the 3rd a warning, the 4th +5 s more, then no more
+// (11-11: FIA 2026 F1 Penalty Guidelines - 2-3 sectors too fast 5 s, 4 sectors 10 s; it was +5 s for every one after the first, 10 s for 3). No forced slowing.
 // Not judged: the part-sector the VSC (or the pit exit) starts in, the pit lane. Game values: k (35 % slower, real VSC deltas are 30-40 %), len (one sector per ~350 m).
-const VSC_P={k:1.35,len:350,lo:10,hi:20,cap:3,tau:2,ai:[0.1,0.5]},VSC_GB=15;   // VSC_GB: seconds to give a place taken under the VSC back (then no penalty)
+const VSC_P={k:1.35,len:350,lo:10,hi:20,tau:2,ai:[0.1,0.5]},VSC_GB=15;   // VSC_GB: seconds to give a place taken under the VSC back (then no penalty)
 // 11-08: in the wet the reference is the field's normal time in the wet (the grip of the right tyre for the track now, WGRIP): it was the dry time, only 0-7 % slower than
 // racing in heavy rain (dry: 9-16 %). Set when each VSC starts (startVSC clears it) and kept for that VSC.
 function vscRef(race){if(race.vscR)return race.vscR;const D=DIFF[race.diff]||DIFF.normal,sk=(D[0]+D[1])/2,wg=Math.max(...Object.keys(WGRIP).map(k=>wetGrip(k,WET)))/WGRIP.S[0],g=(race.gam||1)*wg,v=new Float32Array(N),ds=AL.ds,dt=new Float64Array(N),cum=new Float64Array(N+1);
@@ -2323,7 +2324,7 @@ function vscTrack(race,c){const R=vscRef(race);if(c.pit||c.fin!=null||c.dnf||c.g
   s.d=(race.t-s.t0)-(at(x)-at(s.x0));}
 function vscJudge(race,c,d,k){const v=race.rc.vsc;if(race.vscLog)race.vscLog.push({t:race.t,id:c.id,isP:!!c.isP,k,d});if(d>=0)return;
   const n=v.cnt[c.id]=(v.cnt[c.id]||0)+1;
-  if(n===1){if(c.isP)race.EV.push({type:'vscWarn',d});}else if(n-1<=VSC_P.cap)addPen(race,c,5,'vscPen',{d});}
+  if(n===1||n===3){if(c.isP)race.EV.push({type:'vscWarn',d});}else if(n===2||n===4)addPen(race,c,5,'vscPen',{d});}
 // the AI: aims to cross each line VSC_P.ai s over the minimum (its own value), closing the gap in VSC_P.tau s
 function vscAim(race,c){const R=vscRef(race),i=wrap(c.idx+2),vR=(typeof AL.ds==='number'?AL.ds:AL.ds[i])/R.dt[i],A=VSC_P.ai,dT=A[0]+(A[1]-A[0])*((c.id*0.6180339)%1),d=c.vd?c.vd.d:dT;
   return vR*Math.max(0.75,Math.min(1.04,1-(dT-d)/VSC_P.tau));}
