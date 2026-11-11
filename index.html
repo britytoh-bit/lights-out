@@ -1907,8 +1907,8 @@ const aiNear=o=>!!o&&!o.gone&&(!o.pit||o.pit.state==='join')&&Math.abs(gapTo(AIC
   const aiClear=(t,x)=>{const cur=AIC.lat-AB0,a=Math.min(cur,t)-2.2,b=Math.max(cur,t)+2.2;for(const o of AI_NEAR){if(o===x||Math.abs(gapTo(AIC,o))>=3||(AIC.unjam&&gapTo(AIC,o)<-1.2))continue;const r=aiRel(o);if(r>a&&r<b)return false;}return true;};
   // the side to pass on: a free side beside that car; more room helps up to 2 m, crossing over costs, and a car keeps to the side it
   // already chose for that car (it used to pick afresh every 1.6 s and weave left-right behind the cars ahead, worst off the start)
-  const aiPick=(o,off)=>{const orl=aiRel(o),bo=AIC.rlw*AL.lat[o.idx],cur=AIC.lat-AB0;let best=null,bm=-1e9,bs=0;
-    for(const s of[-1,1]){const t=orl+s*off,room=ALM+0.3-Math.abs(bo+t);if(room<0||!aiFree(t)||!aiClear(t,o)||(ASP&&!o.dnf&&!o.fail&&o.spd>AIC.spd*0.8-1&&Math.abs(t-cur)>2))continue;   // (11-06: off the start, round a car that got away clearly slower - it used to be followed)
+  const aiPick=(o,off,hard)=>{const orl=aiRel(o),bo=AIC.rlw*AL.lat[o.idx],cur=AIC.lat-AB0;let best=null,bm=-1e9,bs=0;
+    for(const s of[-1,1]){const t=orl+s*off,room=ALM+0.3-Math.abs(bo+t);if(room<0||!aiFree(t)||!aiClear(t,o)||(ASP&&!hard&&!o.dnf&&!o.fail&&o.spd>AIC.spd*0.8-1&&Math.abs(t-cur)>2))continue;   // (11-06: off the start, round a car that got away clearly slower - it used to be followed; 11-11: hard - round a car standing still)
       const sc=Math.min(room,2)-0.8*Math.abs(t-cur)+(AIC.passO===o.id&&AIC.passS===s?3:0)+(AIC.ps&&NEXTC[AIC.idx]<250&&cornerSide(AIC.idx)===s?1.5*AIC.ps.agg*AK.insK:0);if(sc>bm){bm=sc;best=t;bs=s;}}
     if(best!=null){AIC.passO=o.id;AIC.passS=bs;}else if(AIC.passO===o.id)AIC.passO=null;return best;};   // (v12i: no room any more: no longer passing that car)
 // 11-07 윤택님 「여기 AI들은 코스 밖 이탈 절대 안 하지, 그래블 빠지거나」: the AI's aim point was always clamped inside the road and its mistakes
@@ -2068,21 +2068,21 @@ function stepAI(race,c,dt){
     if((!ramp||o.pit.state==='join')&&Math.abs(dp)<3.2&&Math.abs(dl)<3.2){if(dl>=0){if(!sideP||dl<sideP.lat-c.lat)sideP=o;}else if(!sideN||dl>sideN.lat-c.lat)sideN=o;}else if(!ramp&&!o.dnf&&Math.abs(dp)<3.2&&Math.abs(dl)<AI_SIDEW){if(dl>=0){if(!w2P||dl<w2P.lat-c.lat)w2P=o;}else if(!w2N||dl>w2N.lat-c.lat)w2N=o;}   // 11-11: overlapping, further across (AI_SIDEW)   // overlapping, side by side
     if(dp<0&&dp>-14&&dp>atkD&&!o.dnf&&!o.pit&&Math.abs(dl)<5){atk=o;atkD=dp;}   // 11-04: the car attacking it
     if(dp<0&&dp>-16&&Math.abs(dl)<2.4&&!o.dnf&&!ramp){const cl=o.spd-c.spd;if(cl>9){const tc=(-dp*STEP-5.2)/cl;if(tc<1.3&&tc<tth){tth=tc;threat=o;}}}   // about to be hit from behind
-    const stopped=o.dnf||(o.fail&&o.spd<4),halted=stopped||(o.spd<3&&(race.t>(race.startT||0)+4||c.spd>o.spd+6)),slow=halted||(!startPh&&c.spd>14&&o.spd<(neutral&&!o.fail?7:Math.max(7,c.spd*0.45)));   // (off the start a slower launch is followed, not dodged)   // broken down, stopped on track (spun, stalled) or crawling (11-04: under a VSC, safety car or yellow a slower car still moving is followed: it was driven round, an overtake)
+    const stall=!o.dnf&&!o.fail&&o.spd<1&&race.t>(race.startT||0)+1.5&&(o.lnchT??-1)<(race.startT||0),stopped=o.dnf||(o.fail&&o.spd<4)||stall,halted=stopped||(o.spd<3&&(race.t>(race.startT||0)+4||c.spd>o.spd+6)),slow=halted||(!startPh&&c.spd>14&&o.spd<(neutral&&!o.fail?7:Math.max(7,c.spd*0.45)));   // (off the start a slower launch is followed, not dodged)   // broken down, stopped on track (spun, stalled) or crawling (11-04: under a VSC, safety car or yellow a slower car still moving is followed: it was driven round, an overtake)
     if(slow&&dp>0&&dp<40&&dp<od&&dlp<3.4){od=dp;obst=o;}
-    if(stopped){if(creep&&o===c.obstP)continue;const dls=c.unjam?Math.abs(o.lat-pathLat(c,o.idx)):dlp;if(dp>0&&dp<40&&dls<(c.unjam?2.4:3.0))vSafe=Math.min(vSafe,Math.sqrt(2*bA*Math.max(0,dp*STEP-(c.unjam?4.5:7))));continue;}   // (v13: unjam - by where its path goes past it, see below)
+    if(stopped){if(creep&&o===c.obstP)continue;const dls=c.unjam||stall?Math.abs(o.lat-pathLat(c,o.idx)):dlp;if(dp>0&&dp<40&&dls<(c.unjam?2.4:3.0))vSafe=Math.min(vSafe,Math.sqrt(2*bA*Math.max(0,dp*STEP-(stall?15:c.unjam?4.5:7))));continue;}   // 11-11 윤택님 「내가 출발 안 하면 뒤차도 출발 안 함」: stall - a car still standing on the grid 1.5 s after the lights (the player not pulling away, an AI's stalled launch) is driven round like a stopped car: by where this car's path goes, waiting 15 m back, unjammed or not (room to steer round it; from closer the nose rule held it and the creep then pushed the car). It used to be followed (a slower launch), then at 4 s neither side was allowed off the start (both at ~0 m/s), and after 10 s its double yellow made it a car to follow single file: the column behind it stood for good   // (v13: unjam - by where its path goes past it, see below)
     if(dp>0&&dp<40){const pitB=ramp||(o.pitReq&&wrap(PIT.E-o.idx)*STEP<300),dl=dlp;
       if(pitB&&!c.pitReq)pitAhead=true;
       if(dl<2.6||(pitB&&dl<4&&!(o.pit&&o.pit.state==='join'&&inBlend(o.idx)&&dl>=2.2))){const g=Math.max(0,dp*STEP-5.2),bL=Math.max(bA,-(o.aS??o.lonG??0)*1.05,pitB?26:0);vSafe=Math.min(vSafe,Math.sqrt(2*bA*(g+o.spd*o.spd/(2*bL))));}}
     if(ramp)continue;
-    if(dp>0&&dp<14&&(neutral||dlp<2.6)&&dp<ld){ld=dp;lead=o;}
-    if(o===c.leadP&&c.passO!==o.id&&dp>0&&dp<16&&(neutral||dlp<3.0))stickD=dp;}   // v12i: the car it was following stays its lead a little longer (a car 2.6 m across flickered in and out: braking, accelerating)
+    if(dp>0&&dp<14&&(neutral&&!halted||dlp<2.6)&&dp<ld){ld=dp;lead=o;}
+    if(o===c.leadP&&c.passO!==o.id&&dp>0&&dp<16&&(neutral&&!halted||dlp<3.0))stickD=dp;}   // v12i: the car it was following stays its lead a little longer (a car 2.6 m across flickered in and out: braking, accelerating)
   if(stickD!=null&&(!lead||(lead!==c.leadP&&stickD<=ld+1))){lead=c.leadP;ld=stickD;}c.leadP=lead;
   const sc=rc.sc;if(sc&&sc.on&&sc.phase!=='pit'){const dp=sc.prog-c.prog;if(dp>0&&dp<70){const gap=dp*STEP-14;tgt=Math.min(tgt,Math.sqrt(Math.max(0,sc.spd*sc.spd+2*16*Math.max(0,gap))));if(dp<16&&dp<ld){ld=dp;lead=sc;}}}
   // lanes are offsets from this car's line, so other cars are measured the same way - from the line where each of them is: a car
   // that pulls out to pass then runs parallel to the other car's path, even where the line swings across the track in a chicane
   const relOf=aiRel,freeAt=aiFree,clearTo=aiClear,pickSide=aiPick;
-  let oSide=null;if(obst&&!c.fail){const hard=obst.dnf||obst.fail||obst.spd<3;oSide=pickSide(obst,hard?3.8:4.0);if(oSide!=null)c.laneT=oSide;if(hard&&(od<14||oSide==null))tgt=Math.min(tgt,Math.max(oSide==null?6:18,pa*0.7));}   // steer round a stopped, spun or crawling car (also under yellow); no room: wait behind it
+  let oSide=null;if(obst&&!c.fail){const hard=obst.dnf||obst.fail||obst.spd<3;oSide=pickSide(obst,hard?3.8:4.0,hard);if(oSide!=null)c.laneT=oSide;if(hard&&(od<14||oSide==null))tgt=Math.min(tgt,Math.max(oSide==null?6:18,pa*0.7));}   // steer round a stopped, spun or crawling car (also under yellow); no room: wait behind it
   // v12i: traffic targets are 'soft': the car lifts off for them (it used to brake as hard as for a corner). Following a car: hold ~9 m
   // centre to centre, closing at most 2.5 m/s - smoothly with the real gap (it switched between +1.5 and -2 m/s at a 2 m-step threshold,
   // so cars in a train braked at ~3.5 g on the straights a few times a second: the pack looked jerky at speed)
@@ -2107,7 +2107,7 @@ function stepAI(race,c,dt){
    if(sq&&sq.spd>3){const gq=gapTo(c,sq);if(gq>0.3||(gq>-0.3&&c.id>sq.id))soft=Math.min(soft,Math.max(sq.spd*0.85,sq.spd-1.5));}}
   if(!c.fail&&!c.ygb){const vn=aiNose(c,creep?c.obstP:null);   /* 11-11: not against the stopped car it is creeping round (the nose rule held it at 0 km/h behind the wreck) */if(vn<soft){soft=vn;needA=Math.max(needA,(c.spd-vn)*2);if(!neutral&&lead&&c.passO!==lead.id&&race.t<c.passT)c.passT=race.t;}}   // 11-08: the nose (aiNose)   // no room to give: ease off behind the car that is ahead (dead level: one of the two yields)
   c.pitAh=pitAhead&&!c.pitReq&&!c.fail&&!c.blue;if(c.pitAh)c.laneT=-PIT.side*Math.min(lim,HALF-2.2)-b0;   // a car going into the pits ahead: pass it on the other side (off the racing line from the next step: a place on the track, not an offset from the line)
-  tgt=Math.min(tgt,vSafe);if(creep)tgt=Math.min(tgt,5);
+  tgt=Math.min(tgt,vSafe);if(creep)tgt=Math.min(tgt,Math.abs(tl-c.obstP.lat)>=2.4?5:1.5);   /* 11-11: at a walk while a car alongside holds its aim on the stopped car (it drove into a player standing on the grid at 3.5-4.2 m/s) */
   if(c.pitReq&&!c.fail&&dPE<280)tgt=Math.min(tgt,Math.sqrt(36*36+2*13*Math.max(0,dPE-15)));   // pit approach: ~130 km/h at the entry, gentle braking
   if(rc.flag==='vsc')tgt=Math.min(tgt,vscAim(race,c));   // 11-08: the mini-sector minimum times (vscAim), it was 0.62 x the plan
   if(rc.flag==='sc'){const ph=sc?sc.phase:'out';
@@ -2265,7 +2265,7 @@ function stepRace(race,dt,inp){
   if(!race.go){race.go=true;const p=race.player;if(p.jump)addPen(race,p,5,'jump');if(!race.sess){race.stMis=[];for(const c of race.cars)if(!c.isP&&!c.gone&&!c.dnf)rollLaunch(race,c);}}
   if(race.stMis&&race.stMis.length&&race.t>(race.startT||0)+2){race.EV.push({type:'aiStart',l:race.stMis});race.stMis=null;}
   race.t+=dt;updWeather(race,dt);airStep(race,dt);
-  for(const c of race.cars){if(c.gone)continue;const before=c.prog;if(c.pit)c.lapPit=true;
+  for(const c of race.cars){if(c.gone)continue;const before=c.prog;if(c.pit)c.lapPit=true;if(c.spd>3)c.lnchT=race.t;   // lnchT: last time above 3 m/s (a car that has not got going since the lights went out stands on the grid, stepAI)
     if(c.pit)stepPit(race,c,dt,c.isP?inp:null);
     else if(c.isP){if(c.dnf){c.spd=0;c.vx=c.vy=c.r=0;c.thr=c.bp=0;}
       else{let I=c.wreck?{gas:false,brake:true,left:false,right:false,ers:false}:c.fin==null?inp:pilot(race,c,0.55);
