@@ -7934,7 +7934,13 @@ function particles(dt){
     for(const c of race.cars){if(c.gone||c.dnf)continue;const dx=c.x-VP().x,dz=c.z-VP().z;if(dx*dx+dz*dz>150*150||c.pit)continue;EML=roadY(c.x,c.z,c.idx);
       if(WET>0.06&&Math.abs(c.spd)>9){const cs=Math.cos(c.va!=null?c.va:c.a),sn=Math.sin(c.va!=null?c.va:c.a),rate=WET*Math.min(1,Math.abs(c.spd)/70)*(quality==='high'?70:35);let q=rate*dt;
         while(q>0){if(Math.random()<q){const lz=(Math.random()<0.5?-1:1)*(0.45+Math.random()*0.35),lx=-1.8-Math.random()*0.6;
-          emit(SPR,c.x+cs*lx-sn*lz,0.2+Math.random()*0.3,c.z+sn*lx+cs*lz,cs*c.spd*0.5+(Math.random()-0.5)*3,0.6+Math.random()*1.8,sn*c.spd*0.5+(Math.random()-0.5)*3,0.9+Math.random()*0.7,0.9,5.5,0.2+0.22*WET,0.84,0.86,0.9);}q-=1;}}
+          emit(SPR,c.x+cs*lx-sn*lz,0.2+Math.random()*0.3,c.z+sn*lx+cs*lz,cs*c.spd*0.5+(Math.random()-0.5)*3,0.6+Math.random()*1.8,sn*c.spd*0.5+(Math.random()-0.5)*3,0.9+Math.random()*0.7,0.9,5.5,0.2+0.22*WET,0.84,0.86,0.9);}q-=1;}
+        // 11-11 윤택님 「비오는날 달릴때 내시점에서도 타이어 수막현상 효과」: the spray above starts behind the rear wheels - out of sight from the cockpit.
+        // The player's front tyres also throw a thinner veil up off the tread, just outboard of each tyre, that the onboard views see beside the
+        // nose (the same pool and draw call). It leaves at nearly the car's speed, so it hangs by the tyre for a moment before the air drags it back
+        // (at half the car's speed, as the rear spray does, it was past the cockpit in a twentieth of a second - nothing to see); short-lived, so it has thinned out by the cockpit's sides
+        if(c.isP){q=WET*Math.min(1,Math.abs(c.spd)/60)*(quality==='low'?40:80)*dt;while(q>0){if(Math.random()<q){const sd=Math.random()<0.5?-1:1,lz=sd*(WHL.zf-0.08+Math.random()*0.22),lx=WHL.xf-0.05-Math.random()*0.35,vo=sd*(0.3+Math.random()*1.2),k=0.88+Math.random()*0.1;   // off the top-rear of the tread (inside the tyre it was hidden by the tyre itself)
+          emit(SPR,c.x+cs*lx-sn*lz,0.45+Math.random()*0.3,c.z+sn*lx+cs*lz,cs*c.spd*k-sn*vo,0.4+Math.random()*0.9,sn*c.spd*k+cs*vo,0.25+Math.random()*0.15,0.3,2.0,0.3+0.35*WET,0.86,0.88,0.92);}q-=1;}}}   // low and slow to rise: seen against the tyre and the bodywork (rising fast it went up into the grey sky and vanished)
       const ca=Math.cos(c.a),sa=Math.sin(c.a),sp=Math.abs(c.spd),al=Math.abs(c.lat);
       const onKerb=TR.K[c.idx]>0.011&&al>TR.HW[c.idx]-0.3&&al<TR.HW[c.idx]+1.4;
       // v12f: the floor's skid blocks touch the road when the load on the springs gets high: the downforce (rising with the square of the
