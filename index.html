@@ -1816,7 +1816,10 @@ function aiWantsPit(race,c){
 }
 // which side the inside of the next corner is on: +1 towards +lat, -1 the other way
 function cornerSide(i){const q=wrap(i+Math.round(NEXTC[i]/STEP)+20),a=T[wrap(q-20)],b=T[q];return a[0]*b[1]-a[1]*b[0]>0?1:-1;}
-const AI_NEAR=[],AI_LIMA=HALF-0.9;   // cars near an AI car this step; how far over an AI car may go to make room
+// 11-11 (hard AI side-swipes, ~2 a race): in slow corners and chicanes the racing line sweeps across the road at 7-12 m/s. A car on it swept into a car level with it that had been
+// 4-10 m across 2 s before - the room rule (sP/sN) only saw cars already within 3.2 m, ~0.15 s before the touch (36 of 37 traced touches). Now a car overlapping it (centre gap under 6.4 m)
+// up to AI_SIDEW m across is kept for the next step too (w2P/w2N), and the aim point keeps a car's width from where that car will be (pathLat), as for a car alongside
+const AI_NEAR=[],AI_LIMA=HALF-0.9,AI_SIDEW=9;   // cars near an AI car this step; how far over an AI car may go to make room
 // where a car will be at track index i if it keeps its line and offset (the steering keeps it inside the track); the player: where it is
 const pathLat=(c,i)=>{if(c.isP){const d=wrap(i-c.idx);if(!c.latV||d>N/2)return c.lat;const L=TR.HW[i]+0.5;return Math.max(-L,Math.min(L,c.lat+c.latV*Math.min(0.8,d*STEP/Math.max(c.spd,5))));}   // 11-07: the player moving across: where it will be (up to 0.8 s on) - it was taken to stay where it is, so a defending move was seen late
   if(c.lane==null||c.pit)return c.lat;   // (v13k: a car merging from the pits still holds its lane from before the stop)
@@ -1938,6 +1941,7 @@ function stepAI(race,c,dt){
   const nP=near(c.sP)&&!(creep&&c.sP===c.obstP),nN=near(c.sN)&&!(creep&&c.sN===c.obstP);   // (creeping round a stopped car: that car is not one to keep a lane's width from - it held the creeping car against the edge)
   if(!c.fail&&(nP||nN)){const hi=nP?pathLat(c.sP,li)-2.9:1e9,lo=nN?pathLat(c.sN,li)+2.9:-1e9;
     if(hi<lo)tl=(hi+lo)/2;else if(tl>hi)tl=hi;else if(tl<lo)tl=lo;tl=Math.max(-LAl,Math.min(LAl,tl));}
+  if(!c.fail&&!creep){const wP=near(c.w2P)&&!c.w2P.pit,wN=near(c.w2N)&&!c.w2N.pit;if(wP||wN){const hi=wP?pathLat(c.w2P,li)-2.9:1e9,lo=wN?pathLat(c.w2N,li)+2.9:-1e9;if(hi>=lo){if(tl>hi)tl=hi;else if(tl<lo)tl=lo;tl=Math.max(-LAl,Math.min(LAl,tl));}}}   // 11-11: and a car overlapping further across (AI_SIDEW): the line sweeping over no longer takes this car into where that one will be
   {const PSb=pitSideR(PIT.Z),w=blWant(race,c,li);let b=c.blC==null?9:c.blC;if(w<b)b=Math.max(w,Math.min(b,PSb*c.lat+0.3)-3*dt);else b=w;c.blC=b;if(PSb*tl>b)tl=PSb*b;}   // 11-11: the blend lane (blWant)
   if(c.ofs)tl=aiOffSteer(race,c,dt,tl,b0);
   const tx=p[0]-tt[1]*tl,tz=p[1]+tt[0]*tl;
@@ -1955,12 +1959,12 @@ function stepAI(race,c,dt){
   if(c.err){if(race.t>c.err.t)c.err=null;else tgt*=c.err.f;}   // 11-04: a mistake: the lost speed
   if(c.ps&&!race.sess){if(race.t>(c.paT||0)){c.paT=race.t+4+c.rnd()*6;c.paG=(c.rnd()-0.5)*0.008*(1.3-c.ps.cons);}c.paN=(c.paN||0)+((c.paG||0)-(c.paN||0))*Math.min(1,dt);if(!neutral)tgt*=1+c.paN;}   // lap times are not all the same
   {const x=c.ps&&c.passO!=null?race.cars[c.passO]:null;if(x&&!x.pit&&!x.gone&&!neutral&&gapTo(c,x)>-5&&gapTo(c,x)<9&&Math.abs(x.lat-c.lat)>1.7&&NEXTC[c.idx]<180&&NEXTC[c.idx]>0)tgt=Math.max(tgt,(profAtk(wrap(c.idx+2),gU)*wl+paC*(1-wl))*c.skill*dmgPace(c)*(c.runF||1)*(1+0.02*c.ps.agg*K.late));}   // alongside into a corner: brakes later
-  let obst=null,od=1e9,vSafe=1e9,pitAhead=false,sideP=null,sideN=null,threat=null,tth=1e9,stickD=null,atk=null,atkD=-1e9;const bA=brakeAcc(c.spd,tg.brk)*0.92;AI_NEAR.length=0;
+  let obst=null,od=1e9,vSafe=1e9,w2P=null,w2N=null,pitAhead=false,sideP=null,sideN=null,threat=null,tth=1e9,stickD=null,atk=null,atkD=-1e9;const bA=brakeAcc(c.spd,tg.brk)*0.92;AI_NEAR.length=0;
   for(const o of race.cars){if(o===c||o.gone)continue;
     const ramp=!!o.pit&&(o.pit.state==='join'||o.pit.state==='in'&&zoneR(o.idx)<Math.min(PIT.RAMP,40));   // turning into the pit lane: still next to the track (v13k: and a car merging out of it - the field drove into it blind)
     if(o.pit&&!ramp)continue;if((o.dnf||o.ofs&&Math.abs(o.lat-c.lat)>3.2)&&Math.abs(o.lat)>TR.HW[o.idx]+0.8)continue;   /* (11-07: a car off in the run-off, well clear, is no traffic - under a yellow it was a lead to follow at its gravel speed) */const dp=gapTo(c,o),dl=o.lat-c.lat,dlp=dp>0?Math.min(Math.abs(dl),Math.abs(o.lat-pathLat(c,o.idx)),dp<40?meetDl(c,o,dp):9):Math.abs(dl);   // dlp: also against where this car's line will be, and where both lines meet
     if(dp>-5&&dp<16)AI_NEAR.push(o);   // for picking a free side
-    if((!ramp||o.pit.state==='join')&&Math.abs(dp)<3.2&&Math.abs(dl)<3.2){if(dl>=0){if(!sideP||dl<sideP.lat-c.lat)sideP=o;}else if(!sideN||dl>sideN.lat-c.lat)sideN=o;}   // overlapping, side by side
+    if((!ramp||o.pit.state==='join')&&Math.abs(dp)<3.2&&Math.abs(dl)<3.2){if(dl>=0){if(!sideP||dl<sideP.lat-c.lat)sideP=o;}else if(!sideN||dl>sideN.lat-c.lat)sideN=o;}else if(!ramp&&!o.dnf&&Math.abs(dp)<3.2&&Math.abs(dl)<AI_SIDEW){if(dl>=0){if(!w2P||dl<w2P.lat-c.lat)w2P=o;}else if(!w2N||dl>w2N.lat-c.lat)w2N=o;}   // 11-11: overlapping, further across (AI_SIDEW)   // overlapping, side by side
     if(dp<0&&dp>-14&&dp>atkD&&!o.dnf&&!o.pit&&Math.abs(dl)<5){atk=o;atkD=dp;}   // 11-04: the car attacking it
     if(dp<0&&dp>-16&&Math.abs(dl)<2.4&&!o.dnf&&!ramp){const cl=o.spd-c.spd;if(cl>9){const tc=(-dp*STEP-5.2)/cl;if(tc<1.3&&tc<tth){tth=tc;threat=o;}}}   // about to be hit from behind
     const stopped=o.dnf||(o.fail&&o.spd<4),halted=stopped||(o.spd<3&&(race.t>(race.startT||0)+4||c.spd>o.spd+6)),slow=halted||(!startPh&&c.spd>14&&o.spd<(neutral&&!o.fail?7:Math.max(7,c.spd*0.45)));   // (off the start a slower launch is followed, not dodged)   // broken down, stopped on track (spun, stalled) or crawling (11-04: under a VSC, safety car or yellow a slower car still moving is followed: it was driven round, an overtake)
@@ -1997,7 +2001,7 @@ function stepAI(race,c,dt){
   // 11-04: defending: a car attacking from behind into a corner: one move to the inside, before it is alongside, once a straight
   if(atk&&c.ps&&!threat&&!neutral&&!startPh&&!c.fail&&!c.pitReq&&!c.blue&&!c.giveBack&&!obst&&!c.braking&&!(c.dfz&&c.dfz.n>=1)&&race.t>c.defNext&&NEXTC[c.idx]<K.defFar&&NEXTC[c.idx]>40&&atkD<-1.5){c.defNext=race.t+K.defNext;
     if(c.rnd()<K.def*(0.5+0.5*c.ps.def)){const t=cornerSide(c.idx)*lim*0.75-b0;if(clearTo(t,atk)){c.laneT=t;c.defHold=race.t+K.defHold;c.defN++;}}}
-  c.sP=sideP;c.sN=sideN;c.avHi=sideP?sideP.lat-2.9:null;c.avLo=sideN?sideN.lat+2.9:null;c.avoid=!!(sideP||sideN||threat);   // room for the car alongside, applied to the lane next step
+  c.sP=sideP;c.sN=sideN;c.w2P=w2P;c.w2N=w2N;c.avHi=sideP?sideP.lat-2.9:null;c.avLo=sideN?sideN.lat+2.9:null;c.avoid=!!(sideP||sideN||threat);   // room for the car alongside, applied to the lane next step
   {const sq=(sideP&&c.avHi<-LIMA)?sideP:(sideN&&c.avLo>LIMA)?sideN:(sideP&&sideN&&c.avHi-c.avLo<0)?(gapTo(c,sideP)>gapTo(c,sideN)?sideP:sideN):null;
    if(sq&&sq.spd>3){const gq=gapTo(c,sq);if(gq>0.3||(gq>-0.3&&c.id>sq.id))soft=Math.min(soft,Math.max(sq.spd*0.85,sq.spd-1.5));}}
   if(!c.fail&&!c.ygb){const vn=aiNose(c,creep?c.obstP:null);   /* 11-11: not against the stopped car it is creeping round (the nose rule held it at 0 km/h behind the wreck) */if(vn<soft){soft=vn;needA=Math.max(needA,(c.spd-vn)*2);if(!neutral&&lead&&c.passO!==lead.id&&race.t<c.passT)c.passT=race.t;}}   // 11-08: the nose (aiNose)   // no room to give: ease off behind the car that is ahead (dead level: one of the two yields)
