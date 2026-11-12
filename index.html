@@ -6268,16 +6268,16 @@ let gameMode=['race','quali','practice'].includes(loadLS('lightsout3d-mode'))?lo
 const lightCols=(()=>{let h='';for(let i=0;i<5;i++)h+='<div class="col"><div class="bulb"></div><div class="bulb"></div></div>';$('lights').innerHTML=h;return [...document.querySelectorAll('#lights .col')];})();
 function setLights(n){lightCols.forEach((c,i)=>c.querySelectorAll('.bulb').forEach(b=>b.classList.toggle('on',i<n)));if(WORLD)WORLD.gantry.forEach((m,i)=>m.color.set(i<n?0xff2a1a:0x2a0505));}
 function togglePit(){if(!race||state!=='race')return;const p=race.player;if(p.pit||p.fin!=null)return;
-  if(race.form||race.rc.flag==='red'){toast(race.rc.flag==='red'?'레드 플래그 · 모든 차가 피트 레인으로 들어가요':'포메이션 랩에는 피트인할 수 없어요','#fff');return;}
+  if(race.form||race.rc.flag==='red'){toast(race.rc.flag==='red'?'레드 플래그 · 자동 피트인':'포메이션 랩 · 피트인 불가','#fff');return;}
   p.pitReq=!p.pitReq;if(p.pitReq&&!p.nextComp)p.nextComp=pickCompound(race,p);
-  if(p.pitReq){const m=race.cars.find(o=>o!==p&&o.team===p.team&&!o.gone);if(m&&m.pitReq&&!m.pit&&wrap(PIT.E-m.idx)*STEP>60&&zoneR(m.idx)<0&&yieldToMate(race,m)){m.pitReq=false;setTimeout(()=>toast('팀메이트는 한 랩 뒤에 들어와요 (더블 스택 대기 없음)','#8ecae6',2.6),900);}}   // v12i
-  if(p.pitReq)p.boxPos=rejoinPos(race,p);toast(p.pitReq?'BOX, BOX · 이번 랩에 피트인'+(race.sess?'':' · P'+p.boxPos+' 복귀 예상'):'피트 요청 취소',p.pitReq?'#f5c518':'#fff');}
-function setNext(k){if(!race||state==='menu')return;const p=race.player;if(p.pit&&!['in','red','garage'].includes(p.pit.state))return;p.nextComp=k;const a=!COMP[k].wet&&!race.sess?pitAdvice(race,p):null;toast('다음 타이어: '+COMP[k].name+(a?' · 약 '+Math.round(a.life(k))+'랩':''),COMP[k].col);}
+  if(p.pitReq){const m=race.cars.find(o=>o!==p&&o.team===p.team&&!o.gone);if(m&&m.pitReq&&!m.pit&&wrap(PIT.E-m.idx)*STEP>60&&zoneR(m.idx)<0&&yieldToMate(race,m)){m.pitReq=false;setTimeout(()=>toast('팀메이트는 다음 랩 피트인','#8ecae6'),900);}}   // v12i
+  if(p.pitReq)p.boxPos=rejoinPos(race,p);toast(p.pitReq?'BOX, BOX'+(race.sess?'':' · P'+p.boxPos+' 복귀'):'피트 요청 취소',p.pitReq?'#f5c518':'#fff');}
+function setNext(k){if(!race||state==='menu')return;const p=race.player;if(p.pit&&!['in','red','garage'].includes(p.pit.state))return;p.nextComp=k;const a=!COMP[k].wet&&!race.sess?pitAdvice(race,p):null;toast('다음 타이어 '+COMP[k].name+(a?' · '+Math.round(a.life(k))+'랩':''),COMP[k].col);}
 function cycleNext(){const p=race&&race.player;if(!p)return;const o=['S','M','H','I','W'];setNext(o[(o.indexOf(p.nextComp||p.ty.comp)+1)%5]);}
 let toastHold=0;
 // 11-11 윤택님 「패널티·타이어 변경 팝업이 너무 오래 시야를 가림」: every note at most TOAST_MAX s (penalties were 2.6, damage 2.4, instructions 3.6), and on a phone
 // it sits in the top band (layoutTouchHUD: the row under the race-control pill; the mirror's row is only kept free while the mirror is on)
-const TOAST_MAX=2;function toast(m,c,d,hold){d=Math.min(d||1.8,TOAST_MAX);if(hold)hold=Math.min(hold,1500);if(!hold&&performance.now()<toastHold)return;if(hold)toastHold=performance.now()+hold;const t=$('toast');t.textContent=m;t.style.color=c||'#fff';t.style.opacity=1;toastT=d||1.8;}
+const TOAST_MAX=2;function toast(m,c,d,hold){d=Math.min(d||1.5,TOAST_MAX);if(hold)hold=Math.min(hold,1000);   /* 11-13 윤택님 「팝업 화면에 뜨는 시간이 너무 길어」: 보통 1.5초, 중요 2초, 다른 알림 막는 시간 1초 */if(!hold&&performance.now()<toastHold)return;if(hold)toastHold=performance.now()+hold;const t=$('toast');t.textContent=m;t.style.color=c||'#fff';t.style.opacity=1;toastT=d||1.8;}
 function setupRace(mode,o){o=o||{};mDraw=40;podiumEnd(false);meshes.forEach(m=>scene.remove(m.root));resetSkids();if(WORLD&&WORLD.crew)WORLD.crew.ready=false;clearDebris();
   const opts={weather,rainInt,incidents,damage:damageMode,aeroAuto:aeroMode==='auto',assist:isTouch&&assistMode==='off'?'offTouch':assistMode,formation:mode==='race'&&formOn,gridOrder:o.gridOrder,skills:o.skills};
   if(mode==='quali'||mode==='practice')race=makeSession(teamSel,mode,diff,sens,null,Object.assign(opts,{comp:startComp}));
@@ -6309,9 +6309,9 @@ function startRace(o){if(THREE.GLTFLoader&&!window.__CARGLB){if(isTouch)prepMobi
   ['menu','result','pause','sess'].forEach(id=>$(id).hidden=true);
   setupRace(mode,o);warmUp();race.champ=!!o.champ;
   if(race.sess){state='race';$('lights').style.opacity=0;
-    toast(mode==='quali'?'예선 Q1 · '+fmtClock(race.sess.len)+' · 상위 16명 Q2 진출':'연습 주행 · '+(isTouch?'PIT':'B')+' 피트인 · '+(isTouch?'타이어 버튼':'1~5')+' 다음 타이어','#fff',3.4,1800);return;}
+    toast(mode==='quali'?'예선 Q1 · 상위 16명 진출':'연습 주행','#fff',2,1000);return;}
   if(formOn){formSetup(race,'start',race.cars.slice().sort((a,b)=>a.grid-b.grid));if(isTouch&&autoGas)race.form.autoP=true;state='race';$('lights').style.opacity=0;
-    toast(race.form.autoP?'포메이션 랩 · 자동 주행':'포메이션 랩 · 순서 유지, 추월 금지 · 좌우로 흔들어 타이어 데우기','#fff',3.6,1800);return;}
+    toast(race.form.autoP?'포메이션 랩 · 자동 주행':'포메이션 랩 · 추월 금지','#fff',2,1000);return;}
   beginCountdown();}
 function beginCountdown(){state='countdown';cdT=0;cdLit=0;cdHold=0.4+Math.random()*1.4;$('lights').style.opacity=1;setLights(0);
   if(!isTouch&&startMode==='manual')setTimeout(()=>{if(state==='countdown')toast('스페이스+↑ 로 대기 → 불 꺼지면 스페이스 떼기','#fff',3.2);},250);}
@@ -6340,7 +6340,7 @@ function showSess(){const S=race.sess,p=race.player;if(!S)return;state='sessRes'
     const gap=r.best!=null&&pb!=null&&i>0&&(!fin||r.k===3)?' <span style="color:var(--dim)">+'+(r.best-pb).toFixed(3)+'</span>':(fin?' <span style="color:var(--dim)">'+(i===0?'폴 포지션':'Q'+r.k)+'</span>':'');
     return `<tr class="${cls}"><td>P${i+1}</td><td><span class="sw" style="display:inline-block;vertical-align:middle;margin-right:8px;background:${TEAMS[c.team].p}"></span>${c.name} <span style="color:var(--dim)">${TEAMS[c.team].name}</span></td><td class="tm">${r.best!=null?fmt(r.best):'기록 없음'}${gap}</td></tr>`;}).join('');
   const go=$('sessGo');
-  if(q<3&&!meOut&&!p.gone){go.textContent='Q'+(q+1)+' 시작 ('+fmtClock(QLEN[q])+')';go.onclick=()=>{sessNext(race);$('sess').hidden=true;state='race';toast('Q'+race.sess.q+' 시작 · '+fmtClock(race.sess.len)+(race.sess.q<3?' · 상위 '+QCUT[race.sess.q-1]+'명 진출':' · 폴 포지션 결정전'),'#fff',3,1500);};}
+  if(q<3&&!meOut&&!p.gone){go.textContent='Q'+(q+1)+' 시작 ('+fmtClock(QLEN[q])+')';go.onclick=()=>{sessNext(race);$('sess').hidden=true;state='race';toast('Q'+race.sess.q+' 시작'+(race.sess.q<3?' · 상위 '+QCUT[race.sess.q-1]+'명 진출':' · 폴 결정전'),'#fff',2,1000);};}
   else if(q<3){go.textContent='남은 예선 결과 보기';go.onclick=()=>{sessSimRest(race);showSess();};}
   else{const g=qualiGrid(race),gp=g.indexOf('YOU')+1;go.textContent='레이스 시작 · 그리드 P'+gp+' (Enter)';go.onclick=()=>startRace({mode:'race',gridOrder:g,skills:skillMap(race),champ:race.champ});}
   $('sLaps').innerHTML=lapTable(true);$('sess').hidden=false;$('sess').querySelector('.card').scrollTop=0;go.focus({preventScroll:true});}
@@ -6644,7 +6644,7 @@ async function enableTilt(){if(motionOn)return true;try{if(typeof DeviceMotionEv
 function calibrateTilt(){if(tiltLast!=null){tiltRef=tiltLast;tiltDeg=0;TF.on=false;TF.b=0;tiltAxis=0;toast('기울기 영점 맞춤','#fff');}}
 function prepMobile(){document.body.classList.remove('inmenu');document.body.classList.add('racing');
   lockLandscape();
-  if(steerMode==='tilt'){tiltRef=null;TF.on=false;tiltAxis=0;enableTilt().then(ok=>{setTimeout(()=>{if(!ok||!tiltOK){steerMode='drag';applyMobileClasses();toast('기울기 센서를 쓸 수 없어 드래그 조향으로 바꿨어요','#ffb347');}},1500);});}
+  if(steerMode==='tilt'){tiltRef=null;TF.on=false;tiltAxis=0;enableTilt().then(ok=>{setTimeout(()=>{if(!ok||!tiltOK){steerMode='drag';applyMobileClasses();toast('기울기 불가 · 드래그 조향으로','#ffb347');}},1500);});}
 }
 // v12j: 직접 가속에서는 엄지가 가속 페달에 묶여 ERS 버튼을 같이 누를 수 없다. ERS 는 가속 중에만 들어가므로
 // (c.boost 조건에 inp.gas 가 있다) 가스를 떼고 눌러봐야 아무 일도 일어나지 않는다. 그래서 직접 가속일 때는
@@ -7002,7 +7002,7 @@ function drawHUD(dt){
   setT('gear',gs);$('ers').style.transform='scaleX('+Math.min(1,pl.ers/ERS_MAX).toFixed(3)+')';$('ersBox').classList.toggle('on',pl.boost);setT('ersT','배터리 '+pl.ers.toFixed(1)+'MJ'+(pl.boost?' · 부스트':''));
   {const arm=!pl.aeroOpen&&pl.smZone&&!race.aeroAuto&&state==='race';$('bSM').className='badge'+(pl.aeroOpen?' on':arm?' arm':'');
    {const zn=AERO[pl.idx]&&pl.smZone?' '+AERO[pl.idx]+'/'+AERO.n:'';setT('bSM',isTouch?'직선'+zn:(pl.aeroOpen===1?'직선 모드(부분)':'직선 모드')+zn+(arm?' · E':''));}/* 11-11: which zone (2/4) */$('mAero').classList.toggle('on',!!pl.aeroOpen);
-   if(arm&&!race.smHintOn&&(race.smHint||0)<2){race.smHint=(race.smHint||0)+1;toast(isTouch?'직선 모드 구간 · 직선 버튼으로 날개 열기':'직선 모드 구간 · E 키로 날개 열기','#3ddc84',2.2);}
+   if(arm&&!race.smHintOn&&(race.smHint||0)<2){race.smHint=(race.smHint||0)+1;toast(isTouch?'직선 모드 · 직선 버튼':'직선 모드 · E 키','#3ddc84');}
    race.smHintOn=!!pl.smZone;
    if(!!pl.aeroOpen!==!!SND.aero){SND.aero=!!pl.aeroOpen;if(state==='race')sfx(SND.aero?'aeroOpen':'aeroClose');}}{let tx=isTouch?'OVT':'오버테이크',g=9;   // 11-11: the last 600 m before the line, the gap to the car ahead it will be judged on (1.0 s) - 'OVT 0.8'
    if(!pl.ovt&&state==='race'&&race.rc.flag==='green'&&!race.rc.noPass&&!race.sess&&WET<=0.45&&pl.prog>0&&!pl.pit&&(N-pl.prog%N)*STEP<600){let a=null,bd=1e9;for(const o of race.cars){if(o===pl||o.gone||o.dnf||o.pit)continue;const d=o.prog-pl.prog;if(d>0&&d<bd&&Math.floor(o.prog/N)-Math.floor(pl.prog/N)<=1){bd=d;a=o;}}
@@ -7033,23 +7033,23 @@ function drawHUD(dt){
     let pi='';const nc=COMP[pl.nextComp||pl.ty.comp];
     if(pl.pit){const st=pl.pit.state;
       if(st==='red')pi=`<span class="box">레드 플래그 · 피트 레인 대기</span><br>재개 때 새 타이어 <b style="color:${nc.col}">${nc.name}</b> (${isTouch?'타이어 버튼':'1~5'} 변경)`;
-      else if(st==='garage')pi=`<span class="box">개러지</span><br>새 타이어 <b style="color:${nc.col}">${nc.name}</b> (${isTouch?'타이어 버튼':'1~5'} 변경)`;
+      else if(st==='garage')pi=`<span class="box">개러지</span> · 새 타이어 <b style="color:${nc.col}">${nc.name}</b>`;
       else{const pp=pl.pit,penLeft=st==='stop'&&pp.pen>0?pp.t-pp.service:0;   // v12i: why the car is waiting (penalty, traffic in the lane, team-mate in the box)
-        pi=st==='stop'?(pp.t<=0?'<span class="box">출발 대기 · 피트 레인에 차가 지나가는 중</span>':penLeft>0?'<span class="box">페널티 정차 · '+Math.ceil(penLeft)+'초 남음</span><br>그다음 타이어 교체'+(pp.rep&&pp.rep.n?' + 수리':''):'<span class="box">정차 중 · 타이어 교체'+(pp.rep&&pp.rep.n?' + 수리':'')+'</span>')
-          :st==='in'?(pp.redQ?'<span class="box">레드 플래그 · 피트 레인 정렬</span>':pp.wait&&boxBusy(race,pl)?'<span class="box">더블 스택 · 팀메이트 정비 끝날 때까지 대기</span><br>정비 인원은 팀당 한 조':`<span class="box">피트 레인 · 리미터 80</span><br>다음 타이어 <b style="color:${nc.col}">${nc.name}</b> (${isTouch?'타이어 버튼':'1~5'} 변경)`):'<span class="box">피트 아웃 중</span>';}}
-    else if(pl.pitReq&&race.rc.flag==='red')pi='<span class="box">레드 플래그 · 천천히 피트 레인으로</span><br>피트 레인에서 순위대로 정렬 · 수리와 타이어 교체';
-    else if(S&&!pl.pitReq)pi=`${isTouch?'PIT 버튼':'B 키'}: 피트인 · 새 타이어 <b style="color:${COMP[pl.nextComp||pl.ty.comp].col}">${COMP[pl.nextComp||pl.ty.comp].name}</b> (${isTouch?'타이어 버튼':'1~5'} 변경)`+(S.kind==='quali'?'<br>타이어가 데워진 뒤(초록) 플라잉 랩':'');
-    else if(pl.pitReq&&race.cars.some(o=>o!==pl&&o.team===pl.team&&o.pit&&(o.pit.state==='in'||o.pit.state==='stop')))pi=`<span class="box">BOX BOX · 팀메이트가 지금 피트 중</span><br>들어가면 더블 스택으로 잠깐 대기 · ${isTouch?'PIT 버튼':'B 키'}로 취소 가능`;   // v12i
-    else if(pl.pitReq)pi=`<span class="box">BOX BOX · 이번 랩 피트인</span>${S?'':' · P'+pl.boxPos+' 복귀 예상'}<br>다음 타이어 <b style="color:${nc.col}">${nc.name}</b> (${isTouch?'타이어 버튼':'1~5'} 변경)`;
+        pi=st==='stop'?(pp.t<=0?'<span class="box">출발 대기 · 차량 통과 중</span>':penLeft>0?'<span class="box">페널티 정차 · '+Math.ceil(penLeft)+'초</span>':'<span class="box">정차 · 타이어 교체'+(pp.rep&&pp.rep.n?' + 수리':'')+'</span>')
+          :st==='in'?(pp.redQ?'<span class="box">레드 플래그 · 피트 정렬</span>':pp.wait&&boxBusy(race,pl)?'<span class="box">더블 스택 · 대기</span>':`<span class="box">피트 레인 · 80</span> · <b style="color:${nc.col}">${nc.name}</b>`):'<span class="box">피트 아웃</span>';}}
+    else if(pl.pitReq&&race.rc.flag==='red')pi='<span class="box">레드 플래그 · 피트 레인으로</span>';
+    else if(S&&!pl.pitReq)pi=`${isTouch?'PIT':'B 키'}: 피트인 · <b style="color:${COMP[pl.nextComp||pl.ty.comp].col}">${COMP[pl.nextComp||pl.ty.comp].name}</b>`;
+    else if(pl.pitReq&&race.cars.some(o=>o!==pl&&o.team===pl.team&&o.pit&&(o.pit.state==='in'||o.pit.state==='stop')))pi=`<span class="box">BOX · 팀메이트 피트 중</span><br>더블 스택 대기`;   // v12i
+    else if(pl.pitReq)pi=`<span class="box">BOX BOX</span>${S?'':' · P'+pl.boxPos+' 복귀'} · <b style="color:${nc.col}">${nc.name}</b>`;
     else if(pl.fin!=null)pi='';
-    else if(race.form)pi=race.form.kind==='start'?'포메이션 랩 · 타이어 온도를 올려두세요':'세이프티카 뒤 그리드로 · 추월 금지';
-    else if(needsSecond(pl))pi=`<span class="warn">2가지 컴파운드 의무 미이행</span> · ${isTouch?'PIT 버튼으':'B 키'}로 요청`;
-    else pi='전략: '+pl.stints.join(' → ')+(usedWet(pl)?' · 우천 타이어 사용(2컴파운드 의무 면제)':'');
-    if(pl.pen&&pl.fin==null)pi+=`<br><span class="warn">미소화 페널티 ${pl.pen}초 · 정비 피트스톱 때 소화(안 하면 결과에 가산)</span>`;
-    if(pi!==hc.pitInfo){hc.pitInfo=pi;$('pitInfo').innerHTML=pi;const pm=pi.startsWith('전략:')?'':pi;$('pitMsg').innerHTML=pm;hc.pmT=pm?6:0;}
+    else if(race.form)pi=race.form.kind==='start'?'포메이션 랩 · 타이어 데우기':'SC 뒤 그리드로 · 추월 금지';
+    else if(needsSecond(pl))pi=`<span class="warn">2컴파운드 의무 남음</span>`;
+    else pi='전략: '+pl.stints.join(' → ')+(usedWet(pl)?' · 웨트 사용(의무 면제)':'');
+    if(pl.pen&&pl.fin==null)pi+=`<br><span class="warn">페널티 ${pl.pen}초 · 피트 때 소화</span>`;
+    if(pi!==hc.pitInfo){hc.pitInfo=pi;$('pitInfo').innerHTML=pi;const pm=pi.startsWith('전략:')?'':pi;$('pitMsg').innerHTML=pm;hc.pmT=pm?3:0;}
     // 11-04: from one lap before the pit window, once a lap: the window, what a stop costs here, where the car would come out
     {const lp=Math.floor(pl.prog/N);if(lp!==hc.advL){hc.advL=lp;const a=!S&&!race.form&&!pl.pit&&!pl.pitReq&&pl.fin==null&&race.rc.flag==='green'&&lp+1<race.laps?pitAdvice(race,pl):null;
-      if(a&&lp+1>=a.from-1){const t=(a.to<=lp+1?'타이어 한계':'피트 창 '+a.from+'~'+a.to+'랩')+' · 손실 '+Math.round(a.loss)+'초 · 지금 들어가면 P'+a.pos;$('pitMsg').textContent=t;hc.pmT=4;}}}}
+      if(a&&lp+1>=a.from-1){const t=(a.to<=lp+1?'타이어 한계':'피트 창 '+a.from+'~'+a.to+'랩')+' · 지금 가면 P'+a.pos;$('pitMsg').textContent=t;hc.pmT=2.5;}}}}
   if(isTouch){if((hc.htN=(hc.htN||0)+1)%30===0&&$('hudTime').offsetHeight!==hc.htH)layoutTouchHUD();   // v13j: not every frame - reading it forces a layout
     // v13h: the pill used to come back for 4 s on every new lap as well. On a phone it sits over
     // the road ahead, so with the pit window open the same 'new tyres' line blocked the view once
@@ -7057,7 +7057,7 @@ function drawHUD(dt){
     // and it still stays up the whole time in the pit lane and under a red flag.
     {
      const tk=toastT>0&&!document.body.classList.contains('ph-port');   // v12j: landscape - a short note takes the pit line's row for a moment (the pit line waits, its time paused)
-     if(!tk)hc.pmT=Math.max(0,(hc.pmT||0)-dt);const sh=!tk&&(hc.pmT>0||!!pl.pit||race.rc.flag==='red');if(sh!==hc.pmS){hc.pmS=sh;$('pitMsg').classList.toggle('show',sh);}}towerT-=dt;if(towerT<=0){towerT=0.3;const th=towerTouch(r,pp);if(th!==hc.tw){hc.tw=th;$('tower').innerHTML=th;}}}
+     hc.pmT=Math.max(0,(hc.pmT||0)-dt);const sh=!tk&&(hc.pmT>0||!!pl.pit&&pl.pit.state!=='out'||race.rc.flag==='red');/* 11-12 윤택님 「pit 팝업 문구 너무 오래 떠 있어」: 3 s (창 안내 2.5 s), 토스트 때도 시간은 흐름, 피트 아웃 중엔 안 남음 */if(sh!==hc.pmS){hc.pmS=sh;$('pitMsg').classList.toggle('show',sh);}}towerT-=dt;if(towerT<=0){towerT=0.3;const th=towerTouch(r,pp);if(th!==hc.tw){hc.tw=th;$('tower').innerHTML=th;}}}
   else{towerT-=dt;if(towerT<=0&&S){towerT=0.3;let h='';
     if(S.kind==='practice'){const L=(pl.laps||[]).slice(-6);h=`<div class="r"><span class="n">연습 주행</span><span class="q">${fmtClock(S.t)}</span></div>`+L.map((x,i)=>`<div class="r ${x.t===pl.best?'me':''}"><span class="p">${(pl.laps.length-L.length+i+1)}</span><span class="n">${x.inv?'<s>'+fmt(x.t)+'</s>':fmt(x.t)}</span></div>`).join('');}
     else{const act=r.filter(c=>!c.gone),cut=S.q<3?QCUT[S.q-1]:-1,show=new Set([0,1,2,cut-1,cut,pp-2,pp-1,pp]);let last=-1;
@@ -7209,8 +7209,8 @@ function finishFx(){const pl=race.player,r=ranking(race),pos=r.indexOf(pl)+1;CIN
   $('finTitle').textContent=pl.dsq?'체커기 · 실격':pos===1?'우승!':pos<=3?'P'+pos+' · 포디움!':'P'+pos+' 완주';
   $('finSub').textContent=(pos===1&&!pl.dsq?'체커기 · 우승 · ':'체커기 · ')+EVT_NM;
   $('finBanner').classList.add('on');setTimeout(()=>$('finBanner').classList.remove('on'),3000);
-  const radio=pl.dsq?'무전: 레이스는 끝났지만 규정 위반으로 실격이야.':pos===1?'무전: 우승이야!!! 완벽한 레이스였어!':pos<=3?'무전: 포디움이야! 정말 잘했어!':pos<=10?'무전: P'+pos+', 포인트 획득. 수고했어.':'무전: P'+pos+' 완주. 다음엔 더 위로 가 보자.';
-  setTimeout(()=>{if(state==='done'&&!(CINE&&CINE.ph==='pod'))toast(radio,pos<=3&&!pl.dsq?'#ffd24a':'#fff',2.6);},1150);}
+  const radio=pl.dsq?'무전: 실격이야':pos===1?'무전: 우승이야!!!':pos<=3?'무전: 포디움이야!':pos<=10?'무전: P'+pos+', 포인트 획득':'무전: P'+pos+' 완주, 수고했어';
+  setTimeout(()=>{if(state==='done'&&!(CINE&&CINE.ph==='pod'))toast(radio,pos<=3&&!pl.dsq?'#ffd24a':'#fff',2);},1150);}
 function podiumOK(){return !!race&&!race.sess&&race.player&&race.player.fin!=null&&!race.player.dnf;}
 // 11-04: confetti: a third drifts down from above, the rest is fired up from both sides of the podium
 function podBurst(gold){const C=POD.conf,col=new THREE.Color(),GOLD=[0xffd24a,0xfff1b8,0xe2a820,0xffffff];if(gold||C.gold){for(let k=0;k<C.n;k++){col.setHex(gold?GOLD[k%4]:[0xe10600,0xf5c518,0xffffff,0x1f55c8,0x3ddc84,0xff4fa3][k%6]);C.m.setColorAt(k,col);}C.m.instanceColor.needsUpdate=true;C.gold=gold;}
@@ -7308,25 +7308,25 @@ const vscDf=d=>{const a=Math.abs(d);return(d<0?'−':'+')+(a<0.1?(d<0?Math.max(0
 function flagPanel(){const rc=race.rc,p=race.player,el=$('flag');let cls='',txt='',dv='',dc='',sx='';
   if(state==='race'||state==='done'){
     const S=race.sess;
-    if(rc.flag==='formation'){cls='f';txt='FORMATION LAP · 추월 금지'+(isTouch?'':' · Enter 건너뛰기');}
-    else if(rc.flag==='red'){const R=rc.red;cls='r';txt=!R||R.phase==='resume'?'RED FLAG · 세이프티카 따라 그리드로 · 추월 금지':R.phase==='held'?'RED FLAG · 재개까지 '+Math.max(0,Math.ceil(R.resumeAt-race.t))+'초 · '+(isTouch?'타이어 버튼':'1~5')+' 타이어':'RED FLAG · 경기 중단 · 천천히 피트 레인으로'+(rc.redFast?' · 너무 빠름!':'');if(!isTouch&&R)txt+=' · Enter 건너뛰기';}
-    else if(S&&S.chq){cls='chq';txt='체커기 · 진행 중인 랩까지만 인정';}
-    else if(S&&p.blue){cls='b';txt='블루 플래그 · 플라잉 랩 차량 접근, 비켜주세요';}
+    if(rc.flag==='formation'){cls='f';txt='포메이션 랩 · 추월 금지'+(isTouch?'':' · Enter 건너뛰기');}
+    else if(rc.flag==='red'){const R=rc.red;cls='r';txt=!R||R.phase==='resume'?'RED FLAG · SC 따라 그리드로':R.phase==='held'?'RED FLAG · 재개 '+Math.max(0,Math.ceil(R.resumeAt-race.t))+'초':'RED FLAG · 피트 레인으로'+(rc.redFast?' · 과속!':'');if(!isTouch&&R)txt+=' · Enter 건너뛰기';}
+    else if(S&&S.chq){cls='chq';txt='체커기 · 이번 랩까지';}
+    else if(S&&p.blue){cls='b';txt='블루 플래그 · 비켜주기';}
     else if(S){}
-    else if(rc.flag==='sc'){cls='sc';txt=rc.sc&&rc.sc.phase==='in'?'SAFETY CAR · 이번 랩 복귀 · 선두가 페이스 조절':rc.sc&&rc.sc.phase==='pit'?(rc.go?'재시작! · 컨트롤 라인까지 추월 금지':'재시작 대기 · 선두가 출발 시점 결정 · 추월 금지'):'SAFETY CAR · '+(rc.why==='debris'?'파편 수거 · ':'')+'추월 금지';}
-    else if(rc.flag==='vsc'){cls='vsc';const vd=!p.pit&&p.fin==null?p.vd:null,end=rc.vsc&&rc.vsc.ending,why=rc.vsc&&rc.vsc.why==='debris'?'파편 수거 · ':rc.vsc&&rc.vsc.why==='test'?'시험 · ':'';   // 11-08: the delta number lives in the pill now (not in the pits or after the flag; sessions never get here)
-      const gb=p.vgb&&Object.values(p.vgb)[0],gbs=gb?' · '+gb.code+'에게 자리 돌려주기 '+Math.max(0,Math.ceil(gb.until-race.t))+'초':'';
-      if(vd){dv=vscDf(vd.d);dc=vd.d<0?'bad':'ok';txt=end?'VSC ENDING · 델타 ':'VSC · '+why+'델타 ';sx=(gbs||(end?' · 곧 그린':' · 추월 금지'))+(rc.vscFast?' · 너무 빠름!':'');}
-      else txt=(end?'VSC ENDING · 곧 그린':'VSC · '+why+'델타 + 유지 · 추월 금지')+gbs+(rc.vscFast?' · 너무 빠름!':'');}
+    else if(rc.flag==='sc'){cls='sc';txt=rc.sc&&rc.sc.phase==='in'?'SC · 이번 랩 복귀':rc.sc&&rc.sc.phase==='pit'?(rc.go?'재시작! · 추월 금지':'재시작 대기 · 추월 금지'):'SAFETY CAR · 추월 금지';}
+    else if(rc.flag==='vsc'){cls='vsc';const vd=!p.pit&&p.fin==null?p.vd:null,end=rc.vsc&&rc.vsc.ending,why='';   // 11-08: the delta number lives in the pill now (not in the pits or after the flag; sessions never get here)
+      const gb=p.vgb&&Object.values(p.vgb)[0],gbs=gb?' · '+gb.code+' 반납 '+Math.max(0,Math.ceil(gb.until-race.t))+'초':'';
+      if(vd){dv=vscDf(vd.d);dc=vd.d<0?'bad':'ok';txt=end?'VSC 종료 ':'VSC ';sx=gbs+(rc.vscFast?' 과속!':'');}   // 11-13 윤택님 「vsc 팝업 크기 너무 커서 시야가 가려짐」: 'VSC +0.4' 한 줄
+      else txt=(end?'VSC 곧 종료':'VSC · 추월 금지')+gbs+(rc.vscFast?' 과속!':'');}
     else{const y=yellowAt(race,p.idx),ya=y||p.pit||p.fin!=null?null:yellowAhead(race,p);
       if(isTouch){const z=y?race.rc.yellows.find(q=>wrap(p.idx-q.i0)<=q.len):ya&&ya.z;if(z&&z!==flagYz)flagPulse=2.2;flagYz=z;}   // 11-11: the pill flashes once when a yellow comes up
-      if(y){cls='y';txt=(y>1?'더블 옐로':'옐로 플래그')+' · 감속, 추월 금지';}
-      else if(ya){cls='y';txt=(ya.z.dbl?'더블 옐로':'옐로 플래그')+' '+ya.m+'m 앞 · 감속 준비';}
-      else if(p.vgb&&Object.keys(p.vgb).length){const g=Object.values(p.vgb)[0];cls='y';txt='VSC 중 추월 · '+g.code+'에게 자리 돌려주기 · '+Math.max(0,Math.ceil(g.until-race.t))+'초';}   // (the VSC is over, the place is still owed)
-      else if(p.giveBack){cls='y';txt=p.giveBack.code+'에게 자리 돌려주기 · '+Math.max(0,Math.ceil(p.giveBack.until-race.t))+'초'+(isTouch?'':' · 속도를 줄여 먼저 보내세요');}   // v12h
-      else if(p.cutPend&&p.cutPend.ann){const cp=p.cutPend;cls='y';txt='이득 '+Math.max(0.1,cp.gt-cp.lost).toFixed(1)+'초 돌려주기 · '+Math.max(0,Math.ceil(cp.until-race.t))+'초'+(isTouch?'':' · 속도를 줄이세요');}   // 11-12
-      else if(p.blue){cls='b';txt=p.blueW?'블루 플래그 경고 · 비켜주세요 · '+Math.max(0,Math.ceil(BLUE_W+BLUE_P-p.blueT))+'초':'블루 플래그 · 길을 비켜주세요';}
-      else if(rc.noPass&&rc.noPass[p.id]!=null&&p.prog<rc.noPass[p.id]){cls='y';txt='컨트롤 라인까지 추월 금지';}
+      if(y){cls='y';txt=(y>1?'더블 옐로':'옐로')+' · 추월 금지';}
+      else if(ya){cls='y';txt=(ya.z.dbl?'더블 옐로':'옐로')+' '+ya.m+'m 앞';}
+      else if(p.vgb&&Object.keys(p.vgb).length){const g=Object.values(p.vgb)[0];cls='y';txt=g.code+' 자리 반납 · '+Math.max(0,Math.ceil(g.until-race.t))+'초';}   // (the VSC is over, the place is still owed)
+      else if(p.giveBack){cls='y';txt=p.giveBack.code+' 자리 반납 · '+Math.max(0,Math.ceil(p.giveBack.until-race.t))+'초';}   // v12h
+      else if(p.cutPend&&p.cutPend.ann){const cp=p.cutPend;cls='y';txt='이득 '+Math.max(0.1,cp.gt-cp.lost).toFixed(1)+'초 반납 · '+Math.max(0,Math.ceil(cp.until-race.t))+'초';}   // 11-12
+      else if(p.blue){cls='b';txt=p.blueW?'블루 경고 · 비켜주기 '+Math.max(0,Math.ceil(BLUE_W+BLUE_P-p.blueT))+'초':'블루 플래그 · 비켜주기';}
+      else if(rc.noPass&&rc.noPass[p.id]!=null&&p.prog<rc.noPass[p.id]){cls='y';txt='라인까지 추월 금지';}
       else if(race.t<(rc.greenAt??-99)+4){cls='g';txt='GREEN';}}}
   if(cls&&isTouch){if(flagPulse>0)cls+=' pulse';if(toastT>0&&document.body.classList.contains('ph-port'))cls+=' tuck';}   // v12j: phones - the pill flashes when race control changes; in portrait a short note takes its line for a moment
   el.className=cls?'show '+cls:'';if(cls){setT('flagT',txt);setT('flagD',dv);setT('flagS',sx);const D=$('flagD');if(D._c!==dc){D._c=dc;D.className=dc;}}}
@@ -7335,40 +7335,40 @@ function flagPanel(){const rc=race.rc,p=race.player,el=$('flag');let cls='',txt=
 // racing speed - a yellow came and went before it was ever seen. The pill now says it from 300 m out (10 m steps); the rules are the zone's as before.
 let flagYz=null;function yellowAhead(race,p){let b=null,bd=151;for(const z of race.rc.yellows){const d=wrap(z.i0-p.idx);if(d>0&&d<bd){bd=d;b=z;}}return b?{z:b,m:Math.max(10,Math.round(bd*STEP/10)*10)}:null;}
 const FLAG_EV=new Set(['sc','vsc','vscEnding','scIn','restart','scGo','red','redResume','green']);let flagPulse=0;
-const MSG={fl:e=>['패스티스트 랩 · '+(e.me?'내 차':e.name)+' '+fmt(e.t),e.me?'#c58bff':'#a87be0'],colPen:e=>[e.me?(e.reck?'무리한 ':'')+'충돌 유발 페널티 +'+e.s+'초 · '+e.name+'와 접촉':e.name+(e.reck?' 무리한':'')+' 충돌 유발 +'+e.s+'초'+(e.vic?' · 내 차와 접촉':''),e.me?'#ff8a8a':'#f5c518'],pitRet:()=>['수리할 수 없는 손상 · 차고에서 리타이어','#ff3b30'],pitRetAI:e=>[e.name+' 수리 불가 · 리타이어','#ff8a8a'],wall:()=>[race.dmg==='off'?'월 히트! 타이어 손상':'월 히트!','#ff8a8a'],crash:e=>[e.name+' 크래시! 벽과 충돌','#ff8a8a'],wreck:()=>['크래시! 차가 크게 부서졌어요 · 리타이어','#ff3b30'],pitIn:()=>['피트 레인 진입 · 리미터 80','#f5c518'],pitStop:e=>e.pen?['정차 · 페널티 '+e.pen+'초 먼저 소화','#fff']:null,   // the stop timer shows a normal stop
-  pitGo:e=>['GO! '+(e.mis?'피트 실수('+(e.mis==='stuck'?'바퀴가 안 빠짐':'휠건')+') · ':'')+(e.rep?'수리 완료 + ':'')+COMP[e.comp].name+' '+e.t.toFixed(1)+'초'+(e.best?' · 이번 레이스 최고 피트스톱':''),e.rep?'#ffb347':e.mis||e.t>3.5?'#ff8a8a':'#3ddc84'],
-  aiPit:e=>e.mis?[e.name+' 피트 실수 · '+(e.mis==='stuck'?'바퀴가 안 빠져 ':'휠건 문제 ')+e.t.toFixed(1)+'초','#ffb347']:[e.name+' '+e.t.toFixed(1)+'초 피트스톱 · 이번 레이스 최고','#3ddc84'],
-  aiStart:e=>['출발 실수 · '+e.l.map(x=>x.name+(x.kind==='stall'?' 그리드에 멈춤':' 휠스핀')).join(' · '),'#ffb347'],flat:()=>['타이어가 완전히 주저앉았어요 · 피트로!','#ff3b30'],pitOut:()=>{const p=race.player,C=COMP[p.ty.comp],T=(p.ty.temp[0]+p.ty.temp[1]+p.ty.temp[2]+p.ty.temp[3])/4;return T<C.win[0]-8?['피트 아웃 · 직접 운전 · 타이어가 차가워요 (그립 ↓, 한 바퀴 안에 데워져요)','#8ecae6']:['피트 아웃 · 직접 운전','#fff'];},
-  tl:e=>[(e.gb?'이득 반납 완료 · ':'')+'트랙 리밋 위반 '+e.n+'회 · 이번 랩 기록 삭제','#ffb347'],bw:e=>[(e.gb?'이득 반납 완료 · ':'')+'흑백기 · 트랙 리밋 3회, 다음부터 넘을 때마다 +5초','#ffb347'],tlpen:e=>[(e.gb?'이득 반납 완료 · ':'')+'트랙 리밋 위반 '+e.n+'회 · +'+e.s+'초','#ff5a4f'],
-  cut:e=>['코스 밖 이득 '+(e.gt||0).toFixed(1)+'초 미반납 · +'+e.s+'초','#ff5a4f'],cutGB:e=>['코스 밖으로 나가 '+e.gt.toFixed(1)+'초 이득 · 속도를 줄여 돌려주세요 ('+e.s+'초 안에, 안 하면 +5초)','#ffb347'],lastChance:()=>['마지막 랩! 두 번째 컴파운드를 아직 안 썼어요','#ffb347'],
-  jump:e=>['부정 출발 · +'+e.s+'초 페널티','#ff5a4f'],jumpWarn:()=>['차가 먼저 움직였어요 · 부정 출발','#ff5a4f'],ovt:()=>['오버테이크 모드 · 이번 랩 +0.5MJ · 337km/h까지 최대 출력','#b16cff'],
-  rainSoon:()=>['무전: 곧 비가 옵니다','#8ecae6'],rain:()=>['비가 내리기 시작했어요','#8ecae6'],rainStop:()=>['비가 그쳤어요 · 노면이 마르는 중','#8ecae6'],
-  xover:e=>['무전: '+COMP[e.comp].name+' 타이어로 바꿀 타이밍','#8ecae6'],fail:e=>[e.name+' 차량 이상 · 감속','#ffb347'],dnf:e=>e.code==='YOU'?['리타이어 · 레이스 종료','#ff3b30']:[e.name+' 리타이어 · 옐로 플래그','#f5c518'],
-  vsc:e=>[e.why==='debris'?'버추얼 세이프티카 (VSC) · 트랙 위 파편 수거':e.why==='test'?'버추얼 세이프티카 (VSC) · 시험 발동':'버추얼 세이프티카 (VSC)','#f5c518'],
-  vscWarn:e=>['VSC 구간 기준보다 '+vscDf(e.d).slice(1)+'초 빠름 · 경고 (다음부터 +5초)','#ffb347'],vscPassWarn:e=>['VSC 중 추월 후 자리 미반납 · 경고 (다음부터 +5초)','#ffb347'],vscPassGB:e=>['VSC 중 추월 · '+e.name+'에게 자리를 돌려주세요 ('+e.s+'초 안에, 안 하면 '+(e.w?'경고':'+5초')+')','#ffb347'],vscGiven:e=>['자리 반납 완료 · '+e.name+' · 페널티 없음','#3ddc84'],vscEnding:()=>['VSC 종료 임박','#f5c518'],sc:e=>[e.why==='debris'?'세이프티카 출동 · 트랙 위 파편 수거 · 추월 금지':'세이프티카 출동 · 추월 금지','#f5c518'],
-  scIn:()=>['세이프티카 이번 랩에 들어갑니다 · 선두가 페이스 조절','#f5c518'],restart:()=>['세이프티카 피트인 · 선두가 가속하면 재시작','#f5c518'],
-  scGo:e=>[e.me?'재시작! 내가 가속해 재시작 · 라인까지 추월 금지':'재시작! '+e.name+' 가속 · 컨트롤 라인까지 추월 금지','#3ddc84'],
-  red:e=>[e.why==='barrier'?'레드 플래그! 큰 사고 · 방호벽 수리 · 천천히 피트 레인으로':'레드 플래그! 경기 중단 · 천천히 피트 레인으로','#ff3b30'],redHold:()=>['피트 레인 대기 · 수리 완료, 재개 때 새 타이어','#fff'],
-  redHeld:e=>['모든 차량 정렬 · '+Math.round(e.t)+'초 뒤 세이프티카 뒤에서 재개','#fff'],redResume:()=>['재개 · 세이프티카를 따라 그리드로 (추월 금지)','#f5c518'],
-  redPen:e=>['레드 플래그 중 과속 · +'+e.s+'초','#ff5a4f'],formAuto:e=>[e.idle?'자동으로 그리드에 정렬합니다':'그리드 정렬 · 자동 주행','#fff'],parked:()=>['그리드 정렬 완료 · 다른 차를 기다리는 중','#fff'],
-  tlq:()=>['트랙 리밋 · 이번 랩 기록 삭제','#ffb347'],blueQ:()=>['플라잉 랩 차량 접근 · 길을 비켜주세요','#6aa7ff'],impede:()=>['진로 방해 · 그리드 3계단 강등','#ff5a4f'],
-  chq:()=>['체커기 · 진행 중인 랩까지만 인정','#fff'],sessDoneP:()=>['세션 종료 · 다른 차들의 마지막 랩 집계 중','#fff'],garageOut:()=>['개러지 출발 · 새 타이어는 차가워요','#8ecae6'],green:e=>[e.restart?'그린 플래그 · 레이스 재개':'그린 플래그','#3ddc84'],
-  vscPen:e=>['VSC 구간 기준보다 '+vscDf(e.d||0).slice(1)+'초 빠름 · +'+e.s+'초','#ff5a4f'],scPass:e=>['세이프티카 추월 · +'+e.s+'초','#ff5a4f'],
-  giveBack:e=>['코스 밖에서 추월 · '+e.name+'에게 자리를 돌려주세요 (15초 안에, 안 하면 페널티)','#ffb347'],givenBack:()=>['자리 반납 완료 · 페널티 없음','#3ddc84'],
-  giveBackPen:e=>['코스 밖 추월 후 자리 미반납 · +'+e.s+'초','#ff5a4f'],aiGiveBack:e=>[e.name+' · '+({sc:'세이프티카 중',vsc:'VSC 중',yellow:'옐로 구간',restart:'재시작 전',red:'레드 플래그 중'}[e.why]||'코스 밖')+' 추월이라 자리를 돌려줍니다','#8ecae6'],
-  flatSpot:e=>['플랫 스팟 · '+['왼쪽 앞','오른쪽 앞','왼쪽 뒤','오른쪽 뒤'][e.k]+' 타이어 (타이어를 바꿀 때까지 진동)','#ffb347'],
-  std:e=>{const k={weave:'방어 중 두 번 움직임',brake:'제동 중 방어 이동',force:'상대를 코스 밖으로 밀어냄',btest:'불필요한 급제동'}[e.k];return[e.me?k+' 페널티 +'+e.s+'초 · '+e.name+' 상대':e.name+' '+k+' +'+e.s+'초'+(e.vic?' · 내 차 상대':''),e.me?'#ff8a8a':'#f5c518'];},
-  illegalPass:e=>[({sc:'세이프티카 중',vsc:'VSC 중',yellow:'옐로 구간',restart:'재시작 전',red:'레드 플래그 중'}[e.why]||'규정 위반')+' 추월 · +'+e.s+'초','#ff5a4f'],
-  blue:()=>['블루 플래그 · 뒤차에게 길을 비켜주세요','#6aa7ff'],blueWarn:e=>['블루 플래그 무시 경고 · 뒤차에게 길을 비켜주세요 ('+e.s+'초 안에, 안 하면 +5초)','#ffb347'],bluePen:e=>['블루 플래그 무시 · +'+e.s+'초','#ff5a4f'],finish:()=>['체커기!','#fff'],contact:()=>['접촉!','#ffb347']};
+const MSG={fl:e=>[(e.me?'':e.name+' ')+'패스티스트 랩 '+fmt(e.t),e.me?'#c58bff':'#a87be0'],colPen:e=>[e.me?'충돌 유발 +'+e.s+'초':e.name+' 충돌 유발 +'+e.s+'초',e.me?'#ff8a8a':'#f5c518'],pitRet:()=>['수리 불가 · 리타이어','#ff3b30'],pitRetAI:e=>[e.name+' 리타이어','#ff8a8a'],wall:()=>[race.dmg==='off'?'월 히트 · 타이어 손상':'월 히트!','#ff8a8a'],crash:e=>[e.name+' 크래시','#ff8a8a'],wreck:()=>['크래시 · 리타이어','#ff3b30'],pitIn:()=>['피트 레인 · 리미터 80','#f5c518'],pitStop:e=>e.pen?['페널티 '+e.pen+'초 소화','#fff']:null,   // the stop timer shows a normal stop
+  pitGo:e=>['GO! '+(e.mis?'피트 실수 · ':'')+(e.rep?'수리 + ':'')+COMP[e.comp].name+' '+e.t.toFixed(1)+'초'+(e.best?' · 최고':''),e.rep?'#ffb347':e.mis||e.t>3.5?'#ff8a8a':'#3ddc84'],
+  aiPit:e=>e.mis?[e.name+' 피트 실수 '+e.t.toFixed(1)+'초','#ffb347']:[e.name+' 최고 피트 '+e.t.toFixed(1)+'초','#3ddc84'],
+  aiStart:e=>['출발 실수 · '+e.l.map(x=>x.name).join(' · '),'#ffb347'],flat:()=>['타이어 펑크 · 피트로!','#ff3b30'],pitOut:()=>{const p=race.player,C=COMP[p.ty.comp],T=(p.ty.temp[0]+p.ty.temp[1]+p.ty.temp[2]+p.ty.temp[3])/4;return T<C.win[0]-8?['피트 아웃 · 타이어 차가움','#8ecae6']:['피트 아웃','#fff'];},
+  tl:e=>['트랙 리밋 '+e.n+'회 · 랩 삭제','#ffb347'],bw:e=>['흑백기 · 다음부터 +5초','#ffb347'],tlpen:e=>['트랙 리밋 '+e.n+'회 · +'+e.s+'초','#ff5a4f'],
+  cut:e=>['코스 밖 이득 · +'+e.s+'초','#ff5a4f'],cutGB:e=>['코스 밖 이득 '+e.gt.toFixed(1)+'초 · 감속해 반납','#ffb347'],lastChance:()=>['마지막 랩 · 2컴파운드 미사용','#ffb347'],
+  jump:e=>['부정 출발 +'+e.s+'초','#ff5a4f'],jumpWarn:()=>['부정 출발!','#ff5a4f'],ovt:()=>['오버테이크 모드','#b16cff'],
+  rainSoon:()=>['무전: 곧 비','#8ecae6'],rain:()=>['비 시작','#8ecae6'],rainStop:()=>['비 그침 · 노면 마르는 중','#8ecae6'],
+  xover:e=>['무전: '+COMP[e.comp].name+'로 교체','#8ecae6'],fail:e=>[e.name+' 차량 이상','#ffb347'],dnf:e=>e.code==='YOU'?['리타이어','#ff3b30']:[e.name+' 리타이어','#f5c518'],
+  vsc:e=>['VSC 발동','#f5c518'],
+  vscWarn:e=>['VSC 과속 경고','#ffb347'],vscPassWarn:e=>['VSC 중 추월 · 경고','#ffb347'],vscPassGB:e=>['VSC 중 추월 · '+e.name+'에게 반납','#ffb347'],vscGiven:e=>['자리 반납 완료','#3ddc84'],vscEnding:()=>['VSC 곧 종료','#f5c518'],sc:e=>['세이프티카 · 추월 금지','#f5c518'],
+  scIn:()=>['SC 이번 랩 복귀','#f5c518'],restart:()=>['곧 재시작','#f5c518'],
+  scGo:e=>['재시작! · 라인까지 추월 금지','#3ddc84'],
+  red:e=>['레드 플래그 · 피트 레인으로','#ff3b30'],redHold:()=>['피트 대기 · 수리 완료','#fff'],
+  redHeld:e=>[Math.round(e.t)+'초 뒤 재개','#fff'],redResume:()=>['재개 · SC 따라 그리드로','#f5c518'],
+  redPen:e=>['레드 플래그 과속 +'+e.s+'초','#ff5a4f'],formAuto:e=>['그리드 정렬 · 자동','#fff'],parked:()=>['정렬 완료 · 대기','#fff'],
+  tlq:()=>['트랙 리밋 · 랩 삭제','#ffb347'],blueQ:()=>['뒤차 어택 중 · 비켜주기','#6aa7ff'],impede:()=>['진로 방해 · 3그리드 강등','#ff5a4f'],
+  chq:()=>['체커기 · 이번 랩까지','#fff'],sessDoneP:()=>['세션 종료 · 집계 중','#fff'],garageOut:()=>['개러지 출발 · 타이어 차가움','#8ecae6'],green:e=>[e.restart?'그린 · 레이스 재개':'그린 플래그','#3ddc84'],
+  vscPen:e=>['VSC 과속 +'+e.s+'초','#ff5a4f'],scPass:e=>['SC 추월 +'+e.s+'초','#ff5a4f'],
+  giveBack:e=>['코스 밖 추월 · '+e.name+'에게 반납','#ffb347'],givenBack:()=>['자리 반납 완료','#3ddc84'],
+  giveBackPen:e=>['자리 미반납 +'+e.s+'초','#ff5a4f'],aiGiveBack:e=>[e.name+' 자리 반납','#8ecae6'],
+  flatSpot:e=>['플랫 스팟 · '+['왼쪽 앞','오른쪽 앞','왼쪽 뒤','오른쪽 뒤'][e.k],'#ffb347'],
+  std:e=>{const k={weave:'두 번 방어',brake:'제동 중 방어',force:'밀어내기',btest:'급제동'}[e.k];return[(e.me?'':e.name+' ')+k+' +'+e.s+'초',e.me?'#ff8a8a':'#f5c518'];},
+  illegalPass:e=>[({sc:'SC 중',vsc:'VSC 중',yellow:'옐로',restart:'재시작 전',red:'레드 중'}[e.why]||'규정 위반')+' 추월 +'+e.s+'초','#ff5a4f'],
+  blue:()=>['블루 플래그 · 비켜주기','#6aa7ff'],blueWarn:e=>['블루 플래그 경고 · '+e.s+'초 안에','#ffb347'],bluePen:e=>['블루 플래그 무시 +'+e.s+'초','#ff5a4f'],finish:()=>['체커기!','#fff'],contact:()=>['접촉!','#ffb347']};
 function handleEvents(){
   for(const e of race.EV){
     if(e.type==='dmg'){onDamage(e);continue;}
-    if(e.type==='pdnf'){if(race.sess){toast('크래시 · 이번 세션 종료','#ff3b30',2.6,1500);sessSimFinish(race);showSess();continue;}state='done';doneT=0;continue;}
+    if(e.type==='pdnf'){if(race.sess){toast('크래시 · 세션 종료','#ff3b30',2,1000);sessSimFinish(race);showSess();continue;}state='done';doneT=0;continue;}
     if(e.type==='sec'){secPop(e);continue;}
-    if(e.type==='lap'){const L=lapLog[lapLog.length-1],d=[];if(!e.inv){if(L)d.push('지난 '+sgn(e.lt-L.t));if(bestLap!=null)d.push('베스트 '+sgn(e.lt-bestLap));}e.dtx=d.length?' · '+d.join(' · '):'';lapLog.push({n:lapLog.length+1,t:e.lt,s:e.s,inv:!!e.inv});}   // 10-31: diffs to my last lap and my best here
-    if(e.type==='lap'&&e.inv){toast('랩 기록 삭제 '+fmt(e.lt)+' · 트랙 리밋','#ff8a8a');continue;}
+    if(e.type==='lap'){const L=lapLog[lapLog.length-1],d=[];if(!e.inv){if(L)d.push('지난 '+sgn(e.lt-L.t));if(bestLap!=null)d.push('베스트 '+sgn(e.lt-bestLap));}e.dtx=d.length?' · '+d[d.length-1]:'';lapLog.push({n:lapLog.length+1,t:e.lt,s:e.s,inv:!!e.inv});}   // 10-31: diffs to my last lap and my best here
+    if(e.type==='lap'&&e.inv){toast('트랙 리밋 · 랩 삭제','#ff8a8a');continue;}
     if(e.type==='lap'&&race.sess&&race.sess.kind==='quali'){let msg='랩 '+fmt(e.lt),col='#fff';if(bestLap==null||e.lt<bestLap){bestLap=e.lt;saveLS('lightsout3d-best-'+TRK.id,e.lt);col='#b16cff';}
-      const cl=sessClass(race),i=cl.indexOf(race.player)+1;if(race.player.best===e.lt){msg='Q'+race.sess.q+' P'+i+' · '+fmt(e.lt);if(col==='#fff')col='#3ddc84';}toast(msg+e.dtx,col,2.2);continue;}
+      const cl=sessClass(race),i=cl.indexOf(race.player)+1;if(race.player.best===e.lt){msg='Q'+race.sess.q+' P'+i+' · '+fmt(e.lt);if(col==='#fff')col='#3ddc84';}toast(msg+e.dtx,col);continue;}
     if(e.type==='lap'){let msg='랩 '+fmt(e.lt),col='#fff';if(sessionBest==null||e.lt<sessionBest){sessionBest=e.lt;col='#3ddc84';}if(bestLap==null||e.lt<bestLap){bestLap=e.lt;saveLS('lightsout3d-best-'+TRK.id,e.lt);msg='개인 최고! '+fmt(e.lt);col='#b16cff';}toast(msg+e.dtx,col);continue;}
     if(e.type==='finish'){state='done';doneT=0;if(!race.sess)finishFx();}
     if(e.type==='green')race.rc.greenAt=race.t;
@@ -7377,7 +7377,7 @@ function handleEvents(){
     if(e.type==='contact'&&toastT>0.8)continue;
     if((e.type==='aiPit'||e.type==='aiStart')&&toastT>0.3)continue;   // other cars' stops and starts: only when nothing else is showing
     if(isTouch&&FLAG_EV.has(e.type)){flagPanel();if($('flag').classList.contains('show')){flagPulse=2.2;if(toastT>0&&performance.now()>=toastHold){toastT=0;$('toast').style.opacity=0;}flagPanel();continue;}}
-    const f=MSG[e.type],mm=f&&f(e);if(mm){const [m,c]=mm;toast(m,c,/sc|vsc|dnf|Pen|Pass|jump|restart/.test(e.type)?2.6:1.8);}
+    const f=MSG[e.type],mm=f&&f(e);if(mm){const [m,c]=mm;toast(m,c,/sc|vsc|dnf|Pen|Pass|jump|restart|red|wreck|flat/.test(e.type)?2:1.5);}
   }
   race.EV.length=0;
 }
@@ -7972,12 +7972,12 @@ function onDamage(e){const c=race.cars[e.id],m=meshes[e.id];if(!c||!m)return;
   if(dist<260)debrisFor(c,m,e);
   if(e.isP){IMPACT=Math.max(IMPACT,0.25+0.75*sev);sfxCrash(0.45+0.55*sev,true);
     const d=c.dmg,ch=e.ch,parts=[];
-    if(e.lost[0]||e.lost[1])parts.push('프런트 윙 파손');else if(ch[0]+ch[1]>0.04)parts.push('프런트 윙 손상');
-    if(e.lost[2])parts.push('리어 윙 파손');else if(ch[2]>0.04)parts.push('리어 윙 손상');
+    if(e.lost[0]||e.lost[1])parts.push('앞날개 파손');else if(ch[0]+ch[1]>0.04)parts.push('앞날개 손상');
+    if(e.lost[2])parts.push('뒷날개 파손');else if(ch[2]>0.04)parts.push('뒷날개 손상');
     if(ch[3]+ch[4]+ch[5]+ch[6]>0.04)parts.push('서스펜션 손상');
-    if(ch[11]+ch[12]>0.04)parts.push(Math.max(d.sd[0],d.sd[1])>=0.8&&race.dmg==='sim'?'사이드포드 크게 찢어짐 · 냉각 손실':'사이드포드 손상');
-    for(let k=0;k<4;k++)if((ch[7+k]||0)>0)parts.push(TYN[k]+' 타이어 펑처');
-    if(parts.length&&!c.wreck){const fix=!c.pit&&c.fin==null;toast(parts.join(' · ')+(fix?' · '+(isTouch?'PIT':'B')+'로 피트 수리':''),'#ff8a8a',2.4,1600);}}
+    if(ch[11]+ch[12]>0.04)parts.push(Math.max(d.sd[0],d.sd[1])>=0.8&&race.dmg==='sim'?'사이드포드 찢어짐':'사이드포드 손상');
+    for(let k=0;k<4;k++)if((ch[7+k]||0)>0)parts.push(TYN[k]+' 펑처');
+    if(parts.length&&!c.wreck){const fix=!c.pit&&c.fin==null;toast(parts.slice(0,2).join(' · ')+(fix&&parts.length<2?' · 피트 수리':''),'#ff8a8a',1.8,1000);}}
   else if(dist<140)sfxCrash((0.25+0.5*sev)*Math.max(0.1,1-dist/140),false);}
 // ---- particles: sparks, tyre smoke, dust ----
 let SPK=null,SMK=null,SPR=null,SKID=null;
@@ -8150,16 +8150,16 @@ function perfSetPR(pr){const b=basePR();if(pr>=b-0.01){pr=b;delete PERF.prCap;}e
 function perfReset(){const had=PERF.prCap;for(const k in PERF)delete PERF[k];Object.assign(PERF,{acc:0,n:0,step:0});LODN=LODN0.slice();if(had)resize();
   if(MIR&&MIR.cam.far!==MIR.far0){MIR.cam.far=MIR.far0;MIR.cam.updateProjectionMatrix();}}   // 10-30: the mirror's view length comes back too (it stayed cut for good)
 function perfGovernor(dt){if(state!=='race'||autoQ==='off')return;
-  if(VS.hz>=90&&!PERF.lock60){VS.n++;if(dt*1000>1.45*1000/VS.hz)VS.miss++;VS.t+=dt;if(VS.t>=2){if(VS.miss>VS.n*0.12){PERF.lock60=true;toast('부드럽게: 60Hz로 고정했어요 (이 레이스)','#8ecae6',2.4);}VS.t=VS.n=VS.miss=0;}}
+  if(VS.hz>=90&&!PERF.lock60){VS.n++;if(dt*1000>1.45*1000/VS.hz)VS.miss++;VS.t+=dt;if(VS.t>=2){if(VS.miss>VS.n*0.12){PERF.lock60=true;toast('최적화: 60Hz 고정','#8ecae6');}VS.t=VS.n=VS.miss=0;}}
   PERF.acc+=dt;PERF.n++;if(PERF.acc<2.5)return;const fps=PERF.n/PERF.acc;PERF.acc=0;PERF.n=0;
   // v14: a resolution cut that did not raise the frame rate is undone - the phone is held at 30 by power saving (or it is
   // not the pixels), and the picture would only get blurry for nothing. Resolution is then left alone for this race.
   if(PERF.tryFps!=null){const t=PERF.tryFps,p=PERF.tryPr;PERF.tryFps=null;if(fps<t+3){PERF.noRes=true;perfSetPR(p);return;}}
   // v14: room to spare (57+ for two checks in a row) - give one resolution step back. If that makes it heavy again, the
   // step is taken off once more and stays off (no see-sawing).
-  if(fps>=57){if(PERF.prCap&&!PERF.noUp&&++PERF.up>=2){PERF.up=0;PERF.upd=true;perfSetPR(Math.min(basePR(),PERF.prCap/0.85));PERF.step=Math.min(PERF.step,3);toast('선명하게: 해상도를 다시 올렸어요','#8ecae6',2.2);}return;}
+  if(fps>=57){if(PERF.prCap&&!PERF.noUp&&++PERF.up>=2){PERF.up=0;PERF.upd=true;perfSetPR(Math.min(basePR(),PERF.prCap/0.85));PERF.step=Math.min(PERF.step,3);toast('화질: 해상도 복구','#8ecae6');}return;}
   PERF.up=0;
-  if(fps>=50||PERF.step>=7)return;const say=m=>toast('부드럽게: '+m,'#8ecae6',2.2);
+  if(fps>=50||PERF.step>=7)return;const say=m=>toast('최적화: '+m,'#8ecae6');
  // v13d: when it only gets heavy in the race it is the pack, not the scenery. Tighten the car detail
  // budget before switching anything else off - on the lowest setting the steps below have nothing left
  // to turn off anyway (AO, bloom, shadows and the post chain are already gone), so this ran out of
@@ -8167,25 +8167,25 @@ function perfGovernor(dt){if(state!=='race'||autoQ==='off')return;
  // 10-30: first what cannot be seen: the rear-view mirror (~140 px wide on a phone) looks 150 m back and draws the cars behind
  // at its lightest (no message - nothing changes on screen). Then the car detail in two steps, the second only after the shadows.
  if(!PERF.mirLite&&MIR){PERF.mirLite=true;if(MIR.cam.far>150){MIR.cam.far=150;MIR.cam.updateProjectionMatrix();}if(fps>=42)return;}   // 10-30: well below (a pack at the start) - the next step too, not 2.5 s later
- if(!PERF.lodCut&&LODN[0]>4){PERF.lodCut=1;LODN=[4,8,12];say('멀리 있는 차를 간단히 그려요');return;}
+ if(!PERF.lodCut&&LODN[0]>4){PERF.lodCut=1;LODN=[4,8,12];say('먼 차 단순화');return;}
  PERF.step++;
-  if(PERF.step===1){if(aoPass&&aoPass.enabled){aoPass.enabled=false;say('그림자 보정(AO)을 껐어요');return;}PERF.step++;}
-  if(PERF.step===2){let did=false;if(bloom&&bloom.enabled){bloom.enabled=false;did=true;}if(MIR&&MIR.cam.far>150){MIR.cam.far=150;MIR.cam.updateProjectionMatrix();}if(did){say('빛 번짐 효과를 껐어요');return;}PERF.step++;}
+  if(PERF.step===1){if(aoPass&&aoPass.enabled){aoPass.enabled=false;say('AO 끔');return;}PERF.step++;}
+  if(PERF.step===2){let did=false;if(bloom&&bloom.enabled){bloom.enabled=false;did=true;}if(MIR&&MIR.cam.far>150){MIR.cam.far=150;MIR.cam.updateProjectionMatrix();}if(did){say('빛 번짐 끔');return;}PERF.step++;}
   // v12j: when it is already struggling, the shadow map also stops being redrawn every single frame. Done here rather than for
   // everyone, because alternating work makes frame times uneven - the same reason the mirror is still drawn every frame.
   if(PERF.step===3){const sh=WORLD&&WORLD.sun&&WORLD.sun.shadow;
     if(renderer.shadowMap.enabled&&sh&&(sh.mapSize.x>1024||!PERF.shHalf)){PERF.shHalf=true;
       if(sh.mapSize.x>1024){sh.mapSize.set(1024,1024);if(sh.map){sh.map.dispose();sh.map=null;}}
-      say('그림자를 가볍게 했어요');return;}
+      say('그림자 낮춤');return;}
     PERF.step++;}
   // v14: phones stop at 85% of the full resolution (one step) - below that the picture is visibly soft on a small screen.
   // v14b: smooth / normal may go on (step 6) down to their old floor (0.85 / 1.0625), since their full resolution went up a step (not measured on a phone)
-  if(PERF.step===4&&(PERF.lodCut||0)<2&&LODN[0]>2){PERF.lodCut=2;LODN=[2,4,7];PERF.step--;say('멀리 있는 차를 더 간단히 그려요');return;}   // (before any resolution step; the next check comes back to step 4)
+  if(PERF.step===4&&(PERF.lodCut||0)<2&&LODN[0]>2){PERF.lodCut=2;LODN=[2,4,7];PERF.step--;say('먼 차 더 단순화');return;}   // (before any resolution step; the next check comes back to step 4)
   if(PERF.step===4||PERF.step===6){const cur=renderer.getPixelRatio(),nx=Math.max(isTouch?Math.min(basePR()*0.85,quality==='low'?0.85:quality==='medium'?1.0625:9):0.6,cur*0.85);
-    if(!PERF.noRes&&nx<cur-0.01){PERF.tryFps=fps;PERF.tryPr=cur;if(PERF.upd)PERF.noUp=true;perfSetPR(nx);say('해상도를 조금 낮췄어요');return;}PERF.step++;}
+    if(!PERF.noRes&&nx<cur-0.01){PERF.tryFps=fps;PERF.tryPr=cur;if(PERF.upd)PERF.noUp=true;perfSetPR(nx);say('해상도 낮춤');return;}PERF.step++;}
   // v13j: switching the shadows or the post chain off changes every shader's program key - a full recompile, a freeze of its
   // own in the middle of the race. Shrink the shadow map instead; the post chain stays.
-  if(PERF.step===5){const sh=WORLD&&WORLD.sun&&WORLD.sun.shadow;if(renderer.shadowMap.enabled&&sh&&sh.mapSize.x>512){sh.mapSize.set(512,512);if(sh.map){sh.map.dispose();sh.map=null;}say('그림자를 더 가볍게 했어요');return;}}}   // v14b: (nothing to shrink, e.g. no shadows: stay at 5, so the next check is the second resolution step 6 - it was skipped)
+  if(PERF.step===5){const sh=WORLD&&WORLD.sun&&WORLD.sun.shadow;if(renderer.shadowMap.enabled&&sh&&sh.mapSize.x>512){sh.mapSize.set(512,512);if(sh.map){sh.map.dispose();sh.map=null;}say('그림자 더 낮춤');return;}}}   // v14b: (nothing to shrink, e.g. no shadows: stay at 5, so the next check is the second resolution step 6 - it was skipped)
 function resize2(){const w=VW(),h=VH();renderer.setSize(w,h,false);if(composer){composer.setPixelRatio?composer.setPixelRatio(renderer.getPixelRatio()):0;composer.setSize(w,h);if(fxaa){const pr=renderer.getPixelRatio();fxaa.material.uniforms.resolution.value.set(1/(w*pr),1/(h*pr));}}}
 // v12j: 미러 크기를 한 곳에서 정한다. 레이아웃(메시지를 얼마나 내릴지)과 그리기가 같은 값을 써야 한다.
 // 가로로 든 휴대폰(높이 440 이하)에서는 작게 — 앞이 가려진다는 지적이 있었다.
