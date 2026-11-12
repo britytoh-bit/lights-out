@@ -1330,11 +1330,18 @@ function gripUse(diff){const d=AIK[diff]?diff:'normal',r=PACE_RATIO[d],NL=aiLine
 // 2026 active aero: 'straight mode' activation zones - every car, no gap rule (FIA 2026 Sporting Regulations B7.1.1-2: only inside the zones the FIA
 // sets for each circuit, opened by the driver, shut by braking or lifting). 11-11 윤택님 「직선이면 무조건 열리나」: every flat-out straight of 160 m was a zone;
 // now only one that lasts more than three seconds, the test the FIA names for a zone (formula1.com, Monaco 2026). That gives the zone count of the
-// FIA circuit maps at Monza 4, Silverstone 4, Austin 2, Monaco 0 (Spa 3 of 5, Miami 2 of 3); Monza's 112 m between the Lesmos (1.2 s) no longer opens.
+// FIA circuit maps at Monza 4, Silverstone 4, Austin 2, Monaco 0; Monza's 112 m between the Lesmos (1.2 s) no longer opens.
+// 11-13: where the rule gives a different count from the FIA's list for the race, the FIA's zones (AERO_FIA: a point on each straight, metres from the line; a zone the
+// rule found there is kept, otherwise the flat-out stretch round the point, trimmed as the rule trims, kinks allowed; a rule zone with no point is dropped).
+// Spa 2026 (5): T20-T1, La Source - Eau Rouge, Kemmel, Paul Frere/T16 - Blanchimont, Blanchimont - Bus Stop (the rule had 3, one after Rivage the FIA has none).
+// Miami 2026 (3): T19-T1, T8 exit - T11, T16-T17 (the rule missed the main straight). gpfans.com (FIA zone maps), gpblog.com
+const AERO_FIA={spa:[6900,650,1900,5600,6400],miami:[5450,2800,4200]};
 // AERO[i]: the zone's number round the lap (1 = the one over or after the line, as on the FIA maps), AERO.n: how many
 const AERO=(()=>{const ok=i=>TR.K[i]<0.0025&&PROF[i]>=VMAX*0.93,z=new Uint8Array(N),zs=[];let s0=0;while(s0<N&&ok(s0))s0++;
   for(let k=0;k<N;){const i=(s0+k)%N;if(!ok(i)){k++;continue;}let L=0;while(L<N&&ok((s0+k+L)%N))L++;
     if(L*STEP>=160){let t=0;for(let j=10;j<L-25;j++)t+=STEP/PROF[(s0+k+j)%N];if(t>3)zs.push([(s0+k+10)%N,L-35]);}k+=L;}
+  {const F=AERO_FIA[TRK.id];if(F){const fast=i=>PROF[wrap(i)]>=VMAX*0.93,fz=[];for(const m of F){const c=Math.round(m/STEP),q=zs.find(q=>wrap(c-q[0])<q[1]);if(q){fz.push(q);continue;}
+    if(!fast(c))continue;let a=c,e=c;while(fast(a-1))a--;while(fast(e+1))e++;fz.push([wrap(a+10),e-a+1-35]);}zs.length=0;zs.push(...fz);}}
   const at=q=>q[0]+q[1]>N?q[0]-N:q[0];zs.sort((a,b)=>at(a)-at(b));zs.forEach((q,n)=>{for(let j=0;j<q[1];j++)z[(q[0]+j)%N]=n+1;});z.n=zs.length;
   return z;})();
 function aeroState(race,c){if(race.rc.flag!=='green'||!AERO[c.idx]||c.braking||c.pit)return 0;return WET>0.45?1:2;}   // 2 open, 1 partial (wet: low grip, B7.1.2b), 0 corner mode
