@@ -395,6 +395,9 @@ body.touch #toast{font-size:13px; font-weight:800; padding:4px 12px; border-radi
 body.touch.ph-port #toast{font-size:12px; padding:3px 10px; transition:none}
 body.touch #flag.tuck{visibility:hidden}
 body.touch #flag.pulse{animation:flagPulse .55s ease-in-out 4}
+/* 11-13 윤택님 「vsc 팝업 크기 너무 커서 시야가 가려짐」: 깃발 알림은 위쪽 가장자리의 얇은 한 줄 (글자 11px, 델타 13px, 테두리 2px) */
+body.touch #flag{font-size:11px; line-height:1.25; padding:2px 8px; white-space:nowrap!important; box-shadow:0 2px 8px rgba(0,0,0,.3)} body.touch #flagD{font-size:13px; padding:0 3px; margin:0 1px}
+body.touch #flag.vsc::before{inset:2px; border-width:2px}
 @keyframes flagPulse{50%{filter:brightness(1.25); box-shadow:0 0 0 3px rgba(255,255,255,.8),0 4px 18px rgba(0,0,0,.35)}}
 @media (prefers-reduced-motion:reduce){ body.touch #flag.pulse{animation:none} }
 /* the timing tower: tap its header for all rows / fewer rows / header only */
