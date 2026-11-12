@@ -506,37 +506,57 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
 #chMarks .chip b{color:var(--yellow)} #chMarks .chip i{font-style:normal; color:var(--dim)}
 #chMarks .mid{position:absolute; width:230px; text-align:center; background:#15171c; border-radius:10px; padding:10px 12px; font-size:14px; line-height:1.4}
 #chMarks .mid b{display:block; font-size:18px; margin-bottom:2px} #chMarks .mid button{width:100%; margin-top:8px; min-height:40px}   /* no full-screen "turn your phone" panel during a race any more (it hid the road): a short hint instead */
-/* 11-11 윤택님 「라이츠 아웃 첫 화면 좀 예쁘게」: the home screen as a start grid - the name in the race font with the five start lights, a panel with a slanted edge onto the car, the list in clear rows, one big start button. Style only: every control keeps its place and handler. */
-#mHomeL{background:linear-gradient(170deg,#1f2127 0%,#16171c 52%,#111216 100%)}
-#mHome::before{content:''; position:absolute; z-index:1; top:4px; bottom:0; left:min(60%,600px); width:35px; margin-left:-1px; background:linear-gradient(180deg,#1d1f25,#111216); clip-path:polygon(0 0,100% 0,0 100%); pointer-events:none}
-#mHome::after{content:''; position:absolute; z-index:1; top:4px; bottom:0; left:min(60%,600px); width:34px; background:linear-gradient(to top left,transparent calc(50% - 1.5px),var(--kerb) calc(50% - 1.5px),var(--kerb) calc(50% + 1.5px),transparent calc(50% + 1.5px)); pointer-events:none}
-#mHomeL h1,body.touch #mHomeL h1{display:grid; grid-template-columns:auto 1fr; align-items:center; column-gap:14px; margin:4px 0 12px; font-size:inherit; font-style:normal}
-#mHomeL h1::after{content:''; grid-row:1; grid-column:2; width:94px; height:16px; background:radial-gradient(circle at 8px 8px,#ff3b30 0 5.5px,#7a1410 6px 7px,transparent 7.5px) 0 0/19.5px 16px repeat-x; filter:drop-shadow(0 0 5px rgba(255,45,30,.55))}
-#mHomeL .lgE{grid-row:1; grid-column:1; font-family:"Saira Condensed","Arial Narrow",sans-serif; font-weight:800; font-style:italic; font-size:38px; line-height:.9; letter-spacing:.3px; color:#fff; white-space:nowrap}
-#mHomeL .lgK{grid-row:2; grid-column:1/-1; margin-top:3px; font-family:"Saira","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif; font-style:normal; font-size:13px; font-weight:600; letter-spacing:1.5px; color:#b9bec7}
-#menu #mMode{margin:0 0 4px}
-#mList{justify-content:flex-start; margin-top:4px}
-#menu .mItem{position:relative; min-height:46px; padding:0 6px 0 12px; border-radius:0; border-bottom:1px solid rgba(255,255,255,.08)}
+/* 11-13 윤택님 「화면이 너무 꽉차보이는거같음 … 처음 화면 더 예쁘게 구성해줘 +ui전면 개선」: the home is a race lobby. The car fills the screen; a dark fade on the left
+   carries the logo and five rows that say what you will race (a small caption over the value, the value in white); the 일반/대회 switch is a small pill top
+   right; bottom right one red start button with two quiet buttons over it (튜토리얼, 규칙 가이드). Every control keeps its id and handler. */
+#mHome{display:flex; justify-content:space-between}
+#mHome::before{content:''; position:absolute; z-index:0; top:0; bottom:0; left:0; width:min(72%,780px); background:linear-gradient(90deg,rgba(9,10,13,.95) 0,rgba(9,10,13,.9) 48%,rgba(9,10,13,.55) 74%,rgba(9,10,13,0) 100%); pointer-events:none}
+#mHome::after{content:''; position:absolute; z-index:2; left:0; right:0; top:0; height:3px; background:repeating-linear-gradient(90deg,var(--kerb) 0 18px,#f2f2f2 18px 36px); pointer-events:none}
+#mHomeL{position:relative; z-index:1; flex:0 0 min(46%,420px); background:none; border:0; padding:max(16px,var(--sat)) 10px max(8px,var(--sab)) max(24px,var(--sal))}
+#mHomeL h1,body.touch #mHomeL h1{display:grid; grid-template-columns:auto 1fr; align-items:center; column-gap:12px; margin:0 0 6px; font-size:inherit; font-style:normal}
+#mHomeL h1::after{content:''; grid-row:1; grid-column:2; width:72px; height:12px; background:radial-gradient(circle at 6px 6px,#ff3b30 0 4.2px,#7a1410 4.6px 5.4px,transparent 5.8px) 0 0/15px 12px repeat-x; filter:drop-shadow(0 0 4px rgba(255,45,30,.5))}
+#mHomeL .lgE{grid-row:1; grid-column:1; font-family:"Saira Condensed","Arial Narrow",sans-serif; font-weight:800; font-style:italic; font-size:30px; line-height:.9; letter-spacing:.3px; color:#fff; white-space:nowrap}
+#mHomeL .lgK{grid-row:2; grid-column:1/-1; margin-top:3px; font-family:"Saira","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif; font-style:normal; font-size:11px; font-weight:600; letter-spacing:2.5px; color:#8f949e}
+#mList{flex:0 0 auto; justify-content:flex-start; margin-top:auto; padding-top:6px}
+#menu .mItem{position:relative; min-height:52px; padding:0 4px 0 0; gap:10px; border-radius:0; border-bottom:1px solid rgba(255,255,255,.07)}
 #menu .mItem:last-child{border-bottom:0}
-#menu .mItem::before{content:''; position:absolute; left:0; top:11px; bottom:11px; width:3px; border-radius:2px; background:var(--kerb)}
-#menu .mItem:active{background:var(--mfill); border-radius:8px}
-.mItem b{font-size:17px; font-weight:700}
-.mItem span{font-size:14px; color:#aeb3bc}
-#mHomeR{justify-content:flex-end; background:linear-gradient(to top,rgba(8,9,12,.6),rgba(8,9,12,0) 42%)}
-#menu #startBtn{flex:0 1 440px; position:relative; min-height:64px; padding:0 46px 0 28px; overflow:hidden; border-radius:12px; background:linear-gradient(180deg,#ec3a30,#c0211a); font-size:21px; font-weight:700; letter-spacing:.5px; box-shadow:0 10px 28px rgba(200,30,22,.45),inset 0 1px 0 rgba(255,255,255,.28)}
+#menu .mItem::before{content:''; position:absolute; left:-12px; top:12px; bottom:12px; width:3px; border-radius:2px; background:var(--kerb); opacity:0; transition:opacity .12s}
+#menu .mItem:active{background:linear-gradient(90deg,rgba(255,255,255,.08),rgba(255,255,255,0)); border-radius:0}
+#menu .mItem:active::before{opacity:1}
+.mItem .mTx{flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; white-space:normal}
+.mItem .mTx b{font-size:11.5px; font-weight:600; letter-spacing:.6px; color:#8d929c}
+.mItem .mTx span{flex:none; text-align:left; font-size:16.5px; font-weight:600; color:#f4f5f7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.mItem i{width:7px; height:7px; border-color:#5d616b}
+#mHomeR{position:relative; z-index:1; flex:0 1 360px; display:flex; flex-direction:column; justify-content:space-between; align-items:flex-end; min-width:0; padding:max(14px,var(--sat)) max(18px,var(--sar)) max(14px,var(--sab)) 12px; background:linear-gradient(to top,rgba(8,9,12,.55),rgba(8,9,12,0) 38%); pointer-events:none}
+#mHomeR>*{pointer-events:auto}
+#menu #mMode{width:212px; margin:0; padding:3px; background:rgba(14,15,19,.78); box-shadow:inset 0 0 0 1px rgba(255,255,255,.1); border-radius:11px}
+#menu #mMode button{min-height:36px; font-size:13.5px; border-radius:8px}
+#mAct{display:flex; flex-direction:column; gap:8px; width:100%}
+#mSec{display:flex; gap:8px}
+#menu #mSec button{flex:1; min-height:44px; padding:0 8px; background:rgba(14,15,19,.78); box-shadow:inset 0 0 0 1px rgba(255,255,255,.14); border-radius:10px; color:#e9ebef; font-size:14px; font-weight:600}
+#menu #mSec button:active{background:rgba(40,42,49,.92); transform:scale(.97)}
+#menu #startBtn{flex:none; position:relative; width:100%; min-height:62px; padding:0 46px 0 30px; overflow:hidden; border-radius:12px; background:linear-gradient(180deg,#ec3a30,#c0211a); font-size:20px; font-weight:800; letter-spacing:.5px; box-shadow:0 10px 26px rgba(200,30,22,.42),inset 0 1px 0 rgba(255,255,255,.28)}
 #menu #startBtn:active{background:#b4211c}
 #menu #startBtn::before{content:''; position:absolute; left:0; top:0; bottom:0; width:12px; background:repeating-conic-gradient(#fff 0 25%,#16171b 0 50%) 0 0/12px 12px}
 #menu #startBtn::after{content:''; position:absolute; right:22px; top:50%; width:11px; height:11px; margin-top:-7px; border:solid #fff; border-width:3px 3px 0 0; transform:rotate(45deg)}
-#menu #startBtn .keyOnly{font-weight:600; font-size:15px; opacity:.8}
-@container (max-height:380px){   /* 360-380 px tall phones: the five rows still fit without scrolling */
-  #mHomeL .lgE{font-size:32px} #mHomeL h1,body.touch #mHomeL h1{margin:2px 0 8px} #menu .mItem{min-height:42px}
+#menu #startBtn .keyOnly{font-weight:600; font-size:14px; opacity:.8}
+@container (max-height:380px){   /* 360-380 px tall phones: logo and five rows without scrolling */
+  #mHomeL{padding-top:max(12px,var(--sat))} #mHomeL .lgE{font-size:27px} #menu .mItem{min-height:46px} .mItem .mTx span{font-size:15.5px} #menu #startBtn{min-height:54px} #mHomeR{padding-bottom:max(12px,var(--sab))}
 }
+@container (max-width:700px){ #mHomeL{flex-basis:50%} #mHomeR{flex-basis:290px} #menu #mMode{width:190px} }
 @container (min-height:560px){
-  #mHomeL .lgE{font-size:56px} #mHomeL h1::after{transform:scale(1.25); transform-origin:left center} #mHomeL .lgK{font-size:15px}
-  #mHomeL h1,body.touch #mHomeL h1{margin:18px 0 22px}
-  #mList{margin-top:20px} #menu .mItem{min-height:64px} .mItem b{font-size:20px} .mItem span{font-size:15.5px}
-  #menu #startBtn{min-height:72px; font-size:24px}
+  #mHomeL .lgE{font-size:52px} #mHomeL h1::after{transform:scale(1.3); transform-origin:left center} #mHomeL .lgK{font-size:14px}
+  #menu .mItem{min-height:68px} .mItem .mTx b{font-size:13.5px} .mItem .mTx span{font-size:20px}
+  #menu #startBtn{min-height:74px; font-size:24px} #menu #mSec button{min-height:52px; font-size:16px} #mHomeR{flex-basis:440px}
 }
+/* the settings pages: one column of rows, centred on a wide screen, red group captions, hairlines between rows */
+#mPage{background:linear-gradient(180deg,#18191e,#111216)}
+#mPgH{border-bottom:1px solid rgba(255,255,255,.07)}
+#mPgT{font-size:19px; letter-spacing:.2px}
+.mPg{padding-left:max(24px,var(--sal),calc(50% - 420px)); padding-right:max(20px,var(--sar),calc(50% - 420px))}
+.mGrp{margin:20px 0 2px; font-size:12px; font-weight:700; letter-spacing:1.2px; color:#ff6a5f}
+.mRow{border-bottom:1px solid rgba(255,255,255,.06)}
+.mRow:last-child{border-bottom:0}
 /* 11-12 윤택님 「움직이는 애니메이션이었음 좋겠는데 처음 켰을 때 라이츠아웃 화면」: once a tab, at the start - the five start lights come on one by one and go out
    together (LIGHTS OUT), then the menu slides in; a tap skips it. Behind the menu the still 3D frame drifts slowly - a CSS zoom on the canvas: the scene is not drawn
    again, so the menu costs what it did (off on 부드럽게). Opacity and transform only (no repaint). None of it with reduced motion. */
@@ -6382,7 +6402,7 @@ const MPAGES={track:[[null,[['chBox','대회','서킷을 이어 달리며 순위
   race:[['레이스',[['modeSel','진행 방식'],['lapSel','랩 수'],['difSel','AI 난이도'],['scSel','스타트 타이어']]],['날씨와 시간',[['wxSel','날씨','변덕은 도중에 비가 와요'],['rainSel','비 강도','약한 비는 노면만 젖어 인터, 폭우는 풀웻'],['todSel','시간대']]],['규칙',[['fmlSel','포메이션 랩','출발 전에 한 바퀴 돌아요'],['incSel','사고와 세이프티카'],['dmgSel','차량 손상','보통: 내 차는 크게 부딪혀도 대부분 피트에서 고쳐요 · 리얼: 부러진 서스펜션·큰 충격·찢어진 사이드포드는 리타이어 · 끔: 손상 없음']]]],
   drive:[[null,[['skSel','실력'],['skNote'],['tutBtn']]],['조작',[['smSel','조향 방식'],['sensSel','조향 감도','1이 가장 부드러워요'],['pedSel','페달 위치','양쪽은 브레이크가 왼쪽이에요'],['agSel','가속'],['stSel','스타트','수동은 부정 출발을 판정해요']]],['보조',[['asSel','주행 보조','잠김과 스핀을 잡아줘요'],['basSel','브레이크 보조','너무 빠르면 대신 밟아요. 늦게 밟고 싶으면 끄세요'],['rlSel','레이싱 라인'],['aeroSel','직선 모드 날개']]]],
   set:[['그래픽',[['qSel','그래픽'],['aqSel','자동 화질 조절','프레임이 떨어지면 효과를 줄여요'],['crowdSel','관중 표시','끄면 조금 가벼워져요']]],['소리',[['sndPrev','엔진 소리'],['sndTune','소리 튜닝','모드와 울림을 귀로 맞춰요']]],['성능 측정',[['bvSel','측정 시점'],['bwSel','측정 날씨'],['benchBtn','자동 성능 측정','28개 서킷을 돌며 재요. 15~20분 걸리니 충전기에 꽂아 두세요']]],['도움말',[['touchHelp'],['mKeys']]]]};
-const MNAMES={track:'서킷',team:'팀',race:'레이스 설정',drive:'운전',set:'그래픽과 기타'};
+const MNAMES={track:'서킷',team:'내 팀',race:'레이스 설정',drive:'운전',set:'그래픽과 기타'};
 function mOpen(k){$('mHome').hidden=!!k;$('mPage').hidden=!k;for(const n in MPAGES){const on=n===k;$('mP_'+n).hidden=!on;if(on)$('mP_'+n).scrollTop=0;}if(k)$('mPgT').textContent=k==='track'&&mMode==='champ'?'대회와 서킷':MNAMES[k];}
 function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={easy:'AI 쉬움',normal:'AI 보통',hard:'AI 어려움'}[diff]||'',w=weather==='rain'?{light:'약한 비',heavy:'폭우'}[rainInt]||'비(랜덤)':{dry:'맑음',mixed:'변덕'}[weather]||'';
   set('mV_team',TEAMS[teamSel].name);set('mV_race',gameMode==='practice'?['연습 주행',w].join(', '):[(gameMode==='quali'?'예선 후 ':'')+laps+'랩',d,w].join(', '));
@@ -6390,9 +6410,11 @@ function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={ea
 (function menuBuild(){const card=document.querySelector('#menu .card'),h1=card.querySelector('h1'),st=$('startBtn'),help=card.querySelector('.keys');help.id='mKeys';
   const mk=(tag,id,par,cl)=>{const e=document.createElement(tag);if(id)e.id=id;if(cl)e.className=cl;if(par)par.appendChild(e);return e;};
   const old=[...card.children],home=mk('div','mHome'),L=mk('div','mHomeL',home),R=mk('div','mHomeR',home),page=mk('div','mPage');page.hidden=true;
-  L.appendChild(h1);const mm=mk('div','mMode',L,'seg');mm.innerHTML='<button type="button" data-v="normal">일반 모드</button><button type="button" data-v="champ">대회 모드</button>';
-  const list=mk('div','mList',L);for(const k in MNAMES){const b=mk('button',null,list,'mItem');b.type='button';b.innerHTML=`<b id="mN_${k}">${MNAMES[k]}</b><span id="${k==='track'?'bestMenu':'mV_'+k}"></span><i></i>`;b.onclick=()=>mOpen(k);}
-  R.appendChild(st);const hd=mk('div','mPgH',page),bk=mk('button','mBack',hd);bk.type='button';bk.setAttribute('aria-label','뒤로');bk.innerHTML='<i></i>';bk.onclick=()=>mOpen(null);mk('div','mPgT',hd);
+  L.appendChild(h1);const mm=mk('div','mMode',R,'seg');mm.innerHTML='<button type="button" data-v="normal">일반 모드</button><button type="button" data-v="champ">대회 모드</button>';
+  const list=mk('div','mList',L);for(const k in MNAMES){const b=mk('button',null,list,'mItem');b.type='button';b.innerHTML=`<span class="mTx"><b id="mN_${k}">${MNAMES[k]}</b><span id="${k==='track'?'bestMenu':'mV_'+k}"></span></span><i></i>`;b.onclick=()=>mOpen(k);}
+  {const act=mk('div','mAct',R),sec=mk('div','mSec',act),b1=mk('button','mTut',sec);b1.type='button';b1.textContent='튜토리얼';
+   b1.onclick=()=>tutStart();act.appendChild(st);}   /* 11-13: the tutorial from the home screen */
+  const hd=mk('div','mPgH',page),bk=mk('button','mBack',hd);bk.type='button';bk.setAttribute('aria-label','뒤로');bk.innerHTML='<i></i>';bk.onclick=()=>mOpen(null);mk('div','mPgT',hd);
   for(const k in MPAGES){const pg=mk('div','mP_'+k,page,'mPg');pg.hidden=true;
     for(const [grp,rows] of MPAGES[k]){if(grp)mk('p',null,pg,'mGrp').textContent=grp;
       for(const [id,lb,sm] of rows){const e=$(id);if(!e)continue;const w=e.closest('.touchOnly,.keyOnly'),box=e.parentElement.classList.contains('row2')?e.parentElement:e;
