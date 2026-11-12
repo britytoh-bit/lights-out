@@ -163,8 +163,8 @@ td:last-child{text-align:right}
 tr.me td{color:var(--yellow)}
 .row2{display:flex; gap:8px} .row2 button{flex:1; word-break:keep-all}   /* v12i: Korean labels wrap between words */
 #pause .row2{flex-wrap:wrap} #pause .row2 button{min-width:30%}   /* six buttons: three per line on a phone instead of six slivers */
-#loading{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#0e1116; font-size:18px; color:var(--dim)}
-#err{position:absolute; inset:0; display:none; align-items:center; justify-content:center; padding:24px; text-align:center; background:#0e1116}
+#loading{position:absolute; inset:0; z-index:39; display:flex; align-items:center; justify-content:center; background:#0e1116; font-size:18px; color:var(--dim)}
+#err{position:absolute; inset:0; z-index:60; display:none; align-items:center; justify-content:center; padding:24px; text-align:center; background:#0e1116}
 #touch{position:absolute; left:0; right:0; bottom:0; display:none; justify-content:space-between; padding:0 12px 12px; pointer-events:none}
 #touch .grp{display:flex; gap:10px; pointer-events:auto}
 #touch button{width:66px; height:66px; border-radius:50%; background:rgba(20,22,26,.7); font-size:22px; touch-action:none}
@@ -545,12 +545,14 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
 #intro .inL{display:flex; gap:16px; padding:16px 20px; border-radius:16px; background:#121317; box-shadow:inset 0 0 0 2px #25272d,0 12px 40px rgba(0,0,0,.6)}
 #intro .inL i{position:relative; width:38px; height:38px; border-radius:50%; background:#2b1311; box-shadow:inset 0 0 0 3px #3b1b18}
 #intro .inL i::after{content:''; position:absolute; inset:0; border-radius:50%; background:radial-gradient(circle at 40% 36%,#ff8f85 0,#ff3b30 45%,#c41d14 100%); box-shadow:0 0 22px 6px rgba(255,45,30,.55); opacity:0}
-#intro.go .inL i::after{animation:inOn .08s .2s linear forwards,inOff .06s 1.75s linear forwards}
-#intro.go .inL i:nth-child(2)::after{animation-delay:.48s,1.75s} #intro.go .inL i:nth-child(3)::after{animation-delay:.76s,1.75s}
-#intro.go .inL i:nth-child(4)::after{animation-delay:1.04s,1.75s} #intro.go .inL i:nth-child(5)::after{animation-delay:1.32s,1.75s}
+#intro.go .inL i::after{animation:inOn .08s .2s linear forwards}
+#intro.go .inL i:nth-child(2)::after{animation-delay:.48s} #intro.go .inL i:nth-child(3)::after{animation-delay:.76s}
+#intro.go .inL i:nth-child(4)::after{animation-delay:1.04s} #intro.go .inL i:nth-child(5)::after{animation:none}
+#intro.go.rdy .inL i:nth-child(5)::after{animation:inOn .08s linear forwards}
+#intro.go.out .inL i:nth-child(n)::after{animation:inOff .06s linear forwards}
 #intro .inT{font-family:"Saira Condensed","Arial Narrow",sans-serif; font-weight:800; font-style:italic; font-size:54px; line-height:1; letter-spacing:1px; color:#fff; opacity:0}
-#intro.go .inT{animation:inTxt .4s 1.75s cubic-bezier(.2,.8,.2,1) forwards}
-#intro.go{animation:inFade .45s 2.05s ease-in forwards}
+#intro.go.out .inT{animation:inTxt .4s cubic-bezier(.2,.8,.2,1) forwards}
+#intro.go.out{animation:inFade .45s .3s ease-in forwards}
 @container (min-height:560px){#intro .inL{gap:22px; padding:20px 26px} #intro .inL i{width:54px; height:54px} #intro .inT{font-size:78px}}
 @keyframes inOn{to{opacity:1}} @keyframes inOff{from{opacity:1} to{opacity:0}}
 @keyframes inTxt{from{opacity:0; transform:scale(.86)} to{opacity:1; transform:none}}
@@ -2999,7 +3001,7 @@ function mkCanvas(w,h){const c=document.createElement('canvas');c.width=w;c.heig
 function texFrom(c,rep,linear){const t=new THREE.CanvasTexture(c);if(!linear)t.encoding=THREE.sRGBEncoding;if(rep){t.wrapS=t.wrapT=THREE.RepeatWrapping;}t.anisotropy=8;return t;}
 function hash2(x,y,s){let h=(x*374761393+y*668265263+s*1442695041)|0;h=(h^(h>>>13))*1274126177|0;return ((h^(h>>>16))>>>0)/4294967296;}
 function vnoise(x,y,per,s){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
-  const m=(a)=>((a%per)+per)%per,a=hash2(m(xi),m(yi),s),b=hash2(m(xi+1),m(yi),s),c=hash2(m(xi),m(yi+1),s),d=hash2(m(xi+1),m(yi+1),s);
+  const x0=((xi%per)+per)%per,x1=(((xi+1)%per)+per)%per,y0=((yi%per)+per)%per,y1=(((yi+1)%per)+per)%per,a=hash2(x0,y0,s),b=hash2(x1,y0,s),c=hash2(x0,y1,s),d=hash2(x1,y1,s);   // 11-13: no closure per call (boot spent most of its time here)
   return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;}
 function fbm(x,y,per,oct,s){let f=0,amp=0.5,fr=1;for(let o=0;o<oct;o++){f+=amp*vnoise(x*fr,y*fr,per*fr,s+o*17);amp*=0.5;fr*=2;}return f;}
 function pixTex(w,h,fn,rep,linear){const c=mkCanvas(w,h),g=c.getContext('2d'),im=g.createImageData(w,h),d=im.data;
@@ -3332,10 +3334,10 @@ function buildWorld(scene,renderer,opt){
        }`});
    const m=new THREE.Mesh(new THREE.SphereGeometry(1900,40,20,0,Math.PI*2,0,Math.PI/2),mat);m.position.set(cx,0,cz);m.renderOrder=-2;scene.add(m);W.clouds=mat;W.cover0=mat.uniforms.cover.value;}
   // distant mountain ranges (panoramic backdrop)
-  {const ring=(W2,H2,seed,base,amp,colTop,colBot,haze)=>pixTex(W2,H2,(x,y)=>{
-      const u=x/W2,h=base+amp*(0.55*fbm(u*6,seed,6,5,seed)+0.45*Math.pow(fbm(u*22,seed+3,22,4,seed+9),1.6)),yy=1-y/H2;
+  {const ring=(W2,H2,seed,base,amp,colTop,colBot,haze)=>{const hc=new Float64Array(W2).fill(NaN);return pixTex(W2,H2,(x,y)=>{   // 11-13: the ridge height depends on x only - once per column, not per pixel (the same picture, ~9 of 12 noise calls a pixel saved)
+      const u=x/W2;let h=hc[x];if(h!==h)h=hc[x]=base+amp*(0.55*fbm(u*6,seed,6,5,seed)+0.45*Math.pow(fbm(u*22,seed+3,22,4,seed+9),1.6));const yy=1-y/H2;
       if(yy>h)return [0,0,0,0];const d=(h-yy)/Math.max(0.05,h),n=fbm(u*60,yy*8,60,3,seed+5);
-      const c=[0,1,2].map(k=>colTop[k]*(1-d)+colBot[k]*d+(n-0.5)*18);const e=Math.min(1,(h-yy)*H2/3);return [clamp8(c[0]),clamp8(c[1]),clamp8(c[2]),clamp8(255*e*haze)];},false);
+      const c=[0,1,2].map(k=>colTop[k]*(1-d)+colBot[k]*d+(n-0.5)*18);const e=Math.min(1,(h-yy)*H2/3);return [clamp8(c[0]),clamp8(c[1]),clamp8(c[2]),clamp8(255*e*haze)];},false);};
    const mk=(tex,r,h,y)=>{tex.wrapS=THREE.RepeatWrapping;const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,96,1,true),new THREE.MeshBasicMaterial({map:tex,transparent:true,side:THREE.BackSide,fog:false,depthWrite:false}));m.position.set(cx,y,cz);m.renderOrder=-1;scene.add(m);W.far.push(m.material);};
    if(TH==='forest'){mk(ring(2048,256,11,0.5,0.5,SS?[190,160,170]:[235,240,248],SS?[120,100,120]:[110,130,150],1),2400,700,300);mk(ring(2048,256,23,0.2,0.45,[40,60,50],[80,100,95],1),2200,380,150);}
    else if(TH==='desert'){mk(ring(2048,256,11,0.28,0.4,SS?[190,120,90]:[200,140,100],SS?[220,170,140]:[225,190,160],1),2500,380,140);mk(ring(2048,256,23,0.1,0.25,[160,95,60],[200,150,110],1),2350,220,80);}
@@ -8385,22 +8387,36 @@ function menuShot(pl){const t=T[pl.idx],s=pl.lat>=0?1:-1;let r0=null;
     if(Math.abs(lat)<TR.HW[pl.idx]-0.5&&race.cars.every(c=>c===pl||c.gone||Math.hypot(c.x-x,c.z-z)>4))return r;}
   return r0;}
 // 11-12 윤택님 「처음 켰을 때 라이츠아웃 화면 움직이는 애니메이션」 (CSS #intro): once a tab - a track change reloads the page, not again then; not for the tutorial
-// circuit or a performance test. Ends with its fade (animationend), a tap, or after 6 s whatever happens.
-function menuIntro(){const el=$('intro');let seen=false,rm=false;try{seen=!!sessionStorage.getItem('lightsout3d-intro');}catch(e){}try{rm=matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
-  if(!el||seen||rm||state!=='menu'||loadLS('lightsout3d-tutgo')==='1'||benchLoad())return;try{sessionStorage.setItem('lightsout3d-intro','1');}catch(e){}
-  const enter=()=>{const m=$('menu');if(m.classList.contains('mEnter'))return;m.classList.add('mEnter');setTimeout(()=>m.classList.remove('mEnter'),1300);},   // the menu slides in under the fade
-    end=()=>{if(el.hidden)return;el.hidden=true;el.classList.remove('go');enter();};
-  el.hidden=false;el.classList.add('go');el.addEventListener('animationstart',e=>{if(e.animationName==='inFade')enter();});el.addEventListener('animationend',e=>{if(e.animationName==='inFade')end();});el.addEventListener('click',end);   /* (a click, not pointerdown: the tap must not land on the menu underneath) */setTimeout(end,6000);}
+// circuit or a performance test.
+// 11-13 윤택님 「실행할때 렉도걸리고」: the intro is now the loading screen. It starts before the world is built; four lights come on (CSS, they keep going
+// while the page is busy), the fifth once the menu is ready (bootReveal), then all out - LIGHTS OUT - and the menu. It used to start after the build, on top
+// of the first frames, the car model arriving and the photos: 2-5 s of stalls on a phone right while it played. A tap shortens the wait at the end.
+let INTRO=null;
+function introStart(){const el=$('intro');let seen=false,rm=false;try{seen=!!sessionStorage.getItem('lightsout3d-intro');}catch(e){}try{rm=matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
+  if(!el||seen||rm||loadLS('lightsout3d-tutgo')==='1'||benchLoad())return;try{sessionStorage.setItem('lightsout3d-intro','1');}catch(e){}
+  const I=INTRO={t0:performance.now()},enter=()=>{const m=$('menu');if(state!=='menu'||m.classList.contains('mEnter'))return;m.classList.add('mEnter');setTimeout(()=>m.classList.remove('mEnter'),1300);},   // the menu slides in under the fade
+    end=()=>{if(el.hidden)return;el.hidden=true;el.className='';INTRO=null;enter();};
+  I.out=()=>{if(I.o)return;I.o=1;el.classList.add('rdy');setTimeout(()=>el.classList.add('out'),I.skip?150:520);};   // the fifth light, a moment held, all out
+  I.ready=()=>{if(I.r)return;I.r=1;setTimeout(I.out,I.skip?0:Math.max(0,1400-(performance.now()-I.t0)));};   // (never before the fourth light)
+  el.hidden=false;el.classList.add('go');el.addEventListener('animationstart',e=>{if(e.animationName==='inFade')enter();});el.addEventListener('animationend',e=>{if(e.animationName==='inFade')end();});
+  el.addEventListener('click',()=>{I.skip=true;if(I.r)end();});   /* (a click, not pointerdown: the tap must not land on the menu underneath) */setTimeout(end,60000);}
+// the menu is shown when the car model is in (its arrival rebuilt all 22 cars on the open menu: a 0.5-1 s stall under a finger), the photo textures have
+// loaded and three frames are drawn (the shaders compiled). At most 7 s, then as before.
+function bootReveal(){const t0=performance.now(),left=()=>Math.max(0,7000-(performance.now()-t0));let d=false;
+  const done=()=>{if(d)return;d=true;if(state==='menu')$('loading').style.display='none';if(INTRO)INTRO.ready();},
+    wait=()=>{if(!left())return done();if(THREE.GLTFLoader&&!window.__CARGLB)return setTimeout(wait,100);
+      Promise.race([Promise.allSettled(Object.values(TEXC)),new Promise(r=>setTimeout(r,left()))]).then(()=>requestAnimationFrame(()=>requestAnimationFrame(()=>requestAnimationFrame(done))));};
+  wait();setTimeout(done,left()+500);}
 function boot(){
   try{initWorld();}catch(e){console.error(e);$('err').style.display='flex';}
-  setupRace();updateMenuBest();state='menu';document.body.classList.add('inmenu');$('menu').hidden=false;$('loading').style.display='none';$('fpsBox').hidden=!FPSON;
+  setupRace();updateMenuBest();state='menu';document.body.classList.add('inmenu');$('menu').hidden=false;$('fpsBox').hidden=!FPSON;
   if(benchLoad())whenCar(benchBoot);else benchBoot();
-  menuIntro();
+  bootReveal();
   if(loadLS('lightsout3d-tutgo')==='1'){saveLS('lightsout3d-tutgo','');saveLS('lightsout3d-skill',loadLS('lightsout3d-skill')||'seen');tutStart();}   // 10-31: the tutorial circuit has loaded
   else if(!loadLS('lightsout3d-skill')){$('menu').hidden=true;$('skill').hidden=false;}   // first launch: pick a skill level once
   requestAnimationFrame(frame);
 }
-if(!window.__NOBOOT){const go=()=>{if(!go.d){go.d=1;setTimeout(boot,30);}};try{document.fonts.load('800 40px "Saira Condensed"').then(go,go);}catch(e){go();}setTimeout(go,2000);}
+if(!window.__NOBOOT){introStart();const go=()=>{if(!go.d){go.d=1;setTimeout(boot,60);}};try{document.fonts.load('800 40px "Saira Condensed"').then(go,go);}catch(e){go();}setTimeout(go,2000);}
 </script>
 <script>
 /* installed web app: offline cache and automatic updates (sw.js). A new version is applied while the menu is showing, never during a race. */
