@@ -44,7 +44,7 @@ body{height:100%; margin:0; background:var(--bg); color:var(--ink); overflow:hid
   -webkit-user-select:none; user-select:none; touch-action:none;
   -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent}
 #wrap{position:relative; width:100%; height:100%; container-type:size}   /* 11-01: the size rules below ask #wrap (@container), not the window - turned sideways (body.rot) the window is upright but #wrap is landscape */
-body.rot{--sat:env(safe-area-inset-right,0px); --sar:env(safe-area-inset-bottom,0px); --sab:env(safe-area-inset-left,0px); --sal:env(safe-area-inset-top,0px)}   /* turned: the screen's top (notch) is #wrap's left */
+body.rot{--sat:env(safe-area-inset-right,0px); --sar:env(safe-area-inset-bottom,0px); --sab:env(safe-area-inset-left,0px); --sal:env(safe-area-inset-top,0px)} body.rotL{--sat:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-right,0px); --sal:env(safe-area-inset-bottom,0px)}   /* turned: the screen's top (notch) is #wrap's left */
 #gl{position:absolute; inset:0; width:100%; height:100%; display:block}
 #rotHint{display:none; position:fixed; inset:0; z-index:100; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:24px; background:#16171b; color:#f2f3f5; text-align:center}
 body.portHint #rotHint{display:flex}
@@ -5835,9 +5835,18 @@ if(isTouch)document.body.classList.add('touch');
 // 11-04 윤택님: sideways only by the phone's own screen rotation. The page is no longer turned 90 deg when the window is upright (ROT stays false);
 // held upright it asks to turn the phone. Layout code works in #wrap's coordinates: VW() x VH() is its size, bcr() a box in it, ptX() a finger's x along it.
 // 11-04: the window size is read once, not on every use (reading innerWidth after the HUD changed forces a layout: 0.2-0.4 ms a frame on this laptop, more on a phone)
-let mDraw=40,ROT=false,WINW=innerWidth,WINH=innerHeight;const VW=()=>ROT?WINH:WINW,VH=()=>ROT?WINW:WINH,ptX=e=>ROT?e.clientY:e.clientX;
-function bcr(e){const r=e.getBoundingClientRect();if(!ROT)return r;const W=innerWidth;return {left:r.top,right:r.bottom,top:W-r.right,bottom:W-r.left,x:r.top,y:W-r.right,width:r.height,height:r.width};}
-function applyRot(){document.body.classList.toggle('portHint',isTouch&&innerHeight>innerWidth);if(!$('pause').hidden)$('resumeBtn').scrollIntoView({block:'nearest'});}
+// 11-13 윤택님 「기울기 하다가 화면 회전 돌아가는 경우 있음 … 화면 회전 고정」: in a race with tilt steering, a window that turns upright (iOS has no
+// orientation lock; Android when the lock was refused) no longer pauses the race - #wrap is turned back by the same 90 deg (ROT = +90 / -90, from the
+// landscape angle seen last), so the picture stays where it was on the glass. The tilt angle is read in the phone's own frame, so the steering is unchanged.
+// Anywhere else (menu, pause, drag / button steering) it is as before: the 'turn your phone' panel.
+let mDraw=40,ROT=0,ROT_LA=90,WINW=innerWidth,WINH=innerHeight;const VW=()=>ROT?WINH:WINW,VH=()=>ROT?WINW:WINH,ptX=e=>ROT>0?e.clientY:ROT<0?innerHeight-e.clientY:e.clientX,ptY=e=>ROT>0?innerWidth-e.clientX:ROT<0?e.clientX:e.clientY;
+function bcr(e){const r=e.getBoundingClientRect();if(!ROT)return r;if(ROT<0){const H=innerHeight;return {left:H-r.bottom,right:H-r.top,top:r.left,bottom:r.right,x:H-r.bottom,y:r.left,width:r.height,height:r.width};}const W=innerWidth;return {left:r.top,right:r.bottom,top:W-r.right,bottom:W-r.left,x:r.top,y:W-r.right,width:r.height,height:r.width};}
+function scrAng(){const o=window.orientation;return o!=null&&isFinite(+o)?+o:screen.orientation&&isFinite(screen.orientation.angle)?screen.orientation.angle:0;}
+function rotWant(){if(!isTouch||!(innerHeight>innerWidth))return 0;let ok=false;try{ok=steerMode==='tilt'&&(state==='race'||state==='countdown');}catch(e){}if(!ok)return 0;const d=((ROT_LA-scrAng())%360+540)%360-180;return d===90||d===-90?d:0;}
+function applyRot(){if(!(innerHeight>innerWidth)){const a=scrAng();if(a%180)ROT_LA=a;}ROT=rotWant();const B=document.body.classList,W=innerWidth,H=innerHeight;
+  B.toggle('rot',ROT>0);B.toggle('rotL',ROT<0);B.toggle('portHint',isTouch&&H>W&&!ROT);
+  $('wrap').style.cssText=!ROT?'':'position:fixed;left:0;top:0;width:'+H+'px;height:'+W+'px;transform-origin:0 0;transform:'+(ROT>0?'translateX('+W+'px) rotate(90deg)':'translateY('+H+'px) rotate(-90deg)');
+  if(!$('pause').hidden)$('resumeBtn').scrollIntoView({block:'nearest'});}
 applyRot();
 let quality=loadLS('lightsout3d-q2')||'medium';if(!['high','medium','low'].includes(quality))quality='medium';document.body.classList.add('q-'+quality);let tod=loadLS('lightsout3d-tod')||'day';
 let sens=parseInt(loadLS('lightsout3d-sens'),10)||2;
@@ -6380,7 +6389,7 @@ function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={ea
         const r=mk('div',null,pg,'mRow');if(w)r.classList.add(w.classList.contains('touchOnly')?'touchOnly':'keyOnly');const l=mk('div',null,r,'mL');mk('b',null,l).textContent=lb;if(sm)mk('small',null,l).textContent=sm;mk('div',null,r,'mC').appendChild(box);}}}
   old.forEach(e=>{if(e.parentElement===card)e.remove();});card.appendChild(home);card.appendChild(page);$('menu').addEventListener('click',()=>setTimeout(menuSum,0));})();
 // 11-04 the menu scrolls by hand: turned sideways (rotation lock on) the whole page is rotated and a browser's own touch scrolling did not move at all (0 px on a 140 px drag).
-{const SEL='.mPg,#mHomeL,.overlay:not(#menu)>.card,.lecard,#engTune .etB',Y=e=>ROT?-e.clientX:e.clientY;let S=null,raf=0,dragged=false;
+{const SEL='.mPg,#mHomeL,.overlay:not(#menu)>.card,.lecard,#engTune .etB',Y=e=>ROT>0?-e.clientX:ROT<0?e.clientX:e.clientY;let S=null,raf=0,dragged=false;
  const fling=(el,v)=>{let t0=performance.now();const go=now=>{const dt=now-t0;t0=now;const top=el.scrollTop;el.scrollTop=top-v*dt;v*=Math.exp(-dt/380);raf=Math.abs(v)>0.02&&el.scrollTop!==top?requestAnimationFrame(go):0;};raf=requestAnimationFrame(go);};
  let tapB=null,noClick=0;
  document.addEventListener('pointerdown',e=>{if(!isTouch)return;cancelAnimationFrame(raf);raf=0;dragged=false;tapB=e.target.closest&&e.target.closest('.overlay button,#livEd button,#engTune button');const t=e.target.closest&&!e.target.closest('.etS')&&e.target.closest(SEL);S=t&&t.scrollHeight>t.clientHeight+1?{el:t,id:e.pointerId,y0:Y(e),top:t.scrollTop,ly:Y(e),lt:e.timeStamp,v:0,drag:false}:null;},true);
@@ -6638,9 +6647,11 @@ function lockLandscape(tries){tries=tries||0;
   }catch(e){}
   // 전체화면이 붙은 뒤에야 잠금이 먹는 기기가 있어 조금 기다렸다 건다. 몇 번 더 시도한다.
   setTimeout(()=>{try{
-    if(screen.orientation&&screen.orientation.lock)
-      screen.orientation.lock('landscape').catch(()=>{if(tries<3)lockLandscape(tries+1);});
+    if(screen.orientation&&screen.orientation.lock){const ty=screen.orientation.type||'';
+      screen.orientation.lock(/^landscape-/.test(ty)?ty:'landscape').catch(()=>{if(tries<3)lockLandscape(tries+1);});}
   }catch(e){}},tries?600:250);}
+// 11-13: a lock goes with fullscreen (Android drops both when the app is left) - again at the first tap of a race after that
+document.addEventListener('pointerdown',()=>{if(isTouch&&!document.fullscreenElement&&document.documentElement.requestFullscreen&&document.body.classList.contains('racing'))lockLandscape(3);},true);
 let motionOn=false;
 async function enableTilt(){if(motionOn)return true;try{if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){const r=await DeviceMotionEvent.requestPermission();if(r!=='granted')return false;}
   window.addEventListener('devicemotion',onMotion);motionOn=true;return true;}catch(e){return false;}}
@@ -6696,16 +6707,16 @@ let tapGas=false,tapBrk=false,pedLast=null;   // 11-01: set on press, cleared by
  // on the glass doing nothing. Whatever lands in a pedal's zone presses it at once: the gas zone runs to the screen's right and bottom edges (the safe area beside it was dead), the brake's
  // down to the bottom edge and well past its sides. Buttons and the steering pad keep their own touches; the nearest pedal wins where zones meet.
  const EX='button,.overlay,#steerPad,#tut,#benchBar,#livEd';let Z=[];
- const zones=()=>{Z=[];for(const k in P){const r=P[k].getBoundingClientRect();if(!r.width)continue;Z.push({k,r,l:r.left-(k==='gas'?20:60),t:r.top-80,R:k==='gas'?1e5:r.right+90,B:1e5});}};
+ const zones=()=>{Z=[];for(const k in P){const r=bcr(P[k]);if(!r.width)continue;Z.push({k,r,l:r.left-(k==='gas'?20:60),t:r.top-80,R:k==='gas'?1e5:r.right+90,B:1e5});}};
  const zoneAt=(x,y)=>{let k0=null,d0=1e9;for(const z of Z){if(x<z.l||x>z.R||y<z.t||y>z.B)continue;const d=Math.hypot(Math.max(z.r.left-x,0,x-z.r.right),Math.max(z.r.top-y,0,y-z.r.bottom));if(d<d0){d0=d;k0=z.k;}}return k0;};
  const purge=e=>{for(const id of [...on.keys()]){let live=false;for(const t of e.touches)if(t.identifier===id){live=true;break;}if(!live)on.delete(id);}};
- document.addEventListener('pointerdown',e=>{if(!isTouch||(state!=='race'&&state!=='countdown'))return;const t=e.target;if(!t.closest||t.closest(EX))return;zones();if(zoneAt(e.clientX,e.clientY)){e.preventDefault();e.stopPropagation();}},true);   // (the steering zone under a pedal's zone must not take this finger)
+ document.addEventListener('pointerdown',e=>{if(!isTouch||(state!=='race'&&state!=='countdown'))return;const t=e.target;if(!t.closest||t.closest(EX))return;zones();if(zoneAt(ptX(e),ptY(e))){e.preventDefault();e.stopPropagation();}},true);   // (the steering zone under a pedal's zone must not take this finger)
  document.addEventListener('touchstart',e=>{if(!isTouch||(state!=='race'&&state!=='countdown'))return;zones();
    for(const t of e.changedTouches){const el=t.target,pe=el.closest&&el.closest('.pedal');let k=pe?(pe===P.gas?'gas':'brake'):null;
-     if(!k){if(!el.closest||el.closest(EX)){on.set(t.identifier,'no');continue;}k=zoneAt(t.clientX,t.clientY);if(!k){on.set(t.identifier,el.closest('#steerZone')?'no':'free');continue;}}
+     if(!k){if(!el.closest||el.closest(EX)){on.set(t.identifier,'no');continue;}k=zoneAt(ptX(t),ptY(t));if(!k){on.set(t.identifier,el.closest('#steerZone')?'no':'free');continue;}}
      on.set(t.identifier,k);pedLast=k;}
    purge(e);sync();},{capture:true,passive:true});
- document.addEventListener('touchmove',e=>{if(!on.size)return;let ch=false;for(const t of e.changedTouches){const o=on.get(t.identifier);if(!o||o==='no')continue;const n=zoneAt(t.clientX,t.clientY);if(n&&n!==o){on.set(t.identifier,n);pedLast=n;ch=true;}}if(ch)sync();},{capture:true,passive:true});
+ document.addEventListener('touchmove',e=>{if(!on.size)return;let ch=false;for(const t of e.changedTouches){const o=on.get(t.identifier);if(!o||o==='no')continue;const n=zoneAt(ptX(t),ptY(t));if(n&&n!==o){on.set(t.identifier,n);pedLast=n;ch=true;}}if(ch)sync();},{capture:true,passive:true});
  const end=e=>{for(const t of e.changedTouches)on.delete(t.identifier);purge(e);sync();};document.addEventListener('touchend',end,{capture:true,passive:true});document.addEventListener('touchcancel',end,{capture:true,passive:true});}
 const BRKP=document.querySelector('.pedal.brk');
 holdBtn($('mErs'),()=>touchErs=true,()=>touchErs=false);
@@ -8327,7 +8338,7 @@ function vsTick(now){const d=now-VS.lastV;VS.lastV=now;if(!(d>0&&d<100))return;V
   if(VS.i%120===0){const s=Array.from(VS.a).sort((x,y)=>x-y),p=s[12];VS.hz=Math.max(VS.hz,p<9.5?120:p<12.5?90:60);}}   // 10-30: the screen's rate only goes up - a heavy stretch (frames of 17 ms+) used to make a 120 Hz screen read "60Hz"
 function frame(now){
   vsTick(now);if(PERF.lock60&&now-last<12.5){requestAnimationFrame(frame);return;}   // locked: skip the in-between refresh
-  const raw=(now-last)/1000,dt=Math.min(1/30,Math.max(0,raw));last=now;fpsTick(raw);if((frame.n=(frame.n||0)+1)%30===0&&(innerWidth!==resize.w||innerHeight!==resize.h))resize();if(isTouch&&WINH>WINW&&(state==='race'||state==='countdown'))setPause(true);   // turned upright mid-race: it waits
+  const raw=(now-last)/1000,dt=Math.min(1/30,Math.max(0,raw));last=now;fpsTick(raw);if((frame.n=(frame.n||0)+1)%30===0&&(innerWidth!==resize.w||innerHeight!==resize.h||isTouch&&rotWant()!==ROT))resize();if(isTouch&&WINH>WINW&&!ROT&&(state==='race'||state==='countdown'))setPause(true);   // turned upright mid-race: it waits
   if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').style.opacity=0;}
   if(flagPulse>0)flagPulse-=dt;
   if(BENCH)benchStep(raw,dt);
