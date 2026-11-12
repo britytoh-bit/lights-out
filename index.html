@@ -1980,12 +1980,14 @@ function escStopU(e){if(e.uS==null){let u=0;   // how far along it a car may sto
   else{const out=(x,z)=>{let b=1e18,bi=e.i0;for(let k=-30;k<=e.n+30;k++){const i=wrap(e.i0+k),d=(P[i][0]-x)**2+(P[i][1]-z)**2;if(d<b){b=d;bi=i;}}const t=T[bi],o=(x-P[bi][0])*-t[1]+(z-P[bi][1])*t[0];return Math.abs(o)>sideLimit(bi,o>=0?1:-1)-1.1;};
     while(u+2<=e.len-8&&!out(...escAt(e,u+2,-e.wl+1)))u+=2;u-=ESC_AI.m;}
   e.uS=Math.max(0,u);}return e.uS;}
-function escStart(race,c,e,g){const vE=e.open?ESC_AI.vo:ESC_AI.vb,u=escUV(e,c.x,c.z)[0],D=escStopU(e)-u,A=brakeAcc(0,g),B=(brakeAcc(10,g)-A)/100,R=(A+B*c.spd*c.spd)/(A+B*vE*vE);
+// 11-13 (rain: AI cars down the escape roads too often): an escape road is a mistake, not a habit - once a race per car (it was up to twice in 6 laps at Baku),
+// and the wet no longer adds to it: the off-road roll (aiOffRoll) is 1+1.5 wet times as likely in the rain, so only 1/(1+1.5 wet) of its lock-ups take the road (the v12h one already divides)
+function escStart(race,c,e,g){if(c.escN)return false;const vE=e.open?ESC_AI.vo:ESC_AI.vb,u=escUV(e,c.x,c.z)[0],D=escStopU(e)-u,A=brakeAcc(0,g),B=(brakeAcc(10,g)-A)/100,R=(A+B*c.spd*c.spd)/(A+B*vE*vE);
   if(D<=0||R<=1)return false;const f=Math.log(R)/(2*B*D);if(f>ESC_AI.f1)return false;   // (it could no longer stop in time: the old ways)
   for(const o of race.cars){if(o===c||o.gone||o.pit||o.dnf)continue;const d=gapTo(c,o)*STEP;if(d>-4&&d<50)return false;}   // only with no car alongside or close ahead (going straight on it hit the cars turning in: Baku T1, lap 1)
   const fk=e.open?f:Math.max(f,ESC_AI.f0);c.ofs={k:'esc',e,sd:e.sd,ph:'go',t:race.t,t0:race.t,vE,A,B,f:fk,uS:u+Math.log(R)/(2*B*fk)};
   c.aiLk=Math.max(c.aiLk||0,0.6+c.rnd()*0.4);const t0=T[c.idx],t1=T[wrap(c.idx+25)];c.aiLkW=(t0[0]*t1[1]-t0[1]*t1[0])>0?1:0;
-  c.errN++;c.ofN=(c.ofN||0)+1;race.EV.push({type:'aiOffE',code:c.code});return true;}
+  c.errN++;c.ofN=(c.ofN||0)+1;c.escN=(c.escN||0)+1;race.EV.push({type:'aiOffE',code:c.code});return true;}
 // its speed: down the road the plan's braking (exact for brakeAcc = A + B v^2) to vE at uS, never faster than it is going; turning round: walking pace
 function escTgt(c,tgt){const o=c.ofs,e=o.e,u=escUV(e,c.x,c.z)[0];
   if(o.ph==='go'||Math.cos(c.a)*e.ux+Math.sin(c.a)*e.uz>0.7&&u<o.uS)tgt=Math.min(o.ph==='go'?c.spd:tgt,Math.sqrt(Math.max(0,((o.A+o.B*o.vE*o.vE)*Math.exp(2*o.f*o.B*Math.max(0,o.uS-u))-o.A)/o.B)));
@@ -1995,7 +1997,7 @@ function aiOffRoll(race,c,K,press,gU){const wr=(c.ty.wear[0]+c.ty.wear[1]+c.ty.w
   const p=K.off*(1.6-c.ps.cons)*(1+2*wr*wr)*(1+1.5*wet)*(press?1.5:1)*(c.passO!=null||c.defHold>race.t?1.6:1);if(c.rnd()>=p)return false;
   const sd=-cornerSide(c.idx),i0=wrap(c.idx+Math.round(NEXTC[c.idx]/STEP));let room=1e9;for(let k=0;k<50;k+=5){const i=wrap(i0+k);room=Math.min(room,sideLimit(i,sd)-TR.HW[i]);}const big=c.spd>profAtRL(i0,gU)+15;   // big: a real stop (over 54 km/h off)
   let behind=1e9;for(const o of race.cars){if(o===c||o.gone||o.pit)continue;const d=gapTo(c,o)*STEP;if(d<0)behind=Math.min(behind,-d);}
-  const q=c.rnd();let k=q>0.96?'spin':big?(q<0.65?'lock':null):q<0.4?'wide':null;if(!k)return false;   if(k==='lock'&&ESC.length){const e=escAhead(c,i0);if(e&&escStart(race,c,e,tyreGrip(c).brk))return true;}   if(k==='spin'&&(behind<120||STREET))k='wide';if(k!=='wide'&&room<8)k='wide';if(room<2.6)return false;   // a big stop: mostly a lock-up; otherwise two wheels off now and then. 11-11: these three rules sat inside this comment since 11-07 (e56b894) - spins with a car close behind or on a street circuit, lock-ups into short run-offs and excursions with no room at all
+  const q=c.rnd();let k=q>0.96?'spin':big?(q<0.65?'lock':null):q<0.4?'wide':null;if(!k)return false;   if(k==='lock'&&ESC.length&&c.rnd()<1/(1+1.5*wet)){const e=escAhead(c,i0);if(e&&escStart(race,c,e,tyreGrip(c).brk))return true;}   if(k==='spin'&&(behind<120||STREET))k='wide';if(k!=='wide'&&room<8)k='wide';if(room<2.6)return false;   // a big stop: mostly a lock-up; otherwise two wheels off now and then. 11-11: these three rules sat inside this comment since 11-07 (e56b894) - spins with a car close behind or on a street circuit, lock-ups into short run-offs and excursions with no room at all
   c.ofs={k,sd,ph:k==='lock'?'go':'pre',t:race.t,t0:race.t,inC:false,L:k==='wide'?0.5+0.5*c.rnd():Math.min(room-5.5,2.5+c.rnd()*4)};
   if(k==='lock'){c.aiLk=0.6+c.rnd()*0.4;const t0=T[c.idx],t1=T[wrap(c.idx+25)];c.aiLkW=(t0[0]*t1[1]-t0[1]*t1[0])>0?1:0;}
   c.errN++;c.ofN=(c.ofN||0)+1;race.EV.push({type:k==='lock'?'aiOffL':k==='wide'?'aiOffW':'aiOffS',code:c.code});return true;}
