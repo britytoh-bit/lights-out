@@ -557,6 +557,49 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
 .mGrp{margin:20px 0 2px; font-size:12px; font-weight:700; letter-spacing:1.2px; color:#ff6a5f}
 .mRow{border-bottom:1px solid rgba(255,255,255,.06)}
 .mRow:last-child{border-bottom:0}
+/* 11-13 윤택님 「듀토리얼 더 상세하게」: the rules guide - one topic a page with a small picture, paged, from the home screen and the 운전 page */
+#guide{z-index:30; padding:max(10px,var(--sat)) max(14px,var(--sar)) max(10px,var(--sab)) max(14px,var(--sal)); background:rgba(6,7,10,.82)}
+.gCard{display:flex; flex-direction:column; width:min(820px,100%); height:min(400px,100%); background:linear-gradient(180deg,#1b1c22,#131418); border-radius:16px; box-shadow:0 20px 50px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.07); overflow:hidden}
+.gHd{flex:none; display:flex; align-items:center; gap:10px; height:48px; padding:0 4px 0 18px; border-bottom:1px solid rgba(255,255,255,.07)}
+.gHd b{flex:none; font-family:"Saira Condensed","Arial Narrow",sans-serif; font-weight:700; font-size:15px; color:#ff6a5f; letter-spacing:.5px}
+.gHd span{flex:1; min-width:0; font-size:17px; font-weight:700; color:#f4f5f7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+#guide .gHd button{flex:none; min-height:44px; min-width:64px; padding:0 12px; background:none; border:0; color:#aeb3bc; font-size:14px}
+#gBody{flex:1; min-height:0; display:flex; gap:20px; align-items:center; padding:10px 22px; overflow-y:auto; touch-action:pan-y}
+.gV{flex:0 0 32%; display:flex; align-items:center; justify-content:center; min-height:110px}
+.gT{flex:1; min-width:0; margin:0; padding:0; list-style:none}
+.gT li{position:relative; margin:0 0 8px; padding-left:15px; font-size:14.5px; line-height:1.45; color:#e6e8ec; word-break:keep-all}
+.gT li::before{content:''; position:absolute; left:0; top:.6em; width:6px; height:6px; border-radius:50%; background:var(--kerb)}
+.gT li:last-child{margin-bottom:0}
+.gT b{color:#fff} .gT em{font-style:normal; font-weight:700; color:#ffb347}
+.gNav{flex:none; display:flex; align-items:center; gap:10px; padding:7px 10px; border-top:1px solid rgba(255,255,255,.07)}
+#guide .gNav>button{flex:0 0 116px; min-height:44px; border-radius:10px; font-size:15px; font-weight:700}
+#guide #gPrev{background:#26282e; border:0; color:#e9ebef}
+#guide #gPrev:disabled{opacity:.35}
+#gDots{flex:1; display:flex; justify-content:center; flex-wrap:wrap; gap:0}
+#guide #gDots button{flex:none; width:22px; min-width:0; height:30px; min-height:0; padding:0; background:none; border:0}
+#gDots button::after{content:''; display:block; width:7px; height:7px; margin:auto; border-radius:4px; background:#4a4e58; transition:background .15s,width .15s}
+#gDots button[aria-current="true"]::after{width:16px; background:var(--kerb)}
+@container (max-height:380px){ #gBody{padding:8px 18px} .gT li{font-size:13.5px; margin-bottom:5px} .gHd{height:42px} }
+@container (max-width:700px){ .gV{flex-basis:28%} #guide .gNav>button{flex-basis:92px} #guide #gDots button{width:17px} }
+/* the pictures */
+.gPh{position:relative; flex:none; width:196px; height:100px; border-radius:14px; background:#2b2e36; box-shadow:inset 0 0 0 3px #3a3e48}
+.gPh i{position:absolute; display:flex; align-items:center; justify-content:center; font-style:normal; font-size:10px; font-weight:700; color:#fff; border-radius:7px; white-space:nowrap}
+.gPh .st{left:12px; bottom:10px; width:58px; height:40px; background:rgba(255,255,255,.13); border-radius:20px}
+.gPh .pb{right:58px; bottom:10px; width:38px; height:36px; background:#8a2a25} .gPh .pg{right:12px; bottom:10px; width:40px; height:42px; background:#1f7a46}
+.gPh .tp{left:50%; top:8px; transform:translateX(-50%); height:16px; padding:0 7px; background:rgba(255,255,255,.1); font-size:8.5px; font-weight:600; color:#cfd2d8}
+.gPh .mb{right:12px; top:29px; height:15px; padding:0 6px; background:rgba(255,255,255,.1); font-size:8px; font-weight:600; color:#cfd2d8}
+.gTy{display:flex; flex-wrap:wrap; gap:10px 6px; justify-content:center; max-width:220px}
+.gTy span{display:flex; flex-direction:column; align-items:center; gap:4px; width:64px; font-size:11.5px; color:#cfd2d8; text-align:center}
+.gTy i{display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:50%; background:#111; box-shadow:inset 0 0 0 5px var(--c),inset 0 0 0 9px #111,inset 0 0 0 10px #333; font-style:normal; font-family:"Saira Condensed",sans-serif; font-weight:800; font-size:17px; color:var(--c)}
+.gFl{display:flex; flex-wrap:wrap; gap:10px 12px; justify-content:center; max-width:230px}
+.gFl span{display:flex; flex-direction:column; align-items:center; gap:4px; font-size:11.5px; color:#cfd2d8}
+.gFl i{display:flex; align-items:center; justify-content:center; width:58px; height:38px; border-radius:3px; background:var(--c); font-style:normal; font-family:"Saira Condensed",sans-serif; font-weight:800; font-size:15px; color:#111; box-shadow:0 2px 0 rgba(0,0,0,.4)}
+.gLt{display:flex; gap:8px; padding:10px 12px; border-radius:12px; background:#121317; box-shadow:inset 0 0 0 2px #25272d}
+.gLt i{width:24px; height:24px; border-radius:50%; background:radial-gradient(circle at 40% 36%,#ff8f85 0,#ff3b30 45%,#c41d14 100%); box-shadow:0 0 12px 3px rgba(255,45,30,.45)}
+.gLt.off i{background:#2b1311; box-shadow:inset 0 0 0 3px #3b1b18}
+.gBd{display:flex; flex-direction:column; gap:8px; align-items:center}
+.gBd span{display:inline-flex; align-items:center; min-height:30px; padding:0 12px; border-radius:15px; font-family:"Saira Condensed","Saira",sans-serif; font-weight:700; font-size:15px; color:#fff; white-space:nowrap}
+.gV svg{width:100%; max-width:220px; height:auto}
 /* 11-12 윤택님 「움직이는 애니메이션이었음 좋겠는데 처음 켰을 때 라이츠아웃 화면」: once a tab, at the start - the five start lights come on one by one and go out
    together (LIGHTS OUT), then the menu slides in; a tap skips it. Behind the menu the still 3D frame drifts slowly - a CSS zoom on the canvas: the scene is not drawn
    again, so the menu costs what it did (off on 부드럽게). Opacity and transform only (no repaint). None of it with reduced motion. */
@@ -694,7 +737,7 @@ body.inmenu:has(#mPage:not([hidden])) #gl{animation-play-state:paused}   /* a se
       <div class="seg" id="modeSel"><button data-v="race" aria-pressed="true">레이스</button><button data-v="quali" aria-pressed="false">예선 → 레이스</button><button data-v="practice" aria-pressed="false">연습 주행</button></div>
       <p class="label">실력</p>
       <div class="seg" id="skSel"><button data-v="easy">초보</button><button data-v="pro">직접 설정</button></div><p class="skNote" id="skNote"></p>
-      <button id="tutBtn" type="button">튜토리얼로 조작 익히기</button>
+      <button id="tutBtn" type="button">튜토리얼로 조작 익히기</button><button id="guideBtn" type="button">규칙 가이드 (깃발 · 페널티 · 타이어)</button>
       <p class="label" id="chLbl">대회 (서킷을 이어 달리며 순위별 점수 합산)</p>
       <div id="chBox"></div>
       <p class="sub" id="chTrkNote" style="display:none;margin:0 0 12px"></p>
@@ -774,6 +817,8 @@ body.inmenu:has(#mPage:not([hidden])) #gl{animation-play-state:paused}   /* a se
     <textarea id="benchTa" readonly hidden></textarea>
     </div></div>
   <div class="overlay" id="result" hidden><div class="card"><h1 id="resTitle">P1</h1><p class="sub num" id="resSub"></p><p class="sub num" id="resFl" style="color:#c58bff;margin-top:-4px"></p><table class="num" id="resTable"></table><div class="laps" id="rLaps"></div><div class="row2"><button class="go" id="againBtn">다시 달리기 (Enter)</button><button class="go" id="chBtn" hidden>대회 순위 보기 (Enter)</button><button id="menuBtn">메뉴로</button></div></div></div>
+  <div class="overlay" id="guide" hidden role="dialog" aria-label="레이스 가이드"><div class="gCard"><div class="gHd"><b id="gCnt"></b><span id="gTit"></span><button id="gX" type="button">닫기</button></div>
+    <div id="gBody"></div><div class="gNav"><button id="gPrev" type="button">이전</button><div id="gDots"></div><button id="gNext" type="button" class="go">다음</button></div></div></div>
   <div id="intro" hidden aria-hidden="true"><div class="inL"><i></i><i></i><i></i><i></i><i></i></div><b class="inT">LIGHTS OUT</b></div>
   <div id="loading">서킷을 준비하는 중</div>
   <div id="err"><p>3D 그래픽(WebGL)을 불러오지 못했어요. 최신 Chrome, Edge, Safari에서 다시 열어주세요.</p></div>
@@ -6400,7 +6445,7 @@ let mMode=loadLS('lightsout3d-mmode')||(CH?'champ':'normal'),chLen=+loadLS('ligh
 const MPAGES={track:[[null,[['chBox','대회','서킷을 이어 달리며 순위별 점수를 합산해요'],['chTrkNote'],['trkSel']]],['도로',[['wdSel','도로 폭']]]],
   team:[[null,[['teamSel'],['livBtn']]]],
   race:[['레이스',[['modeSel','진행 방식'],['lapSel','랩 수'],['difSel','AI 난이도'],['scSel','스타트 타이어']]],['날씨와 시간',[['wxSel','날씨','변덕은 도중에 비가 와요'],['rainSel','비 강도','약한 비는 노면만 젖어 인터, 폭우는 풀웻'],['todSel','시간대']]],['규칙',[['fmlSel','포메이션 랩','출발 전에 한 바퀴 돌아요'],['incSel','사고와 세이프티카'],['dmgSel','차량 손상','보통: 내 차는 크게 부딪혀도 대부분 피트에서 고쳐요 · 리얼: 부러진 서스펜션·큰 충격·찢어진 사이드포드는 리타이어 · 끔: 손상 없음']]]],
-  drive:[[null,[['skSel','실력'],['skNote'],['tutBtn']]],['조작',[['smSel','조향 방식'],['sensSel','조향 감도','1이 가장 부드러워요'],['pedSel','페달 위치','양쪽은 브레이크가 왼쪽이에요'],['agSel','가속'],['stSel','스타트','수동은 부정 출발을 판정해요']]],['보조',[['asSel','주행 보조','잠김과 스핀을 잡아줘요'],['basSel','브레이크 보조','너무 빠르면 대신 밟아요. 늦게 밟고 싶으면 끄세요'],['rlSel','레이싱 라인'],['aeroSel','직선 모드 날개']]]],
+  drive:[[null,[['skSel','실력'],['skNote'],['tutBtn'],['guideBtn']]],['조작',[['smSel','조향 방식'],['sensSel','조향 감도','1이 가장 부드러워요'],['pedSel','페달 위치','양쪽은 브레이크가 왼쪽이에요'],['agSel','가속'],['stSel','스타트','수동은 부정 출발을 판정해요']]],['보조',[['asSel','주행 보조','잠김과 스핀을 잡아줘요'],['basSel','브레이크 보조','너무 빠르면 대신 밟아요. 늦게 밟고 싶으면 끄세요'],['rlSel','레이싱 라인'],['aeroSel','직선 모드 날개']]]],
   set:[['그래픽',[['qSel','그래픽'],['aqSel','자동 화질 조절','프레임이 떨어지면 효과를 줄여요'],['crowdSel','관중 표시','끄면 조금 가벼워져요']]],['소리',[['sndPrev','엔진 소리'],['sndTune','소리 튜닝','모드와 울림을 귀로 맞춰요']]],['성능 측정',[['bvSel','측정 시점'],['bwSel','측정 날씨'],['benchBtn','자동 성능 측정','28개 서킷을 돌며 재요. 15~20분 걸리니 충전기에 꽂아 두세요']]],['도움말',[['touchHelp'],['mKeys']]]]};
 const MNAMES={track:'서킷',team:'내 팀',race:'레이스 설정',drive:'운전',set:'그래픽과 기타'};
 function mOpen(k){$('mHome').hidden=!!k;$('mPage').hidden=!k;for(const n in MPAGES){const on=n===k;$('mP_'+n).hidden=!on;if(on)$('mP_'+n).scrollTop=0;}if(k)$('mPgT').textContent=k==='track'&&mMode==='champ'?'대회와 서킷':MNAMES[k];}
@@ -6412,8 +6457,8 @@ function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={ea
   const old=[...card.children],home=mk('div','mHome'),L=mk('div','mHomeL',home),R=mk('div','mHomeR',home),page=mk('div','mPage');page.hidden=true;
   L.appendChild(h1);const mm=mk('div','mMode',R,'seg');mm.innerHTML='<button type="button" data-v="normal">일반 모드</button><button type="button" data-v="champ">대회 모드</button>';
   const list=mk('div','mList',L);for(const k in MNAMES){const b=mk('button',null,list,'mItem');b.type='button';b.innerHTML=`<span class="mTx"><b id="mN_${k}">${MNAMES[k]}</b><span id="${k==='track'?'bestMenu':'mV_'+k}"></span></span><i></i>`;b.onclick=()=>mOpen(k);}
-  {const act=mk('div','mAct',R),sec=mk('div','mSec',act),b1=mk('button','mTut',sec);b1.type='button';b1.textContent='튜토리얼';
-   b1.onclick=()=>tutStart();act.appendChild(st);}   /* 11-13: the tutorial from the home screen */
+  {const act=mk('div','mAct',R),sec=mk('div','mSec',act),b1=mk('button','mTut',sec),b2=mk('button','mGuide',sec);b1.type=b2.type='button';b1.textContent='튜토리얼';b2.textContent='규칙 가이드';
+   b1.onclick=()=>tutStart();b2.onclick=()=>guideOpen(0);act.appendChild(st);}   /* 11-13: the tutorial and the rules guide from the home screen */
   const hd=mk('div','mPgH',page),bk=mk('button','mBack',hd);bk.type='button';bk.setAttribute('aria-label','뒤로');bk.innerHTML='<i></i>';bk.onclick=()=>mOpen(null);mk('div','mPgT',hd);
   for(const k in MPAGES){const pg=mk('div','mP_'+k,page,'mPg');pg.hidden=true;
     for(const [grp,rows] of MPAGES[k]){if(grp)mk('p',null,pg,'mGrp').textContent=grp;
@@ -6552,13 +6597,17 @@ skReady=true;skillUI();
 const TUT_TRK='seoul';let TUT=null;
 const tk=(t,k)=>isTouch?t:k;
 const TUT_STEPS=[
+  {h:'조향',t:()=>tk({tilt:'폰을 핸들처럼 좌우로 기울이면 꺾여요. 똑바로 둬도 한쪽으로 가면 위쪽 「영점」을 눌러 지금 각도를 가운데로 맞춰요.',buttons:'왼쪽 아래 ◀ ▶ 버튼을 누르는 동안 꺾여요.'}[steerMode]||'왼쪽 아래 패드를 손가락으로 좌우로 끌면 핸들이 돌아요. 놓으면 가운데로 돌아와요.','← → 키(또는 A D)로 꺾어요. 길게 누를수록 더 꺾여요.')+' 왼쪽, 오른쪽으로 한 번씩 꺾어 보세요.',
+   done:(p,T)=>{if(key.left||key.axis<-0.25)T.sl=1;if(key.right||key.axis>0.25)T.sr=1;return !!(T.sl&&T.sr);}},   // 11-13 윤택님 「듀토리얼 더 상세하게」
   {h:'가속',t:()=>(race&&race.player.pit?'피트 레인을 나가는 동안은 차가 알아서 달려요. ':'')+tk(autoGas?'자동 가속이라 손대지 않아도 앞으로 나가요. 시속 100km까지 달려 보세요.':'오른쪽 아래 「가속」을 누르고 있으면 나가요. 시속 100km까지 달려 보세요.','↑ 키(또는 W)를 누르고 있으면 나가요. 시속 100km까지 달려 보세요.'),done:p=>!p.pit&&p.spd*3.6>=100},
   {h:'브레이크',t:()=>tk('「브레이크」를 꾹 누르면 속도가 줄어요.','Space(또는 ↓) 키가 브레이크예요.')+' 코너 앞에서 미리 밟아 보세요.'+(brakeAs?' 너무 빠르면 브레이크 보조가 대신 밟아 줘요.':''),done:p=>key.brake&&p.spd>8},
   {h:'코너 · 레이싱 라인',t:()=>'바닥의 색 띠를 따라가세요. 빨강에서 브레이크, 노랑에서 꺾고, 초록에서 다시 가속해요. 코너 하나를 지나 보세요.',done:(p,T)=>{const k=Math.abs(TR.K[p.idx]);if(k>0.012)T.cs=1;return !!T.cs&&k<0.003;}},
+  {h:'시점',t:()=>tk('위쪽 「시점」','C 키')+'로 보는 위치가 바뀌어요: 콕핏 → T캠 → 추격 → 원거리. '+tk('「뒤」를 누르는 동안','V 키를 누르는 동안')+' 뒤를 봐요. 시점을 한 번 바꿔 보세요.',done:(p,T)=>{if(T.cm==null)T.cm=camMode;return camMode!==T.cm;}},
   {h:'타이어',t:()=>'마른 노면 레이스에선 두 종류의 타이어를 꼭 한 번씩 써야 해서, 피트스톱이 한 번은 필요해요. '+tk('「타이어」 버튼으로','1~5 키로')+' 다음에 끼울 타이어를 바꿔 보세요.',done:(p,T)=>{const c=p.nextComp||p.ty.comp;if(T.c0==null)T.c0=c;return c!==T.c0;}},
   {h:'피트',t:()=>tk('「PIT」','B 키')+'를 누르면 이번 랩 끝에 피트 레인으로 들어가 고른 타이어로 바꿔요. 피트 레인에선 차가 알아서 달려요. 눌러 보세요.',done:p=>p.pitReq||!!p.pit},
-  {h:'ERS · 직선 모드',t:()=>'직선에서 '+tk('「ERS」','Shift 키')+'를 누르면 배터리 힘으로 더 빨라져요. 직선 구간에선 날개도 열려요('+(aeroMode==='auto'?'자동':tk('「직선」 버튼','E 키'))+'). ERS를 한 번 써 보세요.',done:p=>p.boost},
-  {h:'끝!',t:()=>'잘했어요. 이제 메뉴에서 레이스를 시작해 보세요. 여기서 계속 연습해도 돼요.'}];
+  {h:'직선 모드',t:()=>'서킷마다 정해진 긴 직선(3초 넘게 전속력)에서만 날개를 열 수 있어요. 열면 공기 저항이 줄어 더 빨라져요. '+(aeroMode==='auto'?'지금은 자동이라 구간에 들어가면 저절로 열려요.':tk('「직선」 버튼','E 키')+'으로 열고, 브레이크를 밟거나 가속을 떼면 닫혀요.')+' 다음 긴 직선에서 열어 보세요.',done:p=>!!p.aeroOpen},
+  {h:'ERS 부스트',t:()=>'직선에서 '+tk('「ERS」','Shift 키')+'를 누르면 배터리 힘으로 더 빨라져요. 배터리는 가속을 떼거나 브레이크를 밟을 때 다시 차요. ERS를 한 번 써 보세요.',done:p=>p.boost},
+  {h:'끝!',t:()=>'잘했어요. 깃발·페널티·타이어 규칙은 메뉴의 「규칙 가이드」에 그림과 함께 자세히 있어요. 여기서 계속 연습해도 돼요.'}];
 // a race started right after the page loads (tutorial, the performance test) waits up to 10 s for the 3D car model -
 // a race in progress keeps the cars it started with, so without this it ran in the old procedural car
 function whenCar(fn,n=0){if(THREE.GLTFLoader&&!window.__CARGLB&&n<300){$('loading').style.display='flex';$('loading').textContent='차량을 불러오는 중'+(n>=25?' · '+Math.round(n/5)+'초':'');setTimeout(()=>whenCar(fn,n+1),200);return;}
@@ -6591,6 +6640,93 @@ const tutSkip=()=>{if(TUT&&TUT.i===TUT_STEPS.length-1)toMenu();else tutEnd();};
 $('tut').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(e.target.closest('#tutSkip'))tutSkip();else tutNext();});
 $('tutNext').addEventListener('click',e=>{if(e.detail===0)tutNext();});$('tutSkip').addEventListener('click',e=>{if(e.detail===0)tutSkip();});   // keyboard (Enter/Space) only
 $('tutBtn').addEventListener('click',tutStart);
+// ===== 11-13 윤택님 「듀토리얼 더 상세하게」: the rules guide - controls, tyres, pit stops, flags, penalties, straight mode, rain, the start. One topic a page,
+// a small picture beside three or four short lines, paged (이전 / 다음 / the dots), closed any time. The numbers are the game's own (CUT_GB, VSC_GB, BLUE_W,
+// BLUE_P, the track-limit count in tlStrike), not new rules. Opened from the home screen, the 운전 page and the tutorial's last card.
+const GUIDE=()=>{const T=isTouch,k=(t,kb)=>T?t:kb,ty=(c,l,n)=>`<span><i style="--c:${c}">${l}</i>${n}</span>`,fl=(c,l,n,fc)=>`<span><i style="--c:${c}${fc?';color:'+fc:''}">${l}</i>${n}</span>`,
+  sm={tilt:'기울이기',drag:'드래그',buttons:'버튼'}[steerMode]||'드래그';
+  return [
+  {h:'조작',v:T?'<div class="gPh"><i class="tp">II · 시점 · 영점 · 뒤 · 맵</i><i class="mb">PIT · 타이어 · ERS · 직선</i><i class="st">조향</i><i class="pb">브레이크</i><i class="pg">가속</i></div>'
+     :'<div class="gBd"><span style="background:#2b2e36">↑ W 가속</span><span style="background:#2b2e36">Space ↓ 브레이크</span><span style="background:#2b2e36">← → 조향</span></div>',
+   t:T?[`<b>왼쪽 아래 = 조향</b> (지금: ${sm}). 드래그는 패드를 좌우로 끌고, 버튼은 ◀ ▶, 기울이기는 폰을 핸들처럼 기울여요.`,
+        '기울이기가 한쪽으로 쏠리면 위쪽 <b>「영점」</b>을 눌러 지금 각도를 가운데로 맞춰요.',
+        '<b>오른쪽 아래 = 페달.</b> 자동 가속이면 브레이크만 누르면 돼요.',
+        '위쪽 <b>II</b> 일시정지 · <b>시점</b> 바꾸기 · <b>뒤</b> 누르는 동안 뒤 보기 · <b>맵</b> 미니맵 크기. 조향 방식은 메뉴 「운전」에서 바꿔요.']
+     :['<b>↑ / W</b> 가속 · <b>Space / ↓ / S</b> 브레이크 · <b>← → / A D</b> 조향 (길게 누를수록 더 꺾여요).',
+       '<b>C</b> 시점 · <b>V</b> 누르는 동안 뒤 보기 · <b>N</b> 미니맵 · <b>H</b> 룸미러 · <b>P</b> 일시정지 · <b>R</b> 재시작.',
+       '<b>[ ]</b> 레이스 중 조향 감도 · <b>F</b> FPS 표시 · <b>M</b> 소리.']},
+  {h:'가속 · 브레이크 · 기어',v:'<div class="gBd"><span style="background:#2b2e36;font-size:22px;min-height:44px">7 · 287 km/h</span><span style="background:#8a2a25">브레이크는 직선에서</span></div>',
+   t:['<b>기어는 자동</b>으로 바뀌어요. 계기판에 기어와 속도가 보여요.',
+      '코너 앞 <b>직선에서 미리 세게</b> 밟고, 꺾으면서 조금씩 떼요. 코너를 빠져나오며 다시 가속해요.',
+      '너무 세게 밟으면 바퀴가 <em>잠겨</em> 연기가 나고 바깥으로 밀려요. 오래 잠기면 <b>플랫 스팟</b>(타이어 떨림)이 생겨요.',
+      '어려우면 메뉴 「운전」의 <b>주행 보조 · 브레이크 보조</b>를 켜요.']},
+  {h:'레이싱 라인',v:'<svg viewBox="0 0 220 120"><path d="M14 108 L110 108 Q196 108 196 22" fill="none" stroke="#3a3d45" stroke-width="30"/><path d="M14 108 L84 108" stroke="#3ddc84" stroke-width="6" fill="none"/><path d="M84 108 L132 106" stroke="#ff3b30" stroke-width="6"/><path d="M132 106 Q176 98 186 58" stroke="#f5c518" stroke-width="6" fill="none"/><path d="M186 58 L190 22" stroke="#3ddc84" stroke-width="6"/></svg>',
+   t:['바닥의 색 띠를 따라가요: <b style="color:#ff6a5f">빨강</b>에서 브레이크, <b style="color:#f5c518">노랑</b>에서 꺾고, <b style="color:#3ddc84">초록</b>에서 가속.',
+      'AI 차들도 같은 라인을 달려요 (추월·방어할 땐 잠깐 벗어나요).',
+      '메뉴 「운전」에서 <b>코너만 · 전체 · 끔</b>을 골라요'+k('.',' (L 키).')]},
+  {h:'타이어',v:'<div class="gTy">'+ty('#e10600','S','소프트')+ty('#f5c518','M','미디엄')+ty('#f2f2f2','H','하드')+ty('#3ddc84','I','인터')+ty('#3b82f6','W','풀 웻')+'</div>',
+   t:['<b>소프트</b>는 가장 빠르지만 빨리 닳고, <b>하드</b>는 느리지만 오래 가요. <b>미디엄</b>은 그 중간.',
+      '<b>인터</b>는 약한 비·젖은 노면, <b>풀 웻</b>은 폭우용이에요.',
+      '새 타이어는 차가워서 처음 몇 코너는 덜 붙어요. 타이어 표시의 <b>%</b>는 남은 고무, <b>°</b>는 온도예요.',
+      '많이 닳으면 갑자기 확 느려져요. 그 전에 피트로!']},
+  {h:'타이어 규칙: 두 가지 컴파운드',v:'<div class="gTy">'+ty('#e10600','S','첫 타이어')+'<span style="width:auto;justify-content:center;font-size:22px;color:#cfd2d8">+</span>'+ty('#f2f2f2','H','두 번째')+'</div>',
+   t:['비가 안 오는 레이스에선 <b>소프트·미디엄·하드 중 두 가지</b>를 꼭 써야 해요. 그래서 <b>피트 스톱이 최소 한 번</b> 필요해요.',
+      '인터나 풀 웻을 한 번이라도 쓰면 이 규칙은 면제예요.',
+      '안 쓴 채 마지막 랩이 되면 경고가 떠요. 끝까지 안 지키면 <em>실격</em>이에요.']},
+  {h:'피트 스톱',v:'<div class="gBd"><span style="background:#2b2e36">① '+k('「타이어」','1~5 키')+'로 고르기</span><span style="background:#2b2e36">② '+k('「PIT」','B 키')+' 누르기</span><span style="background:#1f7a46">③ 차가 알아서 들어가요</span></div>',
+   t:['<b>'+k('「타이어」 버튼','1~5 키')+'</b>로 다음에 끼울 타이어를 골라요'+k('.',' (1 소프트 · 2 미디엄 · 3 하드 · 4 인터 · 5 풀 웻).'),
+      '<b>'+k('「PIT」','B 키')+'</b>를 누르면 이번 랩 끝에 피트 레인으로 들어가요.',
+      '피트 레인에선 <b>속도 제한(리미터)</b>이 걸리고 차가 알아서 달려요. 손을 떼고 기다리면 돼요.',
+      '타이어 교체와 함께 부서진 노즈·리어 윙·서스펜션과 펑처도 고쳐요.']},
+  {h:'깃발 ①  옐로 · 그린 · 블루',v:'<div class="gFl">'+fl('#f5c518','','옐로')+fl('#2fbf62','','그린')+fl('#2f6fe0','','블루')+'</div>',
+   t:['<b style="color:#f5c518">옐로</b>: 앞에 사고가 났어요. 그 구간에선 속도를 줄이고 <b>추월 금지</b>. 추월하면 <em>+5초</em>.',
+      '<b style="color:#3ddc84">그린</b>: 위험이 끝났어요. 다시 달려요.',
+      '<b style="color:#6aa7ff">블루</b>: 한 바퀴 앞선 차가 바로 뒤에 왔어요. 길을 비켜 주세요.',
+      '블루가 <b>'+BLUE_W+'초</b> 계속되면 경고, 그 뒤 <b>'+BLUE_P+'초</b> 안에 안 비키면 <em>+5초</em>.']},
+  {h:'깃발 ②  세이프티카 · VSC · 레드',v:'<div class="gFl">'+fl('#f5c518','SC','세이프티카')+fl('#f5c518','VSC','버추얼 SC')+fl('#e3261d','','레드')+'</div>',
+   t:['<b>세이프티카(SC)</b>: 앞차를 따라 한 줄로, <b>추월 금지</b>(어기면 <em>+5초</em>). 세이프티카가 들어가면 선두가 가속할 때 재시작, 결승선을 지나기 전엔 추월 금지.',
+      '<b>VSC</b>: 모두 정해진 속도 아래로. VSC 표시의 숫자가 <b style="color:#3ddc84">+(초록)</b>면 괜찮고 <b style="color:#ff6a5f">-(빨강)</b>면 너무 빨라요(계속 빠르면 <em>+5초</em>).',
+      'VSC 중 추월했다면 <b>'+VSC_GB+'초</b> 안에 자리를 돌려줘요. 첫 번째는 경고, 다음부터 <em>+5초</em>.',
+      '<b style="color:#ff6a5f">레드</b>: 경기 중단. 천천히 피트 레인으로 → 순위대로 정렬·타이어 교체·수리 → 세이프티카를 따라 그리드로 → 다시 출발.']},
+  {h:'트랙 리밋',v:'<svg viewBox="0 0 220 120"><rect x="0" y="0" width="220" height="120" fill="#2e5e2a"/><rect x="0" y="0" width="140" height="120" fill="#3a3d45"/><rect x="136" y="0" width="5" height="120" fill="#f2f2f2"/><g transform="translate(150 30)"><rect x="10" y="4" width="22" height="58" rx="6" fill="#d92d26"/><rect x="0" y="8" width="10" height="16" rx="3" fill="#111"/><rect x="32" y="8" width="10" height="16" rx="3" fill="#111"/><rect x="0" y="42" width="10" height="18" rx="3" fill="#111"/><rect x="32" y="42" width="10" height="18" rx="3" fill="#111"/></g><text x="70" y="66" fill="#ffb347" font-size="14" font-weight="700" text-anchor="middle">네 바퀴 모두</text><text x="70" y="84" fill="#ffb347" font-size="14" font-weight="700" text-anchor="middle">흰 선 밖 = 위반</text></svg>',
+   t:['<b>네 바퀴가 모두 흰 선 밖</b>으로 나가면 트랙 리밋 위반이에요.',
+      '<b>1·2회</b>: 경고, 그 랩 기록 삭제. <b>3회</b>: 흑백기(마지막 경고).',
+      '<b>4회째부터</b>는 넘을 때마다 <em>+5초</em>.']},
+  {h:'코스 밖 이득은 돌려주기',v:'<div class="gBd"><span style="background:#8a5a12">이득 0.8초 · 돌려주세요</span><span style="background:#2b2e36">속도를 줄여서 반납</span><span style="background:#1f7a46">페널티 없음</span></div>',
+   t:['코스 밖으로 질러 <b>0.5초 넘게</b> 빨라지면 「속도를 줄여 돌려주세요」가 떠요.',
+      '<b>'+CUT_GB+'초</b> 안에 천천히 달려 그만큼 돌려주면 페널티 없음. 안 하면 <em>+5초</em>.',
+      '코스 밖에서 <b>다른 차를 추월</b>했다면 15초 안에 그 차를 다시 앞으로 보내요. 안 보내면 <em>+10초</em> (첫 랩은 +5초).',
+      'AI도 똑같이 자리를 돌려줘요.']},
+  {h:'직선 모드 · ERS · 오버테이크',v:'<div class="gBd"><span style="background:#1f7a46">직선 2/4</span><span style="background:#7a3fd1">OVT 0.8</span><span style="background:#b8860b">ERS 부스트</span></div>',
+   t:['<b>직선 모드</b>: 서킷마다 정해진 직선 구간(3초 넘게 전속력으로 달리는 직선)에서만 날개가 열려요. 앞차 간격과 상관없이 모두 써요. '+k('「직선」 버튼','E 키')+'(자동도 가능), 브레이크를 밟거나 가속을 떼면 닫혀요. 「직선 2/4」는 몇 번째 구간인지예요.',
+      '<b>ERS</b>: '+k('「ERS」','Shift')+'를 누르면 배터리 힘으로 더 빨라져요. 가속을 떼거나 브레이크를 밟으면 다시 차요.',
+      '<b>오버테이크 모드</b>: 결승선에서 앞차와 <b>1초 이내</b>면 다음 한 바퀴 동안 337 km/h까지 최대 출력 + 배터리 0.5MJ. 600 m 전부터 「OVT 0.8」처럼 간격이 보여요.',
+      '세이프티카가 나오면 오버테이크 모드는 꺼지고, 비가 오면 없어요.']},
+  {h:'비',v:'<div class="gTy">'+ty('#3ddc84','I','약한 비')+ty('#3b82f6','W','폭우')+'</div>',
+   t:['날씨가 <b>「변덕」</b>이면 레이스 도중 비가 와요. 오기 전에 무전으로 알려줘요.',
+      '젖은 노면에서 소프트·미디엄·하드는 미끄러워요. <b>약한 비는 인터, 폭우는 풀 웻</b>으로 바꿔요.',
+      '비가 그치면 노면이 마르면서 다시 드라이 타이어가 빨라져요.',
+      '비가 오면 직선 모드는 <b>앞날개만</b> 열리고, 오버테이크 모드는 없어요.']},
+  {h:'출발',v:'<div class="gLt"><i></i><i></i><i></i><i></i><i></i></div>',
+   t:['빨간 불 5개가 하나씩 켜지고 <b>한꺼번에 꺼지면 출발!</b>',
+      T?'자동 가속이면 불이 꺼질 때 저절로 나가요. 직접 가속이면 그때 「가속」을 눌러요.':'<b>수동 스타트</b>: 브레이크(Space)를 밟은 채 회전수를 올리고 대기 → 불이 꺼지면 떼요.',
+      '불이 꺼지기 전에 움직이면 <em>부정 출발 +5초</em>'+k(' (수동 스타트일 때).','.'),
+      '<b>포메이션 랩</b>을 켜면 출발 전에 한 바퀴 돌아요. 추월 금지, 좌우로 흔들어 타이어를 데워요.']}];};
+let GI=0,GP=null;
+function guideShow(i){GP=GP||GUIDE();GI=Math.max(0,Math.min(GP.length-1,i));const g=GP[GI],last=GI===GP.length-1;
+  $('gCnt').textContent=(GI+1)+'/'+GP.length;$('gTit').textContent=g.h;
+  $('gBody').innerHTML='<div class="gV">'+g.v+'</div><ul class="gT">'+g.t.map(x=>'<li>'+x+'</li>').join('')+'</ul>';$('gBody').scrollTop=0;
+  $('gPrev').disabled=GI===0;$('gNext').textContent=last?'닫기':'다음';
+  $('gDots').querySelectorAll('button').forEach((b,j)=>b.setAttribute('aria-current',j===GI?'true':'false'));}
+function guideOpen(i){GP=GUIDE();$('gDots').innerHTML=GP.map((g,j)=>`<button type="button" aria-label="${j+1}. ${g.h}"></button>`).join('');
+  $('gDots').querySelectorAll('button').forEach((b,j)=>b.onclick=()=>guideShow(j));$('guide').hidden=false;guideShow(i||0);}
+function guideClose(){$('guide').hidden=true;}
+$('gX').onclick=guideClose;$('gPrev').onclick=()=>guideShow(GI-1);$('gNext').onclick=()=>{if(GI>=GP.length-1)guideClose();else guideShow(GI+1);};
+$('guide').addEventListener('click',e=>{if(e.target.id==='guide')guideClose();});   // a tap beside the card closes it
+addEventListener('keydown',e=>{if($('guide').hidden)return;   // while the guide is open the keys page it (and do not start a race behind it)
+  if(e.key==='ArrowRight'||e.key==='Enter'||e.key===' ')$('gNext').click();else if(e.key==='ArrowLeft'&&GI>0)guideShow(GI-1);else if(e.key==='Escape')guideClose();else return;
+  e.preventDefault();e.stopImmediatePropagation();},true);
+$('guideBtn').addEventListener('click',()=>guideOpen(0));
 // ===== 10-31: 조작법 (pause): every on-screen control outlined where it really is, with a short label next to it =====
 function ctlHelp(){const M=$('chMarks'),W=VW(),H=VH(),sa=safeInsets(),placed=[],tg=[];M.innerHTML='';
   const vis=e=>!!e&&e.offsetWidth>0&&getComputedStyle(e).display!=='none';
