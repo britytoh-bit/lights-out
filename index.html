@@ -644,7 +644,7 @@ body.inmenu:has(#mPage:not([hidden])) #gl{animation-play-state:paused}   /* a se
   var last = 0;
   document.addEventListener('touchend', function(e){
     var now = Date.now();
-    if (now - last < 350 && !(e.target.closest && e.target.closest('.overlay,#livEd'))) e.preventDefault();   /* 두 번째 탭만 막는다 — 보통 탭은 그대로. 메뉴에선 막지 않는다(빠른 탭이 씹혔다) */
+    if (now - last < 350 && e.cancelable && !(e.target.closest && e.target.closest('.overlay,#livEd'))) e.preventDefault();   /* 두 번째 탭만 막는다 — 보통 탭은 그대로. 메뉴에선 막지 않는다(빠른 탭이 씹혔다) */
     last = now;
   }, {passive:false});
 })();
@@ -6880,12 +6880,15 @@ let tapGas=false,tapBrk=false,pedLast=null;   // 11-01: set on press, cleared by
  const zoneAt=(x,y)=>{let k0=null,d0=1e9;for(const z of Z){if(x<z.l||x>z.R||y<z.t||y>z.B)continue;const d=Math.hypot(Math.max(z.r.left-x,0,x-z.r.right),Math.max(z.r.top-y,0,y-z.r.bottom));if(d<d0){d0=d;k0=z.k;}}return k0;};
  const purge=e=>{for(const id of [...on.keys()]){let live=false;for(const t of e.touches)if(t.identifier===id){live=true;break;}if(!live)on.delete(id);}};
  document.addEventListener('pointerdown',e=>{if(!isTouch||(state!=='race'&&state!=='countdown'))return;const t=e.target;if(!t.closest||t.closest(EX))return;zones();if(zoneAt(ptX(e),ptY(e))){e.preventDefault();e.stopPropagation();}},true);   // (the steering zone under a pedal's zone must not take this finger)
+ // 11-13 윤택님 (가속페달 터치오류): a lift is also heard on the finger's own element. The browser sends touchend only to the node the finger first landed on, and a node
+ // taken out of the page meanwhile (a popup, a rebuilt HUD bit under the thumb) no longer passes it up to document - the gas stayed on with no finger down.
+ const tgt=new WeakSet(),endT=e=>{if(!e.currentTarget.isConnected)end(e);};
  document.addEventListener('touchstart',e=>{if(!isTouch||(state!=='race'&&state!=='countdown'))return;zones();
-   for(const t of e.changedTouches){const el=t.target,pe=el.closest&&el.closest('.pedal');let k=pe?(pe===P.gas?'gas':'brake'):null;
+   for(const t of e.changedTouches){const el=t.target;if(el&&el.addEventListener&&!tgt.has(el)){tgt.add(el);el.addEventListener('touchend',endT,{passive:true});el.addEventListener('touchcancel',endT,{passive:true});}const pe=el.closest&&el.closest('.pedal');let k=pe?(pe===P.gas?'gas':'brake'):null;
      if(!k){if(!el.closest||el.closest(EX)){on.set(t.identifier,'no');continue;}k=zoneAt(ptX(t),ptY(t));if(!k){on.set(t.identifier,el.closest('#steerZone')?'no':'free');continue;}}
-     on.set(t.identifier,k);pedLast=k;}
-   purge(e);sync();},{capture:true,passive:true});
- document.addEventListener('touchmove',e=>{if(!on.size)return;let ch=false;for(const t of e.changedTouches){const o=on.get(t.identifier);if(!o||o==='no')continue;const n=zoneAt(ptX(t),ptY(t));if(n&&n!==o){on.set(t.identifier,n);pedLast=n;ch=true;}}if(ch)sync();},{capture:true,passive:true});
+     on.set(t.identifier,k);pedLast=k;if(e.cancelable)e.preventDefault();}   // 11-13: a pedal touch is the game's alone - no long-press/loupe/zoom gesture of the phone's may start on it and cancel the hold
+   purge(e);sync();},{capture:true,passive:false});
+ document.addEventListener('touchmove',e=>{if(!on.size)return;let ch=on.size>e.touches.length;if(ch)purge(e);for(const t of e.changedTouches){const o=on.get(t.identifier);if(!o||o==='no')continue;const n=zoneAt(ptX(t),ptY(t));if(n&&n!==o){on.set(t.identifier,n);pedLast=n;ch=true;}}if(ch)sync();},{capture:true,passive:true});
  const end=e=>{for(const t of e.changedTouches)on.delete(t.identifier);purge(e);sync();};document.addEventListener('touchend',end,{capture:true,passive:true});document.addEventListener('touchcancel',end,{capture:true,passive:true});}
 const BRKP=document.querySelector('.pedal.brk');
 holdBtn($('mErs'),()=>touchErs=true,()=>touchErs=false);
