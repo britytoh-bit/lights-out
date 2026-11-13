@@ -5931,6 +5931,7 @@ function rotWant(){if(!isTouch||!(innerHeight>innerWidth))return 0;
   if(ROT_SEEN){const d=((ROT_LA-scrAng())%360+540)%360-180;if(d===90||d===-90)return d;if(ROT)return ROT;}   // (a); a stale angle (the size came first, or the angle first on the way back): keep the turn
   return ROTG||ROT||ROT_LA;}   // (b), the turn in place, (c)
 function applyRot(){if(!(innerHeight>innerWidth)){const a=scrAng();if(a%180){const s=a===90?90:-90;ROT_SEEN=true;if(s!==ROT_LA){ROT_LA=s;saveLS('lightsout3d-rotla',s);}}}ROT=rotWant();ROTH=fullH();const B=document.body.classList,W=innerWidth,H=ROTH;
+  {const sd=ROT||(innerHeight>innerWidth?0:ROT_LA);if(applyRot.sd&&sd&&sd!==applyRot.sd){try{tiltRef=null;}catch(e){}}if(sd)applyRot.sd=sd;}   // 11-14: the phone now held the other way round (180 deg): the tilt steering zeroes again - its angle is counted from how the phone was held at the start, so it read a full turn of the wheel
   B.toggle('rot',ROT>0);B.toggle('rotL',ROT<0);   // (11-14: the 'turn your phone' panel, portHint, is gone)
   $('wrap').style.cssText=!ROT?'':'position:fixed;left:0;top:0;width:'+H+'px;height:'+W+'px;transform-origin:0 0;transform:'+(ROT>0?'translateX('+W+'px) rotate(90deg)':'translateY('+H+'px) rotate(-90deg)');
   if(!$('pause').hidden)$('resumeBtn').scrollIntoView({block:'nearest'});}
