@@ -6812,8 +6812,9 @@ function onMotion(e){const g=e.accelerationIncludingGravity;if(!g||g.x==null)ret
 // 11-14 (b) of the sideways turn: which landscape side the phone is held on, from gravity across the screen (device axes - the steering below uses the same
 // angle only as a difference, so it is the same turned or not). Its sign is only trusted once learnt from the screen's angle on this phone (kept); a new side
 // counts after 0.6 s, and only near level (|x| > 6 m/s2), so a hard turn of the wheel does not flip the picture.
-let GS_C=0,GS_T=0;function gravSide(ax,now){const a=scrAng();
+let GS_C=0,GS_T=0,GS_H=0,GS_HC=0,GS_HT=0;function gravSide(ax,now){const a=scrAng();
   if(!(innerHeight>innerWidth)&&a%180&&Math.abs(ax)>7){const s=Math.sign(ax)*(a===90?1:-1);if(s!==GSIGN){GSIGN=s;saveLS('lightsout3d-gsign',s);}}
+  if(Math.abs(ax)>6){const h=Math.sign(ax);if(h===GS_H)GS_HC=0;else if(h!==GS_HC){GS_HC=h;GS_HT=now;}else if(now-GS_HT>600){if(GS_H)tiltRef=null;GS_H=h;}}   // the phone turned round (whichever way its sign means): the tilt steering zeroes again - also with the picture's side not known yet, where the player turns the phone to the picture
   if(!GSIGN||Math.abs(ax)<6)return;const c=ax*GSIGN>0?90:-90;if(c===ROTG){GS_C=0;return;}if(c!==GS_C){GS_C=c;GS_T=now;}else if(now-GS_T>600)ROTG=c;}
 // 11-11 윤택님 「기울이기 조향 감도 - 스무스함 부족」: the angle came from the accelerometer alone, and that one also feels every push of the hands (a 0.1 m/s²
 // jolt reads as 0.6 deg of tilt). The gyro (rotationRate.alpha: the turn about the screen's normal, the way a wheel turns) does not, and has no delay, but
