@@ -6173,6 +6173,9 @@ document.querySelectorAll('#touch button').forEach(b=>{const k=b.dataset.k;
   const up=()=>{if(k in key)key[k]=false;};b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('lostpointercapture',up);});
 
 // ---- audio ----
+// 11-13 윤택님 「무음모드에선 소리가 아예 안 들리는거야? … 해결좀」: an iPhone silences web sound with the ring / silent switch unless the page says it
+// plays like a media app (Audio Session API, iOS 17+; elsewhere there is no audioSession and nothing changes). Set before any AudioContext.
+try{if(navigator.audioSession)navigator.audioSession.type='playback';}catch(e){}
 let AC=null,muted=false;const SND={T:0,vox:[]};
 function initAudio(){if(AC)return;try{
   AC=new (window.AudioContext||window.webkitAudioContext)();
