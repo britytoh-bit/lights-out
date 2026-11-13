@@ -500,6 +500,7 @@ button.go:active,.card button.go:active{background:#b4211c}
 #tut .tt{margin:0 0 10px; font-size:14px; line-height:1.45; color:var(--ink); word-break:keep-all}
 #tut .tb{display:flex; gap:8px} #tut .tb button{flex:1; min-height:40px; padding:6px 8px; font-size:14px}
 body.tutOn #hudTime{visibility:hidden}
+#errNote{position:absolute; left:calc(4px + var(--sal)); bottom:calc(2px + var(--sab)); z-index:120; max-width:55%; padding:1px 7px; border-radius:4px; background:rgba(150,20,20,.82); color:#fff; font:600 11px/1.35 system-ui,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:auto; cursor:pointer}   /* 11-14: errNote */
 body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake assist is braking */
 #ctlHelp{position:absolute; inset:0; z-index:11; background:rgba(6,8,12,.6)} #ctlHelp[hidden]{display:none}
 #chMarks .box{position:absolute; border:2px solid var(--yellow); border-radius:12px; pointer-events:none}
@@ -8489,8 +8490,11 @@ let SHF=0;   // v12j: frame counter, for work that does not need doing every fra
 const VS={a:new Float32Array(120),i:0,hz:60,t:0,n:0,miss:0,lastV:0};
 function vsTick(now){const d=now-VS.lastV;VS.lastV=now;if(!(d>0&&d<100))return;VS.a[VS.i++%120]=d;
   if(VS.i%120===0){const s=Array.from(VS.a).sort((x,y)=>x-y),p=s[12];VS.hz=Math.max(VS.hz,p<9.5?120:p<12.5?90:60);}}   // 10-30: the screen's rate only goes up - a heavy stretch (frames of 17 ms+) used to make a 120 Hz screen read "60Hz"
-function frame(now){
-  vsTick(now);if(PERF.lock60&&now-last<12.5){requestAnimationFrame(frame);return;}   // locked: skip the in-between refresh
+// 11-14 (QA: a single exception stopped the whole game for good - picture, HUD and race - while the engine sound kept going): the next frame is booked
+// first and the frame runs inside a catch; the HUD and the map have their own catch, so the picture still moves if one of them breaks. errNote shows it.
+function frame(now){requestAnimationFrame(frame);try{frameBody(now);}catch(e){errNote(e);}}
+function frameBody(now){
+  vsTick(now);if(PERF.lock60&&now-last<12.5)return;   // locked: skip the in-between refresh
   const raw=(now-last)/1000,dt=Math.min(1/30,Math.max(0,raw));last=now;fpsTick(raw);if((frame.n=(frame.n||0)+1)%30===0&&(innerWidth!==resize.w||innerHeight!==resize.h||isTouch&&rotWant()!==ROT))resize();   // (11-14: an upright window no longer pauses the race - the game turns sideways; this check backs up the resize / orientation events)
   bgmTick();
   if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').style.opacity=0;}
@@ -8511,16 +8515,25 @@ function frame(now){
   }
   if(TEXQ.length&&state!=='race'&&state!=='countdown'){mDraw=Math.max(mDraw,20);while(TEXQ.length)TEXQ.shift()();}
   // 11-04: nothing moves behind the menu: draw until the car stands in its place, then stop (the menu scrolled in jerks on top of the whole 3D scene)
-  if(state==='menu'&&!LED&&!$('menu').hidden&&--mDraw<0){mDraw=0;requestAnimationFrame(frame);return;}
+  if(state==='menu'&&!LED&&!$('menu').hidden&&--mDraw<0){mDraw=0;return;}
   sync(dt);
   if(state==='menu'){orbit+=dt*(LED?0.2:0.12);const pl=race.player;const mS=LED?null:menuShot(pl);if(mS)orbit=mS.a;const gy=roadY(pl.x,pl.z,pl.idx),od=LED?6.2:mS.d;camera.position.set(pl.x+Math.cos(orbit)*od,(LED?1.9:1.6)+gy,pl.z+Math.sin(orbit)*od);
     if(camera.setViewOffset){const w=VW(),h=VH(),port=w<h;camera.setViewOffset(w,h,LED?(port?0:-Math.min(210,w*0.21)):-w*0.3,LED&&port?h*0.26:0,w,h);}camera.fov=45;camera.near=0.25;camera.lookAt(pl.x,0.5+gy,pl.z);camera.updateProjectionMatrix();meshes[race.cars.indexOf(pl)].helmet.visible=true;if(SW)SW.g.visible=false;}
   if(WORLD.waterTex){WORLD.waterTex.offset.x+=dt*0.004;WORLD.waterTex.offset.y+=dt*0.0025;}
   // v12j: the whole shadow map is redrawn every frame; once the governor decides the device is struggling (PERF.shHalf) it is
   // redrawn every other frame instead - a shadow one frame behind is not visible, and it is a large slice of work.
-  SHF++;particles(dt);drawHUD(dt);audioUpdate(dt);drawMini();renderer.shadowMap.needsUpdate=(!PERF.shHalf||(SHF&1)===0);render();renderMirror();drawDrops(dt);drawHudMirror();perfGovernor(dt);   // (the drops before the HUD mirror: it stays on top of them)
-  requestAnimationFrame(frame);
+  SHF++;particles(dt);try{drawHUD(dt);}catch(e){errNote(e);}audioUpdate(dt);try{drawMini();}catch(e){errNote(e);}renderer.shadowMap.needsUpdate=(!PERF.shHalf||(SHF&1)===0);render();renderMirror();drawDrops(dt);drawHudMirror();perfGovernor(dt);   // (the drops before the HUD mirror: it stays on top of them)
 }
+// 11-14: an error (in the frame, any other script code or a promise) - once each in the console, and a small red note in the bottom-left corner:
+// 「오류 n · the start of the message」 (n different ones so far); a tap copies them all with where they happened, for a screenshot or a message.
+// A div, not a button: the pedals' touch areas reach that corner and still take a finger that lands on it.
+const ERRS=[];
+function errNote(e){const m=String(e&&(e.stack||e.message)||e||'?'),k=m.slice(0,240);if(ERRS.some(x=>x.k===k))return;ERRS.push({k,m});console.error(e);
+  try{let d=$('errNote');if(!d){d=document.createElement('div');d.id='errNote';d.addEventListener('click',()=>{const t=ERRS.map(x=>x.m).join('\n\n');
+      const ok=()=>{d.textContent='복사됨';setTimeout(errShow,1500);};try{navigator.clipboard.writeText(t).then(ok,()=>{d.textContent=t.slice(0,300);});}catch(_){d.textContent=t.slice(0,300);}});$('wrap').appendChild(d);}
+    errShow();}catch(_){}}
+function errShow(){const d=$('errNote');if(d&&ERRS.length)d.textContent='오류 '+ERRS.length+' · '+ERRS[ERRS.length-1].m.split('\n')[0].slice(0,70);}
+addEventListener('error',e=>errNote(e.error||e.message));addEventListener('unhandledrejection',e=>errNote(e.reason));
 // 11-12: the menu shot - from the road side of the car (a fixed world angle put the camera behind the catch fence at Silverstone), ahead of it, else behind or
 // beside it, 10 m away (the whole car clear of the menu panel on a phone), 8 or 6.5 m on a narrow road: the first of those with no other car within 4 m of the
 // camera and the camera on the road. {a: angle round the car (orbit), d: distance}
