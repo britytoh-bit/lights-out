@@ -565,7 +565,7 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
 .gHd b{flex:none; font-family:"Saira Condensed","Arial Narrow",sans-serif; font-weight:700; font-size:15px; color:#ff6a5f; letter-spacing:.5px}
 .gHd span{flex:1; min-width:0; font-size:17px; font-weight:700; color:#f4f5f7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 #guide .gHd button{flex:none; min-height:44px; min-width:64px; padding:0 12px; background:none; border:0; color:#aeb3bc; font-size:14px}
-#gBody{flex:1; min-height:0; display:flex; gap:20px; align-items:center; padding:10px 22px; overflow-y:auto; touch-action:pan-y}
+#gBody{flex:1; min-height:0; display:flex; gap:20px; align-items:center; padding:10px 22px; overflow-y:auto}
 .gV{flex:0 0 32%; display:flex; align-items:center; justify-content:center; min-height:110px}
 .gT{flex:1; min-width:0; margin:0; padding:0; list-style:none}
 .gT li{position:relative; margin:0 0 8px; padding-left:15px; font-size:14.5px; line-height:1.45; color:#e6e8ec; word-break:keep-all}
@@ -652,7 +652,7 @@ body.inmenu:has(#mPage:not([hidden])) #gl{animation-play-state:paused}   /* a se
 </script>
 </head>
 <body>
-<div id="rotHint"><b>폰을 가로로 돌려 주세요</b><span>회전 잠금이 켜져 있으면 풀어 주세요</span></div>
+<div id="rotHint"><b>게임이 알아서 가로로 그려요</b><span>아이폰은 화면 세로 고정(회전 잠금)을 켜 두면 화면이 돌지 않아요</span></div>
 <div id="wrap">
   <canvas id="gl"></canvas><div id="vig"></div><div id="hitfx"></div>
   <div class="hud num" id="hudTop"><div><span id="pos">P12</span><span class="small" id="posN">/22</span></div><div><span class="small" id="lapL">랩 </span><span id="lap">1/3</span></div><div id="pen" class="small" style="color:#ffb347"></div><div id="wxI" class="small"></div></div>
@@ -5914,12 +5914,19 @@ if(isTouch)document.body.classList.add('touch');
 // orientation lock; Android when the lock was refused) no longer pauses the race - #wrap is turned back by the same 90 deg (ROT = +90 / -90, from the
 // landscape angle seen last), so the picture stays where it was on the glass. The tilt angle is read in the phone's own frame, so the steering is unchanged.
 // Anywhere else (menu, pause, drag / button steering) it is as before: the 'turn your phone' panel.
-let mDraw=40,ROT=0,ROT_LA=90,WINW=innerWidth,WINH=innerHeight;const VW=()=>ROT?WINH:WINW,VH=()=>ROT?WINW:WINH,ptX=e=>ROT>0?e.clientY:ROT<0?innerHeight-e.clientY:e.clientX,ptY=e=>ROT>0?innerWidth-e.clientX:ROT<0?e.clientX:e.clientY;
+// 11-14 윤택님 「그냥 가로뷰 고정」: a touch device always shows the game sideways, the menu too - an upright window (rotation lock on: the screen never
+// turns; off: a big tilt of the wheel turns it) gets #wrap turned 90 deg back. Which way: (a) from the landscape angle the screen was last seen at
+// (ROT_LA; the orientation events keep it right after a 180 deg flip, which changes no size), (b) else the accelerometer, once this phone has shown which
+// of its signs is which side (GSIGN, learnt while the screen itself reported a landscape angle - iOS and Android report opposite signs), (c) else the
+// side used last time (+90 the very first time). Halfway through a turn (the window's size and its angle arrive apart) the turn in place is kept.
+let mDraw=40,ROT=0,ROT_LA=+loadLS('lightsout3d-rotla')===-90?-90:90,ROT_SEEN=false,ROTG=0,GSIGN=+loadLS('lightsout3d-gsign')||0,WINW=innerWidth,WINH=innerHeight;const VW=()=>ROT?WINH:WINW,VH=()=>ROT?WINW:WINH,ptX=e=>ROT>0?e.clientY:ROT<0?innerHeight-e.clientY:e.clientX,ptY=e=>ROT>0?innerWidth-e.clientX:ROT<0?e.clientX:e.clientY;
 function bcr(e){const r=e.getBoundingClientRect();if(!ROT)return r;if(ROT<0){const H=innerHeight;return {left:H-r.bottom,right:H-r.top,top:r.left,bottom:r.right,x:H-r.bottom,y:r.left,width:r.height,height:r.width};}const W=innerWidth;return {left:r.top,right:r.bottom,top:W-r.right,bottom:W-r.left,x:r.top,y:W-r.right,width:r.height,height:r.width};}
 function scrAng(){const o=window.orientation;return o!=null&&isFinite(+o)?+o:screen.orientation&&isFinite(screen.orientation.angle)?screen.orientation.angle:0;}
-function rotWant(){if(!isTouch||!(innerHeight>innerWidth))return 0;let ok=false;try{ok=steerMode==='tilt'&&(state==='race'||state==='countdown');}catch(e){}if(!ok)return 0;const d=((ROT_LA-scrAng())%360+540)%360-180;return d===90||d===-90?d:0;}
-function applyRot(){if(!(innerHeight>innerWidth)){const a=scrAng();if(a%180)ROT_LA=a;}ROT=rotWant();const B=document.body.classList,W=innerWidth,H=innerHeight;
-  B.toggle('rot',ROT>0);B.toggle('rotL',ROT<0);B.toggle('portHint',isTouch&&H>W&&!ROT);
+function rotWant(){if(!isTouch||!(innerHeight>innerWidth))return 0;
+  if(ROT_SEEN){const d=((ROT_LA-scrAng())%360+540)%360-180;if(d===90||d===-90)return d;if(ROT)return ROT;}   // (a); a stale angle (the size came first, or the angle first on the way back): keep the turn
+  return ROTG||ROT||ROT_LA;}   // (b), the turn in place, (c)
+function applyRot(){if(!(innerHeight>innerWidth)){const a=scrAng();if(a%180){const s=a===90?90:-90;ROT_SEEN=true;if(s!==ROT_LA){ROT_LA=s;saveLS('lightsout3d-rotla',s);}}}ROT=rotWant();const B=document.body.classList,W=innerWidth,H=innerHeight;
+  B.toggle('rot',ROT>0);B.toggle('rotL',ROT<0);   // (11-14: the 'turn your phone' panel, portHint, is gone)
   $('wrap').style.cssText=!ROT?'':'position:fixed;left:0;top:0;width:'+H+'px;height:'+W+'px;transform-origin:0 0;transform:'+(ROT>0?'translateX('+W+'px) rotate(90deg)':'translateY('+H+'px) rotate(-90deg)');
   if(!$('pause').hidden)$('resumeBtn').scrollIntoView({block:'nearest'});}
 applyRot();
@@ -6051,11 +6058,14 @@ function setupComposer(){
 function basePR(){const w=VW(),h=VH();let pr=Math.min(quality==='high'?(isTouch?1.75:2):quality==='medium'?(isTouch?1.5:1):(isTouch?1.25:1),window.devicePixelRatio||1);   // v14b: phones a step sharper (smooth 1 -> 1.25, normal 1.25 -> 1.5) with the post passes gone
   if(quality==='low'&&!isTouch)pr=Math.min(pr,Math.max(0.5,Math.sqrt(2.4e6/Math.max(1,w*h))));   // v12h: the lowest setting on a PC draws at most ~1080p worth of pixels (a 1440p or 4K window drew 2-4 times that)
   return pr;}
-function resize(){mDraw=Math.max(mDraw,10);resize.w=WINW=innerWidth;resize.h=WINH=innerHeight;if(WINW>WINH&&!ROT){const h=$('wrap').getBoundingClientRect().height;if(h>WINH&&h<WINH*1.3)WINH=Math.round(h);}   /* 11-13: the canvas as tall as #wrap when 100vh made it taller than innerHeight (iOS 26 app) */applyRot();const w=VW(),h=VH();let pr=basePR();   // 11-01: the size this was done for - frame() redoes it when the window has another size (an iPhone turned sideways can send its resize with one old side: 402x402 canvas, stretched and cut off, mirror in the corner)
+function resize(){if(!renderer){applyRot();return;}mDraw=Math.max(mDraw,10);resize.w=WINW=innerWidth;resize.h=WINH=innerHeight;if(WINW>WINH&&!ROT){const h=$('wrap').getBoundingClientRect().height;if(h>WINH&&h<WINH*1.3)WINH=Math.round(h);}   /* 11-13: the canvas as tall as #wrap when 100vh made it taller than innerHeight (iOS 26 app) */applyRot();const w=VW(),h=VH();let pr=basePR();   // 11-01: the size this was done for - frame() redoes it when the window has another size (an iPhone turned sideways can send its resize with one old side: 402x402 canvas, stretched and cut off, mirror in the corner)
   if(typeof PERF!=='undefined'&&PERF.prCap)pr=Math.min(pr,PERF.prCap);   // (and keeps what the smoothness governor took off)
   renderer.setPixelRatio(pr);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
   if(composer){composer.setPixelRatio?composer.setPixelRatio(renderer.getPixelRatio()):0;composer.setSize(w,h);if(fxaa){const pr=renderer.getPixelRatio();fxaa.material.uniforms.resolution.value.set(1/(w*pr),1/(h*pr));}}}
 addEventListener('resize',resize);
+// 11-14: the screen's turn at once (a 180 deg flip changes no size and sent no resize - the side was then remembered wrong, the picture turned upside down),
+// and again a moment later (a phone can report the angle before the new size)
+{const ori=()=>{resize();setTimeout(resize,300);};addEventListener('orientationchange',ori);try{if(screen.orientation)screen.orientation.addEventListener('change',ori);}catch(e){}}
 
 let WORLD,KIT;
 // ---- livery editor: the player's own paint for a team (colours, layout, texture, finish, number, name), kept in this browser ----
@@ -6492,7 +6502,7 @@ function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={ea
         const r=mk('div',null,pg,'mRow');if(w)r.classList.add(w.classList.contains('touchOnly')?'touchOnly':'keyOnly');const l=mk('div',null,r,'mL');mk('b',null,l).textContent=lb;if(sm)mk('small',null,l).textContent=sm;mk('div',null,r,'mC').appendChild(box);}}}
   old.forEach(e=>{if(e.parentElement===card)e.remove();});card.appendChild(home);card.appendChild(page);$('menu').addEventListener('click',()=>setTimeout(menuSum,0));})();
 // 11-04 the menu scrolls by hand: turned sideways (rotation lock on) the whole page is rotated and a browser's own touch scrolling did not move at all (0 px on a 140 px drag).
-{const SEL='.mPg,#mHomeL,.overlay:not(#menu)>.card,.lecard,#engTune .etB',Y=e=>ROT>0?-e.clientX:ROT<0?e.clientX:e.clientY;let S=null,raf=0,dragged=false;
+{const SEL='.mPg,#mHomeL,.overlay:not(#menu)>.card,.lecard,#engTune .etB,#gBody',Y=e=>ROT>0?-e.clientX:ROT<0?e.clientX:e.clientY;let S=null,raf=0,dragged=false;
  const fling=(el,v)=>{let t0=performance.now();const go=now=>{const dt=now-t0;t0=now;const top=el.scrollTop;el.scrollTop=top-v*dt;v*=Math.exp(-dt/380);raf=Math.abs(v)>0.02&&el.scrollTop!==top?requestAnimationFrame(go):0;};raf=requestAnimationFrame(go);};
  let tapB=null,noClick=0;
  document.addEventListener('pointerdown',e=>{if(!isTouch)return;cancelAnimationFrame(raf);raf=0;dragged=false;tapB=e.target.closest&&e.target.closest('.overlay button,#livEd button,#engTune button');const t=e.target.closest&&!e.target.closest('.etS')&&e.target.closest(SEL);S=t&&t.scrollHeight>t.clientHeight+1?{el:t,id:e.pointerId,y0:Y(e),top:t.scrollTop,ly:Y(e),lt:e.timeStamp,v:0,drag:false}:null;},true);
@@ -6676,6 +6686,7 @@ const GUIDE=()=>{const T=isTouch,k=(t,kb)=>T?t:kb,ty=(c,l,n)=>`<span><i style="-
      :'<div class="gBd"><span style="background:#2b2e36">↑ W 가속</span><span style="background:#2b2e36">Space ↓ 브레이크</span><span style="background:#2b2e36">← → 조향</span></div>',
    t:T?[`<b>왼쪽 아래 = 조향</b> (지금: ${sm}). 드래그는 패드를 좌우로 끌고, 버튼은 ◀ ▶, 기울이기는 폰을 핸들처럼 기울여요.`,
         '기울이기가 한쪽으로 쏠리면 위쪽 <b>「영점」</b>을 눌러 지금 각도를 가운데로 맞춰요.',
+        '화면은 늘 가로로 그려져요. 아이폰은 <b>화면 세로 고정(회전 잠금)</b>을 켜 두면 크게 기울여도 화면이 돌지 않아요.',
         '<b>오른쪽 아래 = 페달.</b> 자동 가속이면 브레이크만 누르면 돼요.',
         '위쪽 <b>II</b> 일시정지 · <b>시점</b> 바꾸기 · <b>뒤</b> 누르는 동안 뒤 보기 · <b>맵</b> 미니맵 크기. 조향 방식은 메뉴 「운전」에서 바꿔요.']
      :['<b>↑ / W</b> 가속 · <b>Space / ↓ / S</b> 브레이크 · <b>← → / A D</b> 조향 (길게 누를수록 더 꺾여요).',
@@ -6787,11 +6798,17 @@ $('ctlHelp').addEventListener('click',()=>{$('ctlHelp').hidden=true;if(state==='
 //    with it - worst exactly in corners, where the load is highest and the input is largest.
 //  · one plain low-pass cannot separate hand shake from a real turn, so it delayed both. Drag steering
 //    feels better simply because a finger does not shake, so it needs no filter at all.
-function onMotion(e){const g=e.accelerationIncludingGravity;if(!g||g.x==null)return;const ax=g.x,ay=g.y,inPlane=Math.hypot(ax,ay);if(inPlane<3)return;
+function onMotion(e){const g=e.accelerationIncludingGravity;if(!g||g.x==null)return;const ax=g.x,ay=g.y,inPlane=Math.hypot(ax,ay);if(inPlane<3)return;gravSide(ax,e.timeStamp||performance.now());
   const ang=Math.atan2(ax,ay);tiltLast=ang;tiltOK=true;if(tiltRef==null)tiltRef=ang;let d=ang-tiltRef;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;
   const now=e.timeStamp||performance.now(),dt=TG.t?Math.min(0.1,Math.max(0,(now-TG.t)/1000)):0,rr=e.rotationRate,w=rr&&rr.alpha;TG.t=now;
   if(TG.ref!==tiltRef){TG.ref=tiltRef;TG.f=null;}   // new zero (calibration, a new race): start again from the accelerometer
   tiltDeg=tiltFuse(-d*180/Math.PI,w!=null&&isFinite(w)?w:null,dt);}
+// 11-14 (b) of the sideways turn: which landscape side the phone is held on, from gravity across the screen (device axes - the steering below uses the same
+// angle only as a difference, so it is the same turned or not). Its sign is only trusted once learnt from the screen's angle on this phone (kept); a new side
+// counts after 0.6 s, and only near level (|x| > 6 m/s2), so a hard turn of the wheel does not flip the picture.
+let GS_C=0,GS_T=0;function gravSide(ax,now){const a=scrAng();
+  if(!(innerHeight>innerWidth)&&a%180&&Math.abs(ax)>7){const s=Math.sign(ax)*(a===90?1:-1);if(s!==GSIGN){GSIGN=s;saveLS('lightsout3d-gsign',s);}}
+  if(!GSIGN||Math.abs(ax)<6)return;const c=ax*GSIGN>0?90:-90;if(c===ROTG){GS_C=0;return;}if(c!==GS_C){GS_C=c;GS_T=now;}else if(now-GS_T>600)ROTG=c;}
 // 11-11 윤택님 「기울이기 조향 감도 - 스무스함 부족」: the angle came from the accelerometer alone, and that one also feels every push of the hands (a 0.1 m/s²
 // jolt reads as 0.6 deg of tilt). The gyro (rotationRate.alpha: the turn about the screen's normal, the way a wheel turns) does not, and has no delay, but
 // drifts - so the two are blended (complementary filter): the gyro moves it, the accelerometer pulls it back over TG_TAU s. Phones differ in the sign and
@@ -8474,7 +8491,7 @@ function vsTick(now){const d=now-VS.lastV;VS.lastV=now;if(!(d>0&&d<100))return;V
   if(VS.i%120===0){const s=Array.from(VS.a).sort((x,y)=>x-y),p=s[12];VS.hz=Math.max(VS.hz,p<9.5?120:p<12.5?90:60);}}   // 10-30: the screen's rate only goes up - a heavy stretch (frames of 17 ms+) used to make a 120 Hz screen read "60Hz"
 function frame(now){
   vsTick(now);if(PERF.lock60&&now-last<12.5){requestAnimationFrame(frame);return;}   // locked: skip the in-between refresh
-  const raw=(now-last)/1000,dt=Math.min(1/30,Math.max(0,raw));last=now;fpsTick(raw);if((frame.n=(frame.n||0)+1)%30===0&&(innerWidth!==resize.w||innerHeight!==resize.h||isTouch&&rotWant()!==ROT))resize();if(isTouch&&WINH>WINW&&!ROT&&(state==='race'||state==='countdown'))setPause(true);   // turned upright mid-race: it waits
+  const raw=(now-last)/1000,dt=Math.min(1/30,Math.max(0,raw));last=now;fpsTick(raw);if((frame.n=(frame.n||0)+1)%30===0&&(innerWidth!==resize.w||innerHeight!==resize.h||isTouch&&rotWant()!==ROT))resize();   // (11-14: an upright window no longer pauses the race - the game turns sideways; this check backs up the resize / orientation events)
   bgmTick();
   if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').style.opacity=0;}
   if(flagPulse>0)flagPulse-=dt;
