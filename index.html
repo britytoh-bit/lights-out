@@ -398,6 +398,8 @@ body.touch #flag.pulse{animation:flagPulse .55s ease-in-out 4}
 /* 11-13 윤택님 「vsc 팝업 크기 너무 커서 시야가 가려짐」: 깃발 알림은 위쪽 가장자리의 얇은 한 줄 (글자 11px, 델타 13px, 테두리 2px) */
 body.touch #flag{font-size:11px; line-height:1.25; padding:2px 8px; white-space:nowrap!important; box-shadow:0 2px 8px rgba(0,0,0,.3)} body.touch #flagD{font-size:13px; padding:0 3px; margin:0 1px}
 body.touch #flag.vsc::before{inset:2px; border-width:2px}
+body.touch #flag.f,body.touch #flag.chq,body.touch #flag.vsc{padding:7px 16px; outline-offset:-4px}   /* 11-13: the frame was on the letters */
+#flag.f,#flag.chq,#flag.vsc{padding:10px 22px}
 @keyframes flagPulse{50%{filter:brightness(1.25); box-shadow:0 0 0 3px rgba(255,255,255,.8),0 4px 18px rgba(0,0,0,.35)}}
 @media (prefers-reduced-motion:reduce){ body.touch #flag.pulse{animation:none} }
 /* the timing tower: tap its header for all rows / fewer rows / header only */
@@ -7115,10 +7117,11 @@ function layoutTouchHUD(){if(!isTouch)return;
     // v12j: 룸미러를 화면 맨 위 가운데로 올리고(실제 룸미러 자리), 메시지 줄을 그 아래로 내린다.
     // 예전에는 미러가 메시지 아래라서 가로로 든 휴대폰에서는 앞을 보는 자리 한가운데에 걸렸다.
     hc.mirY=sa.t+4;let mo=false;try{mo=!!(MIR&&MIR.on);}catch(e){}const y0=mo?sa.t+4+mirSize().h+8:sa.t+6;   // 11-11: mirror off (the phone default) - the pill and the notes go up into its row, off the road ahead
-    set($('flag'),{left:C(L,Rf),top:y0,maxWidth:Math.max(120,Rf-L),whiteSpace:'normal'});
-    set($('pitMsg'),{left:C(L,Rm),top:y0+30,bottom:null,maxWidth:Math.max(120,Rm-L)});
-    set($('toast'),{left:C(L,Rm),top:y0+30,maxWidth:Math.max(140,Rm-L)});
-    set($('pitT'),{top:y0+58});}
+    const cx=Math.round(W/2),hw=(a,b)=>2*Math.min(cx-a,b-cx);   // 11-13 윤택님: centred under the mirror (W/2), as wide as fits on both sides
+    set($('flag'),{left:cx+'px',top:y0,maxWidth:Math.max(120,hw(L,Rf)),whiteSpace:'normal'});
+    set($('pitMsg'),{left:cx+'px',top:y0+36,bottom:null,maxWidth:Math.max(120,hw(L,Rm))});
+    set($('toast'),{left:cx+'px',top:y0+36,maxWidth:Math.max(140,hw(L,Rm))});
+    set($('pitT'),{top:y0+64});}
   else{const L=sa.l+12,R2=W-sa.r-12,yB=Math.max(mr?mr.bottom:tTop+TOWER_H,hsr.bottom)+10;
     set($('flag'),{left:C(L,R2),top:sa.t+4,maxWidth:R2-L,whiteSpace:'normal'});
     set($('toast'),{left:C(L,R2),top:sa.t+4,maxWidth:R2-L});
