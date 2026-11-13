@@ -5235,7 +5235,7 @@ function cobaltPod(g,X,V,W,H,L){
     artBand(g,X,V,s,top,bot,0.74,0.96,COB.blue);
     for(const f of[[0.68,0.46,1,0.5,0.035,0.02,COB.light],[0.72,0.58,1,0.6,0.025,-0.01,COB.white]])artFlame(g,X,V,s,f[0],f[1],f[2],f[3],f[4],f[5],f[6]);}}   // and blue flames behind
 function liveryTex(tm,num,ti,code,g26){
-  const W=1024,H=512,c=mkCanvas(W,H),g=c.getContext('2d'),L=g26?Object.assign({},LIV[ti],{KC:1}):LIV[ti],D=L.D,K=L.K,A=L.A,R=matMap(L,W,H);
+  const W=1024,H=512,c=mkCanvas(W,H),g=c.getContext('2d',{willReadFrequently:true}),L=g26?Object.assign({},LIV[ti],{KC:1}):LIV[ti],D=L.D,K=L.K,A=L.A,R=matMap(L,W,H);
   // v around the section: 0 bottom, 0.25 right flank (+z), 0.5 top, 0.75 left flank; h = height on a flank (0 lower edge .. 1 top line)
   const V=(s,h)=>(1-(s>0?0.07+0.43*h:0.93-0.43*h))*H,X=u=>u*W;
   const bnd=(LIV_CUT[L.cut]||LIV_CUT.rise)[0];   // where the colour ends: black rises towards the back
