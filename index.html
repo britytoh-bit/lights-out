@@ -411,7 +411,6 @@ body.touch.ph-small #topBtns button{width:32px; height:32px; font-size:11px}
 body.touch.ph-small #hudTime{width:164px}
 /* portrait: panels along the top, controls along the bottom, a narrower steering pad */
 body.touch.ph-port #steerPad{width:min(200px,46vw)} body.touch.ph-port #hudTime, body.touch.ph-port #hudSpeed{width:176px}
-#benchBar{position:absolute; left:50%; top:calc(6px + var(--sat)); transform:translateX(-50%); z-index:12; display:flex; align-items:center; gap:10px; padding:6px 6px 6px 12px; border-radius:6px; background:rgba(9,11,15,.85); color:#fff; font-size:13px; max-width:calc(100% - 32px)} #benchBar[hidden]{display:none} #benchBar button{min-height:44px; padding:0 18px; flex:none}   /* 10-30: performance test */
 /* 10-31: sector popup - for 3.5 s after a sector line it takes the place of the 'fastest lap' row (same height: the phone layout does not move); diffs to my last lap and my best on this circuit */
 #hudTime .row.sp{display:none !important} #hudTime.spOn .row.sp{display:flex !important} #hudTime.spOn .row.fast{display:none !important}
 #hudTime .row.sp b{font-size:14px} #hudTime .row.sp b.k-ob{color:#b16cff} #hudTime .row.sp b.k-pb{color:#2fd06b} #hudTime .row.sp b.k-sl{color:#f5c518} #hudTime .row.sp i{font-style:normal}
@@ -420,7 +419,6 @@ body.touch #hudTime .row.sp .spt{display:none}   /* the time itself is in the co
 .laps details{margin:0 0 12px} .laps summary{cursor:pointer; font-size:14px; color:var(--dim); padding:4px 0}
 .laps table{font-size:12px; margin:4px 0 6px} .laps td,.laps th{padding:2px 4px; text-align:right; white-space:nowrap} .laps th{color:var(--dim); font-weight:600; border-bottom:1px solid var(--line)}
 .laps td:first-child,.laps th:first-child{text-align:left; width:auto} .laps .lb{color:var(--purple)} .laps .lv{color:#ff8a8a}
-#bench td:first-child{width:auto} #bench td:first-child:empty{display:none} #benchTa{width:100%; height:9em; font-size:12px; margin:0 0 12px}
 #fpsBox{position:absolute; left:50%; bottom:calc(6px + var(--sab)); transform:translateX(-50%); padding:2px 9px; border-radius:4px; background:rgba(9,11,15,.72); color:#cfe3ff; font-size:12px; pointer-events:none; z-index:5; white-space:nowrap}   /* v12h: F key */
 body.inmenu #fpsBox{display:none}
 /* 11-04: the menu reads like a phone settings app: a short list at home, one topic per page. Home keeps the car in view (one frozen frame, nothing is drawn behind the menu). */
@@ -659,7 +657,6 @@ body.inmenu:has(#mPage:not([hidden])) #gl{animation-play-state:paused}   /* a se
   <div id="pitT" class="num"><span id="pitTl">피트 스톱</span><b id="pitTv">0.0</b></div>
   <div id="pitMsg" class="num"></div>
   <div id="fpsBox" class="num" hidden></div>
-  <div id="benchBar" class="num" hidden><span id="benchTxt"></span><button id="benchStop" type="button">중단</button></div>
   <div class="hud num" id="tower"></div>
   <div class="hud num" id="hudTime">
     <div class="row cur"><span>현재</span><b id="tCur">0:00.000</b></div>
@@ -768,14 +765,11 @@ body.inmenu:has(#mPage:not([hidden])) #gl{animation-play-state:paused}   /* a se
         <div><p class="label">레이싱 라인 가이드 (L 키)</p><div class="seg" id="rlSel"><button data-v="corners" aria-pressed="true">코너만<span class="rec">중급 추천</span></button><button data-v="full" aria-pressed="false">전체</button><button data-v="off" aria-pressed="false">끔<span class="rec">상급 추천</span></button></div></div>
         <div><p class="label">액티브 에어로 (직선 모드)</p><div class="seg" id="aeroSel"><button data-v="manual" aria-pressed="true">직접</button><button data-v="auto" aria-pressed="false">자동</button></div></div>
         <div><p class="label">엔진 사운드</p><button id="sndPrev" type="button" style="width:100%">들어보기</button><button id="sndTune" type="button" style="width:100%">튜닝</button></div>
+        <div><p class="label">메뉴 음악</p><div class="seg" id="bgmSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔</button></div></div>
         <div><p class="label">그래픽</p><div class="seg" id="qSel"><button data-v="high" aria-pressed="false">높음</button><button data-v="medium" aria-pressed="true">보통</button><button data-v="low" aria-pressed="false">부드럽게</button></div></div>
         <div><p class="label">자동 화질 조절 (프레임이 떨어지면 효과를 하나씩 줄임)</p><div class="seg" id="aqSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔</button></div></div>
         <div><p class="label">관중 표시 (관중석의 사람 그림 · 끄면 조금 가벼워질 수 있어요)</p><div class="seg" id="crowdSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔</button></div></div>
       </div>
-      <p class="label">자동 성능 측정 (28개 서킷을 혼자 돌며 프레임을 재요 · 약 15~20분 · 지금 그래픽 설정 그대로 · 휴대폰은 가로로 두고 충전기에 꽂아 두세요)</p>
-      <div class="two"><div><p class="label">측정 시점</p><div class="seg" id="bvSel"><button data-v="cur" aria-pressed="true">지금 시점</button><button data-v="cockpit" aria-pressed="false">콕핏</button></div></div>
-        <div><p class="label">측정 날씨</p><div class="seg" id="bwSel"><button data-v="dry" aria-pressed="true">맑음</button><button data-v="rain" aria-pressed="false">비</button><button data-v="night" aria-pressed="false">밤</button></div></div></div>
-      <div class="row2"><button id="benchBtn" type="button" style="min-height:48px">자동 성능 측정 시작</button><button id="benchLast" type="button" style="min-height:48px" hidden>지난 측정 결과</button></div>
       <p class="sub touchOnly" id="touchHelp">가로 화면 권장. 왼쪽 아래로 조향, 오른쪽 아래 페달로 가속·브레이크. 자동 가속이면 브레이크만 누르면 돼요. 직선 구간에서 '직선' 버튼을 누르면 날개가 열려요. 위쪽 '맵' 버튼으로 미니맵 크기를 바꿀 수 있어요.</p>
       <div class="keys keyOnly">
         <span><kbd>↑</kbd> <kbd>W</kbd></span><span>가속</span>
@@ -810,12 +804,6 @@ body.inmenu:has(#mPage:not([hidden])) #gl{animation-play-state:paused}   /* a se
     <div><p class="label">실력</p><div class="seg" id="pSkSel"><button data-v="easy">초보 (가장 쉽게)</button><button data-v="pro">직접 설정</button></div><p class="skNote" id="pSkNote"></p></div>
     <div class="row2"><button class="go" id="resumeBtn">계속 달리기</button><button id="ctlBtn" class="touchOnly" type="button">조작법</button><button id="mirBtn">룸미러</button><button id="haloBtn">헤일로 블러</button><button id="fpsBtn">FPS 표시</button><button id="skipBtn" hidden>건너뛰기</button><button id="quitBtn">메뉴로</button></div><div class="laps" id="pLaps" style="margin-top:12px"></div></div></div>
   <div class="overlay" id="sess" hidden><div class="card"><h1 id="sessTitle">Q1</h1><p class="sub num" id="sessSub"></p><div class="laps" id="sLaps"></div><table class="num" id="sessTable"></table><div class="row2"><button class="go" id="sessGo">다음</button><button id="sessMenu">메뉴로</button></div></div></div>
-  <div class="overlay" id="bench" hidden><div class="card"><h1>성능 측정 결과</h1><p class="sub num" id="benchSub"></p>
-    <div class="row2" style="margin:0 0 14px"><button class="go" id="benchCopy" type="button" style="min-height:52px">결과 복사</button><button id="benchClose" type="button" style="min-height:52px">닫기</button></div>
-    <p class="label">가장 느린 지점 10곳 (평균 fps)</p><table class="num" id="benchSlow"></table>
-    <p class="label">서킷별 (평균 fps)</p><table class="num" id="benchTrk"></table>
-    <textarea id="benchTa" readonly hidden></textarea>
-    </div></div>
   <div class="overlay" id="result" hidden><div class="card"><h1 id="resTitle">P1</h1><p class="sub num" id="resSub"></p><p class="sub num" id="resFl" style="color:#c58bff;margin-top:-4px"></p><table class="num" id="resTable"></table><div class="laps" id="rLaps"></div><div class="row2"><button class="go" id="againBtn">다시 달리기 (Enter)</button><button class="go" id="chBtn" hidden>대회 순위 보기 (Enter)</button><button id="menuBtn">메뉴로</button></div></div></div>
   <div class="overlay" id="guide" hidden role="dialog" aria-label="레이스 가이드"><div class="gCard"><div class="gHd"><b id="gCnt"></b><span id="gTit"></span><button id="gX" type="button">닫기</button></div>
     <div id="gBody"></div><div class="gNav"><button id="gPrev" type="button">이전</button><div id="gDots"></div><button id="gNext" type="button" class="go">다음</button></div></div></div>
@@ -6215,6 +6203,33 @@ function initAudio(){if(AC)return;try{
   SND.hsF=F('bandpass',3300,0.8);SND.hsG=G();mkNoise().connect(SND.hsF);SND.hsF.connect(SND.hsG);SND.hsG.connect(M);
 }catch(e){console.warn(e);AC=null;}}
 function mkNoise(){const s=AC.createBufferSource();s.buffer=SND.nb;s.loop=true;s.start(0,Math.random()*1.9);return s;}
+// ---- 11-13 윤택님 「게임시작때 브금」: the menu music - an original loop written here in code (no recording, nothing downloaded).
+// 112 bpm, A minor, Am - F - C - G, 8 bars: kick, clap, hats, bass, a pad and (from bar 3) an arpeggio. Only in the menu; it fades
+// out when a race loads, while the engine preview plays, with M (sound off) and with 메뉴 음악 끔. The engine sound is not touched.
+let BGM=null,bgmOn=true;
+const BGM_SP=60/112/4,BGM_CH=[[0,3,7],[-4,0,4,7],[3,0,4,7],[-2,0,4,7]].map(a=>({r:a[0],t:a.length>3?a.slice(1):[0,3,7]}));
+function bgmKick(){if(state!=='menu'||!bgmOn||muted)return;initAudio();if(AC&&AC.state!=='running')AC.resume();}   // a phone starts sound only inside a tap
+function bgmStart(){const out=AC.createGain();out.gain.value=0;out.connect(SND.out);out.gain.setTargetAtTime(0.55,AC.currentTime,0.6);BGM={out,next:AC.currentTime+0.12,step:0};}
+function bgmStop(){const b=BGM;BGM=null;b.out.gain.setTargetAtTime(0,AC.currentTime,0.25);setTimeout(()=>b.out.disconnect(),1500);}
+function bgmTick(){const want=state==='menu'&&bgmOn&&!muted&&!!AC&&AC.state==='running'&&!PREV&&!document.hidden;
+  if(!want){if(BGM)bgmStop();return;}if(!BGM)bgmStart();const B=BGM;if(B.next<AC.currentTime)B.next=AC.currentTime+0.05;   // after a stall: carry on from now
+  while(B.next<AC.currentTime+0.25){bgmNote(B,B.step,B.next);B.step=(B.step+1)%128;B.next+=BGM_SP;}}
+function bgmEnv(g,t,v,a,d){g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+a);g.gain.setTargetAtTime(0,t+a,d);}
+function bgmOsc(B,type,f,t,v,a,d,lp,len){const o=AC.createOscillator(),g=AC.createGain(),fl=AC.createBiquadFilter();o.type=type;o.frequency.value=f;fl.type='lowpass';fl.frequency.value=lp;
+  o.connect(fl);fl.connect(g);g.connect(B.out);bgmEnv(g,t,v,a,d);o.start(t);o.stop(t+(len||a+d*5));return o;}
+function bgmNoise(B,type,f,t,v,d){const s=AC.createBufferSource(),fl=AC.createBiquadFilter(),g=AC.createGain();s.buffer=SND.nb;fl.type=type;fl.frequency.value=f;s.connect(fl);fl.connect(g);g.connect(B.out);bgmEnv(g,t,v,0.002,d);s.start(t,Math.random()*1.5);s.stop(t+d*5);}
+function bgmNote(B,st,t){const bar=st>>4,pos=st&15,C=BGM_CH[bar&3],hz=(base,n)=>base*Math.pow(2,n/12);
+  if(pos%4===0){const o=bgmOsc(B,'sine',140,t,0.34,0.003,0.09,800,0.4);o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(42,t+0.12);}   // kick
+  if(pos===4||pos===12)bgmNoise(B,'bandpass',1800,t,0.09,0.05);   // clap
+  if(pos%4===2)bgmNoise(B,'highpass',7000,t,0.045,0.012);         // hat
+  if(pos%2===0)bgmOsc(B,'sawtooth',hz(55,C.r)*(pos%4===2?2:1),t,0.1,0.005,0.06,300);   // bass
+  if(pos===0)for(const n of C.t)for(const dt of[-7,7]){const o=bgmOsc(B,'triangle',hz(220,C.r+n),t,0.022,0.35,0.9,1400,BGM_SP*16+1.2);o.detune.value=dt;}   // pad
+  if(bar>=2){const ar=[0,1,2,1],n=C.t[ar[pos&3]]+(pos>=8?12:0)+(bar>=6?12:0);bgmOsc(B,'square',hz(220,C.r+n),t,0.022,0.004,0.05,2400);}}   // arpeggio
+document.addEventListener('pointerdown',bgmKick,true);document.addEventListener('keydown',bgmKick,true);
+// ---- 11-13 출발음: the crowd on the grid while the lights come on, and its roar as they go out (with the start beeps that were there)
+function crowdSfx(f,v,att,hold,rel){if(!AC||muted)return;const t=AC.currentTime,s=AC.createBufferSource(),fl=AC.createBiquadFilter(),g=AC.createGain();s.buffer=SND.nb;s.loop=true;
+  fl.type='bandpass';fl.frequency.value=f;fl.Q.value=0.55;s.connect(fl);fl.connect(g);g.connect(SND.out);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+att);g.gain.setValueAtTime(v,t+att+hold);g.gain.setTargetAtTime(0,t+att+hold,rel);
+  s.start(t,Math.random()*1.5);s.stop(t+att+hold+rel*6);}
 // ---- the engine sound itself is in engineSound.js ----
 // 11-04 the sound at a trackside camera, from the geometry only (no recording of it to go by): d metres away, closing at vr (+ away), rear 0..1 how much the tail points at it. Level falls with distance (a broadcast's mix keeps it from falling all the way), the air and the distance take the top off, the exhaust side is louder and brighter, a little echo off the stands grows with distance, the sound arrives a fixed 60 ms late (20 m; a delay following d would add to the Doppler pitch).
 function tvHear(d,vr,rear){const dd=Math.max(4,d),A=Math.max(0.045,Math.min(1,Math.pow(14/dd,0.85)))*(0.72+0.28*rear);
@@ -6401,7 +6416,7 @@ function startRace(o){if(THREE.GLTFLoader&&!window.__CARGLB){if(isTouch)prepMobi
   if(formOn){formSetup(race,'start',race.cars.slice().sort((a,b)=>a.grid-b.grid));if(isTouch&&autoGas)race.form.autoP=true;state='race';$('lights').style.opacity=0;
     toast(race.form.autoP?'포메이션 랩 · 자동 주행':'포메이션 랩 · 추월 금지','#fff',2,1000);return;}
   beginCountdown();}
-function beginCountdown(){state='countdown';cdT=0;cdLit=0;cdHold=0.4+Math.random()*1.4;$('lights').style.opacity=1;setLights(0);
+function beginCountdown(){state='countdown';crowdSfx(750,0.05,1.2,3.4,0.4);cdT=0;cdLit=0;cdHold=0.4+Math.random()*1.4;$('lights').style.opacity=1;setLights(0);
   if(!isTouch&&startMode==='manual')setTimeout(()=>{if(state==='countdown')toast('스페이스+↑ 로 대기 → 불 꺼지면 스페이스 떼기','#fff',3.2);},250);}
 function endForm(){formEnd(race);if(state==='done'){race.startT=race.t;race.restart=false;return;}beginCountdown();}
 // fast-forward through the formation lap or a red-flag stoppage (a few simulated seconds per frame)
@@ -6446,7 +6461,7 @@ const MPAGES={track:[[null,[['chBox','대회','서킷을 이어 달리며 순위
   team:[[null,[['teamSel'],['livBtn']]]],
   race:[['레이스',[['modeSel','진행 방식'],['lapSel','랩 수'],['difSel','AI 난이도'],['scSel','스타트 타이어']]],['날씨와 시간',[['wxSel','날씨','변덕은 도중에 비가 와요'],['rainSel','비 강도','약한 비는 노면만 젖어 인터, 폭우는 풀웻'],['todSel','시간대']]],['규칙',[['fmlSel','포메이션 랩','출발 전에 한 바퀴 돌아요'],['incSel','사고와 세이프티카'],['dmgSel','차량 손상','보통: 내 차는 크게 부딪혀도 대부분 피트에서 고쳐요 · 리얼: 부러진 서스펜션·큰 충격·찢어진 사이드포드는 리타이어 · 끔: 손상 없음']]]],
   drive:[[null,[['skSel','실력'],['skNote'],['tutBtn'],['guideBtn']]],['조작',[['smSel','조향 방식'],['sensSel','조향 감도','1이 가장 부드러워요'],['pedSel','페달 위치','양쪽은 브레이크가 왼쪽이에요'],['agSel','가속'],['stSel','스타트','수동은 부정 출발을 판정해요']]],['보조',[['asSel','주행 보조','잠김과 스핀을 잡아줘요'],['basSel','브레이크 보조','너무 빠르면 대신 밟아요. 늦게 밟고 싶으면 끄세요'],['rlSel','레이싱 라인'],['aeroSel','직선 모드 날개']]]],
-  set:[['그래픽',[['qSel','그래픽'],['aqSel','자동 화질 조절','프레임이 떨어지면 효과를 줄여요'],['crowdSel','관중 표시','끄면 조금 가벼워져요']]],['소리',[['sndPrev','엔진 소리'],['sndTune','소리 튜닝','모드와 울림을 귀로 맞춰요']]],['성능 측정',[['bvSel','측정 시점'],['bwSel','측정 날씨'],['benchBtn','자동 성능 측정','28개 서킷을 돌며 재요. 15~20분 걸리니 충전기에 꽂아 두세요']]],['도움말',[['touchHelp'],['mKeys']]]]};
+  set:[['그래픽',[['qSel','그래픽'],['aqSel','자동 화질 조절','프레임이 떨어지면 효과를 줄여요'],['crowdSel','관중 표시','끄면 조금 가벼워져요']]],['소리',[['sndPrev','엔진 소리'],['sndTune','소리 튜닝','모드와 울림을 귀로 맞춰요'],['bgmSel','메뉴 음악','메뉴 화면에서 흐르는 음악']]],['도움말',[['touchHelp'],['mKeys']]]]};
 const MNAMES={track:'서킷',team:'내 팀',race:'레이스 설정',drive:'운전',set:'그래픽과 기타'};
 function mOpen(k){$('mHome').hidden=!!k;$('mPage').hidden=!k;for(const n in MPAGES){const on=n===k;$('mP_'+n).hidden=!on;if(on)$('mP_'+n).scrollTop=0;}if(k)$('mPgT').textContent=k==='track'&&mMode==='champ'?'대회와 서킷':MNAMES[k];}
 function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={easy:'AI 쉬움',normal:'AI 보통',hard:'AI 어려움'}[diff]||'',w=weather==='rain'?{light:'약한 비',heavy:'폭우'}[rainInt]||'비(랜덤)':{dry:'맑음',mixed:'변덕'}[weather]||'';
@@ -6488,6 +6503,7 @@ function updateMenuBest(){menuSum();const ch=mMode==='champ',fin=CH&&CH.rd>=CH.l
   `<p style="grid-column:1/-1;margin:0;font-size:11px;line-height:1.4;color:var(--dim)">실제 서킷 형상과 스파의 방호벽·자갈밭·관중석 위치: © OpenStreetMap contributors(ODbL, 서킷 형상은 mvoof/F1TrackDownloader 경유) · TUM racetrack-database(LGPL-3.0) · bacinger/f1-circuits(MIT)를 가공. 높낮이·출발선·피트 레인 일부: 2025·2026 F1 위치 데이터(TracingInsights, Apache-2.0)를 가공 — 높낮이는 부드럽게 다듬어 실제보다 완만한 곳이 있어요. 차량 3D 모델: “F1 Generic 2022” © TheoDev(CC BY 4.0)를 가공 — 바퀴·날개·로고를 빼고 가볍게 줄였어요.</p>`;}
 $('teamSel').innerHTML=TEAMS.map((t,i)=>`<button data-v="${i}" aria-pressed="${i===teamSel}"><span class="sw" style="background:linear-gradient(90deg,${t.p} 0 60%,${t.s} 60%)"></span>${t.name}</button>`).join('');
 function seg(id,cb){document.querySelectorAll('#'+id+' button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#'+id+' button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));cb(b.dataset.v);}));}
+seg('bgmSel',v=>{bgmOn=v==='on';saveLS('lightsout3d-bgm',v);});bgmOn=loadLS('lightsout3d-bgm')!=='off';document.querySelectorAll('#bgmSel button').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.v==='on')===bgmOn?'true':'false'));
 seg('mMode',v=>{mMode=v;saveLS('lightsout3d-mmode',v);mApply();});seg('modeSel',v=>{gameMode=v;saveLS('lightsout3d-mode',v);updStartBtn();});seg('fmlSel',v=>{formOn=v==='on';saveLS('lightsout3d-fml',v);});
 document.querySelectorAll('#modeSel button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===gameMode?'true':'false'));document.querySelectorAll('#fmlSel button').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.v==='on')===formOn?'true':'false'));updStartBtn();
 // 11-05: these four were not kept: every reload (each 대회 round goes through one, changing circuit too) put them back to the defaults
@@ -6875,7 +6891,7 @@ let tapGas=false,tapBrk=false,pedLast=null;   // 11-01: set on press, cleared by
  // 11-04 윤택님 (자꾸 터치가 안 먹음): the pedals read the browser's own list of fingers at every touch event, not pointer events: a pointer the phone cancels (or one lost up) left a finger
  // on the glass doing nothing. Whatever lands in a pedal's zone presses it at once: the gas zone runs to the screen's right and bottom edges (the safe area beside it was dead), the brake's
  // down to the bottom edge and well past its sides. Buttons and the steering pad keep their own touches; the nearest pedal wins where zones meet.
- const EX='button,.overlay,#steerPad,#tut,#benchBar,#livEd';let Z=[];
+ const EX='button,.overlay,#steerPad,#tut,#livEd';let Z=[];
  const zones=()=>{Z=[];for(const k in P){const r=bcr(P[k]);if(!r.width)continue;Z.push({k,r,l:r.left-(k==='gas'?20:60),t:r.top-80,R:k==='gas'?1e5:r.right+90,B:1e5});}};
  const zoneAt=(x,y)=>{let k0=null,d0=1e9;for(const z of Z){if(x<z.l||x>z.R||y<z.t||y>z.B)continue;const d=Math.hypot(Math.max(z.r.left-x,0,x-z.r.right),Math.max(z.r.top-y,0,y-z.r.bottom));if(d<d0){d0=d;k0=z.k;}}return k0;};
  const purge=e=>{for(const id of [...on.keys()]){let live=false;for(const t of e.touches)if(t.identifier===id){live=true;break;}if(!live)on.delete(id);}};
@@ -8385,109 +8401,6 @@ function drawHudMirror(){const fr=$('mirFrame');
   if(fr.style.display!=='block')fr.style.display='block';
   const ac=renderer.autoClear;renderer.autoClear=false;renderer.setScissorTest(true);renderer.setScissor(x,H-y-h,w,h);renderer.setViewport(x,H-y-h,w,h);
   renderer.render(MIR.hs,MIR.hc);renderer.setScissorTest(false);renderer.setViewport(0,0,W,H);renderer.autoClear=ac;}
-// ---- 10-30: automatic performance test (menu: 자동 성능 측정) ----
-// Nothing here runs in normal play: BENCH is null unless a test was started, and frame() only looks at it.
-// A circuit is built once at page load, so the test reloads the page for each one. What it has done so far waits in
-// localStorage (BKEY) across the reloads; the circuit / time of day it changed are put back at the end.
-// On each circuit the field is parked at PTS points of the lap (the player plus a small pack 6-40 m ahead and beside, the rest
-// strung out behind) and rolls forward at the racing speed of that point; after a few warm-up frames the real frame
-// intervals (requestAnimationFrame) are timed. The loading of a circuit is not timed. The governor and the auto quality
-// setting are held off for the test (in memory only - the saved setting is not touched).
-const BKEY='lightsout3d-bench',BLAST='lightsout3d-bench-last',BSHOW='lightsout3d-bench-show',BQUICK=/[?&]bench=quick/.test(location.search);
-const BWXN={dry:'맑음',rain:'비',night:'밤'},BQN={high:'높음',medium:'보통',low:'부드럽게'};
-let BENCH=null,BENCH_R=null,benchOpt={view:'cur',wx:'dry'};
-function benchLoad(k){try{return JSON.parse(localStorage.getItem(k||BKEY)||'null');}catch(e){return null;}}
-function benchSave(S){try{localStorage.setItem(BKEY,JSON.stringify(S));return true;}catch(e){return false;}}
-function setLS(k,v){try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){}}
-function benchStart(){if(state!=='menu')return;if(camera.clearViewOffset)camera.clearViewOffset();const q=BQUICK;
-  const S={cfg:{view:benchOpt.view==='cockpit'?'cockpit':CAMS[camMode],wx:benchOpt.wx,pts:q?4:48,pit:q?0:3,ms:q?300:500,quick:q},
-    orig:{track:loadLS('lightsout3d-track'),tod:loadLS('lightsout3d-tod')},ids:(q?TRACKS.slice(0,2):TRACKS).map(t=>t.id),k:0,res:[],t0:Date.now()};
-  if(!benchSave(S)||!benchLoad()){toast('저장 공간을 쓸 수 없어 측정을 시작할 수 없어요','#ffb347',3);return;}
-  benchGo(S);}
-// load circuit S.k (a page reload)
-function benchGo(S){saveLS('lightsout3d-track',S.ids[S.k]);saveLS('lightsout3d-tod',S.cfg.wx==='night'?'night':'day');S.ts=Date.now();benchSave(S);
-  $('loading').style.display='flex';$('loading').textContent='성능 측정 · 서킷 '+(S.k+1)+'/'+S.ids.length+' 불러오는 중';setTimeout(()=>location.reload(),30);}
-// called at the end of boot(): carry on with a running test, or show the results it just finished
-function benchBoot(){
-  if(loadLS(BSHOW)){setLS(BSHOW,null);const R=benchLoad(BLAST);if(R)benchShow(R);}
-  $('benchLast').hidden=!loadLS(BLAST);if(BQUICK)$('benchBtn').textContent='자동 성능 측정 시작 (빠른 확인)';
-  const S=benchLoad();if(!S)return;
-  // a test left over from an app that was closed in the middle: the settings go back, what was measured is kept
-  if(S.ids[S.k]!==TRK.id||Date.now()-(S.ts||0)>180000){benchFinish(S,true);return;}
-  try{benchRun(S);}catch(e){console.error(e);benchFinish(S,true);}}
-function benchRun(S){perfReset();
-  BENCH={S,j:0,a:[],sum:0,w:0,res:{id:TRK.id,name:TRK.name,pts:[]}};
-  autoQ='off';camMode=Math.max(0,CAMS.indexOf(S.cfg.view));weather=S.cfg.wx==='rain'?'rain':'dry';
-  document.body.classList.remove('inmenu');document.body.classList.add('racing');['menu','result','pause','sess'].forEach(id=>$(id).hidden=true);
-  setupRace();warmUp();state='race';$('lights').style.opacity=0;
-  try{if(navigator.wakeLock)navigator.wakeLock.request('screen').catch(()=>{});}catch(e){}   // keep the screen on (it is fine if the phone says no)
-  $('benchBar').hidden=false;benchPlace(0);}
-// the nearest corner number (inside the corner, or its apex within 120 m)
-function benchCorner(i){let best=null,bd=61;for(const c of CORNERS){const d=wrap(i-c.i0)<=wrap(c.i1-c.i0)?0:Math.min(wrap(i-c.apex),wrap(c.apex-i));if(d<bd){bd=d;best=c.num;}}return best;}
-// a car on the centre line + lat metres, s metres round the lap
-function benchCar(c,s,lat){const L=N*STEP,q=(((s%L)+L)%L)/STEP,i=Math.floor(q)%N,f=q-Math.floor(q),i2=(i+1)%N,p=P[i],p2=P[i2],t=T[i],hw=Math.max(0,TR.HW[i]-1.2);
-  lat=Math.max(-hw,Math.min(hw,lat));c.x=p[0]+(p2[0]-p[0])*f-t[1]*lat;c.z=p[1]+(p2[1]-p[1])*f+t[0]*lat;c.idx=f<0.5?i:i2;c.a=Math.atan2(T[c.idx][1],T[c.idx][0]);
-  if(c.va!=null)c.va=c.a;c.lat=lat;c.prog=Math.floor(s/STEP);}
-const BPACK=[[14,-2.5],[22,2.8],[30,-1.4],[38,2.4],[6,3.4]];
-// 10-31 윤택님: after the 48 track points, 3 in the pit lane (entry, stopped at my box with the crew around, exit) - the pit crews are the
-// heaviest thing on a lap and every dry race has a stop. The car stands still there; the others keep running past on the track.
-const BPIT=['피트 입구','피트 정차','피트 출구'];
-function benchPitCar(c,k){const r=k===0?PIT.RAMP+8:k===2?PIT.Z-PIT.RX-8:null,bi=r==null?WORLD.boxes[c.team]:wrap(PIT.E+r),t=T[bi],lat=r==null?PIT.side*PIT.OFF:pitSideR(r)*pitLatR(r);
-  c.x=P[bi][0]-t[1]*lat;c.z=P[bi][1]+t[0]*lat;c.idx=bi;c.a=Math.atan2(t[1],t[0]);if(c.va!=null)c.va=c.a;c.lat=lat;c.prog=bi;c.spd=0;}   // [metres ahead, metres to the side] of the cars round the player
-function benchPlace(j){const B=BENCH,S=B.S,pk=j>=S.cfg.pts?j-S.cfg.pts:-1,i0=pk>=0?wrap(PIT.E+PIT.RAMP):Math.round(j*N/S.cfg.pts)%N,pl=race.player;let k=0;
-  B.j=j;B.pk=pk;B.pg0=renderer.info.programs?renderer.info.programs.length:0;B.s=i0*STEP;B.v=Math.max(20,Math.min(VMAX*0.95,PROF[i0]));B.a.length=0;B.sum=0;B.w=j===0?40:6;   // warm-up frames (more on the first point: shaders, textures)
-  for(const c of race.cars){if(c===pl){c._bd=0;c._bl=0;}else if(k<BPACK.length){c._bd=BPACK[k][0];c._bl=BPACK[k][1];k++;}else{c._bd=-60-(k-BPACK.length)*55;c._bl=k%2?2.6:-2.6;k++;}
-    c.spd=B.v;benchCar(c,B.s+c._bd,c._bl);}
-  if(pk>=0)benchPitCar(pl,pk);
-  camYaw=pl.a;chaseInit=false;
-  const done=S.k*S.cfg.pts+j,all=S.ids.length*(S.cfg.pts+(S.cfg.pit||0)),el=Date.now()-S.t0,left=done>3?el/done*(all-done):all*0.75*1000;
-  $('benchTxt').textContent='성능 측정 · 서킷 '+(S.k+1)+'/'+S.ids.length+' '+TRK.name+' · 지점 '+(j+1)+'/'+(S.cfg.pts+(S.cfg.pit||0))+' · 남은 시간 약 '+Math.max(1,Math.round(left/60000))+'분';}
-function benchStep(raw,dt){const B=BENCH,S=B.S;
-  if(state!=='race'){state='race';$('pause').hidden=true;}   // (a pause key in the middle of the test)
-  B.s+=B.v*dt;for(const c of race.cars)if(!(B.pk>=0&&c===race.player))benchCar(c,B.s+c._bd,c._bl);
-  if(!(raw>0))return;
-  if(raw>0.5){B.w=6;B.a.length=0;B.sum=0;return;}   // the app was in the background: this point starts again
-  if(B.w>0){B.w--;return;}
-  B.a.push(raw*1000);B.sum+=raw*1000;if(B.sum<S.cfg.ms)return;
-  const a=B.a.slice().sort((x,y)=>x-y),n=a.length,mx=a[n-1];
-  B.res.pts.push({p:B.pk>=0?100:Math.round(B.j/S.cfg.pts*100),c:B.pk>=0?null:benchCorner(Math.round(B.j*N/S.cfg.pts)%N),pl:B.pk>=0?BPIT[B.pk]:undefined,w:WET>0?Math.round(WET*100)/100:undefined,pg:renderer.info.programs&&renderer.info.programs.length>B.pg0?renderer.info.programs.length-B.pg0:undefined,sp:WET>0&&SPR?SPR.live:undefined,f:Math.round(n*10000/B.sum)/10,lo:Math.round(1000/a[Math.min(n-1,Math.floor(n*0.99))]),mx:Math.round(mx*10)/10});
-  if(B.j+1<S.cfg.pts+(S.cfg.pit||0)){benchPlace(B.j+1);return;}
-  S.res.push(B.res);S.k++;BENCH=null;state='loading';
-  if(S.k>=S.ids.length)benchFinish(S,false);else benchGo(S);}
-function benchStop(){const B=BENCH;if(!B)return;if(B.res.pts.length)B.S.res.push(B.res);BENCH=null;state='loading';benchFinish(B.S,true);}
-// the end (or a stop): results saved, the circuit and time of day put back, and the page loads as it was (menu, own settings)
-function benchFinish(S,stopped){
-  const R={when:Date.now(),cfg:S.cfg,stopped:!!stopped,res:S.res,min:Math.round((Date.now()-S.t0)/60000),
-    dev:{vw:VW(),vh:VH(),sw:screen.width,sh:screen.height,dpr:window.devicePixelRatio||1,pr:Math.round(renderer.getPixelRatio()*100)/100,hz:VS.hz,q:quality,touch:isTouch,crowd:crowdOn}};
-  setLS(BLAST,JSON.stringify(R));setLS(BKEY,null);setLS('lightsout3d-track',S.orig.track);setLS('lightsout3d-tod',S.orig.tod);setLS(BSHOW,'1');
-  $('benchBar').hidden=true;$('loading').style.display='flex';$('loading').textContent='측정 끝 · 원래 서킷으로 돌아가는 중';
-  setTimeout(()=>location.replace(location.pathname),30);}
-let benchVer='';
-function benchText(R){const C=R.cfg,D=R.dev,all=[];for(const t of R.res)for(const p of t.pts)all.push(Object.assign({nm:t.name},p));
-  const L=[],avg=all.length?all.reduce((s,p)=>s+p.f,0)/all.length:0,lo=all.length?Math.min(...all.map(p=>p.lo)):0,u50=all.filter(p=>p.f<50).length;
-  const pos=p=>p.nm+' '+(p.pl||p.p+'%'+(p.c?' T'+p.c:''));
-  L.push('라이츠 아웃 3D 성능 측정 · '+new Date(R.when).toLocaleString('ko-KR')+(R.stopped?' (중간에 멈춤)':'')+(C.quick?' (빠른 확인)':''));
-  L.push('기기: 화면 '+D.vw+'x'+D.vh+' · 스크린 '+D.sw+'x'+D.sh+' · pixelRatio '+D.dpr+' (그리기 '+D.pr+') · 화면 '+D.hz+'Hz · 그래픽 '+(BQN[D.q]||D.q)+' · 시점 '+(CAMNAME[C.view]||C.view)+' · 날씨 '+(BWXN[C.wx]||C.wx)+(D.crowd===false?' · 관중 끔':'')+' · 버전 '+(benchVer||'?')+' · 소요 '+R.min+'분');
-  L.push('전체: 서킷 '+R.res.length+'개 · 지점 '+all.length+'곳 · 평균 '+avg.toFixed(1)+'fps · 최저 '+lo+'fps · 50fps 미만 '+u50+'곳');
-  L.push('가장 느린 지점 10곳 (평균 fps / 최저 fps / 가장 긴 프레임):');
-  all.slice().sort((a,b)=>a.f-b.f).slice(0,10).forEach((p,i)=>L.push((i+1)+'. '+pos(p)+' · '+p.f+' / '+p.lo+' / '+p.mx+'ms'+(p.sp!=null?' · 물보라 '+p.sp:'')+(p.pg?' · 새 셰이더 '+p.pg:'')));
-  L.push('서킷별 (평균 / 최저):');
-  for(const t of R.res){const f=t.pts.reduce((s,p)=>s+p.f,0)/Math.max(1,t.pts.length);L.push(t.name+' · '+f.toFixed(1)+' / '+Math.min(...t.pts.map(p=>p.lo)));}
-  return {L,all};}
-function benchShow(R){const {L,all}=benchText(R),esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-  $('benchSub').textContent=L[1].replace('기기: ','')+' · '+L[2];
-  $('benchSlow').innerHTML=all.slice().sort((a,b)=>a.f-b.f).slice(0,10).map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.nm)} <span style="color:var(--dim)">${p.p}%${p.c?' · T'+p.c:''}</span></td><td>${p.f} <span style="color:var(--dim)">최저 ${p.lo}</span></td></tr>`).join('');
-  $('benchTrk').innerHTML=R.res.map(t=>{const f=t.pts.reduce((s,p)=>s+p.f,0)/Math.max(1,t.pts.length);return `<tr><td>${esc(t.name)}</td><td>${f.toFixed(1)} <span style="color:var(--dim)">최저 ${Math.min(...t.pts.map(p=>p.lo))}</span></td></tr>`;}).join('');
-  $('bench').hidden=false;$('menu').hidden=true;BENCH_R=R;
-  if(!benchVer)fetch('sw.js').then(r=>r.text()).then(t=>{const m=t.match(/VERSION = '(\w+)'/);if(m){benchVer='sw '+m[1];$('benchSub').textContent=benchText(R).L[1].replace('기기: ','')+' · '+benchText(R).L[2];}}).catch(()=>{});}
-
-function benchCopy(){if(!BENCH_R)return;const txt=benchText(BENCH_R).L.join('\n'),ok=()=>toast('결과를 복사했어요 · 대화창에 붙여 넣으세요','#3ddc84',2.6),
-  fb=()=>{const ta=$('benchTa');ta.hidden=false;ta.value=txt;ta.focus();ta.select();let d=false;try{d=document.execCommand('copy');}catch(e){}if(d)ok();else toast('자동 복사가 안 돼요 · 아래 글을 길게 눌러 복사하세요','#ffb347',3.2);};
-  try{navigator.clipboard.writeText(txt).then(ok,fb);}catch(e){fb();}}
-seg('bvSel',v=>benchOpt.view=v);seg('bwSel',v=>benchOpt.wx=v);
-$('benchBtn').onclick=benchStart;$('benchStop').onclick=benchStop;$('benchCopy').onclick=benchCopy;
-$('benchLast').onclick=()=>{const R=benchLoad(BLAST);if(R)benchShow(R);};
-$('benchClose').onclick=()=>{$('bench').hidden=true;$('benchTa').hidden=true;$('menu').hidden=false;};
 // ---- loop ----
 let last=performance.now(),orbit=0.6;
 // the sky box (Sky.js, half-size 2 km) rides with the camera, so the far ends of the big real circuits never leave it (black sky)
@@ -8511,14 +8424,14 @@ function vsTick(now){const d=now-VS.lastV;VS.lastV=now;if(!(d>0&&d<100))return;V
 function frame(now){
   vsTick(now);if(PERF.lock60&&now-last<12.5){requestAnimationFrame(frame);return;}   // locked: skip the in-between refresh
   const raw=(now-last)/1000,dt=Math.min(1/30,Math.max(0,raw));last=now;fpsTick(raw);if((frame.n=(frame.n||0)+1)%30===0&&(innerWidth!==resize.w||innerHeight!==resize.h||isTouch&&rotWant()!==ROT))resize();if(isTouch&&WINH>WINW&&!ROT&&(state==='race'||state==='countdown'))setPause(true);   // turned upright mid-race: it waits
+  bgmTick();
   if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').style.opacity=0;}
   if(flagPulse>0)flagPulse-=dt;
-  if(BENCH)benchStep(raw,dt);
-  else if(state==='countdown'){cdT+=dt;
+  if(state==='countdown'){cdT+=dt;
     {const n=Math.min(5,Math.floor(cdT/0.8));if(n>cdLit){cdLit=n;sfx('startBeep');}setLights(n);}
     mobileInput(dt);if(!isTouch&&startMode==='manual')gridStep(race,dt,key);else race.player.spd=0;
     handleEvents();
-    if(cdT>=4+cdHold){setLights(0);sfx('lightsOut');state='race';if(race.restart)race.restart=false;else race.t=0;race.startT=race.t;toast('라이츠 아웃!','#3ddc84');setTimeout(()=>{$('lights').style.opacity=0;},800);}}
+    if(cdT>=4+cdHold){setLights(0);sfx('lightsOut');crowdSfx(820,0.2,0.35,0.9,1.1);crowdSfx(1900,0.07,0.3,0.6,0.8);state='race';if(race.restart)race.restart=false;else race.t=0;race.startT=race.t;toast('라이츠 아웃!','#3ddc84');setTimeout(()=>{$('lights').style.opacity=0;},800);}}
   else if(state==='race'||state==='done'){
     mobileInput(dt);
     if(FF)ffStep();
@@ -8530,7 +8443,7 @@ function frame(now){
   }
   if(TEXQ.length&&state!=='race'&&state!=='countdown'){mDraw=Math.max(mDraw,20);while(TEXQ.length)TEXQ.shift()();}
   // 11-04: nothing moves behind the menu: draw until the car stands in its place, then stop (the menu scrolled in jerks on top of the whole 3D scene)
-  if(state==='menu'&&!BENCH&&!LED&&!$('menu').hidden&&--mDraw<0){mDraw=0;requestAnimationFrame(frame);return;}
+  if(state==='menu'&&!LED&&!$('menu').hidden&&--mDraw<0){mDraw=0;requestAnimationFrame(frame);return;}
   sync(dt);
   if(state==='menu'){orbit+=dt*(LED?0.2:0.12);const pl=race.player;const mS=LED?null:menuShot(pl);if(mS)orbit=mS.a;const gy=roadY(pl.x,pl.z,pl.idx),od=LED?6.2:mS.d;camera.position.set(pl.x+Math.cos(orbit)*od,(LED?1.9:1.6)+gy,pl.z+Math.sin(orbit)*od);
     if(camera.setViewOffset){const w=VW(),h=VH(),port=w<h;camera.setViewOffset(w,h,LED?(port?0:-Math.min(210,w*0.21)):-w*0.3,LED&&port?h*0.26:0,w,h);}camera.fov=45;camera.near=0.25;camera.lookAt(pl.x,0.5+gy,pl.z);camera.updateProjectionMatrix();meshes[race.cars.indexOf(pl)].helmet.visible=true;if(SW)SW.g.visible=false;}
@@ -8554,7 +8467,7 @@ function menuShot(pl){const t=T[pl.idx],s=pl.lat>=0?1:-1;let r0=null;
 // of the first frames, the car model arriving and the photos: 2-5 s of stalls on a phone right while it played. A tap shortens the wait at the end.
 let INTRO=null;
 function introStart(){const el=$('intro');let seen=false,rm=false;try{seen=!!sessionStorage.getItem('lightsout3d-intro');}catch(e){}try{rm=matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
-  if(!el||seen||rm||loadLS('lightsout3d-tutgo')==='1'||benchLoad())return;try{sessionStorage.setItem('lightsout3d-intro','1');}catch(e){}
+  if(!el||seen||rm||loadLS('lightsout3d-tutgo')==='1')return;try{sessionStorage.setItem('lightsout3d-intro','1');}catch(e){}
   const I=INTRO={t0:performance.now()},enter=()=>{const m=$('menu');if(state!=='menu'||m.classList.contains('mEnter'))return;m.classList.add('mEnter');setTimeout(()=>m.classList.remove('mEnter'),1300);},   // the menu slides in under the fade
     end=()=>{if(el.hidden)return;el.hidden=true;el.className='';INTRO=null;enter();};
   I.out=()=>{if(I.o)return;I.o=1;el.classList.add('rdy');setTimeout(()=>el.classList.add('out'),I.skip?150:520);};   // the fifth light, a moment held, all out
@@ -8571,7 +8484,7 @@ function bootReveal(){const t0=performance.now(),left=()=>Math.max(0,7000-(perfo
 function boot(){
   try{initWorld();}catch(e){console.error(e);$('err').style.display='flex';}
   setupRace();updateMenuBest();state='menu';document.body.classList.add('inmenu');$('menu').hidden=false;$('fpsBox').hidden=!FPSON;
-  if(benchLoad())whenCar(benchBoot);else benchBoot();
+  try{for(const k of['lightsout3d-bench','lightsout3d-bench-last','lightsout3d-bench-show'])localStorage.removeItem(k);}catch(e){}   // 11-13 윤택님 「자동성능측정기는 없애도」: the test is gone, its saved results too
   bootReveal();
   if(loadLS('lightsout3d-tutgo')==='1'){saveLS('lightsout3d-tutgo','');saveLS('lightsout3d-skill',loadLS('lightsout3d-skill')||'seen');tutStart();}   // 10-31: the tutorial circuit has loaded
   else if(!loadLS('lightsout3d-skill')){$('menu').hidden=true;$('skill').hidden=false;}   // first launch: pick a skill level once
