@@ -8469,14 +8469,24 @@ function menuShot(pl){const t=T[pl.idx],s=pl.lat>=0?1:-1;let r0=null;
 // while the page is busy), the fifth once the menu is ready (bootReveal), then all out - LIGHTS OUT - and the menu. It used to start after the build, on top
 // of the first frames, the car model arriving and the photos: 2-5 s of stalls on a phone right while it played. A tap shortens the wait at the end.
 let INTRO=null;
+// 11-13 윤택님 「실행할때 로딩 뜨는 저거 출발음」: the start beeps on the loading lights (one per light, the low one as they go out), the same buzzer as on
+// the grid, on its own little AudioContext (the game's sound is built later, in boot). A browser lets a page sound only after a touch, so on a fresh
+// launch the lights before the first tap stay silent; a tap on the screen wakes it for the rest.
+// Lights 1-4 are put on the audio clock in advance (introSched): the build that runs meanwhile holds up timers, and late beeps came out in a bunch.
+function introSched(I){const A=I.ac;if(!A||A.state!=='running'||I.sch||I.o)return;I.sch=1;const el=(performance.now()-I.t0)/1000;for(const d of[0.2,0.48,0.76,1.04])if(d>el)introBeep(I,760,0.26,0.085,d-el);}
+function introBeep(I,f,amp,dur,at){try{const A=I.ac||(I.ac=new (window.AudioContext||window.webkitAudioContext)());if(A.state!=='running'){A.resume().then(()=>introSched(I),()=>{});return;}if(!f)return;
+  const t=A.currentTime+(at||0),sq=A.createOscillator(),si=A.createOscillator(),bp=A.createBiquadFilter(),g=A.createGain(),gs=A.createGain();sq.type='square';si.type='sine';sq.frequency.value=si.frequency.value=f;
+  bp.type='bandpass';bp.frequency.value=f*1.6;bp.Q.value=1.1;gs.gain.value=0.42;sq.connect(bp);bp.connect(g);si.connect(gs);gs.connect(g);g.connect(A.destination);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(amp,t+0.0025);g.gain.setValueAtTime(amp,t+dur*0.72);g.gain.exponentialRampToValueAtTime(0.0006,t+dur);for(const o of[sq,si]){o.start(t);o.stop(t+dur+0.02);}}catch(e){}}
 function introStart(){const el=$('intro');let seen=false,rm=false;try{seen=!!sessionStorage.getItem('lightsout3d-intro');}catch(e){}try{rm=matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
   if(!el||seen||rm||loadLS('lightsout3d-tutgo')==='1')return;try{sessionStorage.setItem('lightsout3d-intro','1');}catch(e){}
   const I=INTRO={t0:performance.now()},enter=()=>{const m=$('menu');if(state!=='menu'||m.classList.contains('mEnter'))return;m.classList.add('mEnter');setTimeout(()=>m.classList.remove('mEnter'),1300);},   // the menu slides in under the fade
-    end=()=>{if(el.hidden)return;el.hidden=true;el.className='';INTRO=null;enter();};
-  I.out=()=>{if(I.o)return;I.o=1;el.classList.add('rdy');setTimeout(()=>el.classList.add('out'),I.skip?150:520);};   // the fifth light, a moment held, all out
+    end=()=>{if(el.hidden)return;el.hidden=true;el.className='';INTRO=null;enter();if(I.ac)setTimeout(()=>{try{I.ac.close();}catch(e){}},900);};
+  I.out=()=>{if(I.o)return;I.o=1;el.classList.add('rdy');introBeep(I,760,0.26,0.085);setTimeout(()=>{el.classList.add('out');introBeep(I,560,0.3,0.26);},I.skip?150:520);};   // the fifth light, a moment held, all out
   I.ready=()=>{if(I.r)return;I.r=1;setTimeout(I.out,I.skip?0:Math.max(0,1400-(performance.now()-I.t0)));};   // (never before the fourth light)
-  el.hidden=false;el.classList.add('go');el.addEventListener('animationstart',e=>{if(e.animationName==='inFade')enter();});el.addEventListener('animationend',e=>{if(e.animationName==='inFade')end();});
-  el.addEventListener('click',()=>{I.skip=true;if(I.r)end();});   /* (a click, not pointerdown: the tap must not land on the menu underneath) */setTimeout(end,60000);}
+  el.hidden=false;el.classList.add('go');introBeep(I,0,0,0);introSched(I);   // the CSS delays of lights 1-4
+  el.addEventListener('animationstart',e=>{if(e.animationName==='inFade')enter();});el.addEventListener('animationend',e=>{if(e.animationName==='inFade')end();});
+  el.addEventListener('pointerdown',()=>introBeep(I,0,0,0),true);el.addEventListener('click',()=>{I.skip=true;if(I.r)end();});   /* (a click, not pointerdown: the tap must not land on the menu underneath) */setTimeout(end,60000);}
 // the menu is shown when the car model is in (its arrival rebuilt all 22 cars on the open menu: a 0.5-1 s stall under a finger), the photo textures have
 // loaded and three frames are drawn (the shaders compiled). At most 7 s, then as before.
 function bootReveal(){const t0=performance.now(),left=()=>Math.max(0,7000-(performance.now()-t0));let d=false;
