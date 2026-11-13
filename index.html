@@ -2793,7 +2793,7 @@ function sessReset(race){const S=race.sess;S.t=0;S.chq=false;S.over=false;S.flag
     if(c.va!=null){c.va=c.a;c.vx=c.vy=c.r=0;c.thr=c.bp=0;c.lockF=c.lockR=c.spinR=false;if(c.lkS)c.lkS[0]=c.lkS[1]=false;c.slideAng=0;c.delta=0;}
     const w=race.wx.wet,comp=w>0.72?'W':w>0.2?'I':(S.kind==='quali'?'S':(c.isP?(c.nextComp||c.ty.comp):'M'));
     c.nextComp=comp;c.ty=newTyres(comp,tyreT0(comp));c.used=new Set([comp]);c.stints=[comp];c.dmg=newDmg();c.flat=0;c.wreck=false;c.dnf=false;c.fail=false;c.crash=false;
-    c.best=null;c.lastLap=null;c.lapStart=0;c.crossT=-99;c.lapInv=false;c.ex=null;c.blue=null;c.sessDone=false;c.runF=1;c.run=null;c.pitReq=false;c.pen=0;c.strikes=0;c.lapFlying=false;c.sec=null;c.secT0=null;c.dlt=null;   // 11-14: a new part starts clean - the sector cells showed the last part's times and its first sector was timed from the last part's (Q2 S1 51.0 s for a 31 s sector)
+    c.best=null;c.lastLap=null;c.lapStart=0;c.crossT=-99;c.lapInv=false;c.ex=null;c.blue=null;c.sessDone=false;c.runF=1;c.run=null;c.pitReq=false;c.pen=0;c.strikes=0;c.lapFlying=false;c.sec=null;c.secT0=null;c.dlt=null;c.escN=0;   // 11-14: a new part starts clean (escN: the one escape road a car may take - one per part in qualifying, as per race) - the sector cells showed the last part's times and its first sector was timed from the last part's (Q2 S1 51.0 s for a 31 s sector)
    
     c.pit={state:'garage',box:PIT.box(c.team),lat0:lat*PIT.side,t:c.isP?1.2:1e9,entryT:0,stopT:null,service:0};c.inGarage=!c.isP;}
   if(S.kind==='quali')planRuns(race);}
