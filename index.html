@@ -3240,17 +3240,24 @@ function buildWorld(scene,renderer,opt){
   // v11: the rubbered-in line lies where the cars actually drive - the racing line (RLA, smoothed a little) - not a curvature guess
   const RLS=new Float32Array(N);for(let i=0;i<N;i++){let s=0;for(let k=-4;k<=4;k++)s+=RLA.lat[wrap(i+k)];RLS[i]=s/9;}
   const rline=i=>RLS[i];
-  function roadGeo(){const L=18,pos=[],uv=[],col=[],idx=[],perA=Math.max(2,Math.round(N*STEP/60));
+  function roadGeo(){const L=18,pos=[],uv=[],col=[],dl=[],idx=[],perA=Math.max(2,Math.round(N*STEP/60));
     for(let k=0;k<=N;k++){const i=k%N,p=P[i],t=T[i],nx=-t[1],nz=t[0],al=i/N*perA,rl=rline(i),brk=PROF[i]>PROF[wrap(i+14)]+2?1:0,w=HWv(i)+0.02;
       for(let j=0;j<=L;j++){const o=-w+2*w*j/L,e=Math.abs(o)/HWv(i);
         pos.push(p[0]+nx*o,0.04+LIFT(i,p[0]+nx*o,p[1]+nz*o),p[1]+nz*o);uv.push(o,k*STEP);
         const patch=0.9+0.2*fbm(al,(o+HALF)/5,perA,3,71),line=Math.exp(-Math.pow((o-rl)/2.3,2)),edge=smooth((e-0.7)/0.3);
-        const v=patch*(1-0.3*line-0.08*line*brk)*(1+0.12*edge);col.push(v,v,v);}}
+        const v=patch*(1-0.3*line-0.08*line*brk)*(1+0.12*edge);col.push(v,v,v);dl.push(line);}}
     for(let k=0;k<N;k++)for(let j=0;j<L;j++){const a=k*(L+1)+j,b=a+L+1;idx.push(a,b,a+1,a+1,b,b+1);}
-    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.setIndex(idx);g.computeVertexNormals();return g;}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setAttribute('dl',new THREE.Float32BufferAttribute(dl,1));g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.setIndex(idx);g.computeVertexNormals();return g;}
   const roadM=wetReg(std({map:asphalt,roughnessMap:asphRough,normalMap:asphN,normalScale:new THREE.Vector2(0.35,0.35),roughness:1,vertexColors:true,color:0xd4d4d4,polygonOffset:true,polygonOffsetFactor:-2}),0.42,0.32);   // v11: a darker, richer asphalt
   useTex(roadM,'map','asphalt_c.jpg',{srgb:true,rep:R2});useTex(roadM,'normalMap','asphalt_n.jpg',{rep:R2});useTex(roadM,'roughnessMap','asphalt_r.jpg',{rep:R2});
   W.roadMesh=add(roadGeo(),roadM,true);
+  // 11-14: the racing line dries first. W.wet makes the road material wet as a whole; the line (dl: its share at each vertex, the rubber line above) gets its own
+  // colour and roughness factor on top (W.dryU, set by the weather look each frame - 1,1: as wet as the rest, which it is except while the track dries)
+  W.roadWE=W.wet.find(e=>e.m===roadM);W.dryU={value:new THREE.Vector2(1,1)};
+  {const prev=roadM.onBeforeCompile;roadM.onBeforeCompile=(sh,r)=>{if(prev)prev.call(roadM,sh,r);sh.uniforms.uDry=W.dryU;
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute float dl;varying float vDl;').replace('#include <begin_vertex>','#include <begin_vertex>\nvDl=dl;');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform vec2 uDry;varying float vDl;').replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb*=mix(1.0,uDry.x,vDl);')
+      .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=min(1.0,roughnessFactor*mix(1.0,uDry.y,vDl));');};}
   const lineM=wetReg(std({color:0xe8e8e4,roughness:0.6,polygonOffset:true,polygonOffsetFactor:-3}),0.85,0.18);
   // v13f: a street circuit is a road that was closed for the weekend. Racing edge lines make it
   // read as a purpose-built track, so on street themes we drop them and paint the road's own
@@ -3701,7 +3708,7 @@ mk(ring(2048,256,23,0.08,0.2,[110,125,140],[150,160,170],1),2450,240,80);}
      const hd=new THREE.Mesh(hdG,hdM);hd.position.y=6.1;hd.rotation.y=PS>0?Math.PI:0;g.add(hd);
      // pit box marking in the working lane
      const bf=frameAt(bi,PS*(PIT.OFF+4.5)),bgp=new THREE.Group();bgp.position.set(bf.x,0.05,bf.z);bgp.rotation.y=bf.rot;bgp.userData.batch=true;scene.add(bgp);
-     const bm=W.boxMkM||(W.boxMkM=new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.6,polygonOffset:true,polygonOffsetFactor:-4})),bc=new THREE.Color(tm.p).convertSRGBToLinear();   // v12h: one vertex-coloured material for every team's box
+     const bm=W.boxMkM||(W.boxMkM=wetReg(new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.6,polygonOffset:true,polygonOffsetFactor:-4}),0.85,0.18)),bc=new THREE.Color(tm.p).convertSRGBToLinear();   // v12h: one vertex-coloured material for every team's box
      for(const [w,h,x,z] of[[6.4,0.2,0,1.5],[6.4,0.2,0,-1.5],[0.2,3.2,3.1,0],[0.2,3.2,-3.1,0]]){const q=new THREE.Mesh(tintGeo(new THREE.PlaneGeometry(w,h),bc),bm);q.rotation.x=-Math.PI/2;q.position.set(x,0,z);bgp.add(q);}
      const sl=new THREE.Mesh(new THREE.PlaneGeometry(0.25,3.2),lineM);sl.rotation.x=-Math.PI/2;sl.position.set(3.7,0.001,0);bgp.add(sl);
      W.boxes.push(bi);}
@@ -7735,9 +7742,15 @@ function syncRaceControl(dt){
   // weather look: overcast sky, rain, wet asphalt
   const rain=race.wx.mode==='rain'?Math.max(race.wx.rain,0.55):race.wx.rain,wet=WET;   // 11-01: a rain race keeps its overcast sky and light all race (the falling rain itself follows wx.rain)
   for(const e of W.wet){e.m.color.copy(e.c0).multiplyScalar(1-(1-e.dk)*wet);e.m.roughness=e.r0+(e.r-e.r0)*wet;e.m.envMapIntensity=1-0.45*wet;}
+  if(W.dryU){const e=W.roadWE,wt=Math.min(1,race.wx.rain*1.15),wl=wet>wt+0.02?wt+(wet-wt)*0.15:wet,cf=w=>1-(1-e.dk)*w,rf=w=>e.r0+(e.r-e.r0)*w;   // drying (the track wetter than the rain now keeps it): the line is 85 % further on
+    W.dryU.value.set(cf(wl)/cf(wet),rf(wl)/rf(wet));}
   W.sun.intensity=W.sunI*(1-(W.NT?0.25:0.6)*rain);if(W.bk)W.bk.k.value.x=W.bk.sun*(1-0.85*rain);if(W.fill)W.fill.intensity=W.fillI*(1-0.25*rain);W.hemi.intensity=W.hemiI*(1-0.1*rain);W.hemi.color.copy(W.hemiC).lerp(RAINSKY,rain);W.hemi.groundColor.copy(W.hemiG).lerp(RAINGND,rain);
   scene.fog.color.copy(W.fogC).lerp(RAINFOG,rain);if(GRADE_IN_TM)scene.fog.color.convertLinearToSRGB();   // v14b: (phone, no post chain: fog mixes after the sRGB encode - give it the screen colour)
  scene.fog.near=W.fogN*(1-0.7*rain);scene.fog.far=W.fogF*(1-0.72*rain);
+  // 11-14: right behind a car in the wet its spray hides the road ahead - the fog closes in with how deep the player sits in it (dropSpray: the car ahead in the
+  // line within 35 m and its speed), eased in over ~0.3 s and out over ~1 s; the onboard and chase views only (not the TV, the far chase or looking back)
+  {const cm=CAMS[camMode],sT=WET>0.06&&(state==='race'||state==='done')&&!TVON&&!CINE&&!key.look&&(cm==='cockpit'||cm==='tcam'||cm==='chase')?dropSpray(race.player):0;
+   SPRV+=(sT-SPRV)*Math.min(1,dt*(sT>SPRV?3:1));if(SPRV>0.005){scene.fog.near*=1-0.7*SPRV;scene.fog.far*=1-0.45*SPRV;}}
   if(W.sky){const u=W.sky.material.uniforms;u.turbidity.value=W.skyT+(18-W.skyT)*rain;u.rayleigh.value=W.skyR+(0.25-W.skyR)*rain;u.mieCoefficient.value=W.skyM+(0.03-W.skyM)*rain;if(u.skyGain)u.skyGain.value=W.skyG+(0.45-W.skyG)*rain;}
   if(W.clouds){const u=W.clouds.uniforms;u.time.value+=dt;u.cover.value=W.cover0+(0.98-W.cover0)*Math.min(1,rain*1.5);u.dark.value=Math.min(1,rain*1.25);}
   for(const m of W.far)m.opacity=1-0.8*rain;
@@ -7814,7 +7827,7 @@ function stepRain(dt){if(!RAIN||!race)return;const rain=race.wx.rain;RAIN.L.visi
 // brings more. Anywhere on the glass (on a phone the HUD covers most of the edges), but over the middle (the road ahead) only small ones, gone sooner. Cleared on a camera change (another glass) and a TV cut.
 // None in a cinematic, the menu or the results. 그래픽과 기타 > 빗방울 turns it off; 부드럽게 (quality low) gets a third as many.
 const DRP={M:{high:64,medium:48,low:16},rate:24,cx:0.42,cy:0.42,cy0:-0.1,peak:0.95,blow:1.5,S:1024,SL:128,K:1.6},DRPN=64;
-let DROP=null;
+let DROP=null,SPRV=0;   // SPRV: how deep in the spray of the car ahead the player is (0..1, eased), for the fog
 function initDrops(){const S=DRP.S,N=DRPN,tex=new THREE.DataTexture(new Uint8Array(S*S*3),S,S,THREE.RGBFormat);
   tex.minFilter=tex.magFilter=THREE.LinearFilter;tex.generateMipmaps=false;tex.needsUpdate=true;renderer.initTexture(tex);
   const geo=new THREE.BufferGeometry(),pos=new Float32Array(N*12),uv=new Float32Array(N*8),a=new Float32Array(N*4),c=new Float32Array(N*8),sa=new Float32Array(N*8),ix=[];
@@ -7835,7 +7848,7 @@ const inClear=(x,y,A,k)=>(x/(DRP.cx*A*k))**2+((y-DRP.cy0)/(DRP.cy*k))**2<1;
 function dropAdd(){return DROP.d[DROP.n++];}   // (callers check DROP.n < the cap first)
 function dropSpray(pl){let sp=0;const h=pl.va!=null?pl.va:pl.a,cs=Math.cos(h),sn=Math.sin(h);   // the closest car ahead in the line: its rooster tail
   for(const c of race.cars){if(c===pl||c.gone||c.dnf||c.pit)continue;const dx=c.x-pl.x,dz=c.z-pl.z,f=dx*cs+dz*sn;if(f<2||f>35)continue;
-    if(Math.abs(-dx*sn+dz*cs)<2.5)sp=Math.max(sp,(1-f/35)*Math.min(1,Math.abs(c.spd)/50));}
+    if(Math.abs(-dx*sn+dz*cs)<2.5)sp=Math.max(sp,(1-f/35)*Math.min(1,(Math.abs(c.spd)/55)**1.5));}
   return sp*Math.min(1,WET*1.4);}
 function drawDrops(dt){try{dropsFrame(dt);}catch(e){console.error(e);DROPON=false;if(DROP)DROP.n=0;}}   // a GL failure here (an odd phone driver) costs the drops, not the race (the frame loop has no catch)
 function dropsFrame(dt){
@@ -7846,7 +7859,7 @@ function dropsFrame(dt){
   const pl=race.player,tv=TVON||cm==='tv',look=!!key.look,s=tv?0:Math.min(1,Math.abs(pl.spd)/70),onb=cm==='cockpit'||cm==='tcam',
     bk=tv?0:look?0.15:onb?1:cm==='chase'?0.8:0.6,oy=onb?-0.75:-0.1,blow=DRP.blow*s*s*bk,fast=s*bk>0.3,Mq=Math.min(DRPN,DRP.M[quality]||48);
   if(state!=='paused'){const rain=race.wx.rain;
-    if(rain>=0.05&&TUNF<0.3){const sp=tv||look?0:dropSpray(pl);DROP.acc+=dt*DRP.rate*rain**1.3*(tv?0.5:0.35+0.65*s)*(1+2.5*sp)*Mq/48;
+    if(rain>=0.05&&TUNF<0.3&&!(pl.pit&&pl.pit.state==='garage')){const sp=tv||look?0:dropSpray(pl);DROP.acc+=dt*DRP.rate*rain**1.3*(tv?0.5:0.35+0.65*s)*(1+2.5*sp)*Mq/48;
       for(;DROP.acc>=1;DROP.acc--){if(DROP.n>=Mq*0.75)continue;const d=dropAdd(),q=Math.random();d.x=(Math.random()*2-1)*A;d.y=Math.random()*2-1;   // anywhere: on a phone the HUD covers most of the edges
         d.r=0.012+0.05*q*q*(0.6+0.4*rain);if(inClear(d.x,d.y,A,1))d.r=Math.min(d.r,0.02);   // mostly small, a few big ones; only small ones over the road ahead
         d.t=0;d.T=fast?0.7+Math.random()*0.7:3+Math.random()*3;d.sl=d.r>0.03?0.012+Math.random()*0.03:0;d.vx=d.vy=0;d.st=0;d.tr=0;}}
@@ -8265,16 +8278,23 @@ function skidShower(c,sp,pll,dt){c.spkC=(c.spkC||0)-dt;
 function particles(dt){
   if(!SPK||!race)return;
   if(state==='race'||state==='done'){
-    for(const c of race.cars){if(c.gone||c.dnf)continue;const dx=c.x-VP().x,dz=c.z-VP().z;if(dx*dx+dz*dz>150*150||c.pit)continue;EML=roadY(c.x,c.z,c.idx);
-      if(WET>0.06&&Math.abs(c.spd)>9){const cs=Math.cos(c.va!=null?c.va:c.a),sn=Math.sin(c.va!=null?c.va:c.a),rate=WET*Math.min(1,Math.abs(c.spd)/70)*(quality==='high'?70:35);let q=rate*dt;
+    for(const c of race.cars){if(c.gone||c.dnf)continue;const dx=c.x-VP().x,dz=c.z-VP().z;if(dx*dx+dz*dz>150*150)continue;const pit=!!c.pit;if(pit&&(c.inGarage||c.pit.state==='garage'))continue;
+      EML=roadY(c.x,c.z,c.idx)+(pit?pitDepXZ(c.x,c.z,c.idx):0);   // (in the pits: the lane's own floor)
+      // 11-14 윤택님 「비 오는 날 피트 들어갈 때·나올 때 타이어 물보라가 안 나온다」: a car in the pits (c.pit: from the entry road to the merge) skipped this whole loop,
+      // spray included (the sparks, smoke and skid marks below still skip the pits). The spray also follows the speed in size now, not only in amount: full size from
+      // ~160 km/h (kz 1, as before), low and short-lived at the pit limiter; and pulling away hard (ac: the smoothed longitudinal acceleration, the player's
+      // wheelspin) throws more and higher - the rooster tail grows out of a slow corner and shrinks with the speed braking into one
+      if(WET>0.06&&Math.abs(c.spd)>4){const cs=Math.cos(c.va!=null?c.va:c.a),sn=Math.sin(c.va!=null?c.va:c.a),vs=Math.abs(c.spd),kz=Math.min(1,vs/45),ac=c.isP&&c.spinR?1:Math.max(0,Math.min(1,((c.bA||0)-2)/8)),
+          rate=WET*Math.min(1,vs/70)*(1+0.8*ac)*(quality==='high'?70:35),vk=(0.25+0.75*kz)*(1+0.4*ac),lk=0.45+0.55*kz,gk=0.2+0.8*kz;let q=rate*dt;
         while(q>0){if(Math.random()<q){const lz=(Math.random()<0.5?-1:1)*(0.45+Math.random()*0.35),lx=-1.8-Math.random()*0.6;
-          emit(SPR,c.x+cs*lx-sn*lz,0.2+Math.random()*0.3,c.z+sn*lx+cs*lz,cs*c.spd*0.5+(Math.random()-0.5)*3,0.6+Math.random()*1.8,sn*c.spd*0.5+(Math.random()-0.5)*3,0.9+Math.random()*0.7,0.9,5.5,0.2+0.22*WET,0.84,0.86,0.9);}q-=1;}
+          emit(SPR,c.x+cs*lx-sn*lz,0.2+Math.random()*0.3*kz,c.z+sn*lx+cs*lz,cs*c.spd*0.5+(Math.random()-0.5)*3*kz,(0.6+Math.random()*1.8)*vk,sn*c.spd*0.5+(Math.random()-0.5)*3*kz,(0.9+Math.random()*0.7)*lk,0.9*(0.6+0.4*kz),5.5*gk,(0.2+0.22*WET)*(0.65+0.35*kz),0.84,0.86,0.9);}q-=1;}
         // 11-11 윤택님 「비오는날 달릴때 내시점에서도 타이어 수막현상 효과」: the spray above starts behind the rear wheels - out of sight from the cockpit.
         // The player's front tyres also throw a thinner veil up off the tread, just outboard of each tyre, that the onboard views see beside the
         // nose (the same pool and draw call). It leaves at nearly the car's speed, so it hangs by the tyre for a moment before the air drags it back
         // (at half the car's speed, as the rear spray does, it was past the cockpit in a twentieth of a second - nothing to see); short-lived, so it has thinned out by the cockpit's sides
         if(c.isP){q=WET*Math.min(1,Math.abs(c.spd)/60)*(quality==='low'?40:80)*dt;while(q>0){if(Math.random()<q){const sd=Math.random()<0.5?-1:1,lz=sd*(WHL.zf-0.08+Math.random()*0.22),lx=WHL.xf-0.05-Math.random()*0.35,vo=sd*(0.3+Math.random()*1.2),k=0.88+Math.random()*0.1;   // off the top-rear of the tread (inside the tyre it was hidden by the tyre itself)
           emit(SPR,c.x+cs*lx-sn*lz,0.45+Math.random()*0.3,c.z+sn*lx+cs*lz,cs*c.spd*k-sn*vo,0.4+Math.random()*0.9,sn*c.spd*k+cs*vo,0.25+Math.random()*0.15,0.3,2.0,0.3+0.35*WET,0.86,0.88,0.92);}q-=1;}}}   // low and slow to rise: seen against the tyre and the bodywork (rising fast it went up into the grey sky and vanished)
+      if(pit)continue;   // (the rest: on the track only, as before)
       const ca=Math.cos(c.a),sa=Math.sin(c.a),sp=Math.abs(c.spd),al=Math.abs(c.lat);
       const onKerb=TR.K[c.idx]>0.011&&al>TR.HW[c.idx]-0.3&&al<TR.HW[c.idx]+1.4;
       // v12f: the floor's skid blocks touch the road when the load on the springs gets high: the downforce (rising with the square of the
