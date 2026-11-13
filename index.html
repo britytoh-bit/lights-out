@@ -474,7 +474,7 @@ body.touch .mRow.touchOnly{display:flex}
 #menu #teamSel button{justify-content:flex-start}
 .mB:has(>#chTrkNote[style*="none"]){display:none}
 #trkSel.chLock>button,#trkSel.chLock>p:not(:last-child){display:none}
-.mPg,#mHomeL,.overlay:not(#menu)>.card,.lecard{touch-action:none}
+.mPg,#mHomeL,.overlay:not(#menu)>.card,.lecard,#gBody{touch-action:none}   /* 11-14: #gBody (the rules guide) too - with the browser's own panning allowed it takes the finger (pointercancel) and the hand scroll stops; on a turned page that panning did not move at all (11-04) */
 /* 11-04: buttons on the cards: one look everywhere. Options sit in one grey bar, the chosen one is the lighter pill in bold white. Red only on the button that starts something. */
 .card button{background:var(--mfill,#26282e); border-color:transparent; border-radius:10px; line-height:1.25; word-break:keep-all; transition:background .12s,color .12s}
 .card button:active{background:#33363e}
