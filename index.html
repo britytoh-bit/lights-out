@@ -43,7 +43,8 @@ body{height:100%; margin:0; background:var(--bg); color:var(--ink); overflow:hid
   font-family:"Saira","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
   -webkit-user-select:none; user-select:none; touch-action:none;
   -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent}
-#wrap{position:relative; width:100%; height:100%; container-type:size}   /* 11-01: the size rules below ask #wrap (@container), not the window - turned sideways (body.rot) the window is upright but #wrap is landscape */
+#wrap{position:relative; width:100%; height:100%; container-type:size}
+@media (display-mode:fullscreen),(display-mode:standalone){html,body{height:100vh}}   /* 11-13 윤택님 「실행할때마다 아래에 검정줄」: iOS 26 home-screen app - 100% (and innerHeight) stop short of the home-indicator strip, a black band under the game; 100vh still reaches the bottom in this mode (WebKit bug reports) */   /* 11-01: the size rules below ask #wrap (@container), not the window - turned sideways (body.rot) the window is upright but #wrap is landscape */
 body.rot{--sat:env(safe-area-inset-right,0px); --sar:env(safe-area-inset-bottom,0px); --sab:env(safe-area-inset-left,0px); --sal:env(safe-area-inset-top,0px)} body.rotL{--sat:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-right,0px); --sal:env(safe-area-inset-bottom,0px)}   /* turned: the screen's top (notch) is #wrap's left */
 #gl{position:absolute; inset:0; width:100%; height:100%; display:block}
 #rotHint{display:none; position:fixed; inset:0; z-index:100; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:24px; background:#16171b; color:#f2f3f5; text-align:center}
@@ -6042,7 +6043,7 @@ function setupComposer(){
 function basePR(){const w=VW(),h=VH();let pr=Math.min(quality==='high'?(isTouch?1.75:2):quality==='medium'?(isTouch?1.5:1):(isTouch?1.25:1),window.devicePixelRatio||1);   // v14b: phones a step sharper (smooth 1 -> 1.25, normal 1.25 -> 1.5) with the post passes gone
   if(quality==='low'&&!isTouch)pr=Math.min(pr,Math.max(0.5,Math.sqrt(2.4e6/Math.max(1,w*h))));   // v12h: the lowest setting on a PC draws at most ~1080p worth of pixels (a 1440p or 4K window drew 2-4 times that)
   return pr;}
-function resize(){mDraw=Math.max(mDraw,10);resize.w=WINW=innerWidth;resize.h=WINH=innerHeight;applyRot();const w=VW(),h=VH();let pr=basePR();   // 11-01: the size this was done for - frame() redoes it when the window has another size (an iPhone turned sideways can send its resize with one old side: 402x402 canvas, stretched and cut off, mirror in the corner)
+function resize(){mDraw=Math.max(mDraw,10);resize.w=WINW=innerWidth;resize.h=WINH=innerHeight;if(WINW>WINH&&!ROT){const h=$('wrap').getBoundingClientRect().height;if(h>WINH&&h<WINH*1.3)WINH=Math.round(h);}   /* 11-13: the canvas as tall as #wrap when 100vh made it taller than innerHeight (iOS 26 app) */applyRot();const w=VW(),h=VH();let pr=basePR();   // 11-01: the size this was done for - frame() redoes it when the window has another size (an iPhone turned sideways can send its resize with one old side: 402x402 canvas, stretched and cut off, mirror in the corner)
   if(typeof PERF!=='undefined'&&PERF.prCap)pr=Math.min(pr,PERF.prCap);   // (and keeps what the smoothness governor took off)
   renderer.setPixelRatio(pr);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
   if(composer){composer.setPixelRatio?composer.setPixelRatio(renderer.getPixelRatio()):0;composer.setSize(w,h);if(fxaa){const pr=renderer.getPixelRatio();fxaa.material.uniforms.resolution.value.set(1/(w*pr),1/(h*pr));}}}
@@ -6412,7 +6413,7 @@ function startRace(o){if(THREE.GLTFLoader&&!window.__CARGLB){if(isTouch)prepMobi
   if(race.sess){state='race';$('lights').style.opacity=0;
     toast(mode==='quali'?'예선 Q1 · 상위 16명 진출':'연습 주행','#fff',2,1000);return;}
   if(formOn){formSetup(race,'start',race.cars.slice().sort((a,b)=>a.grid-b.grid));if(isTouch&&autoGas)race.form.autoP=true;state='race';$('lights').style.opacity=0;
-    toast(race.form.autoP?'포메이션 랩 · 자동 주행':'포메이션 랩 · 추월 금지','#fff',2,1000);return;}
+    if(race.form.autoP)toast('포메이션 랩 · 자동 주행','#fff',2,1000);return;}   // 11-13: 「추월 금지」 is already on the race-control strip just above - the same words twice
   beginCountdown();}
 function beginCountdown(){state='countdown';cdT=0;cdLit=0;cdHold=0.4+Math.random()*1.4;$('lights').style.opacity=1;setLights(0);
   if(!isTouch&&startMode==='manual')setTimeout(()=>{if(state==='countdown')toast('스페이스+↑ 로 대기 → 불 꺼지면 스페이스 떼기','#fff',3.2);},250);}
