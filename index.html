@@ -6228,10 +6228,6 @@ function bgmNote(B,st,t){const bar=st>>4,pos=st&15,C=BGM_CH[bar&3],hz=(base,n)=>
   if(pos===0)for(const n of C.t)for(const dt of[-7,7]){const o=bgmOsc(B,'triangle',hz(220,C.r+n),t,0.022,0.35,0.9,1400,BGM_SP*16+1.2);o.detune.value=dt;}   // pad
   if(bar>=2){const ar=[0,1,2,1],n=C.t[ar[pos&3]]+(pos>=8?12:0)+(bar>=6?12:0);bgmOsc(B,'square',hz(220,C.r+n),t,0.022,0.004,0.05,2400);}}   // arpeggio
 document.addEventListener('pointerdown',bgmKick,true);document.addEventListener('keydown',bgmKick,true);
-// ---- 11-13 출발음: the crowd on the grid while the lights come on, and its roar as they go out (with the start beeps that were there)
-function crowdSfx(f,v,att,hold,rel){if(!AC||muted)return;const t=AC.currentTime,s=AC.createBufferSource(),fl=AC.createBiquadFilter(),g=AC.createGain();s.buffer=SND.nb;s.loop=true;
-  fl.type='bandpass';fl.frequency.value=f;fl.Q.value=0.55;s.connect(fl);fl.connect(g);g.connect(SND.out);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+att);g.gain.setValueAtTime(v,t+att+hold);g.gain.setTargetAtTime(0,t+att+hold,rel);
-  s.start(t,Math.random()*1.5);s.stop(t+att+hold+rel*6);}
 // ---- the engine sound itself is in engineSound.js ----
 // 11-04 the sound at a trackside camera, from the geometry only (no recording of it to go by): d metres away, closing at vr (+ away), rear 0..1 how much the tail points at it. Level falls with distance (a broadcast's mix keeps it from falling all the way), the air and the distance take the top off, the exhaust side is louder and brighter, a little echo off the stands grows with distance, the sound arrives a fixed 60 ms late (20 m; a delay following d would add to the Doppler pitch).
 function tvHear(d,vr,rear){const dd=Math.max(4,d),A=Math.max(0.045,Math.min(1,Math.pow(14/dd,0.85)))*(0.72+0.28*rear);
@@ -6418,7 +6414,7 @@ function startRace(o){if(THREE.GLTFLoader&&!window.__CARGLB){if(isTouch)prepMobi
   if(formOn){formSetup(race,'start',race.cars.slice().sort((a,b)=>a.grid-b.grid));if(isTouch&&autoGas)race.form.autoP=true;state='race';$('lights').style.opacity=0;
     toast(race.form.autoP?'포메이션 랩 · 자동 주행':'포메이션 랩 · 추월 금지','#fff',2,1000);return;}
   beginCountdown();}
-function beginCountdown(){state='countdown';crowdSfx(750,0.05,1.2,3.4,0.4);cdT=0;cdLit=0;cdHold=0.4+Math.random()*1.4;$('lights').style.opacity=1;setLights(0);
+function beginCountdown(){state='countdown';cdT=0;cdLit=0;cdHold=0.4+Math.random()*1.4;$('lights').style.opacity=1;setLights(0);
   if(!isTouch&&startMode==='manual')setTimeout(()=>{if(state==='countdown')toast('스페이스+↑ 로 대기 → 불 꺼지면 스페이스 떼기','#fff',3.2);},250);}
 function endForm(){formEnd(race);if(state==='done'){race.startT=race.t;race.restart=false;return;}beginCountdown();}
 // fast-forward through the formation lap or a red-flag stoppage (a few simulated seconds per frame)
@@ -8434,7 +8430,7 @@ function frame(now){
     {const n=Math.min(5,Math.floor(cdT/0.8));if(n>cdLit){cdLit=n;sfx('startBeep');}setLights(n);}
     mobileInput(dt);if(!isTouch&&startMode==='manual')gridStep(race,dt,key);else race.player.spd=0;
     handleEvents();
-    if(cdT>=4+cdHold){setLights(0);sfx('lightsOut');crowdSfx(820,0.2,0.35,0.9,1.1);crowdSfx(1900,0.07,0.3,0.6,0.8);state='race';if(race.restart)race.restart=false;else race.t=0;race.startT=race.t;toast('라이츠 아웃!','#3ddc84');setTimeout(()=>{$('lights').style.opacity=0;},800);}}
+    if(cdT>=4+cdHold){setLights(0);sfx('lightsOut');state='race';if(race.restart)race.restart=false;else race.t=0;race.startT=race.t;toast('라이츠 아웃!','#3ddc84');setTimeout(()=>{$('lights').style.opacity=0;},800);}}
   else if(state==='race'||state==='done'){
     mobileInput(dt);
     if(FF)ffStep();
