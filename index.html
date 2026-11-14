@@ -7917,8 +7917,9 @@ function syncRaceControl(dt){
 // 11-14 3단계-B 현장감 (윤택님 「이런거처럼 디테일 추가할거있음 해줘」): 그림에만 쓰는 것들 - SIM 값은 읽기만. frameBody가 sync 다음에 한 번 부른다
 //  meMark: TV·원거리 시점에서 내 차 위 팀 색 ▼ (DOM 하나, transform만 바꿈; #wrap 안이라 돌려 그린 화면에서도 함께 돈다)
 //  pitBoard: 메인 직선 피트월에서 내 팀원이 내미는 보드 「P8 / +1.2 / L2」(L = 이번 랩 포함 남은 랩) - 메시 하나·재질 하나, 220 m 앞부터 지나칠 때까지만 보이고 글자는 랩마다 한 번 그린다
+//  scBoards: SC·VSC 동안 모든 마셜 포스트 앞에 「SC」/「VSC」 보드 (노랑·빨강 깃발은 원래 있음: syncRaceControl) - 포스트 전부를 메시 하나로 합쳐 그리기 호출 1개, 그때만 보인다
 //  brakeGlow: 큰 제동(브레이크가 빼앗은 운동에너지)일수록 내 차 바퀴 덮개 가장자리와 앞 업라이트가 주황으로 달아올랐다가 5초쯤에 걸쳐 식는다 - 내 차만 재질을 복제해 쓴다(AI 차는 그대로)
-function detailTick(dt){if(!race||!WORLD||!race.player)return;meMark();pitBoard();brakeGlow(dt);}
+function detailTick(dt){if(!race||!WORLD||!race.player)return;meMark();pitBoard();scBoards();brakeGlow(dt);}
 const ME={el:null,x:NaN,y:NaN,on:false},_me=new THREE.Vector3();
 function meMark(){const pl=race.player,cm=CAMS[camMode],m=meshes[race.cars.indexOf(pl)];
   let on=!!m&&(state==='race'||state==='countdown'||state==='done')&&(cm==='tv'||cm==='far')&&!CINE&&!CAMPIT&&!CAMLOOK&&!pl.gone&&!pl.inGarage;
@@ -7966,6 +7967,19 @@ function pitBoard(){const pl=race.player;if(PB.world!==WORLD||PB.team!==pl.team)
     if(ah*STEP<220){if(k>=1&&k<race.laps){on=true;if(k!==PB.k){PB.k=k;pbDraw(pl,k);}}}   // from 220 m out (not on the opening lap); written then, so it is a couple of seconds old as the car goes by
     else on=PB.k>=1&&wrap(pl.idx-PB.bi)*STEP<30;}   // and a moment after passing it
   if(PB.m.visible!==on)PB.m.visible=on;}
+const SCB={m:null,world:null,txt:'',cv:null,tex:null};
+function scBoards(){const W=WORLD;
+  if(SCB.world!==W){SCB.world=W;if(SCB.m){scene.remove(SCB.m);SCB.m.geometry.dispose();SCB.m.material.dispose();SCB.m=null;}
+    if(W.posts&&W.posts.length){if(!SCB.cv){SCB.cv=mkCanvas(256,128);SCB.tex=texFrom(SCB.cv);}const geos=[],m4=new THREE.Matrix4(),o=new THREE.Object3D();
+      for(const po of W.posts){const g=po.mesh.parent;if(!g)continue;g.updateMatrixWorld(true);const sd=po.mesh.position.z<0?1:-1;   // the post's side (its flag hangs towards the track)
+        o.position.set(-0.15,1.55,-sd*1.15);o.rotation.set(0,Math.atan2(-1,-sd*0.8),0);o.updateMatrix();   // in front of the hut, turned to the cars coming up
+        const q=new THREE.PlaneGeometry(1.2,0.6);q.applyMatrix4(m4.multiplyMatrices(g.matrixWorld,o.matrix));const a=q.attributes.position;
+        for(let i=0;i<a.count;i++)a.setY(i,a.getY(i)+hXZ(a.getX(i),a.getZ(i)));geos.push(q);}   // the posts stand at y 0 and were set on the ground by bakeHeights (each vertex + the ground under it): the same here
+      if(geos.length){SCB.m=new THREE.Mesh(mergeGeos(geos),new THREE.MeshStandardMaterial({map:SCB.tex,roughness:0.6}));SCB.m.visible=false;SCB.m.userData.noBake=true;scene.add(SCB.m);}geos.forEach(q=>q.dispose());SCB.txt='';}}
+  if(!SCB.m)return;const f=race.rc.flag,t=f==='sc'?'SC':f==='vsc'?'VSC':'',on=!!t&&state!=='menu';
+  if(on&&t!==SCB.txt){SCB.txt=t;const x=SCB.cv.getContext('2d');x.fillStyle='#f4f4f2';x.fillRect(0,0,256,128);x.lineWidth=8;x.strokeStyle='#111';x.strokeRect(4,4,248,120);
+    x.fillStyle='#111';x.font='800 96px "Saira Condensed",Arial,sans-serif';x.textAlign='center';x.textBaseline='middle';fitText(x,t,128,70,224);SCB.tex.needsUpdate=true;}
+  if(SCB.m.visible!==on)SCB.m.visible=on;}
 const BRK={h:0,g:-1,v:0,m:null,cm:null,um:null,tex:null};
 function brakeGlow(dt){const pl=race.player,m=meshes[race.cars.indexOf(pl)];if(!m)return;
   if(BRK.m!==m){BRK.m=m;BRK.h=0;BRK.g=-1;BRK.v=Math.abs(pl.spd);if(BRK.cm){BRK.cm.dispose();BRK.cm=null;}if(BRK.um){BRK.um.dispose();BRK.um=null;}   // a new car (each race): its own copies again
