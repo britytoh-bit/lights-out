@@ -7914,6 +7914,21 @@ function syncRaceControl(dt){
   stepRain(dt);
   tunnelFx(dt,W);
 }
+// 11-14 3단계-B 현장감 (윤택님 「이런거처럼 디테일 추가할거있음 해줘」): 그림에만 쓰는 것들 - SIM 값은 읽기만. frameBody가 sync 다음에 한 번 부른다
+//  meMark: TV·원거리 시점에서 내 차 위 팀 색 ▼ (DOM 하나, transform만 바꿈; #wrap 안이라 돌려 그린 화면에서도 함께 돈다)
+function detailTick(dt){if(!race||!WORLD||!race.player)return;meMark();}
+const ME={el:null,x:NaN,y:NaN,on:false},_me=new THREE.Vector3();
+function meMark(){const pl=race.player,cm=CAMS[camMode],m=meshes[race.cars.indexOf(pl)];
+  let on=!!m&&(state==='race'||state==='countdown'||state==='done')&&(cm==='tv'||cm==='far')&&!CINE&&!CAMPIT&&!CAMLOOK&&!pl.gone&&!pl.inGarage;
+  if(on){camera.updateMatrixWorld();const p=m.root.position;_me.set(p.x,p.y+1.55,p.z).applyMatrix4(camera.matrixWorldInverse);   // 1.55 m over the car (its top is ~1 m)
+    if(_me.z>-camera.near)on=false;   // behind the camera
+    else{_me.applyMatrix4(camera.projectionMatrix);const W=VW(),H=VH(),x=Math.round((_me.x+1)/2*W),y=Math.round((1-_me.y)/2*H);
+      if(x<-20||x>W+20||y<-20||y>H+20)on=false;
+      else{if(!ME.el){const e=ME.el=document.createElement('div');e.id='meMark';e.setAttribute('aria-hidden','true');   // an 18 x 12 px triangle, tip down (border trick), white edge for dark team colours
+          e.style.cssText='position:absolute;left:0;top:0;width:0;height:0;border-style:solid;border-width:12px 9px 0;border-color:var(--team) transparent transparent;filter:drop-shadow(0 0 1px #fff) drop-shadow(0 1px 2px rgba(0,0,0,.75));pointer-events:none;will-change:transform;visibility:hidden';
+          $('wrap').insertBefore(e,$('gl').nextSibling);}   // right over the 3D picture, under every HUD panel and overlay
+        if(x!==ME.x||y!==ME.y){ME.x=x;ME.y=y;ME.el.style.transform='translate('+(x-9)+'px,'+(y-12)+'px)';}}}}
+  if(ME.el&&on!==ME.on){ME.on=on;ME.el.style.visibility=on?'visible':'hidden';}}
 // v11g Monaco tunnel: with the camera inside, the ambient light and the sky reflections fade (the ceiling's shadow already
 // takes the sun), the lamps carry the light, and the exposure adapts like an eye - slowly going in, a bright moment coming out
 let EYE=1,TUNF=0;
@@ -8657,6 +8672,7 @@ function frameBody(now){
   if(state==='menu'&&!LED&&!$('menu').hidden&&--mDraw<0){mDraw=0;return;}
   if((state==='paused'||state==='sessRes'||state==='done'&&!$('result').hidden)&&--pDraw<0){pDraw=0;audioUpdate(dt);return;}   // 11-14 (UI 개편 F1): nothing moves behind those cards - the 3D was drawn every frame there (a setting changed or a resize draws a few frames again: pDraw)
   sync(dt);
+  try{detailTick(dt);}catch(e){errNote(e);}   // 11-14 3단계-B: 현장감 디테일 (after sync: the camera is placed)
   if(state==='menu'){orbit+=dt*(LED?0.2:0.12);const pl=race.player;const mS=LED?null:menuShot(pl);if(mS)orbit=mS.a;const gy=roadY(pl.x,pl.z,pl.idx),od=LED?6.2:mS.d;camera.position.set(pl.x+Math.cos(orbit)*od,(LED?1.9:1.6)+gy,pl.z+Math.sin(orbit)*od);
     if(camera.setViewOffset){const w=VW(),h=VH(),port=w<h;camera.setViewOffset(w,h,LED?(port?0:-Math.min(210,w*0.21)):-w*0.3,LED&&port?h*0.26:0,w,h);}camera.fov=45;camera.near=0.25;camera.lookAt(pl.x,0.5+gy,pl.z);camera.updateProjectionMatrix();meshes[race.cars.indexOf(pl)].helmet.visible=true;if(SW)SW.g.visible=false;}
   if(WORLD.waterTex){WORLD.waterTex.offset.x+=dt*0.004;WORLD.waterTex.offset.y+=dt*0.0025;}
