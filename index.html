@@ -652,6 +652,9 @@ body.touch #result .rHd{top:-14px; margin:-14px -16px 6px; padding:10px 16px 8px
 #result .rHd h1{flex:1 1 auto; min-width:0; margin:0}
 #result .rHd .row2{flex:none; gap:8px} #result .rHd .row2 button{flex:none; width:auto; min-height:46px; padding:0 18px; font-size:16px}
 #resTip{margin:-10px 0 12px; color:#ffb347; font-weight:700}
+#resTable td.mv{width:3.6ch; padding:5px 2px 5px 0; font-size:13px; font-weight:800; white-space:nowrap; color:var(--dim)}
+#resTable td.mv .up{color:#2fd06b} #resTable td.mv .dn{color:#ff6a5f}
+#resTable .fld{color:#a050ff; font-size:11px; vertical-align:1px}
 </style>
 <script>
 /* 터치 확대 막기 — iOS Safari 는 viewport 의 user-scalable=no 를 무시한다.
@@ -7373,8 +7376,8 @@ function showResults(){
     if(c.fin!=null)gap=c.dsq?'DSQ':(i===0?fmt(tot(c)):'+'+(tot(c)-tot(lead)).toFixed(3))+(c.pen?' (+'+c.pen+'초)':'');
     else if(c.dnf||c.gone||c.fail)gap=classed(race,c)?'DNF · 완주 인정':'DNF';
     else{const d=Math.floor((race.laps*N-c.prog)/N);gap=d>=1?'+'+d+'랩':'주행 중';}
-    const pt=pts(c);
-    return `<tr class="${c.isP?'me':''}"><td>P${i+1}</td><td><span class="sw" style="display:inline-block;vertical-align:middle;margin-right:8px;background:${TEAMS[c.team].p}"></span>${c.name} <span style="color:var(--dim)">${TEAMS[c.team].name} · ${c.stints.join('→')}</span></td><td>${gap}</td><td class="pts">${pt?'+'+pt:''}</td></tr>`;}).join('');
+    const pt=pts(c),out=c.dsq||c.dnf||c.gone||c.fail,mv=out||c.grid==null?'':c.grid>i+1?`<span class="up">▲${c.grid-i-1}</span>`:c.grid<i+1?`<span class="dn">▼${i+1-c.grid}</span>`:'<span>—</span>';   // 11-14: places gained or lost from the grid; the race's fastest lap a purple dot
+    return `<tr class="${c.isP?'me':''}"><td>P${i+1}</td><td class="mv">${mv}</td><td><span class="sw" style="display:inline-block;vertical-align:middle;margin-right:8px;background:${TEAMS[c.team].p}"></span>${c.name}${race.fl&&race.fl.id===c.id?' <span class="fld" title="레이스 최고 랩">●</span>':''} <span style="color:var(--dim)">${TEAMS[c.team].name} · ${c.stints.join('→')}</span></td><td>${gap}</td><td class="pts">${pt?'+'+pt:''}</td></tr>`;}).join('');
   const ch=!!(race.champ&&CH);if(ch)chScore(r,pts);$('againBtn').hidden=ch;$('chBtn').hidden=!ch;
   $('rLaps').innerHTML=lapTable(true);
   $('result').hidden=false;pDraw=3;$('result').querySelector('.card').scrollTop=0;$(ch?'chBtn':'againBtn').focus({preventScroll:true});   // 11-14: opens at the title (the buttons sit beside it)
