@@ -634,6 +634,18 @@ body.inmenu:has(#mPage:not([hidden])) #gl{animation-play-state:paused}   /* a se
 #menu .mItem,#menu #startBtn{transition:transform .12s ease,background .12s}
 #menu .mItem:active{transform:scale(.985)} #menu #startBtn:active{transform:scale(.97)}
 @media (prefers-reduced-motion:reduce){#intro{display:none !important} #menu.mEnter *{animation:none !important} body.inmenu #gl{animation:none !important} #menu .mItem:active,#menu #startBtn:active{transform:none}}
+   pause: the actions first (계속 달리기 · 조작법 · 건너뛰기), then the settings, then the screen toggles; 「레이스 그만두기」 a quiet text button at the end that asks once.
+#pause .pHd,#result .rHd{display:flex; align-items:center; gap:10px 12px; flex-wrap:wrap}
+#pause .pHd h1{flex:1 1 auto; min-width:0; margin:0}
+#pInfo{font-size:17px; font-weight:700; color:var(--dim); white-space:nowrap}
+#pause .pAct{margin:10px 0 2px} #pause .pAct button{min-height:48px}
+#pause .pGrp{margin:14px 0 8px; font-size:12px; font-weight:700; color:#ff6a5f}
+#pause .pScr button{min-height:44px; font-size:13px}
+#pause #pLaps{margin-top:12px}
+#pause .pQuit{display:flex; align-items:center; justify-content:flex-end; gap:10px; margin:2px 0 12px}
+#quitNote{font-size:13px; color:#ffb347; text-align:right}
+#pause #quitBtn{flex:none; min-width:0; min-height:44px; padding:0 8px; background:none; border:0; color:#ff8a80; font-size:14px; font-weight:600; text-decoration:underline; text-underline-offset:3px}
+#pause #quitBtn.arm{padding:0 16px; background:#d92d26; color:#fff; font-weight:700; text-decoration:none}
 </style>
 <script>
 /* 터치 확대 막기 — iOS Safari 는 viewport 의 user-scalable=no 를 무시한다.
@@ -801,13 +813,18 @@ body.inmenu:has(#mPage:not([hidden])) #gl{animation-play-state:paused}   /* a se
       
     </div>
   </div>
-  <div class="overlay" id="pause" hidden><div class="card"><h1>일시정지</h1><p class="sub">레이스가 멈춰 있어요. 설정을 바꿔도 레이스는 그대로 이어집니다.</p>
+  <div class="overlay" id="pause" hidden><div class="card"><div class="pHd"><h1>일시정지</h1><span id="pInfo" class="num"></span></div>
+    <div class="row2 pAct"><button class="go" id="resumeBtn">계속 달리기</button><button id="ctlBtn" class="touchOnly" type="button">조작법</button><button id="skipBtn" hidden>건너뛰기</button></div>
+    <p class="pGrp">설정</p>
     <div class="touchOnly"><p class="label">조향 방식</p><div class="seg" id="pSmSel"><button data-v="tilt">기울이기</button><button data-v="drag" aria-pressed="true">드래그</button><button data-v="buttons">버튼</button></div></div>
+    <div class="touchOnly"><p class="label">가속</p><div class="seg" id="pAgSel"><button data-v="auto" aria-pressed="true">자동 가속</button><button data-v="manual">직접 가속</button></div></div>
+    <div><p class="label">조향 감도 (1 가장 부드러움)</p><div class="seg" id="pSensSel"><button data-v="1">1</button><button data-v="2" aria-pressed="true">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button></div></div>
     <div class="touchOnly"><p class="label">페달 위치</p><div class="seg" id="pPedSel"><button data-v="split" aria-pressed="true">양쪽 (브레이크 왼쪽)</button><button data-v="right">오른쪽에 모아서</button></div></div>
-    <div><p class="label">조향 감도 (1 가장 부드러움)</p><div class="seg" id="pSensSel"><button data-v="1">1</button><button data-v="2" aria-pressed="true">2</button><button data-v="3">3<span class="rec">중급 추천</span></button><button data-v="4">4<span class="rec">상급 추천</span></button><button data-v="5">5</button></div></div>
-    <div class="touchOnly"><p class="label">가속</p><div class="seg" id="pAgSel"><button data-v="auto" aria-pressed="true">자동 가속</button><button data-v="manual">직접 가속<span class="rec">중급·상급 추천</span></button></div></div>
     <div><p class="label">실력</p><div class="seg" id="pSkSel"><button data-v="easy">초보 (가장 쉽게)</button><button data-v="pro">직접 설정</button></div><p class="skNote" id="pSkNote"></p></div>
-    <div class="row2"><button class="go" id="resumeBtn">계속 달리기</button><button id="ctlBtn" class="touchOnly" type="button">조작법</button><button id="mirBtn">룸미러</button><button id="haloBtn">헤일로 블러</button><button id="fpsBtn">FPS 표시</button><button id="skipBtn" hidden>건너뛰기</button><button id="quitBtn">메뉴로</button></div><div class="laps" id="pLaps" style="margin-top:12px"></div></div></div>
+    <p class="pGrp">화면</p>
+    <div class="row2 pScr"><button id="mirBtn">룸미러</button><button id="haloBtn">헤일로 블러</button><button id="fpsBtn">FPS 표시</button></div>
+    <div class="laps" id="pLaps"></div>
+    <div class="pQuit"><span id="quitNote"></span><button id="quitBtn" type="button">레이스 그만두기</button></div></div></div>
   <div class="overlay" id="sess" hidden><div class="card"><h1 id="sessTitle">Q1</h1><p class="sub num" id="sessSub"></p><div class="laps" id="sLaps"></div><table class="num" id="sessTable"></table><div class="row2"><button class="go" id="sessGo">다음</button><button id="sessMenu">메뉴로</button></div></div></div>
   <div class="overlay" id="result" hidden><div class="card"><h1 id="resTitle">P1</h1><p class="sub num" id="resSub"></p><p class="sub num" id="resFl" style="color:#c58bff;margin-top:-4px"></p><table class="num" id="resTable"></table><div class="laps" id="rLaps"></div><div class="row2"><button class="go" id="againBtn">다시 달리기 (Enter)</button><button class="go" id="chBtn" hidden>대회 순위 보기 (Enter)</button><button id="menuBtn">메뉴로</button></div></div></div>
   <div class="overlay" id="guide" hidden role="dialog" aria-label="레이스 가이드"><div class="gCard"><div class="gHd"><b id="gCnt"></b><span id="gTit"></span><button id="gX" type="button">닫기</button></div>
@@ -6472,10 +6489,15 @@ function showSess(){const S=race.sess,p=race.player;if(!S)return;state='sessRes'
   if(q<3&&!meOut&&!p.gone){go.textContent='Q'+(q+1)+' 시작 ('+fmtClock(QLEN[q])+')';go.onclick=()=>{sessNext(race);$('sess').hidden=true;state='race';toast('Q'+race.sess.q+' 시작'+(race.sess.q<3?' · 상위 '+QCUT[race.sess.q-1]+'명 진출':' · 폴 결정전'),'#fff',2,1000);};}
   else if(q<3){go.textContent='남은 예선 결과 보기';go.onclick=()=>{sessSimRest(race);showSess();};}
   else{const g=qualiGrid(race),gp=g.indexOf('YOU')+1;go.textContent='레이스 시작 · 그리드 P'+gp+' (Enter)';go.onclick=()=>startRace({mode:'race',gridOrder:g,skills:skillMap(race),champ:race.champ});}
-  $('sLaps').innerHTML=lapTable(true);$('sess').hidden=false;$('sess').querySelector('.card').scrollTop=0;go.focus({preventScroll:true});}
-function setPause(on){if(on){if(state==='paused')return;pausedFrom=state;state='paused';$('pLaps').innerHTML=lapTable(false);$('pause').hidden=false;
-    const sk=$('skipBtn');sk.hidden=!canSkip();sk.textContent=race&&race.sess?'이 세션 건너뛰기':'건너뛰기 (빠르게 진행)';pauseLabels();$('resumeBtn').focus();if(AC)AC.suspend();}
-  else{state=pausedFrom||'race';$('pause').hidden=true;if(PREV){PREV.stop();PREV=null;}if(AC)AC.resume();}}
+  $('sLaps').innerHTML=lapTable(true);$('sess').hidden=false;pDraw=3;$('sess').querySelector('.card').scrollTop=0;go.focus({preventScroll:true});}
+function setPause(on){if(on){if(state==='paused')return;pausedFrom=state;state='paused';pDraw=3;$('pLaps').innerHTML=lapTable(false);$('pause').hidden=false;
+    const sk=$('skipBtn');sk.hidden=!canSkip();sk.textContent=race&&race.sess?'이 세션 건너뛰기':'건너뛰기 (빠르게 진행)';pauseLabels();quitArm(false);
+    {const S=race&&race.sess,p=race&&race.player;let t='';if(p&&S)t=S.kind==='practice'?(TUT?'튜토리얼':'연습 주행'):'Q'+S.q+' · P'+(sessClass(race).indexOf(p)+1);else if(p)t='랩 '+Math.max(1,Math.min(race.laps,Math.floor(p.prog/N)+1))+'/'+race.laps+' · P'+(ranking(race).indexOf(p)+1);$('pInfo').textContent=t;}
+    $('pause').querySelector('.card').scrollTop=0;$('resumeBtn').focus({preventScroll:true});if(AC)AC.suspend();}
+  else{state=pausedFrom||'race';$('pause').hidden=true;quitArm(false);if(PREV){PREV.stop();PREV=null;}if(AC)AC.resume();}}
+// 11-14 (UI 개편 P1): 「레이스 그만두기」 is a quiet text button under the settings, and the first tap only asks (a stray tap no longer ends the race)
+let quitT=0;function quitArm(on){clearTimeout(quitT);const b=$('quitBtn'),S=race&&race.sess;b.classList.toggle('arm',on);
+  b.textContent=on?'한 번 더 누르면 그만둬요':S?(TUT?'튜토리얼 그만두기':'세션 그만두기'):'레이스 그만두기';$('quitNote').textContent=on?(S?'메뉴로 나가요':'이 레이스 결과는 남지 않아요'):'';if(on)quitT=setTimeout(()=>quitArm(false),4000);}
 function toMenu(){tutEnd();mOpen(null);{const r=loadLS('lightsout3d-tutret');if(r){saveLS('lightsout3d-tutret','');if(r!==TRK.id){saveLS('lightsout3d-track',r);$('loading').style.display='flex';$('loading').textContent='서킷을 불러오는 중';setTimeout(()=>location.reload(),30);}}}   // back from the tutorial circuit
   perfReset();document.body.classList.add('inmenu');document.body.classList.remove('racing');state='menu';FF=false;setupRace();['pause','result','sess'].forEach(id=>$(id).hidden=true);$('menu').hidden=false;$('lights').style.opacity=0;updateMenuBest();}
 // ---- 대회 모드: circuits one after another, POINTS per finishing position, kept in localStorage so a closed browser resumes mid-season.
@@ -6947,7 +6969,7 @@ holdBtn($('mAero'),()=>{key.sm=true;if(state==='race')key.smTap=true;},()=>key.s
 document.querySelectorAll('#btnSteer button').forEach(b=>holdBtn(b,()=>key[b.dataset.k]=true,()=>key[b.dataset.k]=false));
 const tap=(id,fn)=>$(id).addEventListener('pointerdown',e=>{e.preventDefault();fn();});
 tap('mPause',()=>{if(state==='race'||state==='countdown')setPause(true);});tap('mCam',cycleCam);tap('mCal',calibrateTilt);tap('mPit',togglePit);tap('mTyre',cycleNext);tap('mMap',cycleMini);
-$('podSkip').onclick=()=>podiumEnd(true);$('startBtn').onclick=menuStart;$('againBtn').onclick=()=>startRace(lastStart);$('menuBtn').onclick=toMenu;$('resumeBtn').onclick=()=>setPause(false);$('mirBtn').onclick=toggleMirror;$('haloBtn').onclick=toggleHalo;$('fpsBtn').onclick=toggleFps;$('quitBtn').onclick=toMenu;
+$('podSkip').onclick=()=>podiumEnd(true);$('startBtn').onclick=menuStart;$('againBtn').onclick=()=>startRace(lastStart);$('menuBtn').onclick=toMenu;$('resumeBtn').onclick=()=>setPause(false);$('mirBtn').onclick=toggleMirror;$('haloBtn').onclick=toggleHalo;$('fpsBtn').onclick=toggleFps;$('quitBtn').onclick=()=>{if($('quitBtn').classList.contains('arm')){quitArm(false);toMenu();}else quitArm(true);};$('pause').addEventListener('click',()=>{pDraw=Math.max(pDraw,2);});
 $('skipBtn').onclick=()=>{setPause(false);doSkip();};$('sessMenu').onclick=toMenu;
 function updStartBtn(){$('startBtn').firstChild.textContent=mMode==='champ'?(!CH?'대회 시작':CH.rd>=CH.list.length?'새 대회 고르기':'라운드 '+(CH.rd+1)+' 시작'):gameMode==='quali'?'예선 시작':gameMode==='practice'?'연습 주행 시작':'레이스 시작';}
 function menuStart(){if(mMode!=='champ')return startRace();if(CH&&CH.rd>=CH.list.length)return chEnd();if(!CH)chNew(chLen);chGo();}
