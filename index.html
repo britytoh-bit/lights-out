@@ -671,6 +671,7 @@ body.touch.ph-small #mTyre small{font-size:10px} body.touch.ph-small #mTyre i{wi
 #tower .r.me .n .mv.up{color:#0b6b30} #tower .r.me .n .mv.dn{color:#a3150d}
 #toast.radio{padding:4px 14px 5px 10px; border-left:4px solid var(--team); border-radius:4px 6px 6px 4px; background:rgba(9,11,15,.88); text-shadow:none}
 #toast.radio b{margin-right:7px; font-size:.78em; font-weight:800; color:#9aa3ad}
+/* first run: 「처음이세요?」 - two actions (튜토리얼 red, 바로 레이스 grey) and a quiet 「메뉴 먼저 둘러보기」; the formation lap's skip button in its strip; the tutorial points at
    the control it talks about (white frame, the rest dimmed for a moment); the coach marks before a new player's first two starts (white, the same overlay as 조작법) */
 #skill h2{font-size:26px}
 #skill .skAct{margin:4px 0 4px}
@@ -680,7 +681,14 @@ body.touch.ph-small #mTyre small{font-size:10px} body.touch.ph-small #mTyre i{wi
 #fmSkip{position:relative; margin-left:10px; padding:2px 10px; min-height:0; border:0; border-radius:5px; background:#f4f5f7; color:#111; font:800 12px/1.35 "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif; pointer-events:auto; vertical-align:1px}
 #fmSkip::after{content:''; position:absolute; inset:-15px -8px}
 #fmSkip[hidden]{display:none}
+#tut{border-color:#fff} #tut .th{color:#fff}
+#tutMark{position:absolute; z-index:4; border:2px solid #fff; border-radius:14px; pointer-events:none; box-shadow:0 0 0 2000px rgba(4,6,10,.34); transition:box-shadow .6s}
+#tutMark.lite{box-shadow:0 0 0 2000px rgba(4,6,10,0)} #tutMark[hidden]{display:none}
+#tut #tutMore{display:block; margin:-6px 0 8px; padding:4px 0; min-height:0; background:none; border:0; color:#aab0b9; font-size:13px; text-decoration:underline; text-underline-offset:3px}
+#tut #tutMore[hidden]{display:none}
+#tut .tb{flex-wrap:wrap} #tut .tb #tutRace{flex:1 1 100%} #tut .tb #tutRace[hidden]{display:none}
 #ctlHelp.coach{background:rgba(6,8,12,.3)} #ctlHelp.coach #chMarks .box{border-color:#fff} #ctlHelp.coach #chMarks .chip{border-color:rgba(255,255,255,.7)} #ctlHelp.coach #chMarks .chip b{color:#fff}
+@media (prefers-reduced-motion:reduce){#tutMark{transition:none}}
 </style>
 <script>
 /* 터치 확대 막기 — iOS Safari 는 viewport 의 user-scalable=no 를 무시한다.
@@ -756,7 +764,8 @@ body.touch.ph-small #mTyre small{font-size:10px} body.touch.ph-small #mTyre i{wi
     <div id="miniBtns"><button id="mPit" aria-label="피트 요청">PIT</button><button id="mTyre" aria-label="다음 타이어 변경"><small>다음</small><i id="mTyreC">M</i></button><button id="mErs" data-k="ers" aria-label="ERS 부스트">ERS</button><button id="mAero" aria-label="직선 모드 날개 열기">직선</button></div>
     <div id="pedals"><button class="pedal brk" data-k="brake" aria-label="브레이크">브레이크</button><button class="pedal gas" data-k="gas" aria-label="가속">가속</button></div>
   </div>
-  <div id="tut" hidden role="status"><p class="th" id="tutH"></p><p class="tt" id="tutT"></p><div class="tb"><button id="tutSkip" type="button">건너뛰기</button><button id="tutNext" type="button" class="go">다음</button></div></div>
+  <div id="tutMark" hidden></div>
+  <div id="tut" hidden role="status"><p class="th" id="tutH"></p><p class="tt" id="tutT"></p><button id="tutMore" type="button" hidden>자세히</button><div class="tb"><button id="tutRace" type="button" class="go" hidden>첫 레이스 시작</button><button id="tutSkip" type="button">건너뛰기</button><button id="tutNext" type="button" class="go">다음</button></div></div>
   <div id="ctlHelp" hidden><div id="chMarks"></div></div>
   <div class="overlay" id="skill" hidden><div class="card"><h2>처음이세요?</h2><p class="sub" id="skSub">가장 쉬운 조작으로 맞춰 뒀어요. 나중에 「운전」에서 바꿀 수 있어요.</p>
     <div class="row2 skAct"><button class="go" id="skTut" type="button"><b>튜토리얼</b><span>직접 달리며 조작 익히기 · 약 3분</span></button><button id="skGo" type="button"><b>바로 레이스</b><span id="skGoS">서울 3랩 · AI 쉬움</span></button></div>
@@ -6727,19 +6736,21 @@ skReady=true;skillUI();
 // ===== 10-31: tutorial - a short guided practice alone on the default circuit, one card at a time in the timing panel's place
 // (top right, under the round buttons: clear of the controls and of the road ahead). Each card waits for the action or 「다음」. =====
 const TUT_TRK='seoul';let TUT=null;
+// 11-14 (UI 개편 #5): each card says it in two lines (s) - 「자세히」 shows the full text (t); the control it talks about gets a white frame (TUT_MARK: the first shown)
+const TUT_MARK=[['#steerPad','#btnSteer','#tiltGauge'],['.pedal.gas','#hudSpeed'],['.pedal.brk'],[],['#mCam'],['#mTyre'],['#mPit'],['#mAero'],['#mErs'],[]];
 const tk=(t,k)=>isTouch?t:k;
 const TUT_STEPS=[
-  {h:'조향',t:()=>tk({tilt:'폰을 핸들처럼 좌우로 기울이면 꺾여요. 똑바로 둬도 한쪽으로 가면 위쪽 「영점」을 눌러 지금 각도를 가운데로 맞춰요.',buttons:'왼쪽 아래 ◀ ▶ 버튼을 누르는 동안 꺾여요.'}[steerMode]||'왼쪽 아래 패드를 손가락으로 좌우로 끌면 핸들이 돌아요. 놓으면 가운데로 돌아와요.','← → 키(또는 A D)로 꺾어요. 길게 누를수록 더 꺾여요.')+' 왼쪽, 오른쪽으로 한 번씩 꺾어 보세요.',
+  {h:'조향',s:()=>tk({tilt:'폰을 핸들처럼 좌우로 기울여 보세요',buttons:'왼쪽 아래 ◀ ▶ 를 눌러 보세요'}[steerMode]||'왼쪽 아래 패드를 좌우로 끌어 보세요','← → 키로 좌우로 꺾어 보세요'),t:()=>tk({tilt:'폰을 핸들처럼 좌우로 기울이면 꺾여요. 똑바로 둬도 한쪽으로 가면 위쪽 「영점」을 눌러 지금 각도를 가운데로 맞춰요.',buttons:'왼쪽 아래 ◀ ▶ 버튼을 누르는 동안 꺾여요.'}[steerMode]||'왼쪽 아래 패드를 손가락으로 좌우로 끌면 핸들이 돌아요. 놓으면 가운데로 돌아와요.','← → 키(또는 A D)로 꺾어요. 길게 누를수록 더 꺾여요.')+' 왼쪽, 오른쪽으로 한 번씩 꺾어 보세요.',
    done:(p,T)=>{if(key.left||key.axis<-0.25)T.sl=1;if(key.right||key.axis>0.25)T.sr=1;return !!(T.sl&&T.sr);}},   // 11-13 윤택님 「듀토리얼 더 상세하게」
-  {h:'가속',t:()=>(race&&race.player.pit?'피트 레인을 나가는 동안은 차가 알아서 달려요. ':'')+tk(autoGas?'자동 가속이라 손대지 않아도 앞으로 나가요. 시속 100km까지 달려 보세요.':'오른쪽 아래 「가속」을 누르고 있으면 나가요. 시속 100km까지 달려 보세요.','↑ 키(또는 W)를 누르고 있으면 나가요. 시속 100km까지 달려 보세요.'),done:p=>!p.pit&&p.spd*3.6>=100},
-  {h:'브레이크',t:()=>tk('「브레이크」를 꾹 누르면 속도가 줄어요.','Space(또는 ↓) 키가 브레이크예요.')+' 코너 앞에서 미리 밟아 보세요.'+(brakeAs?' 너무 빠르면 브레이크 보조가 대신 밟아 줘요.':''),done:p=>key.brake&&p.spd>8},
-  {h:'코너 · 레이싱 라인',t:()=>'바닥의 색 띠를 따라가세요. 빨강에서 브레이크, 노랑에서 꺾고, 초록에서 다시 가속해요. 코너 하나를 지나 보세요.',done:(p,T)=>{const k=Math.abs(TR.K[p.idx]);if(k>0.012)T.cs=1;return !!T.cs&&k<0.003;}},
-  {h:'시점',t:()=>tk('위쪽 「시점」','C 키')+'로 보는 위치가 바뀌어요: 콕핏 → T캠 → 추격 → 원거리. '+tk('「뒤」를 누르는 동안','V 키를 누르는 동안')+' 뒤를 봐요. 시점을 한 번 바꿔 보세요.',done:(p,T)=>{if(T.cm==null)T.cm=camMode;return camMode!==T.cm;}},
-  {h:'타이어',t:()=>'마른 노면 레이스에선 두 종류의 타이어를 꼭 한 번씩 써야 해서, 피트스톱이 한 번은 필요해요. '+tk('「타이어」 버튼으로','1~5 키로')+' 다음에 끼울 타이어를 바꿔 보세요.',done:(p,T)=>{const c=p.nextComp||p.ty.comp;if(T.c0==null)T.c0=c;return c!==T.c0;}},
-  {h:'피트',t:()=>tk('「PIT」','B 키')+'를 누르면 이번 랩 끝에 피트 레인으로 들어가 고른 타이어로 바꿔요. 피트 레인에선 차가 알아서 달려요. 눌러 보세요.',done:p=>p.pitReq||!!p.pit},
-  {h:'직선 모드',t:()=>'서킷마다 정해진 긴 직선(3초 넘게 전속력)에서만 날개를 열 수 있어요. 열면 공기 저항이 줄어 더 빨라져요. '+(aeroMode==='auto'?'지금은 자동이라 구간에 들어가면 저절로 열려요.':tk('「직선」 버튼','E 키')+'으로 열고, 브레이크를 밟거나 가속을 떼면 닫혀요.')+' 다음 긴 직선에서 열어 보세요.',done:p=>!!p.aeroOpen},
-  {h:'ERS 부스트',t:()=>'직선에서 '+tk('「ERS」','Shift 키')+'를 누르면 배터리 힘으로 더 빨라져요. 배터리는 가속을 떼거나 브레이크를 밟을 때 다시 차요. ERS를 한 번 써 보세요.',done:p=>p.boost},
-  {h:'끝!',t:()=>'잘했어요. 깃발·페널티·타이어 규칙은 메뉴의 「규칙 가이드」에 그림과 함께 자세히 있어요. 여기서 계속 연습해도 돼요.'}];
+  {h:'가속',s:()=>tk(autoGas?'가속은 자동이에요. 시속 100km까지 달려 보세요':'오른쪽 아래 「가속」을 눌러 시속 100km까지','↑ 키로 시속 100km까지 달려 보세요'),t:()=>(race&&race.player.pit?'피트 레인을 나가는 동안은 차가 알아서 달려요. ':'')+tk(autoGas?'자동 가속이라 손대지 않아도 앞으로 나가요. 시속 100km까지 달려 보세요.':'오른쪽 아래 「가속」을 누르고 있으면 나가요. 시속 100km까지 달려 보세요.','↑ 키(또는 W)를 누르고 있으면 나가요. 시속 100km까지 달려 보세요.'),done:p=>!p.pit&&p.spd*3.6>=100},
+  {h:'브레이크',s:()=>tk('「브레이크」를 꾹 눌러 속도를 줄여 보세요','Space 키로 브레이크를 밟아 보세요'),t:()=>tk('「브레이크」를 꾹 누르면 속도가 줄어요.','Space(또는 ↓) 키가 브레이크예요.')+' 코너 앞에서 미리 밟아 보세요.'+(brakeAs?' 너무 빠르면 브레이크 보조가 대신 밟아 줘요.':''),done:p=>key.brake&&p.spd>8},
+  {h:'코너 · 레이싱 라인',s:()=>'바닥 색 띠를 따라 코너 하나를 지나 보세요',t:()=>'바닥의 색 띠를 따라가세요. 빨강에서 브레이크, 노랑에서 꺾고, 초록에서 다시 가속해요. 코너 하나를 지나 보세요.',done:(p,T)=>{const k=Math.abs(TR.K[p.idx]);if(k>0.012)T.cs=1;return !!T.cs&&k<0.003;}},
+  {h:'시점',s:()=>tk('위쪽 「시점」을 눌러 보세요','C 키로 시점을 바꿔 보세요'),t:()=>tk('위쪽 「시점」','C 키')+'로 보는 위치가 바뀌어요: 콕핏 → T캠 → 추격 → 원거리. '+tk('「뒤보기」를 누르는 동안','V 키를 누르는 동안')+' 뒤를 봐요. 시점을 한 번 바꿔 보세요.',done:(p,T)=>{if(T.cm==null)T.cm=camMode;return camMode!==T.cm;}},
+  {h:'타이어',s:()=>tk('「다음」 버튼으로 다음 타이어를 바꿔 보세요','1~5 키로 다음 타이어를 바꿔 보세요'),t:()=>'마른 노면 레이스에선 두 종류의 타이어를 꼭 한 번씩 써야 해서, 피트스톱이 한 번은 필요해요. '+tk('「다음」 버튼으로','1~5 키로')+' 다음에 끼울 타이어를 바꿔 보세요.',done:(p,T)=>{const c=p.nextComp||p.ty.comp;if(T.c0==null)T.c0=c;return c!==T.c0;}},
+  {h:'피트',s:()=>tk('「PIT」를 눌러 보세요. 이번 랩 끝에 피트로 들어가요','B 키를 눌러 보세요. 이번 랩 끝에 피트로 들어가요'),t:()=>tk('「PIT」','B 키')+'를 누르면 이번 랩 끝에 피트 레인으로 들어가 고른 타이어로 바꿔요. 피트 레인에선 차가 알아서 달려요. 눌러 보세요.',done:(p,T)=>!!T.pitTap},   // 11-14 (T3): passed by pressing PIT in this step (in the pit lane alone it passed by itself)
+  {h:'직선 모드',s:()=>aeroMode==='auto'?'긴 직선에서 날개가 저절로 열려요. 다음 직선까지 달려 보세요':tk('긴 직선에서 「직선」을 눌러 날개를 열어 보세요','긴 직선에서 E 키로 날개를 열어 보세요'),t:()=>'서킷마다 정해진 긴 직선(3초 넘게 전속력)에서만 날개를 열 수 있어요. 열면 공기 저항이 줄어 더 빨라져요. '+(aeroMode==='auto'?'지금은 자동이라 구간에 들어가면 저절로 열려요.':tk('「직선」 버튼','E 키')+'으로 열고, 브레이크를 밟거나 가속을 떼면 닫혀요.')+' 다음 긴 직선에서 열어 보세요.',done:p=>!!p.aeroOpen},
+  {h:'ERS 부스트',s:()=>tk('직선에서 「ERS」를 눌러 보세요','직선에서 Shift 키를 눌러 보세요'),t:()=>'직선에서 '+tk('「ERS」','Shift 키')+'를 누르면 배터리 힘으로 더 빨라져요. 배터리는 가속을 떼거나 브레이크를 밟을 때 다시 차요. ERS를 한 번 써 보세요.',done:p=>p.boost},
+  {h:'끝!',s:()=>'잘했어요! 이제 첫 레이스를 달려 볼까요?',t:()=>'잘했어요. 깃발·페널티·타이어 규칙은 메뉴의 「규칙 가이드」에 그림과 함께 자세히 있어요. 여기서 계속 연습해도 돼요.'}];
 // a race started right after the page loads (tutorial, the performance test) waits up to 10 s for the 3D car model -
 // a race in progress keeps the cars it started with, so without this it ran in the old procedural car
 function whenCar(fn,n=0){if(THREE.GLTFLoader&&!window.__CARGLB&&n<300){$('loading').style.display='flex';$('loading').textContent='차량을 불러오는 중'+(n>=25?' · '+Math.round(n/5)+'초':'');setTimeout(()=>whenCar(fn,n+1),200);return;}
@@ -6748,29 +6759,38 @@ function whenCar(fn,n=0){if(THREE.GLTFLoader&&!window.__CARGLB&&n<300){$('loadin
 function tutStart(force){if(TRK.id!==TUT_TRK){saveLS('lightsout3d-tutgo','1');saveLS('lightsout3d-tutret',TRK.id);saveLS('lightsout3d-track',TUT_TRK);
     $('loading').style.display='flex';$('loading').textContent='튜토리얼 서킷을 불러오는 중';setTimeout(()=>location.reload(),30);return;}
   if(force!==true){whenCar(()=>tutStart(true));return;}
-  const wx=weather;weather='dry';TUT={i:0,ok:0};startRace({mode:'practice'});weather=wx;document.body.classList.add('tutOn');tutShow();}
-function tutShow(){const s=TUT_STEPS[TUT.i],n=TUT_STEPS.length-1,last=TUT.i===n;$('tutH').textContent=(last?'튜토리얼':'튜토리얼 '+(TUT.i+1)+'/'+n)+' · '+s.h;
-  $('tutT').textContent=s.t();$('tutNext').textContent=last?'계속 달리기':'다음';$('tutSkip').textContent=last?'메뉴로':'건너뛰기';$('tut').classList.remove('ok');$('tut').hidden=false;
+  const wx=weather;weather='dry';TUT={i:0,ok:0,wait:true};startRace({mode:'practice'});weather=wx;document.body.classList.add('tutOn');tutShow();}
+const tutTxt=s=>TUT&&TUT.more||!s.s?s.t():s.s();
+function tutShow(){if(TUT.wait){$('tut').hidden=true;tutMark(null);return;}   // 11-14 (T1): no card while the car is still leaving the pit lane (the strip says so)
+  const s=TUT_STEPS[TUT.i],n=TUT_STEPS.length-1,last=TUT.i===n;$('tutH').textContent=(last?'튜토리얼':'튜토리얼 '+(TUT.i+1)+'/'+n)+' · '+s.h;
+  $('tutT').textContent=tutTxt(s);$('tutMore').hidden=!!TUT.more||!s.s;$('tutNext').textContent=last?'계속 연습':'다음';$('tutNext').classList.toggle('go',!last);$('tutSkip').textContent=last?'메뉴로':'건너뛰기';$('tutRace').hidden=!last;
+  $('tut').classList.remove('ok');$('tut').hidden=false;
   if(WORLD&&WORLD.rlCorn&&rlMode==='off')WORLD.rlCorn.visible=TUT.i<=2;   // the line shows for the first steps even when it is switched off
-  tutPlace();}
-function tutGo(){TUT.i=Math.min(TUT_STEPS.length-1,TUT.i+1);TUT.cs=0;const p=race&&race.player;TUT.c0=p?p.nextComp||p.ty.comp:null;tutShow();}   // c0: the tyre chosen when the step opens
-function tutEnd(){if(!TUT)return;TUT=null;$('tut').hidden=true;document.body.classList.remove('tutOn');applyRL();}
+  tutPlace();tutMark(TUT_MARK[TUT.i]);}
+let tutMarkT=0;function tutMark(sels){const m=$('tutMark');clearTimeout(tutMarkT);let el=null;
+  if(isTouch&&sels)for(const q of sels){const e=document.querySelector(q);if(e&&e.offsetWidth>0&&getComputedStyle(e).display!=='none'){el=e;break;}}
+  m._el=el;if(!el){m.hidden=true;return;}m.hidden=false;m.classList.remove('lite');tutMarkPos();tutMarkT=setTimeout(()=>m.classList.add('lite'),1800);}   // the rest of the screen dimmed for a moment, the frame stays
+function tutMarkPos(){const m=$('tutMark'),el=m._el;if(!el||m.hidden)return;const r=bcr(el);Object.assign(m.style,{left:Math.round(r.left-5)+'px',top:Math.round(r.top-5)+'px',width:Math.round(r.width+10)+'px',height:Math.round(r.height+10)+'px'});}
+function tutGo(){TUT.i=Math.min(TUT_STEPS.length-1,TUT.i+1);TUT.cs=0;TUT.more=false;TUT.pitTap=0;const p=race&&race.player;TUT.c0=p?p.nextComp||p.ty.comp:null;tutShow();}   // c0: the tyre chosen when the step opens
+function tutEnd(){if(!TUT)return;TUT=null;$('tut').hidden=true;tutMark(null);document.body.classList.remove('tutOn');applyRL();}
 function tutTick(dt){if(!TUT||state!=='race'||TUT.i>=TUT_STEPS.length-1)return;const p=race.player,s=TUT_STEPS[TUT.i];
+  if(TUT.wait){if(!p.pit){TUT.wait=false;tutShow();}return;}   // on the track: step 1
   if(TUT.ok){if((TUT.ok-=dt)<=0){TUT.ok=0;tutGo();}return;}
-  const pl=!!p.pit;if(pl!==TUT.pl){TUT.pl=pl;$('tutT').textContent=s.t();}
+  const pl=!!p.pit;if(pl!==TUT.pl){TUT.pl=pl;$('tutT').textContent=tutTxt(s);}
   if(s.done(p,TUT)){TUT.ok=1.1;$('tut').classList.add('ok');$('tutH').textContent='✓ 잘했어요 · '+s.h;}}
 function tutPlace(){const el=$('tut');if(el.hidden)return;const W=VW(),H=VH();let top,right,w,bot=H-16;
   if(isTouch){const tb=bcr($('topBtns'));top=tb.bottom+6;right=W-tb.right;w=Math.min(260,Math.max(200,W*0.3));
     const mb=bcr($('miniBtns'));if(mb.width&&mb.top>top+120)bot=mb.top-8;}
   else{const ht=bcr($('hudTime'));top=ht.width?ht.top:14;right=ht.width?W-ht.right:14;w=320;}
-  Object.assign(el.style,{top:Math.round(top)+'px',right:Math.round(right)+'px',width:Math.round(w)+'px',maxHeight:Math.round(bot-top)+'px'});}
+  Object.assign(el.style,{top:Math.round(top)+'px',right:Math.round(right)+'px',width:Math.round(w)+'px',maxHeight:Math.round(bot-top)+'px'});tutMarkPos();}
 addEventListener('resize',()=>setTimeout(tutPlace,150));
 // pointerdown, not click: on an iPhone a tap makes no click while another finger is down (holding the pedal or steering) - like the race buttons.
 // A tap on the card's text is 「다음」 too
-const tutNext=()=>{if(!TUT)return;if(TUT.i===TUT_STEPS.length-1)tutEnd();else{TUT.ok=0;tutGo();}};
+const tutNext=()=>{if(!TUT)return;TUT.wait=false;if(TUT.i===TUT_STEPS.length-1)tutEnd();else{TUT.ok=0;tutGo();}};
+const tutRace=()=>{if(!TUT)return;tutEnd();startRace({mode:'race',noForm:true});};   // 11-14 (T5): from the last card straight into a first race (on the grid, no formation lap)
 const tutSkip=()=>{if(TUT&&TUT.i===TUT_STEPS.length-1)toMenu();else tutEnd();};
-$('tut').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(e.target.closest('#tutSkip'))tutSkip();else tutNext();});
-$('tutNext').addEventListener('click',e=>{if(e.detail===0)tutNext();});$('tutSkip').addEventListener('click',e=>{if(e.detail===0)tutSkip();});   // keyboard (Enter/Space) only
+$('tut').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(e.target.closest('#tutSkip'))tutSkip();else if(e.target.closest('#tutMore')){TUT.more=true;tutShow();}else if(e.target.closest('#tutRace'))tutRace();else tutNext();});
+$('tutNext').addEventListener('click',e=>{if(e.detail===0)tutNext();});$('tutSkip').addEventListener('click',e=>{if(e.detail===0)tutSkip();});$('tutRace').addEventListener('click',e=>{if(e.detail===0)tutRace();});   // keyboard (Enter/Space) only
 $('tutBtn').addEventListener('click',tutStart);
 // ===== 11-13 윤택님 「듀토리얼 더 상세하게」: the rules guide - controls, tyres, pit stops, flags, penalties, straight mode, rain, the start. One topic a page,
 // a small picture beside three or four short lines, paged (이전 / 다음 / the dots), closed any time. The numbers are the game's own (CUT_GB, VSC_GB, BLUE_W,
@@ -7644,8 +7664,9 @@ const vscDf=d=>{const a=Math.abs(d);return(d<0?'−':'+')+(a<0.1?(d<0?Math.max(0
 function flagPanel(){const rc=race.rc,p=race.player,el=$('flag');let cls='',txt='',dv='',dc='',sx='';
   if(state==='race'||state==='done'){
     const S=race.sess;
-    if(rc.flag==='formation'){cls='f';txt='포메이션 랩 · 추월 금지'+(isTouch?'':' · Enter 건너뛰기');}
-    else if(rc.flag==='red'){const R=rc.red;cls='r';txt=!R||R.phase==='resume'?'RED FLAG · SC 따라 그리드로':R.phase==='held'?'RED FLAG · 재개 '+Math.max(0,Math.ceil(R.resumeAt-race.t))+'초':'RED FLAG · 피트 레인으로'+(rc.redFast?' · 과속!':'');if(!isTouch&&R)txt+=' · Enter 건너뛰기';}
+    if(rc.flag==='formation'){cls='f';txt=(race.form&&race.form.autoP?'포메이션 랩 · 자동 주행':'포메이션 랩 · 추월 금지')+(isTouch?'':' · Enter 건너뛰기');}
+    else if(rc.flag==='red'){const R=rc.red;cls='r';txt=!R||R.phase==='resume'?'레드 플래그 · SC 따라 그리드로':R.phase==='held'?'레드 플래그 · 재개 '+Math.max(0,Math.ceil(R.resumeAt-race.t))+'초':'레드 플래그 · 피트 레인으로'+(rc.redFast?' · 과속!':'');if(!isTouch&&R)txt+=' · Enter 건너뛰기';}
+    else if(TUT&&TUT.wait){cls='f';txt='피트 레인을 나가는 중…';}   // 11-14 (T1): the tutorial's cards start on the track
     else if(S&&S.chq){cls='chq';txt='체커기 · 이번 랩까지';}
     else if(S&&p.blue){cls='b';txt='블루 플래그 · 비켜주기';}
     else if(S){}
