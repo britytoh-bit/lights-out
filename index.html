@@ -634,6 +634,7 @@ body.inmenu:has(#mPage:not([hidden])) #gl{animation-play-state:paused}   /* a se
 #menu .mItem,#menu #startBtn{transition:transform .12s ease,background .12s}
 #menu .mItem:active{transform:scale(.985)} #menu #startBtn:active{transform:scale(.97)}
 @media (prefers-reduced-motion:reduce){#intro{display:none !important} #menu.mEnter *{animation:none !important} body.inmenu #gl{animation:none !important} #menu .mItem:active,#menu #startBtn:active{transform:none}}
+/* ===== 11-14 윤택님 「UI, UX 더 깔끔하고 처음 하는 사용자가 했을 때도 이해하기 쉽게」 (설계안 lo_uiux_1114, P1) =====
    pause: the actions first (계속 달리기 · 조작법 · 건너뛰기), then the settings, then the screen toggles; 「레이스 그만두기」 a quiet text button at the end that asks once.
    result: the buttons beside the title and kept in view while the table scrolls; places gained / lost from the grid, the race's fastest lap a purple dot. */
 #pause .pHd,#result .rHd{display:flex; align-items:center; gap:10px 12px; flex-wrap:wrap}
@@ -732,7 +733,7 @@ body.touch #result .rHd{top:-14px; margin:-14px -16px 6px; padding:10px 16px 8px
   </div>
   <div id="tut" hidden role="status"><p class="th" id="tutH"></p><p class="tt" id="tutT"></p><div class="tb"><button id="tutSkip" type="button">건너뛰기</button><button id="tutNext" type="button" class="go">다음</button></div></div>
   <div id="ctlHelp" hidden><div id="chMarks"></div></div>
-  <div class="overlay" id="skill" hidden><div class="card"><h2>어떻게 달려볼까요?</h2><p class="sub">초보는 가장 쉬운 설정으로 한 번에 맞춰요. 직접 설정은 레이싱 라인·보조를 하나씩 골라요(설정마다 중급·상급 추천 표시). 나중에 메뉴·일시정지에서 바꿀 수 있어요.</p>
+  <div class="overlay" id="skill" hidden><div class="card"><h2>어떻게 달려볼까요?</h2><p class="sub">초보는 가장 쉬운 설정으로 한 번에 맞춰요. 직접 설정은 레이싱 라인·보조를 하나씩 골라요. 나중에 메뉴·일시정지에서 바꿀 수 있어요.</p>
     <div class="skg" id="skG"></div><div class="row2"><button id="skLater" type="button">메뉴로</button><button class="go" id="skTut" type="button">튜토리얼로 시작</button></div></div></div>
   <div id="livEd" hidden><div class="lecard">
     <div class="lehead"><b>리버리 꾸미기</b><span id="leTeam"></span></div>
@@ -759,7 +760,7 @@ body.touch #result .rHd{top:-14px; margin:-14px -16px 6px; padding:10px 16px 8px
       <div class="seg" id="modeSel"><button data-v="race" aria-pressed="true">레이스</button><button data-v="quali" aria-pressed="false">예선 → 레이스</button><button data-v="practice" aria-pressed="false">연습 주행</button></div>
       <p class="label">실력</p>
       <div class="seg" id="skSel"><button data-v="easy">초보</button><button data-v="pro">직접 설정</button></div><p class="skNote" id="skNote"></p>
-      <button id="tutBtn" type="button">튜토리얼로 조작 익히기</button><button id="guideBtn" type="button">규칙 가이드 (깃발 · 페널티 · 타이어)</button>
+      <button id="ctlGuide" type="button">조작법 보기</button><button id="tutBtn" type="button">튜토리얼로 조작 익히기</button><button id="guideBtn" type="button">규칙 가이드 (깃발 · 페널티 · 타이어)</button>
       <p class="label" id="chLbl">대회 (서킷을 이어 달리며 순위별 점수 합산)</p>
       <div id="chBox"></div>
       <p class="sub" id="chTrkNote" style="display:none;margin:0 0 12px"></p>
@@ -774,20 +775,20 @@ body.touch #result .rHd{top:-14px; margin:-14px -16px 6px; padding:10px 16px 8px
         <div><p class="label">포메이션 랩</p><div class="seg" id="fmlSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔</button></div></div>
         <div><p class="label">랩 수</p><div class="seg" id="lapSel"><button data-v="3" aria-pressed="true">3</button><button data-v="5" aria-pressed="false">5</button><button data-v="10" aria-pressed="false">10</button></div></div>
         <div><p class="label">AI 난이도</p><div class="seg" id="difSel"><button data-v="easy" aria-pressed="false">쉬움</button><button data-v="normal" aria-pressed="true">보통</button><button data-v="hard" aria-pressed="false">어려움</button></div></div>
-        <div><p class="label">조향 감도 (1 가장 부드러움)</p><div class="seg" id="sensSel"><button data-v="1" aria-pressed="false">1</button><button data-v="2" aria-pressed="true">2</button><button data-v="3" aria-pressed="false">3<span class="rec">중급 추천</span></button><button data-v="4" aria-pressed="false">4<span class="rec">상급 추천</span></button><button data-v="5" aria-pressed="false">5</button></div></div>
+        <div><p class="label">조향 감도 (1 가장 부드러움)</p><div class="seg" id="sensSel"><button data-v="1" aria-pressed="false">1</button><button data-v="2" aria-pressed="true">2</button><button data-v="3" aria-pressed="false">3</button><button data-v="4" aria-pressed="false">4</button><button data-v="5" aria-pressed="false">5</button></div></div>
         <div><p class="label">스타트 타이어</p><div class="seg" id="scSel"><button data-v="S" aria-pressed="false" style="color:#ff5a4f">소프트</button><button data-v="M" aria-pressed="true" style="color:#f5c518">미디엄</button><button data-v="H" aria-pressed="false">하드</button><button data-v="I" aria-pressed="false" style="color:#3ddc84">인터</button><button data-v="W" aria-pressed="false" style="color:#5b9bff">웻</button></div></div>
         <div><p class="label">시간대</p><div class="seg" id="todSel"><button data-v="day" aria-pressed="true">한낮</button><button data-v="sunset" aria-pressed="false">석양</button><button data-v="night" aria-pressed="false">야간</button></div></div>
         <div class="touchOnly"><p class="label">조향 방식</p><div class="seg" id="smSel"><button data-v="tilt" aria-pressed="false">기울이기</button><button data-v="drag" aria-pressed="true">드래그</button><button data-v="buttons" aria-pressed="false">버튼</button></div></div>
         <div class="touchOnly"><p class="label">페달 위치</p><div class="seg" id="pedSel"><button data-v="split" aria-pressed="true">양쪽</button><button data-v="right" aria-pressed="false">오른쪽</button></div></div>
-        <div class="touchOnly"><p class="label">가속</p><div class="seg" id="agSel"><button data-v="auto" aria-pressed="true">자동 가속</button><button data-v="manual" aria-pressed="false">직접 가속<span class="rec">중급·상급 추천</span></button></div></div>
+        <div class="touchOnly"><p class="label">가속</p><div class="seg" id="agSel"><button data-v="auto" aria-pressed="true">자동 가속</button><button data-v="manual" aria-pressed="false">직접 가속</button></div></div>
         <div><p class="label">날씨</p><div class="seg" id="wxSel"><button data-v="dry" aria-pressed="true">맑음</button><button data-v="mixed" aria-pressed="false">변덕</button><button data-v="rain" aria-pressed="false">비</button></div></div>
         <div><p class="label">비 강도</p><div class="seg" id="rainSel"><button data-v="rnd" aria-pressed="true">랜덤</button><button data-v="light" aria-pressed="false">약한 비<span class="rec">인터</span></button><button data-v="heavy" aria-pressed="false">폭우<span class="rec">풀웻</span></button></div></div>
         <div><p class="label">차량 손상 (벽·접촉·펑처)</p><div class="seg" id="dmgSel"><button data-v="off" aria-pressed="false">끔</button><button data-v="normal" aria-pressed="true">보통</button><button data-v="sim" aria-pressed="false">리얼</button></div></div>
         <div><p class="label">사고 · 세이프티카</p><div class="seg" id="incSel"><button data-v="off" aria-pressed="false">없음</button><button data-v="real" aria-pressed="false">가끔</button><button data-v="often" aria-pressed="true">자주</button></div></div>
         <div class="keyOnly"><p class="label">스타트</p><div class="seg" id="stSel"><button data-v="manual" aria-pressed="true">수동</button><button data-v="auto" aria-pressed="false">자동</button></div></div>
-        <div><p class="label">주행 보조</p><div class="seg" id="asSel"><button data-v="high" aria-pressed="false">높음</button><button data-v="normal" aria-pressed="true">보통<span class="rec">중급 추천</span></button><button data-v="off" aria-pressed="false">끔<span class="rec">상급 추천</span></button></div></div>
-        <div><p class="label">브레이크 보조 (너무 빠르면 대신 밟아요)</p><div class="seg" id="basSel"><button data-v="0">끔<span class="rec">상급 추천</span></button><button data-v="1">약하게<span class="rec">중급 추천</span></button><button data-v="2">강하게</button></div></div>
-        <div><p class="label">레이싱 라인 가이드 (L 키)</p><div class="seg" id="rlSel"><button data-v="corners" aria-pressed="true">코너만<span class="rec">중급 추천</span></button><button data-v="full" aria-pressed="false">전체</button><button data-v="off" aria-pressed="false">끔<span class="rec">상급 추천</span></button></div></div>
+        <div><p class="label">주행 보조</p><div class="seg" id="asSel"><button data-v="high" aria-pressed="false">높음</button><button data-v="normal" aria-pressed="true">보통</button><button data-v="off" aria-pressed="false">끔</button></div></div>
+        <div><p class="label">브레이크 보조 (너무 빠르면 대신 밟아요)</p><div class="seg" id="basSel"><button data-v="0">끔</button><button data-v="1">약하게</button><button data-v="2">강하게</button></div></div>
+        <div><p class="label">레이싱 라인 가이드 (L 키)</p><div class="seg" id="rlSel"><button data-v="corners" aria-pressed="true">코너만</button><button data-v="full" aria-pressed="false">전체</button><button data-v="off" aria-pressed="false">끔</button></div></div>
         <div><p class="label">액티브 에어로 (직선 모드)</p><div class="seg" id="aeroSel"><button data-v="manual" aria-pressed="true">직접</button><button data-v="auto" aria-pressed="false">자동</button></div></div>
         <div><p class="label">엔진 사운드</p><button id="sndPrev" type="button" style="width:100%">들어보기</button><button id="sndTune" type="button" style="width:100%">튜닝</button></div>
         <div><p class="label">메뉴 음악</p><div class="seg" id="bgmSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔</button></div></div>
@@ -796,7 +797,7 @@ body.touch #result .rHd{top:-14px; margin:-14px -16px 6px; padding:10px 16px 8px
         <div><p class="label">빗방울 (비 올 때 화면에 맺히는 물방울)</p><div class="seg" id="dropSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔</button></div></div>
         <div><p class="label">관중 표시 (관중석의 사람 그림 · 끄면 조금 가벼워질 수 있어요)</p><div class="seg" id="crowdSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔</button></div></div>
       </div>
-      <p class="sub touchOnly" id="touchHelp">가로 화면 권장. 왼쪽 아래로 조향, 오른쪽 아래 페달로 가속·브레이크. 자동 가속이면 브레이크만 누르면 돼요. 직선 구간에서 '직선' 버튼을 누르면 날개가 열려요. 위쪽 '맵' 버튼으로 미니맵 크기를 바꿀 수 있어요.</p>
+      <p class="sub touchOnly" id="touchHelp">왼쪽 아래로 조향, 오른쪽 아래 페달로 가속·브레이크. 자동 가속이면 브레이크만 누르면 돼요. 직선 구간에서 「직선」 버튼을 누르면 날개가 열려요(자동이면 저절로). 위쪽 「맵」 버튼으로 미니맵 크기를 바꿔요.</p>
       <div class="keys keyOnly">
         <span><kbd>↑</kbd> <kbd>W</kbd></span><span>가속</span>
         <span><kbd>Space</kbd> <kbd>↓</kbd> <kbd>S</kbd></span><span>브레이크 / 후진</span>
@@ -6517,8 +6518,8 @@ let mMode=loadLS('lightsout3d-mmode')||(CH?'champ':'normal'),chLen=+loadLS('ligh
 const MPAGES={track:[[null,[['chBox','대회','서킷을 이어 달리며 순위별 점수를 합산해요'],['chTrkNote'],['trkSel']]],['도로',[['wdSel','도로 폭']]]],
   team:[[null,[['teamSel'],['livBtn']]]],
   race:[['레이스',[['modeSel','진행 방식'],['lapSel','랩 수'],['difSel','AI 난이도'],['scSel','스타트 타이어']]],['날씨와 시간',[['wxSel','날씨','변덕은 도중에 비가 와요'],['rainSel','비 강도','약한 비는 노면만 젖어 인터, 폭우는 풀웻'],['todSel','시간대']]],['규칙',[['fmlSel','포메이션 랩','출발 전에 한 바퀴 돌아요'],['incSel','사고와 세이프티카'],['dmgSel','차량 손상','보통: 내 차는 크게 부딪혀도 대부분 피트에서 고쳐요 · 리얼: 부러진 서스펜션·큰 충격·찢어진 사이드포드는 리타이어 · 끔: 손상 없음']]]],
-  drive:[[null,[['skSel','실력'],['skNote'],['tutBtn'],['guideBtn']]],['조작',[['smSel','조향 방식'],['sensSel','조향 감도','1이 가장 부드러워요'],['pedSel','페달 위치','양쪽은 브레이크가 왼쪽이에요'],['agSel','가속'],['stSel','스타트','수동은 부정 출발을 판정해요']]],['보조',[['asSel','주행 보조','잠김과 스핀을 잡아줘요'],['basSel','브레이크 보조','너무 빠르면 대신 밟아요. 늦게 밟고 싶으면 끄세요'],['rlSel','레이싱 라인'],['aeroSel','직선 모드 날개']]]],
-  set:[['그래픽',[['qSel','그래픽'],['aqSel','자동 화질 조절','프레임이 떨어지면 효과를 줄여요'],['dropSel','빗방울','비 올 때 화면에 맺히는 물방울'],['crowdSel','관중 표시','끄면 조금 가벼워져요']]],['소리',[['sndPrev','엔진 소리'],['sndTune','소리 튜닝','모드와 울림을 귀로 맞춰요'],['bgmSel','메뉴 음악','메뉴 화면에서 흐르는 음악']]],['도움말',[['touchHelp'],['mKeys']]]]};
+  drive:[[null,[['skSel','실력'],['skNote'],['ctlGuide'],['touchHelp'],['tutBtn'],['guideBtn']]],['조작',[['smSel','조향 방식'],['agSel','가속'],['sensSel','조향 감도','1이 가장 부드러워요'],['pedSel','페달 위치','양쪽은 브레이크가 왼쪽이에요'],['stSel','스타트','수동은 부정 출발을 판정해요'],['mKeys']]],['보조',[['asSel','주행 보조','잠김과 스핀을 잡아줘요'],['basSel','브레이크 보조','너무 빠르면 대신 밟아요. 늦게 밟고 싶으면 끄세요'],['rlSel','레이싱 라인'],['aeroSel','직선 모드 날개']]]],
+  set:[['그래픽',[['qSel','그래픽'],['aqSel','자동 화질 조절','프레임이 떨어지면 효과를 줄여요'],['dropSel','빗방울','비 올 때 화면에 맺히는 물방울'],['crowdSel','관중 표시','끄면 조금 가벼워져요']]],['소리',[['sndPrev','엔진 소리'],['sndTune','소리 튜닝','모드와 울림을 귀로 맞춰요'],['bgmSel','메뉴 음악','메뉴 화면에서 흐르는 음악']]]]};   // 11-14: the 도움말 rows moved to 운전 (조작법 보기)
 const MNAMES={track:'서킷',team:'내 팀',race:'레이스 설정',drive:'운전',set:'그래픽과 기타'};
 function mOpen(k){$('mHome').hidden=!!k;$('mPage').hidden=!k;for(const n in MPAGES){const on=n===k;$('mP_'+n).hidden=!on;if(on)$('mP_'+n).scrollTop=0;}if(k)$('mPgT').textContent=k==='track'&&mMode==='champ'?'대회와 서킷':MNAMES[k];}
 function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={easy:'AI 쉬움',normal:'AI 보통',hard:'AI 어려움'}[diff]||'',w=weather==='rain'?{light:'약한 비',heavy:'폭우'}[rainInt]||'비(랜덤)':{dry:'맑음',mixed:'변덕'}[weather]||'';
@@ -6646,11 +6647,11 @@ const SKILLS={
   easy:{nm:'초보',sm:'drag',sens:2,as:'high',bas:2,rl:'full',ag:'auto',li:[['손가락으로 끌어서 조향',1],['조향 감도 2 (부드럽게)'],['자동 가속',1],['브레이크 보조 강하게'],['레이싱 라인 항상 보임'],['잠김·스핀 거의 없음']]},
   // 10-31 윤택님: only 초보 is a preset (the easiest one). 직접 설정 keeps the settings as they are and opens them to pick one by one -
   // each option there carries a 「중급 추천」/「상급 추천」 tag (any non-preset setup reads as 직접 설정)
-  pro:{nm:'직접 설정',custom:1,li:[['레이싱 라인·보조를 하나씩 골라요'],['조향 방식·감도·가속',1],['설정마다 중급·상급 추천 표시']]}};
+  pro:{nm:'직접 설정',custom:1,li:[['레이싱 라인·보조를 하나씩 골라요'],['조향 방식·감도·가속',1]]}};
 const skLines=k=>SKILLS[k].li.filter(l=>isTouch||!l[1]).map(l=>l[0]);
 function curSkill(){if(loadLS('lightsout3d-skill')==='pro')return 'pro';for(const k in SKILLS){const s=SKILLS[k];if(!s.custom&&sens===s.sens&&assistMode===s.as&&brakeAs===s.bas&&rlMode===s.rl&&(!isTouch||(steerMode===s.sm&&autoGas===(s.ag==='auto'))))return k;}return 'pro';}
 function skillUI(){if(!skReady)return;const k=curSkill();segPick(['skSel','pSkSel'],k);segPick(['basSel'],brakeAs);
-  const t=k==='pro'?'지금: 직접 설정 · 아래에서 하나씩 골라요 (노란 글씨가 중급·상급 추천)':'지금: '+SKILLS[k].nm+' · '+skLines(k).join(' · ');for(const id of['skNote','pSkNote'])$(id).textContent=t;}
+  const t=k==='pro'?'지금: 직접 설정. 「초보」를 누르면 보조를 모두 켜요.':'지금: 초보. 보조를 모두 켰어요. 하나라도 바꾸면 「직접 설정」이 돼요.';for(const id of['skNote','pSkNote'])$(id).textContent=t;}
 function skOpenCustom(){const pz=!$('pause').hidden;if(!$('skill').hidden){$('skill').hidden=true;$('menu').hidden=false;}if(!pz)mOpen('drive');
   const t=pz?$('pSmSel'):$(isTouch?'smSel':'sensSel');if(t)setTimeout(()=>t.parentNode.scrollIntoView({block:'start',behavior:'smooth'}),60);}
 function setBrakeAs(v){brakeAs=v;saveLS('lightsout3d-bas',v);if(race)race.bAs=v;skillUI();}
@@ -6800,7 +6801,7 @@ $('guide').addEventListener('click',e=>{if(e.target.id==='guide')guideClose();})
 addEventListener('keydown',e=>{if($('guide').hidden)return;   // while the guide is open the keys page it (and do not start a race behind it)
   if(e.key==='ArrowRight'||e.key==='Enter'||e.key===' ')$('gNext').click();else if(e.key==='ArrowLeft'&&GI>0)guideShow(GI-1);else if(e.key==='Escape')guideClose();else return;
   e.preventDefault();e.stopImmediatePropagation();},true);
-$('guideBtn').addEventListener('click',()=>guideOpen(0));
+$('guideBtn').addEventListener('click',()=>guideOpen(0));$('ctlGuide').addEventListener('click',()=>guideOpen(0));   // 11-14: 운전 > 조작법 보기 - the guide's first page (the controls)
 // ===== 10-31: 조작법 (pause): every on-screen control outlined where it really is, with a short label next to it =====
 function ctlHelp(){const M=$('chMarks'),W=VW(),H=VH(),sa=safeInsets(),placed=[],tg=[];M.innerHTML='';
   const vis=e=>!!e&&e.offsetWidth>0&&getComputedStyle(e).display!=='none';
