@@ -7916,8 +7916,9 @@ function syncRaceControl(dt){
 }
 // 11-14 3단계-B 현장감 (윤택님 「이런거처럼 디테일 추가할거있음 해줘」): 그림에만 쓰는 것들 - SIM 값은 읽기만. frameBody가 sync 다음에 한 번 부른다
 //  meMark: TV·원거리 시점에서 내 차 위 팀 색 ▼ (DOM 하나, transform만 바꿈; #wrap 안이라 돌려 그린 화면에서도 함께 돈다)
+//  pitBoard: 메인 직선 피트월에서 내 팀원이 내미는 보드 「P8 / +1.2 / L2」(L = 이번 랩 포함 남은 랩) - 메시 하나·재질 하나, 220 m 앞부터 지나칠 때까지만 보이고 글자는 랩마다 한 번 그린다
 //  brakeGlow: 큰 제동(브레이크가 빼앗은 운동에너지)일수록 내 차 바퀴 덮개 가장자리와 앞 업라이트가 주황으로 달아올랐다가 5초쯤에 걸쳐 식는다 - 내 차만 재질을 복제해 쓴다(AI 차는 그대로)
-function detailTick(dt){if(!race||!WORLD||!race.player)return;meMark();brakeGlow(dt);}
+function detailTick(dt){if(!race||!WORLD||!race.player)return;meMark();pitBoard();brakeGlow(dt);}
 const ME={el:null,x:NaN,y:NaN,on:false},_me=new THREE.Vector3();
 function meMark(){const pl=race.player,cm=CAMS[camMode],m=meshes[race.cars.indexOf(pl)];
   let on=!!m&&(state==='race'||state==='countdown'||state==='done')&&(cm==='tv'||cm==='far')&&!CINE&&!CAMPIT&&!CAMLOOK&&!pl.gone&&!pl.inGarage;
@@ -7930,6 +7931,41 @@ function meMark(){const pl=race.player,cm=CAMS[camMode],m=meshes[race.cars.index
           $('wrap').insertBefore(e,$('gl').nextSibling);}   // right over the 3D picture, under every HUD panel and overlay
         if(x!==ME.x||y!==ME.y){ME.x=x;ME.y=y;ME.el.style.transform='translate('+(x-9)+'px,'+(y-12)+'px)';}}}}
   if(ME.el&&on!==ME.on){ME.on=on;ME.el.style.visibility=on?'visible':'hidden';}}
+const PB={m:null,world:null,team:-1,race:null,bi:0,k:-1,cv:null,tex:null};
+// the board, its pole and the team member holding it: one geometry (vertex colours; the board face reads the canvas, the rest a white strip of it), one material.
+// Built in the menu already (the first sync after the world / team changes), so warmUp compiles its shader with the race's - nothing compiles when it first shows.
+function pbBuild(pl){if(PB.m){scene.remove(PB.m);PB.m.geometry.dispose();PB.m.material.dispose();PB.m=null;}PB.world=WORLD;PB.team=pl.team;PB.k=-1;
+  if(!WORLD.boxes||WORLD.boxes[pl.team]==null)return;
+  let bi=WORLD.boxes[pl.team];if(wrap(bi+10)<=16)bi=wrap(bi+(wrap(bi+10)<10?-12:12));PB.bi=bi;   // clear of the start gantry's leg and the flag marshal (on the wall at -4 .. +2)
+  if(!PB.cv){PB.cv=mkCanvas(128,256);PB.tex=texFrom(PB.cv);}const g=PB.cv.getContext('2d');g.fillStyle='#0c0d10';g.fillRect(0,0,128,200);g.fillStyle='#fff';g.fillRect(0,224,128,32);PB.tex.needsUpdate=true;
+  const tm=TEAMS[pl.team],L=h=>new THREE.Color(h).convertSRGBToLinear(),PS=PIT.side,A=PS,G0=new THREE.Group();   // local frame: +z towards the track, cars come from local x = A
+  const P=mkPerson(tm.p,tm.s,{cap:true,glove:0x222222}),d=new THREE.Vector3(A*0.45,0,1).normalize();P.g.rotation.y=Math.atan2(d.x,d.z);G0.add(P.g);
+  posePerson(P,{L:[1.2,-0.22,0.3],R:[1.2,-0.22,0.3]},1);
+  const nb=new THREE.Vector3(A,0,0.55).normalize(),bc=d.clone().multiplyScalar(0.95);bc.y=0.8;   // the board faces the cars coming up, a little towards the track; its top edge at the hands
+  const face=new THREE.Mesh(new THREE.PlaneGeometry(0.9,1.4));face.position.copy(bc);face.rotation.y=Math.atan2(nb.x,nb.z);G0.add(face);
+  const back=new THREE.Mesh(new THREE.BoxGeometry(0.96,1.46,0.03));back.position.copy(bc).addScaledVector(nb,-0.022);back.rotation.y=face.rotation.y;G0.add(back);
+  G0.updateMatrixWorld(true);const hl=new THREE.Vector3(),hr=new THREE.Vector3();P.L.grip.getWorldPosition(hl);P.R.grip.getWorldPosition(hr);hl.add(hr).multiplyScalar(0.5);
+  const top=bc.clone().addScaledVector(nb,-0.04);top.y+=0.62;const pole=new THREE.Mesh(rod([hl.x,hl.y,hl.z],[top.x,top.y,top.z],0.022,6));G0.add(pole);G0.updateMatrixWorld(true);
+  const geos=[],dk=L('#24272c');
+  G0.traverse(o=>{if(!o.isMesh)return;const q=o.geometry.clone();q.applyMatrix4(o.matrixWorld);const uv=q.attributes.uv,n=q.attributes.position.count;
+    if(o===face)for(let i=0;i<n;i++)uv.setY(i,0.21875+uv.getY(i)*0.78125);else for(let i=0;i<n;i++)uv.setXY(i,0.5,0.06);   // face: the board area (128 x 200 px, the board's shape); the rest: the white strip
+    const c=o===face?new THREE.Color(1,1,1):o===back||o===pole?dk:o.material.color.clone().convertSRGBToLinear();geos.push(tintGeo(q,c));q.dispose();
+    if(o!==face&&o!==back&&o!==pole)o.material.dispose();o.geometry.dispose();});
+  const mesh=PB.m=new THREE.Mesh(mergeGeosC(geos),new THREE.MeshStandardMaterial({map:PB.tex,vertexColors:true,roughness:0.7}));geos.forEach(q=>q.dispose());
+  const f=P0f(bi,PS*(PIT.wallIn+0.12)),t=T[bi];mesh.position.set(f.x,hXZ(f.x,f.z)+1.2,f.z);mesh.rotation.y=Math.atan2(PS*t[1],-PS*t[0]);mesh.receiveShadow=true;mesh.visible=false;mesh.userData.noBake=true;scene.add(mesh);}
+// what is on it: position, the gap to the car ahead (as the tower: + seconds, or laps), laps to go counting this one - drawn once a lap, as it comes into view
+function pbDraw(pl,k){const g=PB.cv.getContext('2d'),r=ranking(race),i=r.indexOf(pl),tm=TEAMS[pl.team];let gap='LEAD';
+  if(i>0){const a=r[i-1],dl=a.prog-pl.prog;gap=dl>=N?'+'+Math.floor(dl/N)+'L':'+'+(dl*STEP/Math.max(20,(pl.spd+a.spd)/2)).toFixed(1);}
+  g.fillStyle='#0c0d10';g.fillRect(0,0,128,200);g.fillStyle=tm.p;g.fillRect(0,0,128,26);g.fillStyle=tm.s;g.fillRect(0,26,128,5);
+  g.textAlign='center';g.textBaseline='middle';g.fillStyle=lumOf(tm.p)>0.55?'#111':'#fff';g.font='italic 800 22px "Saira Condensed",Arial,sans-serif';g.fillText(String(pl.num!=null?pl.num:''),64,14);
+  g.fillStyle='#ffd21a';g.font='800 62px "Saira Condensed",Arial,sans-serif';fitText(g,'P'+(i+1),64,72,118);
+  g.fillStyle='#fff';g.font='800 42px "Saira Condensed",Arial,sans-serif';fitText(g,gap,64,131,120);fitText(g,'L'+(race.laps-k),64,175,120);PB.tex.needsUpdate=true;}
+function pitBoard(){const pl=race.player;if(PB.world!==WORLD||PB.team!==pl.team)pbBuild(pl);if(!PB.m)return;if(PB.race!==race){PB.race=race;PB.k=-1;}
+  let on=false;
+  if(state==='race'&&!race.sess&&!race.form&&!TUT&&!CINE&&pl.fin==null&&!pl.pit&&!pl.dnf&&!pl.gone){const ah=wrap(PB.bi-pl.idx),k=Math.floor((pl.prog+ah)/N);   // k: laps done when the car gets to the board
+    if(ah*STEP<220){if(k>=1&&k<race.laps){on=true;if(k!==PB.k){PB.k=k;pbDraw(pl,k);}}}   // from 220 m out (not on the opening lap); written then, so it is a couple of seconds old as the car goes by
+    else on=PB.k>=1&&wrap(pl.idx-PB.bi)*STEP<30;}   // and a moment after passing it
+  if(PB.m.visible!==on)PB.m.visible=on;}
 const BRK={h:0,g:-1,v:0,m:null,cm:null,um:null,tex:null};
 function brakeGlow(dt){const pl=race.player,m=meshes[race.cars.indexOf(pl)];if(!m)return;
   if(BRK.m!==m){BRK.m=m;BRK.h=0;BRK.g=-1;BRK.v=Math.abs(pl.spd);if(BRK.cm){BRK.cm.dispose();BRK.cm=null;}if(BRK.um){BRK.um.dispose();BRK.um=null;}   // a new car (each race): its own copies again
