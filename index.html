@@ -666,6 +666,7 @@ body.touch #topBtns button,body.touch.ph-small #topBtns button{width:44px; heigh
 #mTyre small{font-size:11px; font-weight:800}
 #mTyre i{display:flex; align-items:center; justify-content:center; width:19px; height:19px; border-radius:50%; border:3px solid #f5c518; background:rgba(0,0,0,.35); font-style:normal; font-size:10px; font-weight:800; color:#fff}
 body.touch.ph-small #mTyre small{font-size:10px} body.touch.ph-small #mTyre i{width:16px; height:16px; border-width:2px; font-size:9px}
+#flag.fl{background:#f4f4f4; color:#111} #flag.w{background:#ffb347; color:#111}
 </style>
 <script>
 /* 터치 확대 막기 — iOS Safari 는 viewport 의 user-scalable=no 를 무시한다.
@@ -7619,7 +7620,7 @@ function flagPanel(){const rc=race.rc,p=race.player,el=$('flag');let cls='',txt=
 // v12j: on phones these race-control notes would only repeat the pill at the top: the pill flashes instead of a second line
 // 11-11 윤택님 「AI 차가 서킷 밖으로 나갔는데 옐로가 안 뜨는 것 같음」: the zone (where passing is banned) starts 110 m before the car, a second and a half at
 // racing speed - a yellow came and went before it was ever seen. The pill now says it from 300 m out (10 m steps); the rules are the zone's as before.
-let flagYz=null;function yellowAhead(race,p){let b=null,bd=151;for(const z of race.rc.yellows){const d=wrap(z.i0-p.idx);if(d>0&&d<bd){bd=d;b=z;}}return b?{z:b,m:Math.max(10,Math.round(bd*STEP/10)*10)}:null;}
+let flagYz=null,flagMsg=null;function yellowAhead(race,p){let b=null,bd=151;for(const z of race.rc.yellows){const d=wrap(z.i0-p.idx);if(d>0&&d<bd){bd=d;b=z;}}return b?{z:b,m:Math.max(10,Math.round(bd*STEP/10)*10)}:null;}
 const FLAG_EV=new Set(['sc','vsc','vscEnding','scIn','restart','scGo','red','redResume','green']);let flagPulse=0;
 const MSG={fl:e=>[(e.me?'':e.name+' ')+'패스티스트 랩 '+fmt(e.t),e.me?'#c58bff':'#a87be0'],colPen:e=>[e.me?'충돌 유발 +'+e.s+'초':e.name+' 충돌 유발 +'+e.s+'초',e.me?'#ff8a8a':'#f5c518'],pitRet:()=>['수리 불가 · 리타이어','#ff3b30'],pitRetAI:e=>[e.name+' 리타이어','#ff8a8a'],wall:()=>[race.dmg==='off'?'월 히트 · 타이어 손상':'월 히트!','#ff8a8a'],crash:e=>[e.name+' 크래시','#ff8a8a'],wreck:()=>['크래시 · 리타이어','#ff3b30'],pitIn:()=>['피트 레인 · 리미터 80','#f5c518'],pitStop:e=>e.pen?['페널티 '+e.pen+'초 소화','#fff']:null,   // the stop timer shows a normal stop
   pitGo:e=>['GO! '+(e.mis?'피트 실수 · ':'')+(e.rep?'수리 + ':'')+COMP[e.comp].name+' '+e.t.toFixed(1)+'초'+(e.best?' · 최고':''),e.rep?'#ffb347':e.mis||e.t>3.5?'#ff8a8a':'#3ddc84'],
@@ -7646,6 +7647,10 @@ const MSG={fl:e=>[(e.me?'':e.name+' ')+'패스티스트 랩 '+fmt(e.t),e.me?'#c5
   std:e=>{const k={weave:'두 번 방어',brake:'제동 중 방어',force:'밀어내기',btest:'급제동'}[e.k];return[(e.me?'':e.name+' ')+k+' +'+e.s+'초',e.me?'#ff8a8a':'#f5c518'];},
   illegalPass:e=>[({sc:'SC 중',vsc:'VSC 중',yellow:'옐로',restart:'재시작 전',red:'레드 중'}[e.why]||'규정 위반')+' 추월 +'+e.s+'초','#ff5a4f'],
   blue:()=>['블루 플래그 · 비켜주기','#6aa7ff'],blueWarn:e=>['블루 플래그 경고 · '+e.s+'초 안에','#ffb347'],bluePen:e=>['블루 플래그 무시 +'+e.s+'초','#ff5a4f'],finish:()=>['체커기!','#fff'],contact:()=>['접촉!','#ffb347']};
+// 11-14 (현장감 디테일 #5·#6): 「마지막 랩」 in the strip at the line (2 s) - with the two-compound rule still open it becomes the warning (one message, the
+// danger first); a flag out at that moment keeps the strip, the warning then goes in a note. After the first sector: places gained or lost at the start.
+function lastLapNote(){const p=race.player;if(p.fin!=null||Math.floor(p.prog/N)+1!==race.laps)return;const need=needsSecond(p),txt=need?'마지막 랩 · 지금 PIT 안 하면 실격':'마지막 랩';
+  if($('flag').classList.contains('show')&&!flagMsg){if(need)toast(txt,'#ffb347',2,1000);return;}flagMsg={txt,cls:need?'w':'fl',until:performance.now()+2000};if(isTouch)flagPulse=Math.max(flagPulse,1.1);}
 function handleEvents(){
   for(const e of race.EV){
     if(e.type==='dmg'){onDamage(e);continue;}
