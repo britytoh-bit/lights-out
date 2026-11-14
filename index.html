@@ -656,6 +656,12 @@ body.touch #result .rHd{top:-14px; margin:-14px -16px 6px; padding:10px 16px 8px
 #resTable td.mv{width:3.6ch; padding:5px 2px 5px 0; font-size:13px; font-weight:800; white-space:nowrap; color:var(--dim)}
 #resTable td.mv .up{color:#2fd06b} #resTable td.mv .dn{color:#ff6a5f}
 #resTable .fld{color:#a050ff; font-size:11px; vertical-align:1px}
+/* race HUD: a timing row shows once it has a value; the round buttons at the top are 44 px (「뒤보기」 fits); the tyre button shows the next tyre's ring;
+body.touch #topBtns button,body.touch.ph-small #topBtns button{width:44px; height:44px; font-size:12px; white-space:nowrap}
+#mTyre{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; line-height:1}
+#mTyre small{font-size:11px; font-weight:800}
+#mTyre i{display:flex; align-items:center; justify-content:center; width:19px; height:19px; border-radius:50%; border:3px solid #f5c518; background:rgba(0,0,0,.35); font-style:normal; font-size:10px; font-weight:800; color:#fff}
+body.touch.ph-small #mTyre small{font-size:10px} body.touch.ph-small #mTyre i{width:16px; height:16px; border-width:2px; font-size:9px}
 </style>
 <script>
 /* 터치 확대 막기 — iOS Safari 는 viewport 의 user-scalable=no 를 무시한다.
@@ -727,8 +733,8 @@ body.touch #result .rHd{top:-14px; margin:-14px -16px 6px; padding:10px 16px 8px
     <div id="steerZone"><div id="steerPad"><span class="lbl">좌우로 끌어서 조향</span><div id="steerKnob"></div></div></div>
     <div id="tiltGauge"><i id="tiltDot"></i></div>
     <div id="btnSteer"><button class="rbtn" data-k="left" aria-label="왼쪽">◀</button><button class="rbtn" data-k="right" aria-label="오른쪽">▶</button></div>
-    <div id="topBtns"><button id="mPause" aria-label="일시정지">II</button><button id="mCam" aria-label="시점 전환">시점</button><button id="mCal" aria-label="기울기 영점">영점</button><button id="mLook" aria-label="누르는 동안 뒤 보기">뒤</button><button id="mMap" aria-label="미니맵 크기">맵</button></div>
-    <div id="miniBtns"><button id="mPit" aria-label="피트 요청">PIT</button><button id="mTyre" aria-label="다음 타이어 변경">타이어</button><button id="mErs" data-k="ers" aria-label="ERS 부스트">ERS</button><button id="mAero" aria-label="직선 모드 날개 열기">직선</button></div>
+    <div id="topBtns"><button id="mPause" aria-label="일시정지">II</button><button id="mCam" aria-label="시점 전환">시점</button><button id="mCal" aria-label="기울기 영점">영점</button><button id="mLook" aria-label="누르는 동안 뒤 보기">뒤보기</button><button id="mMap" aria-label="미니맵 크기">맵</button></div>
+    <div id="miniBtns"><button id="mPit" aria-label="피트 요청">PIT</button><button id="mTyre" aria-label="다음 타이어 변경"><small>다음</small><i id="mTyreC">M</i></button><button id="mErs" data-k="ers" aria-label="ERS 부스트">ERS</button><button id="mAero" aria-label="직선 모드 날개 열기">직선</button></div>
     <div id="pedals"><button class="pedal brk" data-k="brake" aria-label="브레이크">브레이크</button><button class="pedal gas" data-k="gas" aria-label="가속">가속</button></div>
   </div>
   <div id="tut" hidden role="status"><p class="th" id="tutH"></p><p class="tt" id="tutT"></p><div class="tb"><button id="tutSkip" type="button">건너뛰기</button><button id="tutNext" type="button" class="go">다음</button></div></div>
@@ -6430,7 +6436,7 @@ function togglePit(){if(!race||state!=='race')return;const p=race.player;if(p.pi
   if(p.pitReq){const m=race.cars.find(o=>o!==p&&o.team===p.team&&!o.gone);if(m&&m.pitReq&&!m.pit&&wrap(PIT.E-m.idx)*STEP>60&&zoneR(m.idx)<0&&yieldToMate(race,m)){m.pitReq=false;setTimeout(()=>toast('팀메이트는 다음 랩 피트인','#8ecae6'),900);}}   // v12i
   if(p.pitReq)p.boxPos=rejoinPos(race,p);toast(p.pitReq?'피트인 예약'+(race.sess?'':' · P'+p.boxPos+' 복귀'):'피트인 취소',p.pitReq?'#f5c518':'#fff');if(TUT)TUT.pitTap=1;}
 function setNext(k){if(!race||state==='menu')return;const p=race.player;if(p.pit&&!['in','red','garage'].includes(p.pit.state))return;p.nextComp=k;const a=!COMP[k].wet&&!race.sess?pitAdvice(race,p):null;toast('다음 타이어 '+COMP[k].name+(a?' · '+Math.round(a.life(k))+'랩':''),COMP[k].col);}
-function cycleNext(){const p=race&&race.player;if(!p)return;const o=['S','M','H','I','W'];setNext(o[(o.indexOf(p.nextComp||p.ty.comp)+1)%5]);}
+function cycleNext(){const p=race&&race.player;if(!p)return;const o=['S','M','H','I','W'];setNext(o[(o.indexOf(p.nextComp||pickCompound(race,p))+1)%5]);}   // 11-14: from the tyre the button shows
 let toastHold=0;
 // 11-11 윤택님 「패널티·타이어 변경 팝업이 너무 오래 시야를 가림」: every note at most TOAST_MAX s (penalties were 2.6, damage 2.4, instructions 3.6), and on a phone
 // it sits in the top band (layoutTouchHUD: the row under the race-control pill; the mirror's row is only kept free while the mirror is on)
@@ -6721,13 +6727,13 @@ $('tutBtn').addEventListener('click',tutStart);
 const GUIDE=()=>{const T=isTouch,k=(t,kb)=>T?t:kb,ty=(c,l,n)=>`<span><i style="--c:${c}">${l}</i>${n}</span>`,fl=(c,l,n,fc)=>`<span><i style="--c:${c}${fc?';color:'+fc:''}">${l}</i>${n}</span>`,
   sm={tilt:'기울이기',drag:'드래그',buttons:'버튼'}[steerMode]||'드래그';
   return [
-  {h:'조작',v:T?'<div class="gPh"><i class="tp">II · 시점 · 영점 · 뒤 · 맵</i><i class="mb">PIT · 타이어 · ERS · 직선</i><i class="st">조향</i><i class="pb">브레이크</i><i class="pg">가속</i></div>'
+  {h:'조작',v:T?'<div class="gPh"><i class="tp">II · 시점 · 영점 · 뒤보기 · 맵</i><i class="mb">PIT · 다음 · ERS · 직선</i><i class="st">조향</i><i class="pb">브레이크</i><i class="pg">가속</i></div>'
      :'<div class="gBd"><span style="background:#2b2e36">↑ W 가속</span><span style="background:#2b2e36">Space ↓ 브레이크</span><span style="background:#2b2e36">← → 조향</span></div>',
    t:T?[`<b>왼쪽 아래 = 조향</b> (지금: ${sm}). 드래그는 패드를 좌우로 끌고, 버튼은 ◀ ▶, 기울이기는 폰을 핸들처럼 기울여요.`,
         '기울이기가 한쪽으로 쏠리면 위쪽 <b>「영점」</b>을 눌러 지금 각도를 가운데로 맞춰요.',
         '화면은 늘 가로로 그려져요. 아이폰은 <b>화면 세로 고정(회전 잠금)</b>을 켜 두면 크게 기울여도 화면이 돌지 않아요.',
         '<b>오른쪽 아래 = 페달.</b> 자동 가속이면 브레이크만 누르면 돼요.',
-        '위쪽 <b>II</b> 일시정지 · <b>시점</b> 바꾸기 · <b>뒤</b> 누르는 동안 뒤 보기 · <b>맵</b> 미니맵 크기. 조향 방식은 메뉴 「운전」에서 바꿔요.']
+        '위쪽 <b>II</b> 일시정지 · <b>시점</b> 바꾸기 · <b>뒤보기</b> 누르는 동안 뒤 보기 · <b>맵</b> 미니맵 크기. 조향 방식은 메뉴 「운전」에서 바꿔요.']
      :['<b>↑ / W</b> 가속 · <b>Space / ↓ / S</b> 브레이크 · <b>← → / A D</b> 조향 (길게 누를수록 더 꺾여요).',
        '<b>C</b> 시점 · <b>V</b> 누르는 동안 뒤 보기 · <b>N</b> 미니맵 · <b>H</b> 룸미러 · <b>P</b> 일시정지 · <b>R</b> 재시작.',
        '<b>[ ]</b> 레이스 중 조향 감도 · <b>F</b> FPS 표시 · <b>M</b> 소리.']},
@@ -6749,8 +6755,8 @@ const GUIDE=()=>{const T=isTouch,k=(t,kb)=>T?t:kb,ty=(c,l,n)=>`<span><i style="-
    t:['비가 안 오는 레이스에선 <b>소프트·미디엄·하드 중 두 가지</b>를 꼭 써야 해요. 그래서 <b>피트 스톱이 최소 한 번</b> 필요해요.',
       '인터나 풀 웻을 한 번이라도 쓰면 이 규칙은 면제예요.',
       '안 쓴 채 마지막 랩이 되면 경고가 떠요. 끝까지 안 지키면 <em>실격</em>이에요.']},
-  {h:'피트 스톱',v:'<div class="gBd"><span style="background:#2b2e36">① '+k('「타이어」','1~5 키')+'로 고르기</span><span style="background:#2b2e36">② '+k('「PIT」','B 키')+' 누르기</span><span style="background:#1f7a46">③ 차가 알아서 들어가요</span></div>',
-   t:['<b>'+k('「타이어」 버튼','1~5 키')+'</b>로 다음에 끼울 타이어를 골라요'+k('.',' (1 소프트 · 2 미디엄 · 3 하드 · 4 인터 · 5 풀 웻).'),
+  {h:'피트 스톱',v:'<div class="gBd"><span style="background:#2b2e36">① '+k('「다음」','1~5 키')+'로 고르기</span><span style="background:#2b2e36">② '+k('「PIT」','B 키')+' 누르기</span><span style="background:#1f7a46">③ 차가 알아서 들어가요</span></div>',
+   t:['<b>'+k('「다음」 버튼','1~5 키')+'</b>로 다음에 끼울 타이어를 골라요'+k('.',' (1 소프트 · 2 미디엄 · 3 하드 · 4 인터 · 5 풀 웻).'),
       '<b>'+k('「PIT」','B 키')+'</b>를 누르면 이번 랩 끝에 피트 레인으로 들어가요.',
       '피트 레인에선 <b>속도 제한(리미터)</b>이 걸리고 차가 알아서 달려요. 손을 떼고 기다리면 돼요.',
       '타이어 교체와 함께 부서진 노즈·리어 윙·서스펜션과 펑처도 고쳐요.']},
@@ -6810,10 +6816,10 @@ function ctlHelp(){const M=$('chMarks'),W=VW(),H=VH(),sa=safeInsets(),placed=[],
   const near=vis(bk)&&vis(gs)&&Math.abs(bcr(bk).right-bcr(gs).left)<60;   // pedals side by side: one label for both
   // (the crowded bottom-right first, so its labels get the spots next to their buttons)
   const G=[...(near?[[[bkL,gsL],'above']]:[[[bkL,agL],'above'],[[gsL],'above']]),
-    [[['mPit','<b>PIT</b> 이번 랩 끝에 피트인'],['mTyre','<b>타이어</b> 다음에 끼울 타이어'],['mErs','<b>ERS</b> 배터리 부스트'],['mAero','<b>직선</b> 직선에서 날개 열기']],'above'],
+    [[['mPit','<b>PIT</b> 이번 랩 끝에 피트인'],['mTyre','<b>다음</b> 다음에 끼울 타이어'],['mErs','<b>ERS</b> 배터리 부스트'],['mAero','<b>직선</b> 직선에서 날개 열기']],'above'],
     [[['steerPad','<b>조향</b> 좌우로 끌기'],['btnSteer','<b>◀ ▶</b> 누르는 동안 조향'],['tiltGauge','<b>조향</b> 휴대폰을 핸들처럼 기울이기']],'above'],
     [[['hudSpeed','<b>계기판</b> 타이어 · 속도 · 기어 · 배터리']],'above'],
-    [[['mPause','<b>II</b> 일시정지 · 설정'],['mCam','<b>시점</b> 카메라 바꾸기'],['mCal','<b>영점</b> 지금 기울기를 똑바로로'],['mLook','<b>뒤</b> 누르는 동안 뒤 보기'],['mMap','<b>맵</b> 미니맵 크기']],'below']];
+    [[['mPause','<b>II</b> 일시정지 · 설정'],['mCam','<b>시점</b> 카메라 바꾸기'],['mCal','<b>영점</b> 지금 기울기를 똑바로로'],['mLook','<b>뒤보기</b> 누르는 동안 뒤 보기'],['mMap','<b>맵</b> 미니맵 크기']],'below']];
   const ov=(a,b)=>Math.max(0,Math.min(a.r,b.r)-Math.max(a.l,b.l))*Math.max(0,Math.min(a.b,b.b)-Math.max(a.t,b.t));
   const groups=G.map(([items,side])=>{const its=items.map(([e,t])=>[typeof e==='string'?$(e):e,t]).filter(([e,t])=>t&&(e===null||vis(e)));
     const els=its.map(x=>x[0]).filter(Boolean);if(!els.length)return null;const rs=els.map(e=>bcr(e));
@@ -7292,6 +7298,7 @@ function drawHUD(dt){
    else if(q&&q.state==='out'&&q.relT!=null&&q.stopT!=null&&race.t-q.relT<1.2){v=q.relT-q.stopT;const w=v-(q.pen||0);cls='show '+(w<2.6?'ok':w>4?'slow':'');lbl=q.pen?'정차 (페널티 '+q.pen+'초 포함)':'정차 시간';}
    if(el._c!==cls){el._c=cls;el.className=cls;}if(cls){setT('pitTl',lbl);setT('pitTv',v.toFixed(1)+'초');}}
   tyreT-=dt;if(tyreT<=0){tyreT=0.15;const ty=pl.ty,C=COMP[ty.comp];
+    if(isTouch){const nk=pl.nextComp||pickCompound(race,pl);if(hc.mTyre!==nk){hc.mTyre=nk;const e=$('mTyreC');e.textContent=nk;e.style.borderColor=COMP[nk].col;}}   // 11-14 (H6): the button shows the tyre the next stop fits - chosen, or the one a stop would pick
     $('tyC').textContent=ty.comp;$('tyC').style.borderColor=C.col;setT('tyName',C.name);setT('tyLaps',(ty.dist/(N*STEP)).toFixed(1)+'랩 사용');
     if(isTouch){$('tyMC').textContent=ty.comp;$('tyMC').style.borderColor=C.col;
       setT('tyMT',Math.round((ty.temp[0]+ty.temp[1]+ty.temp[2]+ty.temp[3])/4)+'°');
@@ -7302,7 +7309,7 @@ function drawHUD(dt){
     dmgHud(pl);
     let pi='';const nc=COMP[pl.nextComp||pl.ty.comp];
     if(pl.pit){const st=pl.pit.state;
-      if(st==='red')pi=`<span class="box">레드 플래그 · 피트 레인 대기</span><br>재개 때 새 타이어 <b style="color:${nc.col}">${nc.name}</b> (${isTouch?'타이어 버튼':'1~5'} 변경)`;
+      if(st==='red')pi=`<span class="box">레드 플래그 · 피트 레인 대기</span><br>재개 때 새 타이어 <b style="color:${nc.col}">${nc.name}</b> (${isTouch?'다음 버튼':'1~5'} 변경)`;
       else if(st==='garage')pi=`<span class="box">개러지</span> · 새 타이어 <b style="color:${nc.col}">${nc.name}</b>`;
       else{const pp=pl.pit,penLeft=st==='stop'&&pp.pen>0?pp.t-pp.service:0;   // v12i: why the car is waiting (penalty, traffic in the lane, team-mate in the box)
         pi=st==='stop'?(pp.t<=0?'<span class="box">출발 대기 · 차량 통과 중</span>':penLeft>0?'<span class="box">페널티 정차 · '+Math.ceil(penLeft)+'초</span>':'<span class="box">정차 · 타이어 교체'+(pp.rep&&pp.rep.n?' + 수리':'')+'</span>')
