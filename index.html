@@ -667,6 +667,8 @@ body.touch #topBtns button,body.touch.ph-small #topBtns button{width:44px; heigh
 #mTyre i{display:flex; align-items:center; justify-content:center; width:19px; height:19px; border-radius:50%; border:3px solid #f5c518; background:rgba(0,0,0,.35); font-style:normal; font-size:10px; font-weight:800; color:#fff}
 body.touch.ph-small #mTyre small{font-size:10px} body.touch.ph-small #mTyre i{width:16px; height:16px; border-width:2px; font-size:9px}
 #flag.fl{background:#f4f4f4; color:#111} #flag.w{background:#ffb347; color:#111}
+#tower .r .n .mv{font-style:normal; font-size:.8em; font-weight:800; margin-left:3px; letter-spacing:0} #tower .r .n .mv.up{color:#2fd06b} #tower .r .n .mv.dn{color:#ff6a5f}
+#tower .r.me .n .mv.up{color:#0b6b30} #tower .r.me .n .mv.dn{color:#a3150d}
 #toast.radio{padding:4px 14px 5px 10px; border-left:4px solid var(--team); border-radius:4px 6px 6px 4px; background:rgba(9,11,15,.88); text-shadow:none}
 #toast.radio b{margin-right:7px; font-size:.78em; font-weight:800; color:#9aa3ad}
 </style>
@@ -7213,7 +7215,10 @@ let TOUCH_KT=72;   // how far the steering knob travels each way (px)
 // v12f: the phone's timing tower - every car if they fit, else the top of the order and the cars around the player; intervals to the car ahead
 // 11-09 윤택님 (폭우·약한 비를 보고 인터/풀웻을 고르게): the weather line - on a phone it sits under the tower's header (the top bar that carries it on a PC is hidden there)
 const wxTxt=()=>race.wx.rain>0.05?(race.wx.rain>0.65?'폭우':'약한 비')+' · 노면 '+Math.round(WET*100)+'%':(WET>0.04?'노면 젖음 '+Math.round(WET*100)+'%':'');
-function towerTouch(r,pp){const pl=race.player,S=race.sess,rowH=VH()<=370?13:15,act=S?r.filter(c=>!c.gone):r,wt=wxTxt();let maxR=Math.max(4,Math.floor((TOWER_H-25-18)/rowH)-(wt?1:0));if(towerMode==='short')maxR=Math.min(maxR,8);   // v12g: tap the header for all rows / fewer / header only
+// 11-14 (현장감 디테일 #1): a car that changed places shows ▲2 / ▼1 beside its code for 3 s of race time (every car is tracked, shown or not)
+let TPOS=null;function towerMvUpd(r){if(race.sess)return;if(!TPOS||TPOS.r!==race)TPOS={r:race,m:{}};const m=TPOS.m;r.forEach((c,i)=>{const o=m[c.id];if(!o)m[c.id]={p:i,d:0,t:-9};else if(o.p!==i){o.d=o.p-i;o.p=i;o.t=race.t;}});}
+function towerMv(c){const o=!race.sess&&TPOS&&TPOS.r===race&&TPOS.m[c.id];return o&&o.d&&race.t-o.t<3&&!c.dnf&&!c.gone?`<em class="mv ${o.d>0?'up':'dn'}">${o.d>0?'▲':'▼'}${Math.abs(o.d)}</em>`:'';}
+function towerTouch(r,pp){towerMvUpd(r);const pl=race.player,S=race.sess,rowH=VH()<=370?13:15,act=S?r.filter(c=>!c.gone):r,wt=wxTxt();let maxR=Math.max(4,Math.floor((TOWER_H-25-18)/rowH)-(wt?1:0));if(towerMode==='short')maxR=Math.min(maxR,8);   // v12g: tap the header for all rows / fewer / header only
   const hd=S?`<span>${S.kind==='practice'?'연습':'Q'+S.q}</span><b>${S.kind==='practice'?fmtClock(S.t):(S.chq?'체커기':fmtClock(S.len-S.t))}</b>`
     :`<span>${race.form?(race.form.kind==='start'?'포메이션':'재개'):'랩 '+Math.max(1,Math.min(race.laps,Math.floor(pl.prog/N)+1))+'/'+race.laps}</span><b>P${pp}/${race.cars.length}</b>`;
   const n=act.length,me=act.indexOf(pl);let show;
@@ -7224,7 +7229,7 @@ function towerTouch(r,pp){const pl=race.player,S=race.sess,rowH=VH()<=370?13:15,
     else if(c.dnf||c.fail||c.gone){q='OUT';qc='out';}else if(c.pit){q='PIT';qc='pit';}
     else if(i===0){q=c.fin!=null?'체커':'리더';qc='ld';}
     else{const a=act[i-1],dl=a.prog-c.prog;if(dl>=N)q='+'+Math.floor(dl/N)+'랩';else q='+'+(dl*STEP/Math.max(20,(c.spd+a.spd)/2)).toFixed(1);}
-    h+=`<div class="r ${c.isP?'me':''}"><span class="p">${i+1}</span><span class="c" style="background:${TEAMS[c.team].p}"></span><span class="n">${c.code}${!S&&race.fl&&race.fl.id===c.id?'<em class="flm">●</em>':''}${c.pen&&!S?`<em class="pn">+${c.pen}</em>`:''}</span><span class="q ${qc}">${q}</span></div>`;});
+    h+=`<div class="r ${c.isP?'me':''}"><span class="p">${i+1}</span><span class="c" style="background:${TEAMS[c.team].p}"></span><span class="n">${c.code}${towerMv(c)}${!S&&race.fl&&race.fl.id===c.id?'<em class="flm">●</em>':''}${c.pen&&!S?`<em class="pn">+${c.pen}</em>`:''}</span><span class="q ${qc}">${q}</span></div>`;});
   return h;}
 let towerMode=['auto','short','off'].includes(loadLS('lightsout3d-tower'))?loadLS('lightsout3d-tower'):'auto';
 $('tower').addEventListener('pointerdown',e=>{if(!isTouch||!e.target.closest('.hd'))return;e.preventDefault();e.stopPropagation();towerMode=towerMode==='auto'?'short':towerMode==='short'?'off':'auto';saveLS('lightsout3d-tower',towerMode);hc.tw=null;towerT=0;toast(towerMode==='auto'?'순위표: 전체':towerMode==='short'?'순위표: 줄임':'순위표: 숨김','#fff',1.2);});
@@ -7354,8 +7359,8 @@ function drawHUD(dt){
       act.forEach((c,i)=>{if(!show.has(i))return;if(last>=0&&i>last+1)h+='<div class="gap">⋯</div>';if(i===cut&&last===i-1)h+='<div class="cutl"></div>';last=i;
         h+=`<div class="r ${c.isP?'me':''}"><span class="p">${i+1}</span><span class="c" style="background:${TEAMS[c.team].p}"></span><span class="n">${c.code}</span><span class="q">${c.best!=null?fmt(c.best):(c.pit?'PIT':'-')}</span></div>`;});}
     $('tower').innerHTML=h;}
-  else if(towerT<=0){towerT=0.3;const show=new Set([0,1,2,pp-3,pp-2,pp-1,pp]);let h='',last=-1;
-    r.forEach((c,i)=>{if(!show.has(i))return;if(last>=0&&i>last+1)h+='<div class="gap">⋯</div>';last=i;h+=`<div class="r ${c.isP?'me':''}"><span class="p">${i+1}</span><span class="c" style="background:${TEAMS[c.team].p}"></span><span class="n">${c.code}${c.pen?`<em class="pn">+${c.pen}</em>`:''}</span><span class="t" style="color:${COMP[c.ty.comp].col}">${c.ty.comp}</span>${(c.dnf||c.gone||c.fail)?'<span class="pit" style="background:#555">OUT</span>':c.pit?'<span class="pit">PIT</span>':''}</div>`;});
+  else if(towerT<=0){towerT=0.3;towerMvUpd(r);const show=new Set([0,1,2,pp-3,pp-2,pp-1,pp]);let h='',last=-1;
+    r.forEach((c,i)=>{if(!show.has(i))return;if(last>=0&&i>last+1)h+='<div class="gap">⋯</div>';last=i;h+=`<div class="r ${c.isP?'me':''}"><span class="p">${i+1}</span><span class="c" style="background:${TEAMS[c.team].p}"></span><span class="n">${c.code}${towerMv(c)}${c.pen?`<em class="pn">+${c.pen}</em>`:''}</span><span class="t" style="color:${COMP[c.ty.comp].col}">${c.ty.comp}</span>${(c.dnf||c.gone||c.fail)?'<span class="pit" style="background:#555">OUT</span>':c.pit?'<span class="pit">PIT</span>':''}</div>`;});
     $('tower').innerHTML=h;}}
   // steering wheel: shift lights (all flash at the shift point) and the screen (redrawn at most 20x a second, at once on a gear change)
   if(SW){const f=(curRpm-9000)/3300,lim=f>=0.9&&state==='race',fl=lim&&(performance.now()%140<70);
