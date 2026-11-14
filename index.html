@@ -5921,7 +5921,7 @@ if(isTouch)document.body.classList.add('touch');
 // (ROT_LA; the orientation events keep it right after a 180 deg flip, which changes no size), (b) else the accelerometer, once this phone has shown which
 // of its signs is which side (GSIGN, learnt while the screen itself reported a landscape angle - iOS and Android report opposite signs), (c) else the
 // side used last time (+90 the very first time). Halfway through a turn (the window's size and its angle arrive apart) the turn in place is kept.
-let mDraw=40,ROT=0,ROT_LA=+loadLS('lightsout3d-rotla')===-90?-90:90,ROT_SEEN=false,ROTG=0,GSIGN=+loadLS('lightsout3d-gsign')||0,ROTH=innerHeight,WINW=innerWidth,WINH=innerHeight;const VW=()=>ROT?WINH:WINW,VH=()=>ROT?WINW:WINH,ptX=e=>ROT>0?e.clientY:ROT<0?ROTH-e.clientY:e.clientX,ptY=e=>ROT>0?innerWidth-e.clientX:ROT<0?e.clientX:e.clientY;
+let mDraw=40,pDraw=0,ROT=0,ROT_LA=+loadLS('lightsout3d-rotla')===-90?-90:90,ROT_SEEN=false,ROTG=0,GSIGN=+loadLS('lightsout3d-gsign')||0,ROTH=innerHeight,WINW=innerWidth,WINH=innerHeight;const VW=()=>ROT?WINH:WINW,VH=()=>ROT?WINW:WINH,ptX=e=>ROT>0?e.clientY:ROT<0?ROTH-e.clientY:e.clientX,ptY=e=>ROT>0?innerWidth-e.clientX:ROT<0?e.clientX:e.clientY;
 function bcr(e){const r=e.getBoundingClientRect();if(!ROT)return r;if(ROT<0){const H=ROTH;return {left:H-r.bottom,right:H-r.top,top:r.left,bottom:r.right,x:H-r.bottom,y:r.left,width:r.height,height:r.width};}const W=innerWidth;return {left:r.top,right:r.bottom,top:W-r.right,bottom:W-r.left,x:r.top,y:W-r.right,width:r.height,height:r.width};}
 function scrAng(){const o=window.orientation;return o!=null&&isFinite(+o)?+o:screen.orientation&&isFinite(screen.orientation.angle)?screen.orientation.angle:0;}
 // 11-14: the window's real height - an iOS 26 home-screen app reports innerHeight short of the home-indicator strip while 100vh reaches the bottom
@@ -6064,7 +6064,7 @@ function setupComposer(){
 function basePR(){const w=VW(),h=VH();let pr=Math.min(quality==='high'?(isTouch?1.75:2):quality==='medium'?(isTouch?1.5:1):(isTouch?1.25:1),window.devicePixelRatio||1);   // v14b: phones a step sharper (smooth 1 -> 1.25, normal 1.25 -> 1.5) with the post passes gone
   if(quality==='low'&&!isTouch)pr=Math.min(pr,Math.max(0.5,Math.sqrt(2.4e6/Math.max(1,w*h))));   // v12h: the lowest setting on a PC draws at most ~1080p worth of pixels (a 1440p or 4K window drew 2-4 times that)
   return pr;}
-function resize(){if(!renderer){applyRot();return;}mDraw=Math.max(mDraw,10);resize.w=innerWidth;resize.h=innerHeight;applyRot();WINW=innerWidth;WINH=ROTH;   /* 11-13: the canvas as tall as the window really is (iOS 26 app); 11-14: decided after the turn - it was judged on the turn before and lost after every turn (the picture 9.6 % stretched until the next resize) */const w=VW(),h=VH();let pr=basePR();   // 11-01: the size this was done for - frame() redoes it when the window has another size (an iPhone turned sideways can send its resize with one old side: 402x402 canvas, stretched and cut off, mirror in the corner)
+function resize(){if(!renderer){applyRot();return;}mDraw=Math.max(mDraw,10);pDraw=Math.max(pDraw,10);resize.w=innerWidth;resize.h=innerHeight;applyRot();WINW=innerWidth;WINH=ROTH;   /* 11-13: the canvas as tall as the window really is (iOS 26 app); 11-14: decided after the turn - it was judged on the turn before and lost after every turn (the picture 9.6 % stretched until the next resize) */const w=VW(),h=VH();let pr=basePR();   // 11-01: the size this was done for - frame() redoes it when the window has another size (an iPhone turned sideways can send its resize with one old side: 402x402 canvas, stretched and cut off, mirror in the corner)
   if(typeof PERF!=='undefined'&&PERF.prCap)pr=Math.min(pr,PERF.prCap);   // (and keeps what the smoothness governor took off)
   renderer.setPixelRatio(pr);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
   if(composer){composer.setPixelRatio?composer.setPixelRatio(renderer.getPixelRatio()):0;composer.setSize(w,h);if(fxaa){const pr=renderer.getPixelRatio();fxaa.material.uniforms.resolution.value.set(1/(w*pr),1/(h*pr));}}}
@@ -6976,7 +6976,7 @@ function chTable(){if(!CH)return toMenu();['result','menu'].forEach(id=>$(id).hi
   $('sessTable').innerHTML=top.map(k=>{const [nm,ti]=CH.nm[k],tm=TEAMS[ti]||TEAMS[0],g=CH.last[k]||0;
     return `<tr class="${k==='YOU'?'me':''}"><td>P${ks.indexOf(k)+1}</td><td><span class="sw" style="display:inline-block;vertical-align:middle;margin-right:8px;background:${tm.p}"></span>${nm} <span style="color:var(--dim)">${tm.name}</span></td><td class="tm">${CH.pts[k]}점${g?' <span style="color:var(--dim)">+'+g+'</span>':''}</td></tr>`;}).join('');
   const go=$('sessGo');go.textContent=fin?'새 대회':'다음 라운드 ('+(CH.rd+1)+'/'+N+')';go.onclick=fin?()=>{chEnd();toMenu();}:chGo;
-  $('sLaps').innerHTML='';$('sess').hidden=false;$('sess').querySelector('.card').scrollTop=0;go.focus({preventScroll:true});}
+  $('sLaps').innerHTML='';$('sess').hidden=false;pDraw=3;$('sess').querySelector('.card').scrollTop=0;go.focus({preventScroll:true});}
 function chMenu(){const b=$('chBox');
   if(!CH){const L=[[4,'짧게'],[8,'보통'],[TRACKS.length,'전체']];if(!L.some(x=>x[0]===chLen))chLen=8;
     b.innerHTML='<div class="seg">'+L.map(([n])=>`<button type="button" data-n="${n}" aria-pressed="${n===chLen}">${n}라운드</button>`).join('')+'</div>';
@@ -8525,6 +8525,7 @@ function frameBody(now){
   if(TEXQ.length&&state!=='race'&&state!=='countdown'){mDraw=Math.max(mDraw,20);while(TEXQ.length)TEXQ.shift()();}
   // 11-04: nothing moves behind the menu: draw until the car stands in its place, then stop (the menu scrolled in jerks on top of the whole 3D scene)
   if(state==='menu'&&!LED&&!$('menu').hidden&&--mDraw<0){mDraw=0;return;}
+  if((state==='paused'||state==='sessRes'||state==='done'&&!$('result').hidden)&&--pDraw<0){pDraw=0;audioUpdate(dt);return;}   // 11-14 (UI 개편 F1): nothing moves behind those cards - the 3D was drawn every frame there (a setting changed or a resize draws a few frames again: pDraw)
   sync(dt);
   if(state==='menu'){orbit+=dt*(LED?0.2:0.12);const pl=race.player;const mS=LED?null:menuShot(pl);if(mS)orbit=mS.a;const gy=roadY(pl.x,pl.z,pl.idx),od=LED?6.2:mS.d;camera.position.set(pl.x+Math.cos(orbit)*od,(LED?1.9:1.6)+gy,pl.z+Math.sin(orbit)*od);
     if(camera.setViewOffset){const w=VW(),h=VH(),port=w<h;camera.setViewOffset(w,h,LED?(port?0:-Math.min(210,w*0.21)):-w*0.3,LED&&port?h*0.26:0,w,h);}camera.fov=45;camera.near=0.25;camera.lookAt(pl.x,0.5+gy,pl.z);camera.updateProjectionMatrix();meshes[race.cars.indexOf(pl)].helmet.visible=true;if(SW)SW.g.visible=false;}
