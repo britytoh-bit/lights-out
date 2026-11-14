@@ -7916,7 +7916,8 @@ function syncRaceControl(dt){
 }
 // 11-14 3단계-B 현장감 (윤택님 「이런거처럼 디테일 추가할거있음 해줘」): 그림에만 쓰는 것들 - SIM 값은 읽기만. frameBody가 sync 다음에 한 번 부른다
 //  meMark: TV·원거리 시점에서 내 차 위 팀 색 ▼ (DOM 하나, transform만 바꿈; #wrap 안이라 돌려 그린 화면에서도 함께 돈다)
-function detailTick(dt){if(!race||!WORLD||!race.player)return;meMark();}
+//  brakeGlow: 큰 제동(브레이크가 빼앗은 운동에너지)일수록 내 차 바퀴 덮개 가장자리와 앞 업라이트가 주황으로 달아올랐다가 5초쯤에 걸쳐 식는다 - 내 차만 재질을 복제해 쓴다(AI 차는 그대로)
+function detailTick(dt){if(!race||!WORLD||!race.player)return;meMark();brakeGlow(dt);}
 const ME={el:null,x:NaN,y:NaN,on:false},_me=new THREE.Vector3();
 function meMark(){const pl=race.player,cm=CAMS[camMode],m=meshes[race.cars.indexOf(pl)];
   let on=!!m&&(state==='race'||state==='countdown'||state==='done')&&(cm==='tv'||cm==='far')&&!CINE&&!CAMPIT&&!CAMLOOK&&!pl.gone&&!pl.inGarage;
@@ -7929,6 +7930,20 @@ function meMark(){const pl=race.player,cm=CAMS[camMode],m=meshes[race.cars.index
           $('wrap').insertBefore(e,$('gl').nextSibling);}   // right over the 3D picture, under every HUD panel and overlay
         if(x!==ME.x||y!==ME.y){ME.x=x;ME.y=y;ME.el.style.transform='translate('+(x-9)+'px,'+(y-12)+'px)';}}}}
   if(ME.el&&on!==ME.on){ME.on=on;ME.el.style.visibility=on?'visible':'hidden';}}
+const BRK={h:0,g:-1,v:0,m:null,cm:null,um:null,tex:null};
+function brakeGlow(dt){const pl=race.player,m=meshes[race.cars.indexOf(pl)];if(!m)return;
+  if(BRK.m!==m){BRK.m=m;BRK.h=0;BRK.g=-1;BRK.v=Math.abs(pl.spd);if(BRK.cm){BRK.cm.dispose();BRK.cm=null;}if(BRK.um){BRK.um.dispose();BRK.um=null;}   // a new car (each race): its own copies again
+    const cv=[],up=[];for(const w of m.wheels)for(const o of w.children)if(o.isMesh&&o.geometry===KIT.cover)cv.push(o);for(const u of m.uprights)for(const o of u.children)if(o.isMesh&&o.geometry===KIT.upright)up.push(o);
+    if(!cv.length)return;
+    if(!BRK.tex){const c=mkCanvas(64,64),x=c.getContext('2d'),gr=x.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'#000');gr.addColorStop(0.45,'#000');gr.addColorStop(0.7,'#444');gr.addColorStop(0.85,'#fff');gr.addColorStop(1,'#fff');x.fillStyle=gr;x.fillRect(0,0,64,64);BRK.tex=texFrom(c);}   // the glow round the cover's edge, where the disc shows
+    BRK.cm=cv[0].material.clone();BRK.cm.emissiveMap=BRK.tex;BRK.cm.emissive.setRGB(0,0,0);for(const o of cv)o.material=BRK.cm;   // (the cover is shared per car number, and the uprights' dark material by every car: the player's get copies)
+    if(up.length){BRK.um=up[0].material.clone();for(const o of up)o.material=BRK.um;}}
+  if(!BRK.cm)return;
+  const v=Math.abs(pl.spd),dv=BRK.v*BRK.v-v*v;BRK.v=v;   // the kinetic energy (per kg) the brakes took out since the last frame - a 300 -> 100 km/h stop puts in ~1.6, a lift-and-tap little
+  const q=(state==='race'||state==='done')&&pl.braking&&!pl.pit&&dv>0?Math.min(dv,300)*2.7e-4:0;   // (capped: a crash is not the brakes)
+  BRK.h=Math.max(0,Math.min(1.3,BRK.h+q-BRK.h/2.8*dt));   // cools with a 2.8 s time constant: from a big stop the glow is gone in ~5 s
+  const g=Math.round(smooth((BRK.h-0.2)/0.6)*32)/32;   // a 200 -> 120 km/h stop: about half; a lift-and-tap: nothing
+  if(g!==BRK.g){BRK.g=g;BRK.cm.emissive.setRGB(1.9*g,0.8*g*g,0.14*g*g*g);if(BRK.um)BRK.um.emissive.setRGB(0.9*g,0.36*g*g,0.06*g*g*g);}}   // orange-yellow hot, dull red as it cools
 // v11g Monaco tunnel: with the camera inside, the ambient light and the sky reflections fade (the ceiling's shadow already
 // takes the sun), the lamps carry the light, and the exposure adapts like an eye - slowly going in, a bright moment coming out
 let EYE=1,TUNF=0;
