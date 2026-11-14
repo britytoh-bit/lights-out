@@ -657,6 +657,7 @@ body.touch #result .rHd{top:-14px; margin:-14px -16px 6px; padding:10px 16px 8px
 #resTable td.mv .up{color:#2fd06b} #resTable td.mv .dn{color:#ff6a5f}
 #resTable .fld{color:#a050ff; font-size:11px; vertical-align:1px}
 /* race HUD: a timing row shows once it has a value; the round buttons at the top are 44 px (「뒤보기」 fits); the tyre button shows the next tyre's ring;
+#hudTime .row.nv{display:none}
 body.touch #topBtns button,body.touch.ph-small #topBtns button{width:44px; height:44px; font-size:12px; white-space:nowrap}
 #mTyre{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; line-height:1}
 #mTyre small{font-size:11px; font-weight:800}
@@ -7222,7 +7223,7 @@ $('tower').addEventListener('pointerdown',e=>{if(!isTouch||!e.target.closest('.h
 function revDots(n){const el=$('rev');if(!el._d){el._d=[];for(let k=0;k<15;k++){const d=document.createElement('i');d.style.left='calc('+(k/14*100).toFixed(2)+'% - '+(k/14*7).toFixed(2)+'px)';d.style.setProperty('--c',k<5?'#22e070':k<10?'#ff3030':'#4f7dff');el.appendChild(d);el._d.push(d);}}
   el._d.forEach((d,k)=>d.classList.toggle('on',k<n));}
 // ---- HUD ----
-const hc={};function setT(id,v){if(hc[id]!==v){hc[id]=v;$(id).textContent=v;}}
+const hc={},TROWS=['tLast','tBest','tFast','tDelta'];function setT(id,v){if(hc[id]!==v){hc[id]=v;$(id).textContent=v;}}
 const GR=[110,86.8,71.2,59.8,51.4,44.7,38.9,34.2];let tyreT=0;   // rpm per km/h in each gear (~345 km/h at 11 800 rpm in 8th; 11-04: the gaps measured off 2026 power units, wide low down (0.79) and close up top (0.87); they were an even 0.836)
 // 2026 mapping: idle at most 4000 rpm (FIA PU rules), upshift near 11 900, and the lowest gear that stays under ~11 300 when
 // slowing - teams ran very low gears (even 1st) in slow corners to harvest and keep the turbo spinning, so the revs stay high
@@ -7256,7 +7257,8 @@ function drawHUD(dt){
     setT('lap',race.form?(race.form.kind==='start'?'포메이션 랩':'레드 플래그 재개'):Math.max(1,Math.min(race.laps,Math.floor(pl.prog/N)+1))+'/'+race.laps);}
   setT('tCur',fmt(state==='race'&&!race.form&&pl.fin==null&&pl.prog>=0&&!(pl.pit&&(pl.pit.state==='garage'||pl.pit.state==='red'))&&!(S&&pl.crossT<0)?race.t-pl.lapStart:0));setT('tLast',fmt(pl.lastLap));setT('tBest',fmt(bestLap));
   {let fb=null;for(const c of race.cars)if(c.best!=null&&(fb==null||c.best<fb))fb=c.best;setT('tFast',race.fl&&!race.sess?fmt(race.fl.t)+' '+race.fl.code:fb==null?'-':fmt(fb));   // v12f: the fastest lap of the race so far, and the gap to my best lap at this point of the lap
-   const dv=pl.dlt,el=$('tDelta'),cls=dv==null?'':dv<0?'neg':'pos';setT('tDelta',dv==null?'-':(dv<0?'-':'+')+Math.abs(dv).toFixed(3));if(el._c!==cls){el._c=cls;el.className=cls;}}
+   const dv=pl.dlt,el=$('tDelta'),cls=dv==null?'':dv<0?'neg':'pos';setT('tDelta',dv==null?'-':(dv<0?'-':'+')+Math.abs(dv).toFixed(3));if(el._c!==cls){el._c=cls;el.className=cls;}
+   setT('tFastL',S?'세션 최고':'레이스 최고');for(const id of TROWS){const on=hc[id]!=='-';if(hc['rv'+id]!==on){hc['rv'+id]=on;$(id).parentElement.classList.toggle('nv',!on);}}}   // 11-14 (H11): a row shows once it has a value (the first lap: the current time and the sectors only)
   if(spUntil&&performance.now()>spUntil){spUntil=0;$('hudTime').classList.remove('spOn');}   // 10-31: the sector popup's time is up
   const kmh=Math.round(Math.abs(pl.spd)*3.6);setT('spd',String(kmh));
   let [g,rpm]=gearRpm(Math.abs(pl.spd)*3.6,hudGear);
