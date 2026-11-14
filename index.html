@@ -5458,6 +5458,11 @@ function loadCarModel(kit,n=0){if(!THREE.GLTFLoader)return;KIT_L=kit;
        L.push(plate([[0.62,0.66],[0.2,0.72],[-0.2,0.73],[-0.6,0.7],[-1.16,0.6],[-1.16,0.635],[-0.6,0.745],[-0.2,0.775],[0.2,0.765],[0.62,0.695]],0.006).rotateX(s*Math.PI/2).translate(0,0.085,0));
        for(let i=0;i<5;i++)L.push(plate([[0.075,0],[-0.075,0],[-0.06,0.1],[0.06,0.08]],0.006).rotateY(s*0.35).translate(-0.82-0.085*i,0.07,s*(0.655+0.012*i)));}
      Q.pylon=mergeGeos(L);}
+    // 11-15 윤택님 「콕핏캠에서 스티어링휠 위에 파란색으로 약간깨지는것도 해결좀」 (and a body-colour triangle over the wheel's top-left): the model has the small
+    // panel in front of the wheel (x 0.75, under the halo's pillar) twice, in the paint and in the dark parts, on the same plane - the two fought for the pixel
+    // (z-fighting) and the team colour broke through in jagged bands and triangles. The paint's copy goes; the dark one stays
+    {const pa=Q.paint.attributes.position,ix=Q.paint.index;if(ix){const a=ix.array,keep=[],pnl=i=>Math.abs(pa.getX(i)-0.75)<0.004&&pa.getY(i)>0.6&&pa.getY(i)<0.66&&Math.abs(pa.getZ(i))<0.06;
+     for(let i=0;i<a.length;i+=3)if(!(pnl(a[i])&&pnl(a[i+1])&&pnl(a[i+2])))keep.push(a[i],a[i+1],a[i+2]);if(keep.length<a.length){Q.paint.setIndex(keep);Q.paintCut=(a.length-keep.length)/3;}}}
     Q.latLight=mergeGeos(Q.mir.filter(Boolean).map(b=>new THREE.BoxGeometry(0.04,0.02,0.014).translate(b[0]+0.02,b[1],b[2]+Math.sign(b[2])*(b[3]+0.008))));
     kit.pxCg=mergeGeos([kit.geo.fw.xP,kit.geo.fw.xN,kit.geo.fw.rx,Q.pylon]);
     kit.glb=Q;window.__CARGLB={ok:true,t:Math.round(performance.now()),n};{const d=$('glbWarn');if(d&&(typeof state==='undefined'||state==='menu'))d.remove();}
