@@ -7651,12 +7651,15 @@ const MSG={fl:e=>[(e.me?'':e.name+' ')+'패스티스트 랩 '+fmt(e.t),e.me?'#c5
 // danger first); a flag out at that moment keeps the strip, the warning then goes in a note. After the first sector: places gained or lost at the start.
 function lastLapNote(){const p=race.player;if(p.fin!=null||Math.floor(p.prog/N)+1!==race.laps)return;const need=needsSecond(p),txt=need?'마지막 랩 · 지금 PIT 안 하면 실격':'마지막 랩';
   if($('flag').classList.contains('show')&&!flagMsg){if(need)toast(txt,'#ffb347',2,1000);return;}flagMsg={txt,cls:need?'w':'fl',until:performance.now()+2000};if(isTouch)flagPulse=Math.max(flagPulse,1.1);}
+function startNote(){const p=race.player;if(p.grid==null||p.fin!=null||p.dnf)return;const pos=ranking(race).indexOf(p)+1,d=p.grid-pos;
+  toast(d>0?'출발 +'+d+' · P'+pos:d<0?'출발 −'+(-d)+' · P'+pos:'출발 순위 유지 · P'+pos,d>0?'#3ddc84':d<0?'#ff8a8a':'#fff',2);}
 function handleEvents(){
   for(const e of race.EV){
     if(e.type==='dmg'){onDamage(e);continue;}
     if(e.type==='pdnf'){if(race.sess){toast('크래시 · 세션 종료','#ff3b30',2,1000);sessSimFinish(race);showSess();continue;}state='done';doneT=0;continue;}
-    if(e.type==='sec'){secPop(e);continue;}
-    if(e.type==='lap'){const L=lapLog[lapLog.length-1],d=[];if(!e.inv){if(L)d.push('지난 '+sgn(e.lt-L.t));if(bestLap!=null)d.push('베스트 '+sgn(e.lt-bestLap));}e.dtx=d.length?' · '+d[d.length-1]:'';lapLog.push({n:lapLog.length+1,t:e.lt,s:e.s,inv:!!e.inv});}   // 10-31: diffs to my last lap and my best here
+    if(e.type==='sec'){secPop(e);if(e.k===0&&!race.sess&&!race.stNote&&Math.floor(race.player.prog/N)===0){race.stNote=1;startNote();}continue;}
+    if(e.type==='lap'){const L=lapLog[lapLog.length-1],d=[];if(!e.inv){if(L)d.push('지난 '+sgn(e.lt-L.t));if(bestLap!=null)d.push('내 기록 '+sgn(e.lt-bestLap));}e.dtx=d.length?' · '+d[d.length-1]:'';lapLog.push({n:lapLog.length+1,t:e.lt,s:e.s,inv:!!e.inv});}   // 10-31: diffs to my last lap and my best here
+    if(e.type==='lap'&&!race.sess)lastLapNote();
     if(e.type==='lap'&&e.inv){toast('트랙 리밋 · 랩 삭제','#ff8a8a');continue;}
     if(e.type==='lastChance'||(TUT&&e.type==='garageOut'))continue;   // (the warning is in the last lap's strip; the tutorial starts on the track)
     if(e.type==='lap'&&race.sess&&race.sess.kind==='quali'){let msg='랩 '+fmt(e.lt),col='#fff';if(bestLap==null||e.lt<bestLap){bestLap=e.lt;saveLS('lightsout3d-best-'+TRK.id,e.lt);col='#b16cff';}
