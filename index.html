@@ -688,13 +688,13 @@ body.touch #result .rHd{top:-14px; margin:-14px -16px 6px; padding:10px 16px 8px
     <div class="row cur"><span>현재</span><b id="tCur">0:00.000</b></div>
     <div class="secs" id="secs" aria-hidden="true"><i data-s="S1"><span></span></i><i data-s="S2"><span></span></i><i data-s="S3"><span></span></i></div>
     <div class="row"><span>지난 랩</span><b id="tLast">-</b></div>
-    <div class="row"><span>베스트</span><b id="tBest" class="pb">-</b></div>
-    <div class="row fast"><span>이번 최고</span><b id="tFast" class="fb">-</b></div>
-    <div class="row dlt"><span>델타</span><b id="tDelta">-</b></div>
+    <div class="row"><span>내 기록</span><b id="tBest" class="pb">-</b></div>
+    <div class="row fast"><span id="tFastL">레이스 최고</span><b id="tFast" class="fb">-</b></div>
+    <div class="row dlt"><span>내 기록 대비</span><b id="tDelta">-</b></div>
     <div class="row sp" id="secPop"><span id="spL">S1</span><b id="spV"></b></div>
   </div>
   <div class="hud num" id="hudSpeed"><div id="rev" aria-hidden="true"></div><canvas id="gMeter" width="112" height="112" aria-hidden="true"></canvas>
-    <div class="ers" id="ersBox"><div class="unit" id="ersT">배터리 4.0MJ</div><div class="bar"><div class="fill" id="ers"></div></div><div><span class="badge" id="bSM">직선 모드</span><span class="badge ovt" id="bOVT">오버테이크</span><span class="badge air" id="bAir"></span></div></div>
+    <div class="ers" id="ersBox"><div class="unit" id="ersT">배터리 4.0MJ</div><div class="bar"><div class="fill" id="ers"></div></div><div><span class="badge" id="bSM">직선 모드</span><span class="badge ovt" id="bOVT">추월 모드</span><span class="badge air" id="bAir"></span></div></div>
     <div><div id="gear">N</div><div class="unit" style="text-align:center">기어</div></div>
     <div id="tyMini" aria-hidden="true"><i id="tyMC">M</i><b><span id="tyMT"></span><span id="tyMW">-</span></b></div>
     <div><div id="spd">0</div><div class="unit" style="text-align:right">km/h</div></div>
@@ -802,7 +802,7 @@ body.touch #result .rHd{top:-14px; margin:-14px -16px 6px; padding:10px 16px 8px
         <span><kbd>↑</kbd> <kbd>W</kbd></span><span>가속</span>
         <span><kbd>Space</kbd> <kbd>↓</kbd> <kbd>S</kbd></span><span>브레이크 / 후진</span>
         <span><kbd>←</kbd><kbd>→</kbd> <kbd>A</kbd><kbd>D</kbd></span><span>조향 (길게 누를수록 더 꺾임)</span>
-        <span><kbd>Shift</kbd></span><span>부스트 (배터리 전력) · 앞차와 1초 이내로 결승선 통과 시 다음 한 랩 오버테이크 모드(337km/h까지 최대 출력 + 배터리 0.5MJ, 비 올 땐 없음)</span>
+        <span><kbd>Shift</kbd></span><span>ERS 부스트 (배터리 전력) · 앞차와 1초 이내로 결승선 통과 시 다음 한 랩 추월 모드(337km/h까지 최대 출력 + 배터리 0.5MJ, 비 올 땐 없음)</span>
         <span><kbd>주행 보조</kbd></span><span>높음: 잠김·휠스핀 없음 · 보통: 코너에서 브레이크를 세게 밟거나 연석·젖은 노면에서 잠길 수 있음 · 끔: 브레이크를 끝까지 밟으면 저속에서 잠겨요, 가속도 직접 조절</span>
         <span><kbd>휠락</kbd></span><span>속도가 떨어지면 다운포스가 줄어 같은 브레이크에도 잠기기 쉬워요 · 돌면서 밟으면 안쪽 앞바퀴부터 잠겨요 (연기, 핸들이 안 먹고 바깥으로 밀림) · 오래 잠기면 플랫 스팟이 생겨 타이어를 바꿀 때까지 떨려요 (타이어 표시 주황 테두리)</span>
         <span><kbd>L</kbd></span><span>레이싱 라인 가이드: 코너만 → 전체 → 끔 (빨강 제동 · 노랑 코너 · 초록 가속) · AI 차들도 같은 라인을 따라 달려요 (추월·방어할 땐 잠깐 벗어남)</span>
@@ -5926,15 +5926,15 @@ let bestSec=(()=>{try{const a=JSON.parse(loadLS('lightsout3d-bsec-'+TRK.id));if(
 const sgn=d=>(d<0?'-':'+')+Math.abs(d).toFixed(3);
 function secPop(e){const k=e.k,L=lapLog[lapLog.length-1],prev=L&&L.s?L.s[k]:null,old=bestSec[k];let cls=e.cls;
   if(e.ok&&(old==null||e.t<old)){bestSec[k]=e.t;saveLS('lightsout3d-bsec-'+TRK.id,JSON.stringify(bestSec));if(cls==='sl')cls='pb';}
-  const d=[];if(prev!=null)d.push('지난 '+sgn(e.t-prev));if(old!=null)d.push('베스트 '+sgn(e.t-old));
+  const d=[];if(prev!=null)d.push('지난 '+sgn(e.t-prev));if(old!=null)d.push('내 기록 '+sgn(e.t-old));
   $('spL').textContent='S'+(k+1);const v=$('spV');v.innerHTML='<i class="spt">'+e.t.toFixed(3)+(d.length?' · ':'')+'</i>'+(d.join(' · ')||'첫 기록');v.className='k-'+cls;
   $('hudTime').classList.add('spOn');spUntil=performance.now()+3500;}
 function lapTable(open){if(!lapLog.length)return '';let bi=-1;lapLog.forEach((l,i)=>{if(!l.inv&&(bi<0||l.t<lapLog[bi].t))bi=i;});
   const bs=[0,1,2].map(k=>{let m=null;for(const l of lapLog)if(!l.inv&&l.s&&l.s[k]!=null&&(m==null||l.s[k]<m))m=l.s[k];return m;});
   const rows=lapLog.map((l,i)=>'<tr'+(i===bi?' class="lb"':'')+'><td>'+l.n+'</td><td>'+fmt(l.t)+(l.inv?' <span class="lv">무효</span>':'')+'</td>'+
     [0,1,2].map(k=>{const v=l.s&&l.s[k];return v==null?'<td>-</td>':'<td'+(!l.inv&&v===bs[k]?' class="lb"':'')+'>'+v.toFixed(3)+'</td>';}).join('')+
-    '<td>'+(i===bi?'베스트':bi>=0&&!l.inv?sgn(l.t-lapLog[bi].t):'')+'</td></tr>').join('');
-  return '<details'+(open?' open':'')+'><summary>내 랩 기록 · '+lapLog.length+'랩'+(bi>=0?' · 베스트 '+fmt(lapLog[bi].t):'')+(bestLap?' · 서킷 베스트 '+fmt(bestLap):'')+'</summary><table class="num"><tr><th>랩</th><th>랩 타임</th><th>S1</th><th>S2</th><th>S3</th><th>차이</th></tr>'+rows+'</table></details>';}
+    '<td>'+(i===bi?'최고':bi>=0&&!l.inv?sgn(l.t-lapLog[bi].t):'')+'</td></tr>').join('');
+  return '<details'+(open?' open':'')+'><summary>내 랩 기록 · '+lapLog.length+'랩'+(bi>=0?' · 최고 '+fmt(lapLog[bi].t):'')+(bestLap?' · 내 기록 '+fmt(bestLap):'')+'</summary><table class="num"><tr><th>랩</th><th>랩 타임</th><th>S1</th><th>S2</th><th>S3</th><th>차이</th></tr>'+rows+'</table></details>';}
 const isTouch=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 if(isTouch)document.body.classList.add('touch');
 // 11-04 윤택님: sideways only by the phone's own screen rotation. The page is no longer turned 90 deg when the window is upright (ROT stays false);
@@ -6428,7 +6428,7 @@ function togglePit(){if(!race||state!=='race')return;const p=race.player;if(p.pi
   if(race.form||race.rc.flag==='red'){toast(race.rc.flag==='red'?'레드 플래그 · 자동 피트인':'포메이션 랩 · 피트인 불가','#fff');return;}
   p.pitReq=!p.pitReq;if(p.pitReq&&!p.nextComp)p.nextComp=pickCompound(race,p);
   if(p.pitReq){const m=race.cars.find(o=>o!==p&&o.team===p.team&&!o.gone);if(m&&m.pitReq&&!m.pit&&wrap(PIT.E-m.idx)*STEP>60&&zoneR(m.idx)<0&&yieldToMate(race,m)){m.pitReq=false;setTimeout(()=>toast('팀메이트는 다음 랩 피트인','#8ecae6'),900);}}   // v12i
-  if(p.pitReq)p.boxPos=rejoinPos(race,p);toast(p.pitReq?'BOX, BOX'+(race.sess?'':' · P'+p.boxPos+' 복귀'):'피트 요청 취소',p.pitReq?'#f5c518':'#fff');}
+  if(p.pitReq)p.boxPos=rejoinPos(race,p);toast(p.pitReq?'피트인 예약'+(race.sess?'':' · P'+p.boxPos+' 복귀'):'피트인 취소',p.pitReq?'#f5c518':'#fff');if(TUT)TUT.pitTap=1;}
 function setNext(k){if(!race||state==='menu')return;const p=race.player;if(p.pit&&!['in','red','garage'].includes(p.pit.state))return;p.nextComp=k;const a=!COMP[k].wet&&!race.sess?pitAdvice(race,p):null;toast('다음 타이어 '+COMP[k].name+(a?' · '+Math.round(a.life(k))+'랩':''),COMP[k].col);}
 function cycleNext(){const p=race&&race.player;if(!p)return;const o=['S','M','H','I','W'];setNext(o[(o.indexOf(p.nextComp||p.ty.comp)+1)%5]);}
 let toastHold=0;
@@ -6491,7 +6491,7 @@ function showSess(){const S=race.sess,p=race.player;if(!S)return;state='sessRes'
   const me=res.findIndex(r=>r.id===p.id)+1,meOut=out.includes(p.id);
   $('sessTitle').textContent=fin?'출발 그리드':'Q'+q+' 결과';
   $('sessSub').textContent=fin?('그리드 P'+me+(p.gone?' · Q'+(S.out[0]&&S.out[0].includes(p.id)?1:2)+'에서 탈락':' · Q3 진출')+(p.gridPen?' · 진로 방해로 '+p.gridPen+'계단 강등':'')+' · 위에서부터 그리드 순서'):
-    ('P'+me+' · 베스트 '+fmt(p.best)+(meOut?' · 탈락 (다음 파트 진출 실패)':(q<3?' · Q'+(q+1)+' 진출':''))+(p.gridPen?' · 진로 방해 그리드 -'+p.gridPen:''));
+    ('P'+me+' · 최고 '+fmt(p.best)+(meOut?' · 탈락 (다음 파트 진출 실패)':(q<3?' · Q'+(q+1)+' 진출':''))+(p.gridPen?' · 진로 방해 그리드 -'+p.gridPen:''));
   const cut=q<3?QCUT[q-1]:-1;
   $('sessTable').innerHTML=res.map((r,i)=>{const c=race.cars[r.id],cls=(c.isP?'me ':'')+(!fin&&out.includes(c.id)?'out ':'')+(i===cut||(fin&&(i===10||i===16))?'cut':'');
     const gap=r.best!=null&&pb!=null&&i>0&&(!fin||r.k===3)?' <span style="color:var(--dim)">+'+(r.best-pb).toFixed(3)+'</span>':(fin?' <span style="color:var(--dim)">'+(i===0?'폴 포지션':'Q'+r.k)+'</span>':'');
@@ -6553,7 +6553,7 @@ function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={ea
  document.addEventListener('click',e=>{if(e.isTrusted&&(dragged||e.timeStamp<noClick)){dragged=false;e.preventDefault();e.stopPropagation();}},true);document.addEventListener('visibilitychange',()=>{mDraw=Math.max(mDraw,10);});}
 EngineSound.setup({preview:()=>previewEngine(),ctx:()=>AC,mayResume:()=>state!=='paused'&&!document.hidden});$('sndTune').addEventListener('click',()=>EngineSound.openPanel());   // the tuning panel (T key, or this button. 11-04: 5 taps on the words did not open it on an iPhone)
 function updateMenuBest(){menuSum();const ch=mMode==='champ',fin=CH&&CH.rd>=CH.list.length;$('mN_track').textContent=ch?'대회':'서킷';
-  $('bestMenu').textContent=!ch?TRK.name+(bestLap?', 베스트 '+fmt(bestLap):''):fin?'대회가 끝났어요':CH?'라운드 '+(CH.rd+1)+'/'+CH.list.length+', '+chTrk(CH.list[CH.rd]).name:chLen+'라운드, '+(chLen>=TRACKS.length?TRACKS[0]:TRK).name+'에서 시작';}
+  $('bestMenu').textContent=!ch?TRK.name+(bestLap?', 내 기록 '+fmt(bestLap):''):fin?'대회가 끝났어요':CH?'라운드 '+(CH.rd+1)+'/'+CH.list.length+', '+chTrk(CH.list[CH.rd]).name:chLen+'라운드, '+(chLen>=TRACKS.length?TRACKS[0]:TRK).name+'에서 시작';}
 
 // ---- menu ----
 {const btn=t=>`<button data-v="${t.id}" aria-pressed="${t.id===TRK.id}" style="flex-direction:column;align-items:flex-start;gap:2px"><b>${t.name}</b><span style="font-size:12px;opacity:.75;font-weight:400">${t.desc}</span></button>`,
@@ -6773,16 +6773,16 @@ const GUIDE=()=>{const T=isTouch,k=(t,kb)=>T?t:kb,ty=(c,l,n)=>`<span><i style="-
       '<b>'+CUT_GB+'초</b> 안에 천천히 달려 그만큼 돌려주면 페널티 없음. 안 하면 <em>+5초</em>.',
       '코스 밖에서 <b>다른 차를 추월</b>했다면 15초 안에 그 차를 다시 앞으로 보내요. 안 보내면 <em>+10초</em> (첫 랩은 +5초).',
       'AI도 똑같이 자리를 돌려줘요.']},
-  {h:'직선 모드 · ERS · 오버테이크',v:'<div class="gBd"><span style="background:#1f7a46">직선 2/4</span><span style="background:#7a3fd1">OVT 0.8</span><span style="background:#b8860b">ERS 부스트</span></div>',
+  {h:'직선 모드 · ERS · 추월 모드',v:'<div class="gBd"><span style="background:#1f7a46">직선 2/4</span><span style="background:#7a3fd1">추월 0.8</span><span style="background:#b8860b">ERS 부스트</span></div>',
    t:['<b>직선 모드</b>: 서킷마다 정해진 직선 구간(3초 넘게 전속력으로 달리는 직선)에서만 날개가 열려요. 앞차 간격과 상관없이 모두 써요. '+k('「직선」 버튼','E 키')+'(자동도 가능), 브레이크를 밟거나 가속을 떼면 닫혀요. 「직선 2/4」는 몇 번째 구간인지예요.',
       '<b>ERS</b>: '+k('「ERS」','Shift')+'를 누르면 배터리 힘으로 더 빨라져요. 가속을 떼거나 브레이크를 밟으면 다시 차요.',
-      '<b>오버테이크 모드</b>: 결승선에서 앞차와 <b>1초 이내</b>면 다음 한 바퀴 동안 337 km/h까지 최대 출력 + 배터리 0.5MJ. 600 m 전부터 「OVT 0.8」처럼 간격이 보여요.',
-      '세이프티카가 나오면 오버테이크 모드는 꺼지고, 비가 오면 없어요.']},
+      '<b>추월 모드</b>: 결승선에서 앞차와 <b>1초 이내</b>면 다음 한 바퀴 동안 337 km/h까지 최대 출력 + 배터리 0.5MJ. 600 m 전부터 「추월 0.8」처럼 간격이 보여요.',
+      '세이프티카가 나오면 추월 모드는 꺼지고, 비가 오면 없어요.']},
   {h:'비',v:'<div class="gTy">'+ty('#3ddc84','I','약한 비')+ty('#3b82f6','W','폭우')+'</div>',
    t:['날씨가 <b>「변덕」</b>이면 레이스 도중 비가 와요. 오기 전에 무전으로 알려줘요.',
       '젖은 노면에서 소프트·미디엄·하드는 미끄러워요. <b>약한 비는 인터, 폭우는 풀 웻</b>으로 바꿔요.',
       '비가 그치면 노면이 마르면서 다시 드라이 타이어가 빨라져요.',
-      '비가 오면 직선 모드는 <b>앞날개만</b> 열리고, 오버테이크 모드는 없어요.']},
+      '비가 오면 직선 모드는 <b>앞날개만</b> 열리고, 추월 모드는 없어요.']},
   {h:'출발',v:'<div class="gLt"><i></i><i></i><i></i><i></i><i></i></div>',
    t:['빨간 불 5개가 하나씩 켜지고 <b>한꺼번에 꺼지면 출발!</b>',
       T?'자동 가속이면 불이 꺼질 때 저절로 나가요. 직접 가속이면 그때 「가속」을 눌러요.':'<b>수동 스타트</b>: 브레이크(Space)를 밟은 채 회전수를 올리고 대기 → 불이 꺼지면 떼요.',
@@ -7269,18 +7269,18 @@ function drawHUD(dt){
     else rpm=3900;}
   SND.lt=state==='countdown'?0:(SND.lt==null?9:SND.lt+dt);curRpm+=(rpm-curRpm)*Math.min(1,dt*(rpm<curRpm-250?(SND.lt<0.45?9:38):18));curGear=gs;   // v11e: the revs fall fast on an upshift (11-04: 65-100 ms from peak to trough, measured)
   {const n=Math.max(0,Math.min(15,Math.round((curRpm-9000)/3300*15)));if(hc.rev!==n){hc.rev=n;$('rev').style.setProperty('--n',n);if(isTouch)revDots(n);}}   // v11: rev lights, the same scale as the steering-wheel LEDs
-  setT('gear',gs);$('ers').style.transform='scaleX('+Math.min(1,pl.ers/ERS_MAX).toFixed(3)+')';$('ersBox').classList.toggle('on',pl.boost);setT('ersT','배터리 '+pl.ers.toFixed(1)+'MJ'+(pl.boost?' · 부스트':''));
+  setT('gear',gs);$('ers').style.transform='scaleX('+Math.min(1,pl.ers/ERS_MAX).toFixed(3)+')';$('ersBox').classList.toggle('on',pl.boost);setT('ersT','배터리 '+pl.ers.toFixed(1)+(pl.boost?' · ERS':''));
   {const arm=!pl.aeroOpen&&pl.smZone&&!race.aeroAuto&&state==='race';$('bSM').className='badge'+(pl.aeroOpen?' on':arm?' arm':'');
-   {const zn=AERO[pl.idx]&&pl.smZone?' '+AERO[pl.idx]+'/'+AERO.n:'';setT('bSM',isTouch?'직선'+zn:(pl.aeroOpen===1?'직선 모드(부분)':'직선 모드')+zn+(arm?' · E':''));}/* 11-11: which zone (2/4) */$('mAero').classList.toggle('on',!!pl.aeroOpen);
-   if(arm&&!race.smHintOn&&(race.smHint||0)<2){race.smHint=(race.smHint||0)+1;toast(isTouch?'직선 모드 · 직선 버튼':'직선 모드 · E 키','#3ddc84');}
+   {const zn=AERO[pl.idx]&&pl.smZone?' '+AERO[pl.idx]+'/'+AERO.n:'';setT('bSM',pl.aeroOpen?'직선 열림':(isTouch?'직선':'직선 모드')+zn+(arm&&!isTouch?' · E':''));}/* 11-11: which zone (2/4) */$('mAero').classList.toggle('on',!!pl.aeroOpen);
+   if(arm&&!race.smHintOn&&(race.smHint||0)<2){race.smHint=(race.smHint||0)+1;toast(isTouch?'직선 구간: 「직선」을 눌러 날개 열기':'직선 구간: E 키로 날개 열기','#3ddc84');}
    race.smHintOn=!!pl.smZone;
-   if(!!pl.aeroOpen!==!!SND.aero){SND.aero=!!pl.aeroOpen;if(state==='race')sfx(SND.aero?'aeroOpen':'aeroClose');}}{let tx=isTouch?'OVT':'오버테이크',g=9;   // 11-11: the last 600 m before the line, the gap to the car ahead it will be judged on (1.0 s) - 'OVT 0.8'
+   if(!!pl.aeroOpen!==!!SND.aero){SND.aero=!!pl.aeroOpen;if(state==='race')sfx(SND.aero?'aeroOpen':'aeroClose');}}{let tx='추월 모드',g=9;   // 11-11: the last 600 m before the line, the gap to the car ahead it will be judged on (1.0 s) - 'OVT 0.8'
    if(!pl.ovt&&state==='race'&&race.rc.flag==='green'&&!race.rc.noPass&&!race.sess&&WET<=0.45&&pl.prog>0&&!pl.pit&&(N-pl.prog%N)*STEP<600){let a=null,bd=1e9;for(const o of race.cars){if(o===pl||o.gone||o.dnf||o.pit)continue;const d=o.prog-pl.prog;if(d>0&&d<bd&&Math.floor(o.prog/N)-Math.floor(pl.prog/N)<=1){bd=d;a=o;}}
-     if(a)g=bd*STEP/Math.max(pl.spd,20);if(g<2)tx=(isTouch?'OVT ':'오버테이크 판정 ')+g.toFixed(1)+(isTouch?'':'초');}
+     if(a)g=bd*STEP/Math.max(pl.spd,20);if(g<2)tx=(isTouch?'추월 ':'추월 판정 ')+g.toFixed(1)+(isTouch?'':'초');}
    setT('bOVT',tx);const e=$('bOVT');e.classList.toggle('on',!!pl.ovt);e.classList.toggle('pend',g<2);e.classList.toggle('ok',g<=1);}
   // v12f: slipstream / dirty air, sector lights, G-meter
   {const tw=pl.tow||0,dr=pl.dirty||0,cor=Math.abs(pl.latG||0)>9,el=$('bAir'),cls=dr>0.03&&cor?'badge air on dirty':tw>0.06&&!pl.pit?'badge air on':'badge air';
-   if(el.className!==cls)el.className=cls;setT('bAir',cls.includes('dirty')?(isTouch?'난기류 -'+Math.round(dr*100)+'%':'더티 에어 -'+Math.round(dr*100)+'%'):cls.includes('on')?(isTouch?'토우':'슬립스트림'):'');}
+   if(el.className!==cls)el.className=cls;setT('bAir',cls.includes('dirty')?'난기류 -'+Math.round(dr*100)+'%':cls.includes('on')?'슬립스트림':'');}
   {const S=pl.sec,els=$('secs').children;for(let k=0;k<3;k++){const x=S&&S.cur[k],c=x?x.cls:'';if(els[k]._c!==c){els[k]._c=c;els[k].className=c;els[k].firstChild.textContent=x?x.t.toFixed(3):'';}}}
   drawGMeter(pl,dt);
   for(let k=0;k<4;k++){const lk=(k<2&&(pl.lkS?pl.lkS[k]:pl.lockF))||(k>=2&&(pl.lockR||pl.spinR)),fs=!!(pl.flatW&&pl.flatW[k]>=0.25),st=lk?2:fs?1:0,el=$('ty'+k);   // v12h: per tyre; orange = flat spot
@@ -7309,8 +7309,8 @@ function drawHUD(dt){
           :st==='in'?(pp.redQ?'<span class="box">레드 플래그 · 피트 정렬</span>':pp.wait&&boxBusy(race,pl)?'<span class="box">더블 스택 · 대기</span>':`<span class="box">피트 레인 · 80</span> · <b style="color:${nc.col}">${nc.name}</b>`):'<span class="box">피트 아웃</span>';}}
     else if(pl.pitReq&&race.rc.flag==='red')pi='<span class="box">레드 플래그 · 피트 레인으로</span>';
     else if(S&&!pl.pitReq)pi=`${isTouch?'PIT':'B 키'}: 피트인 · <b style="color:${COMP[pl.nextComp||pl.ty.comp].col}">${COMP[pl.nextComp||pl.ty.comp].name}</b>`;
-    else if(pl.pitReq&&race.cars.some(o=>o!==pl&&o.team===pl.team&&o.pit&&(o.pit.state==='in'||o.pit.state==='stop')))pi=`<span class="box">BOX · 팀메이트 피트 중</span><br>더블 스택 대기`;   // v12i
-    else if(pl.pitReq)pi=`<span class="box">BOX BOX</span>${S?'':' · P'+pl.boxPos+' 복귀'} · <b style="color:${nc.col}">${nc.name}</b>`;
+    else if(pl.pitReq&&race.cars.some(o=>o!==pl&&o.team===pl.team&&o.pit&&(o.pit.state==='in'||o.pit.state==='stop')))pi=`<span class="box">피트인 예약 · 팀메이트 피트 중</span><br>더블 스택 대기`;   // v12i
+    else if(pl.pitReq)pi=`<span class="box">피트인 예약</span>${S?'':' · P'+pl.boxPos+' 복귀'} · <b style="color:${nc.col}">${nc.name}</b>`;
     else if(pl.fin!=null)pi='';
     else if(race.form)pi=race.form.kind==='start'?'포메이션 랩 · 타이어 데우기':'SC 뒤 그리드로 · 추월 금지';
     else if(needsSecond(pl))pi=`<span class="warn">2컴파운드 의무 남음</span>`;
@@ -7583,7 +7583,7 @@ function flagPanel(){const rc=race.rc,p=race.player,el=$('flag');let cls='',txt=
     else if(S&&S.chq){cls='chq';txt='체커기 · 이번 랩까지';}
     else if(S&&p.blue){cls='b';txt='블루 플래그 · 비켜주기';}
     else if(S){}
-    else if(rc.flag==='sc'){cls='sc';txt=rc.sc&&rc.sc.phase==='in'?'SC · 이번 랩 복귀':rc.sc&&rc.sc.phase==='pit'?(rc.go?'재시작! · 추월 금지':'재시작 대기 · 추월 금지'):'SAFETY CAR · 추월 금지';}
+    else if(rc.flag==='sc'){cls='sc';txt=rc.sc&&rc.sc.phase==='in'?'SC · 이번 랩 복귀':rc.sc&&rc.sc.phase==='pit'?(rc.go?'재시작! · 추월 금지':'재시작 대기 · 추월 금지'):'세이프티카 · 추월 금지';}
     else if(rc.flag==='vsc'){cls='vsc';const vd=!p.pit&&p.fin==null?p.vd:null,end=rc.vsc&&rc.vsc.ending,why='';   // 11-08: the delta number lives in the pill now (not in the pits or after the flag; sessions never get here)
       const gb=p.vgb&&Object.values(p.vgb)[0],gbs=gb?' · '+gb.code+' 반납 '+Math.max(0,Math.ceil(gb.until-race.t))+'초':'';
       if(vd){dv=vscDf(vd.d);dc=vd.d<0?'bad':'ok';txt=end?'VSC 종료 ':'VSC ';sx=gbs+(rc.vscFast?' 과속!':'');}   // 11-13 윤택님 「vsc 팝업 크기 너무 커서 시야가 가려짐」: 'VSC +0.4' 한 줄
@@ -7611,7 +7611,7 @@ const MSG={fl:e=>[(e.me?'':e.name+' ')+'패스티스트 랩 '+fmt(e.t),e.me?'#c5
   aiStart:e=>['출발 실수 · '+e.l.map(x=>x.name).join(' · '),'#ffb347'],flat:()=>['타이어 펑크 · 피트로!','#ff3b30'],pitOut:()=>{const p=race.player,C=COMP[p.ty.comp],T=(p.ty.temp[0]+p.ty.temp[1]+p.ty.temp[2]+p.ty.temp[3])/4;return T<C.win[0]-8?['피트 아웃 · 타이어 차가움','#8ecae6']:['피트 아웃','#fff'];},
   tl:e=>['트랙 리밋 '+e.n+'회 · 랩 삭제','#ffb347'],bw:e=>['흑백기 · 다음부터 +5초','#ffb347'],tlpen:e=>['트랙 리밋 '+e.n+'회 · +'+e.s+'초','#ff5a4f'],
   cut:e=>['코스 밖 이득 · +'+e.s+'초','#ff5a4f'],cutGB:e=>['코스 밖 이득 '+e.gt.toFixed(1)+'초 · 감속해 반납','#ffb347'],lastChance:()=>['마지막 랩 · 2컴파운드 미사용','#ffb347'],
-  jump:e=>['부정 출발 +'+e.s+'초','#ff5a4f'],jumpWarn:()=>['부정 출발!','#ff5a4f'],ovt:()=>['오버테이크 모드','#b16cff'],
+  jump:e=>['부정 출발 +'+e.s+'초','#ff5a4f'],jumpWarn:()=>['부정 출발!','#ff5a4f'],ovt:()=>['추월 모드','#b16cff'],
   rainSoon:()=>['무전: 곧 비','#8ecae6'],rain:()=>['비 시작','#8ecae6'],rainStop:()=>['비 그침 · 노면 마르는 중','#8ecae6'],
   xover:e=>['무전: '+COMP[e.comp].name+'로 교체','#8ecae6'],fail:e=>[e.name+' 차량 이상','#ffb347'],dnf:e=>e.code==='YOU'?['리타이어','#ff3b30']:[e.name+' 리타이어','#f5c518'],
   vsc:e=>['VSC 발동','#f5c518'],
@@ -7639,7 +7639,7 @@ function handleEvents(){
     if(e.type==='lap'&&e.inv){toast('트랙 리밋 · 랩 삭제','#ff8a8a');continue;}
     if(e.type==='lap'&&race.sess&&race.sess.kind==='quali'){let msg='랩 '+fmt(e.lt),col='#fff';if(bestLap==null||e.lt<bestLap){bestLap=e.lt;saveLS('lightsout3d-best-'+TRK.id,e.lt);col='#b16cff';}
       const cl=sessClass(race),i=cl.indexOf(race.player)+1;if(race.player.best===e.lt){msg='Q'+race.sess.q+' P'+i+' · '+fmt(e.lt);if(col==='#fff')col='#3ddc84';}toast(msg+e.dtx,col);continue;}
-    if(e.type==='lap'){let msg='랩 '+fmt(e.lt),col='#fff';if(sessionBest==null||e.lt<sessionBest){sessionBest=e.lt;col='#3ddc84';}if(bestLap==null||e.lt<bestLap){bestLap=e.lt;saveLS('lightsout3d-best-'+TRK.id,e.lt);msg='개인 최고! '+fmt(e.lt);col='#b16cff';}toast(msg+e.dtx,col);continue;}
+    if(e.type==='lap'){let msg='랩 '+fmt(e.lt),col='#fff';if(sessionBest==null||e.lt<sessionBest){sessionBest=e.lt;col='#3ddc84';}if(bestLap==null||e.lt<bestLap){bestLap=e.lt;saveLS('lightsout3d-best-'+TRK.id,e.lt);msg='내 기록 갱신! '+fmt(e.lt);col='#b16cff';}toast(msg+e.dtx,col);continue;}
     if(e.type==='finish'){state='done';doneT=0;if(!race.sess)finishFx();}
     if(e.type==='green')race.rc.greenAt=race.t;
     if(e.type==='wall'||e.type==='contact'||e.type==='pitStop'||e.type==='finish')sfx(e.type);
