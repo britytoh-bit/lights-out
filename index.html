@@ -343,7 +343,7 @@ body.touch #gMeter{display:none}
 body.touch #hudSpeed>div:nth-of-type(3){order:2} body.touch #hudSpeed>div:nth-of-type(4){order:1}
 body.touch #spd{font-size:30px; min-width:2.6ch} body.touch #gear{font-size:34px; padding:0 8px; border-bottom-width:3px}
 body.touch #hudSpeed .ers{order:4; width:100%; display:flex; align-items:center; gap:6px; flex-wrap:wrap}
-body.touch #hudSpeed .ers .bar{flex:1; min-width:60px} body.touch #ersT{order:2; font-size:10px} body.touch #hudSpeed .ers>div:last-child{order:3; width:100%}
+body.touch #hudSpeed .ers .bar{flex:1; min-width:60px} body.touch #ersT{order:2; font-size:10px} body.touch #hudSpeed .ers>div:last-child{order:3; width:100%; display:flex; flex-wrap:wrap; gap:3px 4px}
 body.touch #tyMini{display:flex; order:3; flex-direction:column; align-items:center; gap:1px} body.touch #tyMini i{width:24px; height:24px; border-radius:50%; border:4px solid #ccc; font-style:normal; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; color:#fff; background:rgba(0,0,0,.35)} body.touch #tyMini b{font-size:10px; color:#cfd6df; white-space:nowrap} body.touch #tyMT{margin-right:3px}
 body.touch #tyres{display:none}
 body.touch #pitInfo{display:none}
@@ -383,7 +383,7 @@ body.touch.ph-land #hudSpeed.dk1>#tyMini i{width:18px; height:18px; border-width
 body.touch.ph-land #hudSpeed.dk2{gap:7px; padding:12px 9px 5px} body.touch.ph-land #hudSpeed.dk2>.ers{width:60px} body.touch.ph-land #hudSpeed.dk2 #ersT{font-size:9px}
 body.touch.ph-land.ph-narrow #steerPad{width:228px}
 body.touch #hudSpeed .badge:not(.on):not(.arm):not(.pend){display:none}   /* only what is happening now: straight mode, overtake (and its gap before the line), tow */
-body.touch #hudSpeed .badge{margin:0 4px 0 0}
+body.touch #hudSpeed .badge{margin:0; white-space:nowrap}   /* 11-15: 「직선 열림」「추월 모드」「슬립스트림」 broke inside the badge into 2-3 lines (100px panel): whole badges go to the next line instead */
 body.touch.ph-land #spd{font-size:30px; min-width:2.4ch; text-align:right} body.touch.ph-land #gear{font-size:30px; padding:0 7px}
 body.touch.ph-small.ph-land #spd{font-size:26px} body.touch.ph-small.ph-land #gear{font-size:26px} body.touch.ph-small.ph-land #hudSpeed{gap:8px; padding:12px 9px 5px}
 body.touch.ph-land #tiltGauge{transform:none; height:8px}
