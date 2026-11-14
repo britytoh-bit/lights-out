@@ -1765,8 +1765,9 @@ function stepPit(race,c,dt,inp){
   const om=Math.max(-2.5,Math.min(2.5,2*Math.sin(da)/la*Math.max(c.spd,2)));c.a+=om*dt;c.st+=(Math.max(-1,Math.min(1,om*1.2))-c.st)*Math.min(1,6*dt);
   let vt=VMAX;
   const limIn=PIT.RAMP,limOut=PIT.Z-PIT.RX;
-  if(r0<limIn){vt=Math.sqrt(PIT.LIMIT*PIT.LIMIT+2*22*Math.max(0,(limIn-r0)*STEP-ti.along));
-    if(pp.state==='in'&&!pp.redQ){pp.vIn=Math.min(pp.vIn==null?Math.max(c.spd+0.3,PIT.LIMIT):pp.vIn,vt);vt=pp.vIn;}}   // 11-04: on the way in it only slows down (it went to full power for 0.3 s at the entry, then braked at 2.2 g: the car nodded and the view bounced)
+  if(r0<limIn){const dl=Math.max(0,(limIn-r0)*STEP-ti.along);vt=Math.sqrt(PIT.LIMIT*PIT.LIMIT+2*22*dl);
+    if(pp.state==='in'&&!pp.redQ&&(pp.longIn||(pp.vIn==null&&dl>250))){pp.longIn=true;vt=Math.min(vt,Math.sqrt(PIT.LIMIT*PIT.LIMIT+2*12*dl));}   // 11-14 윤택님 「바레인 피트 들어갈 때 110으로 고정」: there is no speed rule before the limit line, so on a long entry road (Sakhir 670 m) it drives on and brakes into the line at 1.2 g instead of holding its entry speed for 17 s
+    else if(pp.state==='in'&&!pp.redQ){pp.vIn=Math.min(pp.vIn==null?Math.max(c.spd+0.3,PIT.LIMIT):pp.vIn,vt);vt=pp.vIn;}}   // 11-04: on the way in it only slows down (it went to full power for 0.3 s at the entry, then braked at 2.2 g: the car nodded and the view bounced)
   else if(r0<limOut)vt=PIT.LIMIT;
   else vt=Math.min(vt,pitAheadV(race,c,ti,tyreGrip(c)));   // pit exit road: no faster than the track allows just ahead, nor than the next corner allows (v11f)
   if(PIT.lrm)vt=Math.min(vt,Math.max(12,Math.sqrt(20*PIT.lrm[Math.max(0,Math.min(PIT.Z,r0))])));   // tight bends in the pit road itself (never a crawl)
