@@ -7733,7 +7733,7 @@ function handleEvents(){
     if(e.type==='lap'){const L=lapLog[lapLog.length-1],d=[];if(!e.inv){if(L)d.push('지난 '+sgn(e.lt-L.t));if(bestLap!=null)d.push('내 기록 '+sgn(e.lt-bestLap));}e.dtx=d.length?' · '+d[d.length-1]:'';lapLog.push({n:lapLog.length+1,t:e.lt,s:e.s,inv:!!e.inv});}   // 10-31: diffs to my last lap and my best here
     if(e.type==='lap'&&!race.sess)lastLapNote();
     if(e.type==='lap'&&e.inv){toast('트랙 리밋 · 랩 삭제','#ff8a8a');continue;}
-    if(e.type==='lastChance'||(TUT&&e.type==='garageOut'))continue;   // (the warning is in the last lap's strip; the tutorial starts on the track)
+    if(e.type==='lastChance'||(TUT&&(e.type==='garageOut'||e.type==='pitOut')))continue;   // (the warning is in the last lap's strip; the tutorial starts on the track)
     if(e.type==='lap'&&race.sess&&race.sess.kind==='quali'){let msg='랩 '+fmt(e.lt),col='#fff';if(bestLap==null||e.lt<bestLap){bestLap=e.lt;saveLS('lightsout3d-best-'+TRK.id,e.lt);col='#b16cff';}
       const cl=sessClass(race),i=cl.indexOf(race.player)+1;if(race.player.best===e.lt){msg='Q'+race.sess.q+' P'+i+' · '+fmt(e.lt);if(col==='#fff')col='#3ddc84';}toast(msg+e.dtx,col);continue;}
     if(e.type==='lap'){let msg='랩 '+fmt(e.lt),col='#fff';if(sessionBest==null||e.lt<sessionBest){sessionBest=e.lt;col='#3ddc84';}if(bestLap==null||e.lt<bestLap){bestLap=e.lt;saveLS('lightsout3d-best-'+TRK.id,e.lt);msg='내 기록 갱신! '+fmt(e.lt);col='#b16cff';}toast(msg+e.dtx,col);continue;}
