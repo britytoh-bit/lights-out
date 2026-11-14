@@ -8472,16 +8472,16 @@ function perfSetPR(pr){const b=basePR();if(pr>=b-0.01){pr=b;delete PERF.prCap;}e
 function perfReset(){const had=PERF.prCap;for(const k in PERF)delete PERF[k];Object.assign(PERF,{acc:0,n:0,step:0});LODN=LODN0.slice();if(had)resize();
   if(MIR&&MIR.cam.far!==MIR.far0){MIR.cam.far=MIR.far0;MIR.cam.updateProjectionMatrix();}}   // 10-30: the mirror's view length comes back too (it stayed cut for good)
 function perfGovernor(dt){if(state!=='race'||autoQ==='off')return;
-  if(VS.hz>=90&&!PERF.lock60){VS.n++;if(dt*1000>1.45*1000/VS.hz)VS.miss++;VS.t+=dt;if(VS.t>=2){if(VS.miss>VS.n*0.12){PERF.lock60=true;toast('최적화: 60Hz 고정','#8ecae6');}VS.t=VS.n=VS.miss=0;}}
+  if(VS.hz>=90&&!PERF.lock60){VS.n++;if(dt*1000>1.45*1000/VS.hz)VS.miss++;VS.t+=dt;if(VS.t>=2){if(VS.miss>VS.n*0.12){PERF.lock60=true;if(FPSON)toast('화질 자동 조절: 60Hz 고정','#8ecae6');}VS.t=VS.n=VS.miss=0;}}
   PERF.acc+=dt;PERF.n++;if(PERF.acc<2.5)return;const fps=PERF.n/PERF.acc;PERF.acc=0;PERF.n=0;
   // v14: a resolution cut that did not raise the frame rate is undone - the phone is held at 30 by power saving (or it is
   // not the pixels), and the picture would only get blurry for nothing. Resolution is then left alone for this race.
   if(PERF.tryFps!=null){const t=PERF.tryFps,p=PERF.tryPr;PERF.tryFps=null;if(fps<t+3){PERF.noRes=true;perfSetPR(p);return;}}
   // v14: room to spare (57+ for two checks in a row) - give one resolution step back. If that makes it heavy again, the
   // step is taken off once more and stays off (no see-sawing).
-  if(fps>=57){if(PERF.prCap&&!PERF.noUp&&++PERF.up>=2){PERF.up=0;PERF.upd=true;perfSetPR(Math.min(basePR(),PERF.prCap/0.85));PERF.step=Math.min(PERF.step,3);toast('화질: 해상도 복구','#8ecae6');}return;}
+  if(fps>=57){if(PERF.prCap&&!PERF.noUp&&++PERF.up>=2){PERF.up=0;PERF.upd=true;perfSetPR(Math.min(basePR(),PERF.prCap/0.85));PERF.step=Math.min(PERF.step,3);if(FPSON)toast('화질 자동 조절: 해상도 복구','#8ecae6');}return;}
   PERF.up=0;
-  if(fps>=50||PERF.step>=7)return;const say=m=>toast('최적화: '+m,'#8ecae6');
+  if(fps>=50||PERF.step>=7)return;const say=m=>{if(FPSON)toast('화질 자동 조절: '+m,'#8ecae6');};   // 11-14 (H2): the governor works as before; its notes only with the FPS meter on
  // v13d: when it only gets heavy in the race it is the pack, not the scenery. Tighten the car detail
  // budget before switching anything else off - on the lowest setting the steps below have nothing left
  // to turn off anyway (AO, bloom, shadows and the post chain are already gone), so this ran out of
