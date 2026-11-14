@@ -635,6 +635,7 @@ body.inmenu:has(#mPage:not([hidden])) #gl{animation-play-state:paused}   /* a se
 #menu .mItem:active{transform:scale(.985)} #menu #startBtn:active{transform:scale(.97)}
 @media (prefers-reduced-motion:reduce){#intro{display:none !important} #menu.mEnter *{animation:none !important} body.inmenu #gl{animation:none !important} #menu .mItem:active,#menu #startBtn:active{transform:none}}
    pause: the actions first (계속 달리기 · 조작법 · 건너뛰기), then the settings, then the screen toggles; 「레이스 그만두기」 a quiet text button at the end that asks once.
+   result: the buttons beside the title and kept in view while the table scrolls; places gained / lost from the grid, the race's fastest lap a purple dot. */
 #pause .pHd,#result .rHd{display:flex; align-items:center; gap:10px 12px; flex-wrap:wrap}
 #pause .pHd h1{flex:1 1 auto; min-width:0; margin:0}
 #pInfo{font-size:17px; font-weight:700; color:var(--dim); white-space:nowrap}
@@ -646,6 +647,11 @@ body.inmenu:has(#mPage:not([hidden])) #gl{animation-play-state:paused}   /* a se
 #quitNote{font-size:13px; color:#ffb347; text-align:right}
 #pause #quitBtn{flex:none; min-width:0; min-height:44px; padding:0 8px; background:none; border:0; color:#ff8a80; font-size:14px; font-weight:600; text-decoration:underline; text-underline-offset:3px}
 #pause #quitBtn.arm{padding:0 16px; background:#d92d26; color:#fff; font-weight:700; text-decoration:none}
+#result .rHd{position:sticky; top:-22px; z-index:2; margin:-22px -24px 8px; padding:16px 24px 8px; background:#15171b}   /* (a sticky box in a scroller sticks to its content edge: top = minus the card's padding, or it sat 22 px low over the line under it) */
+body.touch #result .rHd{top:-14px; margin:-14px -16px 6px; padding:10px 16px 8px}
+#result .rHd h1{flex:1 1 auto; min-width:0; margin:0}
+#result .rHd .row2{flex:none; gap:8px} #result .rHd .row2 button{flex:none; width:auto; min-height:46px; padding:0 18px; font-size:16px}
+#resTip{margin:-10px 0 12px; color:#ffb347; font-weight:700}
 </style>
 <script>
 /* 터치 확대 막기 — iOS Safari 는 viewport 의 user-scalable=no 를 무시한다.
@@ -826,7 +832,7 @@ body.inmenu:has(#mPage:not([hidden])) #gl{animation-play-state:paused}   /* a se
     <div class="laps" id="pLaps"></div>
     <div class="pQuit"><span id="quitNote"></span><button id="quitBtn" type="button">레이스 그만두기</button></div></div></div>
   <div class="overlay" id="sess" hidden><div class="card"><h1 id="sessTitle">Q1</h1><p class="sub num" id="sessSub"></p><div class="laps" id="sLaps"></div><table class="num" id="sessTable"></table><div class="row2"><button class="go" id="sessGo">다음</button><button id="sessMenu">메뉴로</button></div></div></div>
-  <div class="overlay" id="result" hidden><div class="card"><h1 id="resTitle">P1</h1><p class="sub num" id="resSub"></p><p class="sub num" id="resFl" style="color:#c58bff;margin-top:-4px"></p><table class="num" id="resTable"></table><div class="laps" id="rLaps"></div><div class="row2"><button class="go" id="againBtn">다시 달리기 (Enter)</button><button class="go" id="chBtn" hidden>대회 순위 보기 (Enter)</button><button id="menuBtn">메뉴로</button></div></div></div>
+  <div class="overlay" id="result" hidden><div class="card"><div class="rHd"><h1 id="resTitle">P1</h1><div class="row2"><button class="go" id="againBtn">다시 달리기<span class="keyOnly"> (Enter)</span></button><button class="go" id="chBtn" hidden>대회 순위 보기<span class="keyOnly"> (Enter)</span></button><button id="menuBtn">메뉴로</button></div></div><p class="sub num" id="resSub"></p><p class="sub" id="resTip" hidden></p><p class="sub num" id="resFl" style="color:#c58bff;margin-top:-4px"></p><table class="num" id="resTable"></table><div class="laps" id="rLaps"></div></div></div>
   <div class="overlay" id="guide" hidden role="dialog" aria-label="레이스 가이드"><div class="gCard"><div class="gHd"><b id="gCnt"></b><span id="gTit"></span><button id="gX" type="button">닫기</button></div>
     <div id="gBody"></div><div class="gNav"><button id="gPrev" type="button">이전</button><div id="gDots"></div><button id="gNext" type="button" class="go">다음</button></div></div></div>
   <div id="intro" hidden aria-hidden="true"><div class="inL"><i></i><i></i><i></i><i></i><i></i></div><b class="inT">LIGHTS OUT</b></div>
@@ -7371,7 +7377,7 @@ function showResults(){
     return `<tr class="${c.isP?'me':''}"><td>P${i+1}</td><td><span class="sw" style="display:inline-block;vertical-align:middle;margin-right:8px;background:${TEAMS[c.team].p}"></span>${c.name} <span style="color:var(--dim)">${TEAMS[c.team].name} · ${c.stints.join('→')}</span></td><td>${gap}</td><td class="pts">${pt?'+'+pt:''}</td></tr>`;}).join('');
   const ch=!!(race.champ&&CH);if(ch)chScore(r,pts);$('againBtn').hidden=ch;$('chBtn').hidden=!ch;
   $('rLaps').innerHTML=lapTable(true);
-  $('result').hidden=false;$(ch?'chBtn':'againBtn').focus();
+  $('result').hidden=false;pDraw=3;$('result').querySelector('.card').scrollTop=0;$(ch?'chBtn':'againBtn').focus({preventScroll:true});   // 11-14: opens at the title (the buttons sit beside it)
 }
 // ===================== v11g: the chequered flag and the podium ceremony =====================
 // At the flag: a TV camera at the line watches the car cross, the flag marshal on the pit wall waves the chequered flag, a banner
