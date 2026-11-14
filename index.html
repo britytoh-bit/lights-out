@@ -671,6 +671,11 @@ body.touch.ph-small #mTyre small{font-size:10px} body.touch.ph-small #mTyre i{wi
 #tower .r.me .n .mv.up{color:#0b6b30} #tower .r.me .n .mv.dn{color:#a3150d}
 #toast.radio{padding:4px 14px 5px 10px; border-left:4px solid var(--team); border-radius:4px 6px 6px 4px; background:rgba(9,11,15,.88); text-shadow:none}
 #toast.radio b{margin-right:7px; font-size:.78em; font-weight:800; color:#9aa3ad}
+#skill h2{font-size:26px}
+#skill .skAct{margin:4px 0 4px}
+#skill .skAct button{display:flex; flex-direction:column; align-items:flex-start; gap:3px; min-height:72px; padding:12px 16px; text-align:left}
+#skill .skAct b{font-size:19px; font-weight:800} #skill .skAct span{font-size:13px; font-weight:500; opacity:.85}
+#skill #skLater{display:block; width:100%; min-height:44px; margin:2px 0 0; background:none; border:0; color:#aab0b9; font-size:15px; font-weight:600; text-decoration:underline; text-underline-offset:3px}
 </style>
 <script>
 /* 터치 확대 막기 — iOS Safari 는 viewport 의 user-scalable=no 를 무시한다.
@@ -748,8 +753,9 @@ body.touch.ph-small #mTyre small{font-size:10px} body.touch.ph-small #mTyre i{wi
   </div>
   <div id="tut" hidden role="status"><p class="th" id="tutH"></p><p class="tt" id="tutT"></p><div class="tb"><button id="tutSkip" type="button">건너뛰기</button><button id="tutNext" type="button" class="go">다음</button></div></div>
   <div id="ctlHelp" hidden><div id="chMarks"></div></div>
-  <div class="overlay" id="skill" hidden><div class="card"><h2>어떻게 달려볼까요?</h2><p class="sub">초보는 가장 쉬운 설정으로 한 번에 맞춰요. 직접 설정은 레이싱 라인·보조를 하나씩 골라요. 나중에 메뉴·일시정지에서 바꿀 수 있어요.</p>
-    <div class="skg" id="skG"></div><div class="row2"><button id="skLater" type="button">메뉴로</button><button class="go" id="skTut" type="button">튜토리얼로 시작</button></div></div></div>
+  <div class="overlay" id="skill" hidden><div class="card"><h2>처음이세요?</h2><p class="sub" id="skSub">가장 쉬운 조작으로 맞춰 뒀어요. 나중에 「운전」에서 바꿀 수 있어요.</p>
+    <div class="row2 skAct"><button class="go" id="skTut" type="button"><b>튜토리얼</b><span>직접 달리며 조작 익히기 · 약 3분</span></button><button id="skGo" type="button"><b>바로 레이스</b><span id="skGoS">서울 3랩 · AI 쉬움</span></button></div>
+    <button id="skLater" type="button">메뉴 먼저 둘러보기</button></div></div>
   <div id="livEd" hidden><div class="lecard">
     <div class="lehead"><b>리버리 꾸미기</b><span id="leTeam"></span></div>
     <p class="lenote">실제 팀의 디자인·로고는 쓸 수 없어서, 색과 모양을 직접 골라 내 차를 칠하는 방식이에요. 바꾸면 뒤의 차에 바로 보여요.</p>
@@ -5935,6 +5941,10 @@ const $=id=>document.getElementById(id);
 function fmt(t){if(t==null||!isFinite(t))return '-';const m=Math.floor(t/60),s=t-m*60;return m+':'+(s<10?'0':'')+s.toFixed(3);}
 function loadLS(k){try{return localStorage.getItem(k);}catch(e){return null;}}
 function saveLS(k,v){try{localStorage.setItem(k,String(v));}catch(e){}}
+// 11-14 (UI 개편 #1·#2): a real first run - nothing of this game saved yet (looked at before any code below writes a setting). The first race: no lap of
+// any circuit on record yet (the saved best laps, lightsout3d-best-*) - it starts on the grid without the formation lap (the setting itself stays as it is)
+const FIRST_RUN=(()=>{try{for(let i=0;i<localStorage.length;i++)if((localStorage.key(i)||'').startsWith('lightsout3d-'))return false;return true;}catch(e){return false;}})();
+function noLapYet(){try{for(let i=0;i<localStorage.length;i++)if((localStorage.key(i)||'').startsWith('lightsout3d-best-'))return false;return true;}catch(e){return false;}}
 let bestLap=parseFloat(loadLS('lightsout3d-best-'+TRK.id))||null;
 // 10-31: my best sector times on this circuit (kept like the best lap), my laps this session, the sector popup's end time
 let bestSec=(()=>{try{const a=JSON.parse(loadLS('lightsout3d-bsec-'+TRK.id));if(Array.isArray(a)&&a.length===3)return a.map(v=>typeof v==='number'&&v>0?v:null);}catch(e){}return [null,null,null];})(),lapLog=[],spUntil=0;
@@ -6484,11 +6494,32 @@ function startRace(o){if(THREE.GLTFLoader&&!window.__CARGLB){if(isTouch)prepMobi
   setupRace(mode,o);warmUp();race.champ=!!o.champ;
   if(race.sess){state='race';$('lights').style.opacity=0;
     toast(mode==='quali'?'예선 Q1 · 상위 16명 진출':'연습 주행','#fff',2,1000);return;}
-  if(formOn){formSetup(race,'start',race.cars.slice().sort((a,b)=>a.grid-b.grid));if(isTouch&&autoGas)race.form.autoP=true;state='race';$('lights').style.opacity=0;
-    if(race.form.autoP)toast('포메이션 랩 · 자동 주행','#fff',2,1000);return;}   // 11-13: 「추월 금지」 is already on the race-control strip just above - the same words twice
+  if(formOn&&!o.noForm&&!noLapYet()){formSetup(race,'start',race.cars.slice().sort((a,b)=>a.grid-b.grid));if(isTouch&&autoGas)race.form.autoP=true;state='race';$('lights').style.opacity=0;return;}   // 11-14: the strip says 「포메이션 랩 · 자동 주행」 with 「건너뛰기」 beside it (the note under it said it again); a first race goes straight to the grid
   beginCountdown();}
-function beginCountdown(){state='countdown';cdT=0;cdLit=0;cdHold=0.4+Math.random()*1.4;$('lights').style.opacity=1;setLights(0);
-  if(!isTouch&&startMode==='manual')setTimeout(()=>{if(state==='countdown')toast('스페이스+↑ 로 대기 → 불 꺼지면 스페이스 떼기','#fff',3.2);},250);}
+// 11-14 (현장감 디테일 #8 · UI 개편 #3): before the lights - a TV shot down the grid (2.8 s, a tap ends it) and, in a new player's first two races, the controls
+// marked on the screen (3 s, a tap starts the lights). The light sequence is untouched and starts right after; not after a red flag or in the tutorial.
+// (A countdown moved on from outside - cdT set by a test - ends this at once.)
+let PRE=null;const GRID_T=2.8,COACH_T=3;
+function coachLeft(){const v=loadLS('lightsout3d-coach');return isTouch&&v!=null?Math.max(0,2-(+v||0)):0;}   // (the counter is written on a real first run only)
+function beginCountdown(){state='countdown';cdT=0;cdLit=0;cdHold=0.4+Math.random()*1.4;setLights(0);PRE=null;
+  const sweep=!race.restart&&!TUT,coach=sweep&&coachLeft()>0;
+  if(sweep){PRE={ph:'grid',t:0,coach};$('lights').style.opacity=0;CINE={ph:'grid'};document.body.classList.add('cine');return;}
+  lightsGo();}
+function lightsGo(){$('lights').style.opacity=1;if(!isTouch&&startMode==='manual')setTimeout(()=>{if(state==='countdown')toast('스페이스+↑ 로 대기 → 불 꺼지면 스페이스 떼기','#fff',3.2);},250);}
+function preStep(dt){const p=PRE;p.t+=dt;if(cdT>0||p.skip||p.t>=(p.ph==='grid'?GRID_T:COACH_T))preNext();}
+function preNext(){const p=PRE;if(!p)return;
+  if(p.ph==='grid'){if(CINE&&CINE.ph==='grid'){CINE=null;document.body.classList.remove('cine');if(isTouch)layoutTouchHUD();}if(p.coach&&cdT===0){p.ph='coach';p.t=0;p.skip=false;coachShow();return;}}
+  else coachHide();
+  PRE=null;lightsGo();}
+function coachShow(){saveLS('lightsout3d-coach',(+loadLS('lightsout3d-coach')||0)+1);const h=$('ctlHelp');h.classList.add('coach');h.hidden=false;ctlHelp(true);}
+function coachHide(){const h=$('ctlHelp');if(h.classList.contains('coach')){h.hidden=true;h.classList.remove('coach');}}
+document.addEventListener('pointerdown',()=>{if(PRE&&state==='countdown')PRE.skip=true;},true);addEventListener('keydown',e=>{if(PRE&&state==='countdown'&&!e.repeat)PRE.skip=true;});
+// the grid shot: a camera outside the straight, from beside the front of the grid back to the player's car, looking down the field
+function gridCam(){const pl=race.player,C=CINE;if(!C.p0){let p0=pl;for(const c of race.cars)if(!c.gone&&c.grid<p0.grid)p0=c;C.p0=p0;}
+  const u=PRE&&PRE.ph==='grid'?Math.min(1,PRE.t/GRID_T):1,e=u*u*(3-2*u),sd=-PIT.side,L=(a,b)=>a+(b-a)*e;
+  const at=(c,ahead,h,off)=>{const i=wrap(c.idx+Math.round(ahead/STEP)),lim=(sd>0?TR.LP[i]:TR.LN[i])-0.9,q=P0f(i,sd*Math.min(HALF+off,Math.max(HALF+0.6,lim)));return [q.x,roadY(q.x,q.z,i)+h,q.z];};
+  const A=at(C.p0,24,4.2,3),B=at(pl,9,2.2,2),lx=L(C.p0.x,pl.x),lz=L(C.p0.z,pl.z);
+  return {pos:new THREE.Vector3(L(A[0],B[0]),L(A[1],B[1]),L(A[2],B[2])),look:new THREE.Vector3(lx,hXZ(lx,lz)+0.7,lz),fov:L(38,32),focus:[lx,lz]};}
 function endForm(){formEnd(race);if(state==='done'){race.startT=race.t;race.restart=false;return;}beginCountdown();}
 // fast-forward through the formation lap or a red-flag stoppage (a few simulated seconds per frame)
 function ffStep(){const t0=performance.now();let n=0;
@@ -6678,10 +6709,13 @@ function applySkill(k){const s=SKILLS[k];if(!s)return;saveLS('lightsout3d-skill'
   brakeAs=s.bas;saveLS('lightsout3d-bas',s.bas);if(race)race.bAs=s.bas;
   rlMode=s.rl;saveLS('lightsout3d-rl',s.rl);segPick(['rlSel'],s.rl);applyRL();
   setSens(s.sens);setAutoGas(s.ag);if(isTouch)setSteerMode(s.sm);skillUI();}
-$('skG').innerHTML=Object.keys(SKILLS).map(k=>`<button type="button" data-v="${k}" aria-pressed="false"><b>${SKILLS[k].nm}</b><ul>${skLines(k).map(l=>'<li>'+l+'</li>').join('')}</ul></button>`).join('');
-$('skG').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;applySkill(b.dataset.v);$('skG').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));});
 function skClose(){if(!loadLS('lightsout3d-skill'))saveLS('lightsout3d-skill','seen');$('skill').hidden=true;$('menu').hidden=false;}
-$('skLater').addEventListener('click',skClose);$('skTut').addEventListener('click',()=>{skClose();tutStart();});
+$('skLater').addEventListener('click',skClose);$('skTut').addEventListener('click',()=>{skClose();tutStart();});$('skGo').addEventListener('click',()=>{skClose();startRace({mode:'race',noForm:true});});
+// 11-14 (UI 개편 #1, 윤택님 「처음 하는 사용자가 했을 때도 이해하기 쉽게」): the first run starts on the easiest set-up (초보, AI 쉬움) - only when nothing is saved yet,
+// a player's own settings are never replaced. The card: 튜토리얼 / 바로 레이스 / 메뉴 먼저 둘러보기
+function firstRunSetup(){applySkill('easy');diff='easy';saveLS('lightsout3d-diff','easy');segPick(['difSel'],'easy');saveLS('lightsout3d-coach','0');menuSum();}
+function skCard(){$('skSub').textContent=FIRST_RUN?'가장 쉬운 조작으로 맞춰 뒀어요. 나중에 「운전」에서 바꿀 수 있어요.':'조작과 보조는 메뉴 「운전」에서 바꿀 수 있어요.';
+  $('skGoS').textContent=TRK.name.replace(/\s*\(.*\)$/,'').split(' ')[0]+' '+laps+'랩 · '+({easy:'AI 쉬움',normal:'AI 보통',hard:'AI 어려움'}[diff]||'');}
 seg('skSel',applySkill);seg('pSkSel',applySkill);seg('basSel',v=>setBrakeAs(+v));
 skReady=true;skillUI();
 // ===== 10-31: tutorial - a short guided practice alone on the default circuit, one card at a time in the timing panel's place
@@ -8655,7 +8689,7 @@ function boot(){
   try{for(const k of['lightsout3d-bench','lightsout3d-bench-last','lightsout3d-bench-show'])localStorage.removeItem(k);}catch(e){}   // 11-13 윤택님 「자동성능측정기는 없애도」: the test is gone, its saved results too
   bootReveal();
   if(loadLS('lightsout3d-tutgo')==='1'){saveLS('lightsout3d-tutgo','');saveLS('lightsout3d-skill',loadLS('lightsout3d-skill')||'seen');tutStart();}   // 10-31: the tutorial circuit has loaded
-  else if(!loadLS('lightsout3d-skill')){$('menu').hidden=true;$('skill').hidden=false;}   // first launch: pick a skill level once
+  else if(!loadLS('lightsout3d-skill')){if(FIRST_RUN)firstRunSetup();skCard();$('menu').hidden=true;$('skill').hidden=false;}   // first launch (11-14: 「처음이세요?」)
   requestAnimationFrame(frame);
 }
 if(!window.__NOBOOT){introStart();const go=()=>{if(!go.d){go.d=1;setTimeout(boot,60);}};try{document.fonts.load('800 40px "Saira Condensed"').then(go,go);}catch(e){go();}setTimeout(go,2000);}
