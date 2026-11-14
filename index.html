@@ -657,8 +657,11 @@ body.touch #result .rHd{top:-14px; margin:-14px -16px 6px; padding:10px 16px 8px
 #resTable td.mv .up{color:#2fd06b} #resTable td.mv .dn{color:#ff6a5f}
 #resTable .fld{color:#a050ff; font-size:11px; vertical-align:1px}
 /* race HUD: a timing row shows once it has a value; the round buttons at the top are 44 px (「뒤보기」 fits); the tyre button shows the next tyre's ring;
+   「필수」 over PIT while the two-compound rule is open (orange: a warning, not a flag); the last lap in the strip; ▲▼ on the tower; the radio card */
 #hudTime .row.nv{display:none}
 body.touch #topBtns button,body.touch.ph-small #topBtns button{width:44px; height:44px; font-size:12px; white-space:nowrap}
+#mPit{position:relative}
+#mPit.need::after{content:'필수'; position:absolute; left:50%; top:-10px; transform:translateX(-50%); padding:0 5px; border-radius:6px; background:#ffb347; color:#111; font-size:12px; font-weight:800; line-height:16px; white-space:nowrap; pointer-events:none}
 #mTyre{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; line-height:1}
 #mTyre small{font-size:11px; font-weight:800}
 #mTyre i{display:flex; align-items:center; justify-content:center; width:19px; height:19px; border-radius:50%; border:3px solid #f5c518; background:rgba(0,0,0,.35); font-style:normal; font-size:10px; font-weight:800; color:#fff}
@@ -7299,6 +7302,8 @@ function drawHUD(dt){
    if(q&&q.state==='stop'&&q.stopT!=null){v=race.t-q.stopT;cls='show';if(q.pen&&v<q.pen)lbl='페널티 '+q.pen+'초 소화';}
    else if(q&&q.state==='out'&&q.relT!=null&&q.stopT!=null&&race.t-q.relT<1.2){v=q.relT-q.stopT;const w=v-(q.pen||0);cls='show '+(w<2.6?'ok':w>4?'slow':'');lbl=q.pen?'정차 (페널티 '+q.pen+'초 포함)':'정차 시간';}
    if(el._c!==cls){el._c=cls;el.className=cls;}if(cls){setT('pitTl',lbl);setT('pitTv',v.toFixed(1)+'초');}}
+  // 11-14 (UI 개편 #0 TOP5-1): while the dry race's two-compound rule is still open, a small 「필수」 tag over PIT (gone once a stop to another tyre is done or booked)
+  if(isTouch){const nk=pl.nextComp||pl.ty.comp,need=!S&&!race.form&&state==='race'&&pl.fin==null&&!pl.pit&&needsSecond(pl)&&!(pl.pitReq&&nk!==pl.ty.comp);if(hc.need2!==need){hc.need2=need;$('mPit').classList.toggle('need',need);}}
   tyreT-=dt;if(tyreT<=0){tyreT=0.15;const ty=pl.ty,C=COMP[ty.comp];
     if(isTouch){const nk=pl.nextComp||pickCompound(race,pl);if(hc.mTyre!==nk){hc.mTyre=nk;const e=$('mTyreC');e.textContent=nk;e.style.borderColor=COMP[nk].col;}}   // 11-14 (H6): the button shows the tyre the next stop fits - chosen, or the one a stop would pick
     $('tyC').textContent=ty.comp;$('tyC').style.borderColor=C.col;setT('tyName',C.name);setT('tyLaps',(ty.dist/(N*STEP)).toFixed(1)+'랩 사용');
@@ -7322,13 +7327,14 @@ function drawHUD(dt){
     else if(pl.pitReq)pi=`<span class="box">피트인 예약</span>${S?'':' · P'+pl.boxPos+' 복귀'} · <b style="color:${nc.col}">${nc.name}</b>`;
     else if(pl.fin!=null)pi='';
     else if(race.form)pi=race.form.kind==='start'?'포메이션 랩 · 타이어 데우기':'SC 뒤 그리드로 · 추월 금지';
-    else if(needsSecond(pl))pi=`<span class="warn">2컴파운드 의무 남음</span>`;
+    else if(needsSecond(pl))pi=`<span class="warn">타이어 2종 의무 남음</span>`;
     else pi='전략: '+pl.stints.join(' → ')+(usedWet(pl)?' · 웨트 사용(의무 면제)':'');
     if(pl.pen&&pl.fin==null)pi+=`<br><span class="warn">페널티 ${pl.pen}초 · 피트 때 소화</span>`;
-    if(pi!==hc.pitInfo){hc.pitInfo=pi;$('pitInfo').innerHTML=pi;const pm=pi.startsWith('전략:')?'':pi;$('pitMsg').innerHTML=pm;hc.pmT=pm?3:0;}
+    if(pi!==hc.pitInfo){hc.pitInfo=pi;$('pitInfo').innerHTML=pi;const pm=pi.startsWith('전략:')||pi.startsWith('<span class="warn">타이어 2종')?'':pi;$('pitMsg').innerHTML=pm;hc.pmT=pm?3:0;}   // (11-14 H3: the rule's line no longer pops at the grid and on every lap - the guide below and the 「필수」 tag say it)
     // 11-04: from one lap before the pit window, once a lap: the window, what a stop costs here, where the car would come out
     {const lp=Math.floor(pl.prog/N);if(lp!==hc.advL){hc.advL=lp;const a=!S&&!race.form&&!pl.pit&&!pl.pitReq&&pl.fin==null&&race.rc.flag==='green'&&lp+1<race.laps?pitAdvice(race,pl):null;
-      if(a&&lp+1>=a.from-1){const t=(a.to<=lp+1?'타이어 한계':'피트 창 '+a.from+'~'+a.to+'랩')+' · 지금 가면 P'+a.pos;$('pitMsg').textContent=t;hc.pmT=2.5;}}}}
+      if(lp>=1&&lp+1<race.laps&&!S&&!race.form&&!race.need2&&!pl.pit&&!pl.pitReq&&pl.fin==null&&race.rc.flag!=='red'&&needsSecond(pl)){race.need2=1;$('pitMsg').textContent=(isTouch?'PIT를 누르면':'B 키로 피트인하면')+' 이번 랩 끝에 다른 타이어로 바꿔요 · 완주하려면 한 번 필요';hc.pmT=4;}   // 11-14 (TOP5-1): once a race, from the second lap
+      else if(a&&lp+1>=a.from-1){const t=(a.to<=lp+1?'타이어 한계':'피트 창 '+a.from+'~'+a.to+'랩')+' · 지금 가면 P'+a.pos;$('pitMsg').textContent=t;hc.pmT=2.5;}}}}
   if(isTouch){if((hc.htN=(hc.htN||0)+1)%30===0&&$('hudTime').offsetHeight!==hc.htH)layoutTouchHUD();   // v13j: not every frame - reading it forces a layout
     // v13h: the pill used to come back for 4 s on every new lap as well. On a phone it sits over
     // the road ahead, so with the pit window open the same 'new tyres' line blocked the view once
@@ -7381,7 +7387,8 @@ function showResults(){
   const r=ranking(race),pl=race.player,pp=r.indexOf(pl)+1,lead=r[0],tot=c=>c.fin+(c.pen||0);
   const pts=c=>{const i=r.indexOf(c);return classed(race,c)&&i<10?POINTS[i]:0;};
   $('resTitle').textContent=pl.dnf?'리타이어 (DNF)':pl.dsq?'실격 (DSQ)':'P'+pp+(pp===1?' 우승!':(pp<=3?' 포디움!':' 완주'))+(pts(pl)?' · '+pts(pl)+'점':'');
-  $('resSub').textContent=pl.dnf?'사고로 레이스를 끝내지 못했어요 · 레이스 베스트 '+fmt(pl.best):pl.dsq?'실격: 우천 타이어 없이 2가지 드라이 컴파운드를 쓰지 않았어요':('그리드 P'+pl.grid+' → P'+pp+'   레이스 베스트 '+fmt(pl.best)+'   전략 '+pl.stints.join('→')+(pl.penTot?'   페널티 '+pl.penTot+'초 (피트 소화 '+pl.served+'초)':''));
+  $('resSub').textContent=pl.dnf?'사고로 레이스를 끝내지 못했어요 · 내 최고 랩 '+fmt(pl.best):pl.dsq?'실격: 우천 타이어 없이 2가지 드라이 컴파운드를 쓰지 않았어요':('그리드 P'+pl.grid+' → P'+pp+(pl.grid!==pp?' ('+(pl.grid>pp?'▲':'▼')+Math.abs(pl.grid-pp)+')':'')+'   내 최고 랩 '+fmt(pl.best)+'   전략 '+pl.stints.join('→')+(pl.penTot?'   페널티 '+pl.penTot+'초 (피트 소화 '+pl.served+'초)':''));
+  {const t=$('resTip');t.hidden=!pl.dsq;t.textContent=pl.dsq?'다음엔 레이스 중에 '+(isTouch?'PIT를 눌러':'B 키로 피트인해')+' 다른 타이어로 한 번 바꾸세요.':'';}   // 11-14 (UI 개편 P1): what to do next time, not only the rule
   {const f=race.fl;$('resFl').textContent=f?'패스티스트 랩: '+(f.id===pl.id?'내 차':f.name)+' · '+fmt(f.t)+' · '+f.lap+'랩째':'';}
   $('resTable').innerHTML=r.map((c,i)=>{let gap;
     if(c.fin!=null)gap=c.dsq?'DSQ':(i===0?fmt(tot(c)):'+'+(tot(c)-tot(lead)).toFixed(3))+(c.pen?' (+'+c.pen+'초)':'');
@@ -7619,7 +7626,7 @@ const MSG={fl:e=>[(e.me?'':e.name+' ')+'패스티스트 랩 '+fmt(e.t),e.me?'#c5
   aiPit:e=>e.mis?[e.name+' 피트 실수 '+e.t.toFixed(1)+'초','#ffb347']:[e.name+' 최고 피트 '+e.t.toFixed(1)+'초','#3ddc84'],
   aiStart:e=>['출발 실수 · '+e.l.map(x=>x.name).join(' · '),'#ffb347'],flat:()=>['타이어 펑크 · 피트로!','#ff3b30'],pitOut:()=>{const p=race.player,C=COMP[p.ty.comp],T=(p.ty.temp[0]+p.ty.temp[1]+p.ty.temp[2]+p.ty.temp[3])/4;return T<C.win[0]-8?['피트 아웃 · 타이어 차가움','#8ecae6']:['피트 아웃','#fff'];},
   tl:e=>['트랙 리밋 '+e.n+'회 · 랩 삭제','#ffb347'],bw:e=>['흑백기 · 다음부터 +5초','#ffb347'],tlpen:e=>['트랙 리밋 '+e.n+'회 · +'+e.s+'초','#ff5a4f'],
-  cut:e=>['코스 밖 이득 · +'+e.s+'초','#ff5a4f'],cutGB:e=>['코스 밖 이득 '+e.gt.toFixed(1)+'초 · 감속해 반납','#ffb347'],lastChance:()=>['마지막 랩 · 2컴파운드 미사용','#ffb347'],
+  cut:e=>['코스 밖 이득 · +'+e.s+'초','#ff5a4f'],cutGB:e=>['코스 밖 이득 '+e.gt.toFixed(1)+'초 · 감속해 반납','#ffb347'],lastChance:()=>['마지막 랩 · 지금 PIT 안 하면 실격','#ffb347'],
   jump:e=>['부정 출발 +'+e.s+'초','#ff5a4f'],jumpWarn:()=>['부정 출발!','#ff5a4f'],ovt:()=>['추월 모드','#b16cff'],
   rainSoon:()=>['무전: 곧 비','#8ecae6'],rain:()=>['비 시작','#8ecae6'],rainStop:()=>['비 그침 · 노면 마르는 중','#8ecae6'],
   xover:e=>['무전: '+COMP[e.comp].name+'로 교체','#8ecae6'],fail:e=>[e.name+' 차량 이상','#ffb347'],dnf:e=>e.code==='YOU'?['리타이어','#ff3b30']:[e.name+' 리타이어','#f5c518'],
@@ -7646,6 +7653,7 @@ function handleEvents(){
     if(e.type==='sec'){secPop(e);continue;}
     if(e.type==='lap'){const L=lapLog[lapLog.length-1],d=[];if(!e.inv){if(L)d.push('지난 '+sgn(e.lt-L.t));if(bestLap!=null)d.push('베스트 '+sgn(e.lt-bestLap));}e.dtx=d.length?' · '+d[d.length-1]:'';lapLog.push({n:lapLog.length+1,t:e.lt,s:e.s,inv:!!e.inv});}   // 10-31: diffs to my last lap and my best here
     if(e.type==='lap'&&e.inv){toast('트랙 리밋 · 랩 삭제','#ff8a8a');continue;}
+    if(e.type==='lastChance'||(TUT&&e.type==='garageOut'))continue;   // (the warning is in the last lap's strip; the tutorial starts on the track)
     if(e.type==='lap'&&race.sess&&race.sess.kind==='quali'){let msg='랩 '+fmt(e.lt),col='#fff';if(bestLap==null||e.lt<bestLap){bestLap=e.lt;saveLS('lightsout3d-best-'+TRK.id,e.lt);col='#b16cff';}
       const cl=sessClass(race),i=cl.indexOf(race.player)+1;if(race.player.best===e.lt){msg='Q'+race.sess.q+' P'+i+' · '+fmt(e.lt);if(col==='#fff')col='#3ddc84';}toast(msg+e.dtx,col);continue;}
     if(e.type==='lap'){let msg='랩 '+fmt(e.lt),col='#fff';if(sessionBest==null||e.lt<sessionBest){sessionBest=e.lt;col='#3ddc84';}if(bestLap==null||e.lt<bestLap){bestLap=e.lt;saveLS('lightsout3d-best-'+TRK.id,e.lt);msg='내 기록 갱신! '+fmt(e.lt);col='#b16cff';}toast(msg+e.dtx,col);continue;}
