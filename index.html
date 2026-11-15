@@ -7457,7 +7457,7 @@ function sessAct(){const S=race&&race.sess,p=race&&race.player;if(!S||S.kind!=='
   /* 11-16 윤택님 「여기서 어느버튼에있어?」: on an out-lap / deleted lap the button always holds its place - when it cannot be used now it is dimmed with the short reason beside it, and a tap only says why */
   const no=(w,m)=>Object.assign(a,{no:w,go:()=>toast(m,'#fff',1.5,1000)}),near=()=>no('출발선 가까움','출발선 가까움 · 그대로 달리면 기록\u00a0시작');
   if(p.blue)return no('트래픽 지나가는 중','뒤차가 기록 랩 중 · 지나간 뒤 다시');
-  if(ps==='stop')return no('피트 정차 중','피트 정차 중 · 출발하면 다시');
+  if(ps==='stop')return no('피트 정차 중','피트 정차 중 · 출발하면\u00a0다시');
   if(!p.pit&&wrap(-p.idx)*STEP<1000)return near();
   const R=sessSpot();if(!R)return null;
   if(Math.max(1,Math.floor(p.prog/N)+1)*N-p.prog<R.k+150)return near();   /* only while the run-up spot is still ahead (300 m or more) */
@@ -7531,7 +7531,7 @@ function drawHUD(dt){
    if(k==='nt'&&!pl.pit&&!lt.startsWith('인랩')){const m=wrap(-pl.idx)*STEP;if(m<=300)lt='기록 시작까지 '+Math.max(10,Math.ceil(m/10)*10)+'m';}
    setT('tCurL',lt);
    if(k==='fly'&&cr._k==='nt'&&race.t-pl.crossT<1)flyNote();
-   if(lk&&lt.startsWith('인랩')&&!pl.sessDone&&!TUT&&LK.inr!==race){LK.inr=race;toast('인랩 · PIT를 누르거나 시간이 끝나면 기록 안 돼요','#8ecae6',2,1000);}
+   if(lk&&lt.startsWith('인랩')&&!pl.sessDone&&!TUT&&LK.inr!==race){LK.inr=race;toast('인랩 · PIT나 시간\u00a0종료면 기록\u00a0안\u00a0돼요','#8ecae6',2,1000);}
    if(cr._k!==k){cr._k=k;cr.className='row cur '+k;}}
   {let fb=null;for(const c of race.cars)if(c.best!=null&&(fb==null||c.best<fb))fb=c.best;setT('tFast',race.fl&&!race.sess?fmt(race.fl.t)+' '+race.fl.code:fb==null?'-':fmt(fb));   // v12f: the fastest lap of the race so far, and the gap to my best lap at this point of the lap
    const dv=pl.dlt,el=$('tDelta'),cls=dv==null?'':dv<0?'neg':'pos';setT('tDelta',dv==null?'-':(dv<0?'-':'+')+Math.abs(dv).toFixed(3));if(el._c!==cls){el._c=cls;el.className=cls;}
