@@ -776,6 +776,9 @@ body.touch.ph-small #mTyre small{font-size:var(--fs-12)} body.touch.ph-small #mT
 body.touch #flag.sa{padding:3px 3px 3px 7px; border-radius:7px; background:rgba(12,14,18,.82); box-shadow:inset 3px 0 0 #ffb347,0 2px 8px rgba(0,0,0,.3)}
 #flag.sa #fmSkip{padding:5px 9px; font-size:var(--fs-13); vertical-align:0}
 #flag.sa #fmSkip:active{background:#c9ccd3}
+#fmSkip.no{background:rgba(244,245,247,.38); color:rgba(17,17,17,.75)} #flag.sa #fmSkip.no:active{background:rgba(244,245,247,.5)}   /* 11-16: the button cannot be used now - the reason sits on its left */
+#flag.sa #flagT{font-size:var(--fs-12); font-weight:var(--fw-bold); color:#ffb347; white-space:nowrap}
+#toast.big{font-size:40px} body.touch #toast.big{font-size:var(--fs-20); padding:6px 16px}
 @keyframes flagPulseSa{50%{filter:brightness(1.25); box-shadow:inset 3px 0 0 #ffb347,0 0 0 3px rgba(255,255,255,.8),0 4px 18px rgba(0,0,0,.35)}}
 body.touch #flag.sa.pulse{animation-name:flagPulseSa}
 #qHint{position:absolute; left:50%; transform:translateX(-50%); top:76px; width:330px; max-width:calc(100% - 24px); z-index:4; padding:12px 14px; border-radius:12px; background:rgba(14,15,19,.92); box-shadow:inset 0 0 0 1px rgba(255,255,255,.14),0 12px 30px rgba(0,0,0,.45); color:var(--c-val); pointer-events:auto}
@@ -958,7 +961,7 @@ body.touch #flag.sa.pulse{animation-name:flagPulseSa}
         <span><kbd>포메이션</kbd></span><span>그리드 순서대로 한 바퀴, 추월 금지 · 좌우로 흔들어 타이어 데우기 · 그리드 300m 전부터 자동 정렬 · <kbd>Enter</kbd> 건너뛰기</span>
         <span><kbd>레드 플래그</kbd></span><span>경기 중단: 천천히 피트 레인으로 → 순위대로 정렬, 타이어 교체·수리 → 세이프티카 따라 그리드로 → 스탠딩 재출발 · <kbd>Enter</kbd> 건너뛰기</span>
         <span><kbd>코스 밖 추월</kbd></span><span>네 바퀴가 모두 흰 선 밖으로 나간 채 자리를 얻으면 15초 안에 그 차를 다시 앞으로 보내야 해요 · 안 돌려주면 +10초 (첫 랩은 +5초) · AI도 똑같이 돌려줘요</span>
-        <span><kbd>예선</kbd></span><span>Q1 6:00 → Q2 5:00 → Q3 4:00 (실제 18·15·12분의 1/3) · Q1·Q2에서 하위 6명 탈락 · 체커기 전에 시작한 랩까지 인정 · 플라잉 랩 차량 진로 방해 시 그리드 3계단 강등</span>
+        <span><kbd>예선</kbd></span><span>Q1 6:00 → Q2 5:00 → Q3 4:00 (실제 18·15·12분의 1/3) · Q1·Q2에서 하위 6명 탈락 · 체커기 전에 시작한 랩까지 인정 · 아웃랩·인랩엔 뒤에 오는 플라잉 랩 차량에 길 비켜 주기</span>
         <span><kbd>C</kbd> · <kbd>V</kbd> · <kbd>H</kbd> · <kbd>N</kbd></span><span>시점 전환 (콕핏 → T캠 → 추격 → 원거리) · 누르는 동안 뒤 보기 · 룸미러 켜기/끄기 · 미니맵 크게 → 작게 → 끄기 (노란 구간 = 다음 코너)</span>
         <span><kbd>[</kbd> <kbd>]</kbd></span><span>레이스 중 조향 감도 조절</span>
         <span><kbd>M</kbd> · <kbd>P</kbd> · <kbd>R</kbd></span><span>사운드 · 일시정지 · 재시작</span>
@@ -3035,12 +3038,11 @@ function sessionControl(race,dt){const S=race.sess,p=race.player;if(S.over)retur
   if(!S.chq)for(const c of race.cars){if(c.gone||c.isP||!c.run||!c.pit||c.pit.state!=='garage')continue;if(c.run.k===0&&c.pit.t>1e8&&S.t>=c.run.leave)c.pit.t=0;}
   // traffic: a car on a slow lap moves over for one on a flying lap; the player gets blue flags when holding one up
   for(const c of race.cars){c.blue=null;if(c.gone||c.pit||c.dnf)continue;
-    if(c.isP?sessPushing(race,c):(c.run&&c.run.ph==='push'))continue;
+    if(c.isP?(!c.lapInv&&!c.pitReq&&!c.sessDone&&c.crossT>=0):(c.run&&c.run.ph==='push'))continue;   /* 11-16 윤택님 (블루 플래그가 계속): the player is flagged only on a lap that is not timed (out / in / deleted) - never on a timed lap, however slow */
     for(const b of race.cars){if(b===c||b.gone||b.pit||b.dnf)continue;if(!(b.isP?sessPushing(race,b):(b.run&&b.run.ph==='push')))continue;
       const g=gapTo(b,c);if(g>0&&g<(c.isP?32:45)&&b.spd>c.spd-2){c.blue=b;break;}}}   // 11-06 윤택님: out of the way at once - seen from 90 m (was 64), over at 2.4/s and 15 % off the pace (stepAI)
-  if(p.blue&&!p.pit){p.impT=(p.impT||0)+dt;if(!p.blueOn){p.blueOn=true;race.EV.push({type:'blueQ'});}
-    if(p.impT>6&&!S.impede){S.impede=true;p.gridPen=(p.gridPen||0)+3;race.EV.push({type:'impede'});}}   // impeding: three grid places
-  else{p.blueOn=false;p.impT=Math.max(0,(p.impT||0)-dt*0.5);}
+  if(p.blue&&!p.pit){if(!p.blueOn){p.blueOn=true;const sn=p.blueSeen||(p.blueSeen=new Set());if(!sn.has(p.blue.id)){sn.add(p.blue.id);race.EV.push({type:'blueQ'});}}}
+  else p.blueOn=false;   /* 11-16 윤택님: no warning, no grid penalty (it was three places after 6 s) - one short note per car that comes up behind */
   if(S.chq){const busy=race.cars.some(c=>!c.gone&&!c.pit&&!c.dnf&&!c.sessDone&&(c.isP?c.lapStart<S.flagT&&c.lapFlying:(c.run&&c.run.ph==='push')));
     if(!busy||race.t-S.flagT>110){S.over=true;sessClassify(race);race.EV.push({type:'sessEnd'});}}}
 function sessClass(race){return race.cars.filter(c=>!c.gone).sort((a,b)=>((a.best==null)-(b.best==null))||((a.best||0)-(b.best||0))||(a.id-b.id));}
@@ -6622,8 +6624,9 @@ function cycleNext(){const p=race&&race.player;if(!p)return;const o=['S','M','H'
 let toastHold=0;
 // 11-11 윤택님 「패널티·타이어 변경 팝업이 너무 오래 시야를 가림」: every note at most TOAST_MAX s (penalties were 2.6, damage 2.4, instructions 3.6), and on a phone
 // it sits in the top band (layoutTouchHUD: the row under the race-control pill; the mirror's row is only kept free while the mirror is on)
+function flyNote(){toast('플라잉 랩 시작 · 기록\u00a0측정','#3ddc84',2,1000);$('toast').classList.add('big');toastT=2.6;}   /* 11-16 윤택님: bigger and 2.6 s (other notes stay at 2 s or less) */
 const TOAST_MAX=2;function toast(m,c,d,hold){d=Math.min(d||1.5,TOAST_MAX);if(hold)hold=Math.min(hold,1000);   /* 11-13 윤택님 「팝업 화면에 뜨는 시간이 너무 길어」: 보통 1.5초, 중요 2초, 다른 알림 막는 시간 1초 */if(!hold&&performance.now()<toastHold)return;if(hold)toastHold=performance.now()+hold;const t=$('toast'),rd=m.startsWith('무전: ');   /* 11-14 (현장감 디테일 #4): 「무전: …」 is a radio card */
-  if(rd){t.textContent='';const b=document.createElement('b');b.textContent='무전';t.append(b,m.slice(4));}else t.textContent=m;if(t._rd!==rd){t._rd=rd;t.classList.toggle('radio',rd);}t.style.color=c||'#fff';t.style.opacity=1;toastT=d||1.8;if(rd)sfx('radio');}
+  if(rd){t.textContent='';const b=document.createElement('b');b.textContent='무전';t.append(b,m.slice(4));}else t.textContent=m;t.classList.remove('big');if(t._rd!==rd){t._rd=rd;t.classList.toggle('radio',rd);}t.style.color=c||'#fff';t.style.opacity=1;toastT=d||1.8;if(rd)sfx('radio');}
 function setupRace(mode,o){o=o||{};mDraw=40;podiumEnd(false);meshes.forEach(m=>scene.remove(m.root));resetSkids();if(WORLD&&WORLD.crew)WORLD.crew.ready=false;clearDebris();
   const opts={weather,rainInt,incidents,damage:damageMode,aeroAuto:aeroMode==='auto',assist:isTouch&&assistMode==='off'?'offTouch':assistMode,formation:mode==='race'&&formOn,gridOrder:o.gridOrder,skills:o.skills};
   if(mode==='quali'||mode==='practice')race=makeSession(teamSel,mode,diff,sens,null,Object.assign(opts,{comp:startComp}));
@@ -7431,12 +7434,13 @@ function towerMv(c){const o=!race.sess&&TPOS&&TPOS.r===race&&TPOS.m[c.id];return
 // 11-15 윤택님 「퀄리파잉에서 랩타임 재는거랑 플라잉랩 구분을 좀 짓는작업도추가해줘」: in practice / qualifying the clock's label says which lap
 // this is - out-lap and in-lap (and a deleted lap) are dimmed 「기록 안 됨」, a timed lap is 「플라잉 랩」. HUD only: it reads the SIM's flags
 // (pit state, lapInv, pitReq, sessDone); the SIM sets lapInv on leaving the garage, so LK remembers that this lap began in the pit lane.
-const LK={r:null,o:false};
+const LK={r:null,o:false,x:0};
 function lapKind(p){const S=race.sess;if(!S||state!=='race'||!p.isP&&p!==race.player)return null;if(LK.r!==race){LK.r=race;LK.o=false;}const ps=p.pit&&p.pit.state;
   if(ps==='garage'||ps==='red')return null;
-  if(ps==='out'||ps==='join'){LK.o=true;return ['아웃랩 · 기록 안 됨','nt'];}
+  if(ps==='out'||ps==='join'){LK.o=true;LK.x=p.crossT;return ['아웃랩 · 출발선부터 기록','nt'];}
   if(ps||p.sessDone||p.pitReq)return ['인랩 · 기록 안 됨','nt'];
-  if(p.crossT<0||LK.o)return ['아웃랩 · 기록 안 됨','nt'];
+  if(LK.o&&p.crossT!==LK.x)LK.o=false;   /* 11-16 윤택님 「한바퀴돌고 했는데도 기록 재는거 시작안되더라」: the out-lap ends at the line - it waited for a lap event, and the first crossing out of a garage past the line sends none, so the first timed lap showed 「아웃랩」 */
+  if(p.crossT<0||LK.o||p.lapPit&&p.lapInv)return ['아웃랩 · 출발선부터 기록','nt'];   /* (lapPit: this lap began in the pit lane - the SIM's own flag, so an out-lap reads as one even when the HUD did not see the pit lane) */
   return p.lapInv?['랩 삭제 · 기록 안 됨','nt']:['플라잉 랩','fly'];}
 const onFly=c=>c.isP?(lapKind(c)||[])[1]==='fly':!!(c.run&&c.run.ph==='push'&&!c.pit);   // the tower's green dot: a car on a timed lap
 /* 11-15 윤택님 예선 버튼: the one session button in the race-control pill (#fmSkip) - out-lap / deleted lap 「플라잉 랩으로」「다시 시도」, in-lap 「개러지로」, after the flag 「결과 보기」.
@@ -7444,21 +7448,26 @@ const onFly=c=>c.isP?(lapKind(c)||[])[1]==='fly':!!(c.run&&c.run.ph==='push'&&!c
    before a qualifying part ends, for 8 s after a run-up,
    in the tutorial, in a championship (only 「결과 보기」 - the shortcuts could change a result) - never outside practice / qualifying. */
 let sessRuAt=0;
-function sessAct(){const S=race&&race.sess,p=race&&race.player;if(!S||TUT||state!=='race'||race.form||!p||p.dnf)return null;
+function sessAct(){const S=race&&race.sess,p=race&&race.player;if(!S||S.kind!=='quali'||TUT||state!=='race'||race.form||!p||p.dnf)return null;
   const k=lapKind(p),ps=p.pit&&p.pit.state;
-  if(S.chq)return S.kind==='quali'&&!S.over&&!(k&&k[1]==='fly')?{t:p.sessDone?'세션 종료':'체커기',b:'결과 보기 ▸▸',go:doSkip}:null;
-  if(race.champ)return null;
-  if(!k||k[1]==='fly'||p.blue||ps==='stop')return null;
+  if(S.chq)return !S.over&&!(k&&k[1]==='fly')?{t:p.sessDone?'세션 종료':'체커기',b:'결과 보기 ▸▸',go:doSkip}:null;
+  if(!k||k[1]==='fly')return null;
   if(k[0].startsWith('인랩'))return {t:'인랩',b:'개러지로 ▸▸',go:sessGarageUI};
-  if(!p.pit&&wrap(-p.idx)*STEP<1000)return null;
-  const R=sessSpot();if(!R||Math.max(1,Math.floor(p.prog/N)+1)*N-p.prog<R.k+150)return null;   /* only while the run-up spot is still ahead (300 m or more) */
-  if(S.kind==='quali'&&S.len-S.t<R.t+4)return null;   /* the design's 10 s rule (for a 6 s run-up): it would reach the line after the flag */
-  if(performance.now()-sessRuAt<8000)return null;   /* S3: 빈 틈 찾기로 1km 밖에 놓여도 누른 직후 칩이 다시 뜨지 않게 */
-  const del=k[0].startsWith('랩 삭제');return {t:del?'랩 삭제':'아웃랩',b:del?'다시 시도 ▸▸':'플라잉 랩으로 ▸▸',go:sessRunUpUI};}
+  const del=k[0].startsWith('랩 삭제'),a={t:del?'랩 삭제':'아웃랩',b:del?'다시 시도 ▸▸':'플라잉 랩으로 ▸▸',go:sessRunUpUI};
+  /* 11-16 윤택님 「여기서 어느버튼에있어?」: on an out-lap / deleted lap the button always holds its place - when it cannot be used now it is dimmed with the short reason beside it, and a tap only says why */
+  const no=(w,m)=>Object.assign(a,{no:w,go:()=>toast(m,'#fff',1.5,1000)}),near=()=>no('출발선 가까움','출발선 가까움 · 그대로 달리면 기록\u00a0시작');
+  if(p.blue)return no('트래픽 지나가는 중','뒤차가 기록 랩 중 · 지나간 뒤 다시');
+  if(ps==='stop')return no('피트 정차 중','피트 정차 중 · 출발하면 다시');
+  if(!p.pit&&wrap(-p.idx)*STEP<1000)return near();
+  const R=sessSpot();if(!R)return null;
+  if(Math.max(1,Math.floor(p.prog/N)+1)*N-p.prog<R.k+150)return near();   /* only while the run-up spot is still ahead (300 m or more) */
+  if(S.len-S.t<R.t+4)return no('남은 시간 부족','남은 시간 안에 출발선까지 못 가요');   /* the design's 10 s rule (for a 6 s run-up): it would reach the line after the flag */
+  if(performance.now()-sessRuAt<8000)return near();   /* S3: 빈 틈 찾기로 1km 밖에 놓여도 누른 직후 칩이 다시 뜨지 않게 */
+  return a;}
 /* the cut: chase camera and skid trails start fresh; the 3D picture (not the HUD) comes back from black in 0.35 s - off under reduced motion */
 function sessCut(){const p=race.player;chaseInit=false;camYaw=p.a;if(SKID)SKID.last=[null,null,null,null];
   try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches)$('gl').animate([{filter:'brightness(0)'},{filter:'brightness(1)'}],{duration:350,easing:'ease-in'});}catch(e){}}
-function sessRunUpUI(){if(!sessRunUp(race,race.player)){toast('트래픽이 지나가는 중 · 잠시 후 다시','#fff',1.5,1000);return;}LK.r=race;LK.o=true;sessRuAt=performance.now();sessCut();qHintOff();toast('플라잉 랩 준비 · 출발선부터 기록','#3ddc84',2,1000);}
+function sessRunUpUI(){if(!sessRunUp(race,race.player)){toast('트래픽이 지나가는 중 · 잠시 후 다시','#fff',1.5,1000);return;}LK.r=race;LK.o=true;LK.x=race.player.crossT;sessRuAt=performance.now();sessCut();qHintOff();toast('플라잉 랩 준비 · 출발선부터 기록','#3ddc84',2,1000);}
 function sessGarageUI(){sessToGarage(race,race.player,3);sessCut();toast('개러지 · 잠시 뒤 새\u00a0타이어로 출발','#8ecae6',2,1000);}
 /* 11-15: the first time the button shows while the pit lane still drives the car (~20 s), a small card under the strip says what it does - once (lightsout3d-qhint), phones only.
    S2: the stored flag is read once (not every frame); it is saved when closed by a tap, or when it hides by itself after showing for more than 2 s */
@@ -7517,7 +7526,13 @@ function drawHUD(dt){
     setT('pen',(pl.pen?'+'+pl.pen+'초':'')+(pl.strikes?(pl.pen?' · ':'')+'경고 '+Math.min(3,pl.strikes)+'/3':''));
     setT('lap',race.form?(race.form.kind==='start'?'포메이션 랩':'레드 플래그 재개'):Math.max(1,Math.min(race.laps,Math.floor(pl.prog/N)+1))+'/'+race.laps);}
   setT('tCur',fmt(state==='race'&&!race.form&&pl.fin==null&&pl.prog>=0&&!(pl.pit&&(pl.pit.state==='garage'||pl.pit.state==='red'))&&!(S&&pl.crossT<0)?race.t-pl.lapStart:0));setT('tLast',fmt(pl.lastLap));setT('tBest',fmt(bestLap));
-  {const lk=lapKind(pl),k=lk?lk[1]:'',cr=$('tCurL').parentElement;setT('tCurL',lk?lk[0]:'현재');if(cr._k!==k){cr._k=k;cr.className='row cur '+k;}}
+  {const lk=lapKind(pl),k=lk?lk[1]:'',cr=$('tCurL').parentElement;let lt=lk?lk[0]:'현재';
+   /* 11-16 윤택님 「랩타임 기록을 언제재야하는질 모르겠네」: the last 300 m to the line on an out-lap / deleted lap count down; the crossing that starts a timed lap shows a bigger, longer note; the first in-lap says why it is one */
+   if(k==='nt'&&!pl.pit&&!lt.startsWith('인랩')){const m=wrap(-pl.idx)*STEP;if(m<=300)lt='기록 시작까지 '+Math.max(10,Math.ceil(m/10)*10)+'m';}
+   setT('tCurL',lt);
+   if(k==='fly'&&cr._k==='nt'&&race.t-pl.crossT<1)flyNote();
+   if(lk&&lt.startsWith('인랩')&&!pl.sessDone&&!TUT&&LK.inr!==race){LK.inr=race;toast('인랩 · PIT를 누르거나 시간이 끝나면 기록 안 돼요','#8ecae6',2,1000);}
+   if(cr._k!==k){cr._k=k;cr.className='row cur '+k;}}
   {let fb=null;for(const c of race.cars)if(c.best!=null&&(fb==null||c.best<fb))fb=c.best;setT('tFast',race.fl&&!race.sess?fmt(race.fl.t)+' '+race.fl.code:fb==null?'-':fmt(fb));   // v12f: the fastest lap of the race so far, and the gap to my best lap at this point of the lap
    const dv=pl.dlt,el=$('tDelta'),cls=dv==null?'':dv<0?'neg':'pos';setT('tDelta',dv==null?'-':(dv<0?'-':'+')+Math.abs(dv).toFixed(3));if(el._c!==cls){el._c=cls;el.className=cls;}
    setT('tFastL',S?'세션 최고':'레이스 최고');for(const id of TROWS){const on=hc[id]!=='-';if(hc['rv'+id]!==on){hc['rv'+id]=on;$(id).parentElement.classList.toggle('nv',!on);}}}   // 11-14 (H11): a row shows once it has a value (the first lap: the current time and the sectors only)
@@ -7857,8 +7872,7 @@ function flagPanel(){const rc=race.rc,p=race.player,el=$('flag');let cls='',txt=
     else if(rc.flag==='red'){const R=rc.red;cls='r';txt=!R||R.phase==='resume'?'레드 플래그 · SC 따라 그리드로':R.phase==='held'?'레드 플래그 · 재개 '+Math.max(0,Math.ceil(R.resumeAt-race.t))+'초':'레드 플래그 · 피트 레인으로'+(rc.redFast?' · 과속!':'');if(!isTouch&&R)txt+=' · Enter 건너뛰기';}
     else if(TUT&&TUT.wait){cls='f';txt='피트 레인을 나가는 중…';}   // 11-14 (T1): the tutorial's cards start on the track
     else if(S&&S.chq){cls='chq';sa=sessAct();txt=sa?(isTouch?'':sa.t+' · Enter 결과 보기'):'체커기 · 이번 랩까지';}
-    else if(S&&p.blue){cls='b';txt='블루 플래그 · 비켜주기';}
-    else if(S){sa=sessAct();if(sa){cls=isTouch?'sa':'f';txt=isTouch?'':sa.t+' · Enter '+sa.b.replace(' ▸▸','');}}
+    else if(S){sa=sessAct();if(sa){cls=isTouch?'sa':'f';txt=isTouch?(sa.no||''):sa.t+' · '+(sa.no||'Enter '+sa.b.replace(' ▸▸',''));}}
     else if(rc.flag==='sc'){cls='sc';txt=rc.sc&&rc.sc.phase==='in'?'SC · 이번 랩 복귀':rc.sc&&rc.sc.phase==='pit'?(rc.go?'재시작! · 추월 금지':'재시작 대기 · 추월 금지'):'세이프티카 · 추월 금지';}
     else if(rc.flag==='vsc'){cls='vsc';const vd=!p.pit&&p.fin==null?p.vd:null,end=rc.vsc&&rc.vsc.ending,why='';   // 11-08: the delta number lives in the pill now (not in the pits or after the flag; sessions never get here)
       const gb=p.vgb&&Object.values(p.vgb)[0],gbs=gb?' · '+gb.code+' 반납 '+Math.max(0,Math.ceil(gb.until-race.t))+'초':'';
@@ -7875,7 +7889,7 @@ function flagPanel(){const rc=race.rc,p=race.player,el=$('flag');let cls='',txt=
       else if(rc.noPass&&rc.noPass[p.id]!=null&&p.prog<rc.noPass[p.id]){cls='y';txt='라인까지 추월 금지';}
       else if(race.t<(rc.greenAt??-99)+4){cls='g';txt='그린 · 다시 레이스';}}}
   if(!cls&&flagMsg&&(state==='race'||state==='done')){if(performance.now()<flagMsg.until){cls=flagMsg.cls;txt=flagMsg.txt;}else flagMsg=null;}
-  {const sk=isTouch&&!FF&&(sa?true:(cls==='f'&&!!race.form||cls==='r')&&canSkip()),lb=sa?sa.b:'건너뛰기 ▸▸';if(hc.fmSk!==sk){hc.fmSk=sk;$('fmSkip').hidden=!sk;}if(hc.fmL!==lb){hc.fmL=lb;$('fmSkip').textContent=lb;}}   // 11-14 (H1): 「건너뛰기」 in the formation lap's (and the red flag's) strip
+  {const sk=isTouch&&!FF&&(sa?true:(cls==='f'&&!!race.form||cls==='r')&&canSkip()),lb=sa?sa.b:'건너뛰기 ▸▸';if(hc.fmSk!==sk){hc.fmSk=sk;$('fmSkip').hidden=!sk;}if(hc.fmL!==lb){hc.fmL=lb;$('fmSkip').textContent=lb;}const no=!!(sa&&sa.no);if(hc.fmNo!==no){hc.fmNo=no;$('fmSkip').classList.toggle('no',no);}}   // 11-14 (H1): 「건너뛰기」 in the formation lap's (and the red flag's) strip
   qHintUpd(sa);
   if(cls&&isTouch){if(flagPulse>0)cls+=' pulse';if(toastT>0&&document.body.classList.contains('ph-port'))cls+=' tuck';}   // v12j: phones - the pill flashes when race control changes; in portrait a short note takes its line for a moment
   el.className=cls?'show '+cls:'';if(cls){setT('flagT',txt);setT('flagD',dv);setT('flagS',sx);const D=$('flagD');if(D._c!==dc){D._c=dc;D.className=dc;}}}
@@ -7922,7 +7936,7 @@ function handleEvents(){
     if(e.type==='sec'){secPop(e);if(e.k===0&&!race.sess&&!race.stNote&&Math.floor(race.player.prog/N)===0){race.stNote=1;startNote();}continue;}
     if(e.type==='lap'){const L=lapLog[lapLog.length-1],d=[];if(!e.inv){if(L)d.push('지난 '+sgn(e.lt-L.t));if(bestLap!=null)d.push('내 기록 '+sgn(e.lt-bestLap));}e.dtx=d.length?' · '+d[d.length-1]:'';lapLog.push({n:lapLog.length+1,t:e.lt,s:e.s,inv:!!e.inv});}   // 10-31: diffs to my last lap and my best here
     if(e.type==='lap'&&!race.sess)lastLapNote();
-    if(e.type==='lap'&&race.sess){const wo=LK.r===race&&LK.o;LK.o=false;if(e.inv||wo){const k=lapKind(race.player);if(k&&k[1]==='fly')toast('플라잉 랩 시작 · 기록\u00a0측정','#3ddc84',2,1000);continue;}}
+    if(e.type==='lap'&&race.sess&&e.inv)continue;   /* (the 「플라잉 랩 시작」 note is in drawHUD) */
     if(e.type==='lap'&&e.inv){toast('트랙 리밋 · 랩 삭제','#ff8a8a');continue;}
     if(e.type==='lastChance'||(TUT&&(e.type==='garageOut'||e.type==='pitOut')))continue;   // (the warning is in the last lap's strip; the tutorial starts on the track)
     if(e.type==='lap'&&race.sess&&race.sess.kind==='quali'){let msg='랩 '+fmt(e.lt),col='#fff';if(bestLap==null||e.lt<bestLap){bestLap=e.lt;saveLS('lightsout3d-best-'+TRK.id,e.lt);col='#b16cff';}
