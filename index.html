@@ -593,6 +593,35 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
 .mItem i{width:7px; height:7px; border-color:#5d616b}
 #mHomeR{position:relative; z-index:1; flex:0 1 360px; display:flex; flex-direction:column; justify-content:space-between; align-items:flex-end; min-width:0; padding:max(14px,var(--sat)) max(18px,var(--sar)) max(14px,var(--sab)) 12px; background:linear-gradient(to top,rgba(8,9,12,.55),rgba(8,9,12,0) 38%); pointer-events:none}
 #mHomeR>*{pointer-events:auto}
+/* 11-16 S4: 홈 오른쪽 - 모드 알약 아래 팀 이름판(‹ 이름 › │ 꾸미기, 아래 3px 팀 두 색 줄) + 넘김 점 11개, 차 둘레 팀 조명(벽에 주색·바닥에 보조색, 팀이 바뀌면 0.15초), 시작 버튼 부제, 튜토리얼 「처음이면」 */
+@property --tp{syntax:'<color>'; inherits:true; initial-value:#2450c4}
+@property --ts{syntax:'<color>'; inherits:true; initial-value:#d01a14}
+#mHomeR::before{content:''; position:absolute; z-index:-1; inset:0; pointer-events:none; background:radial-gradient(ellipse 210px 26px at 57% 67%,color-mix(in srgb,var(--ts) 30%,transparent),transparent 75%),radial-gradient(ellipse 300px 120px at 57% 38%,color-mix(in srgb,var(--tp) 24%,transparent),transparent 72%); transition:--tp .15s,--ts .15s}
+@media (prefers-reduced-motion:reduce){#mHomeR::before{transition:none}}
+#mPlateW{flex:none; container-type:inline-size; width:100%; margin:8px 0 auto; display:flex; flex-direction:column; align-items:center; gap:5px}
+#mPlate{position:relative; display:grid; grid-template-columns:40px minmax(0,1fr) 40px 1px 80px; align-items:center; width:100%; height:52px; overflow:hidden; border-radius:12px; background:rgba(14,15,19,.84); box-shadow:var(--hair)}
+#mPlate::after{content:''; position:absolute; left:0; right:0; bottom:0; height:3px; background:linear-gradient(90deg,var(--tp) 0 50%,var(--ts) 50% 100%); pointer-events:none}
+#menu #mPlate button{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; min-width:0; height:52px; min-height:0; margin:0; padding:0 0 3px; background:none; border:0; border-radius:0; box-shadow:none; color:#e9ebef; font-size:var(--fs-12); font-weight:var(--fw-med); line-height:var(--lh-ui)}
+#menu #mPlate button:active{background:rgba(255,255,255,.08)}
+#mPlate .pArr i{display:block; width:9px; height:9px; margin-left:4px; border:solid #cfd3da; border-width:2.5px 2.5px 0 0; transform:rotate(-135deg)}
+#mPlate .pArr.r i{margin:0 4px 0 0; transform:rotate(45deg)}
+.pName{display:flex; align-items:center; gap:7px; max-width:100%; font-size:var(--fs-15); font-weight:var(--fw-bold); letter-spacing:var(--ls-text); color:#fff; white-space:nowrap}
+.pName b{font-weight:inherit}
+.pStp{flex:none; width:5px; height:16px; border-radius:1px; background:linear-gradient(var(--tp) 0 50%,var(--ts) 50% 100%)}
+.pNo{font:italic var(--fw-hero) var(--fs-17)/1 var(--ff-num); letter-spacing:0; font-variant-numeric:tabular-nums}
+.pDn{flex:none; width:6px; height:6px; border:solid #80858f; border-width:0 2px 2px 0; transform:rotate(45deg) translateY(-2px)}
+.pSub{font-size:var(--fs-12); font-weight:var(--fw-reg); color:#aab0b9; white-space:nowrap}
+.pV{width:1px; height:28px; background:rgba(255,255,255,.12)}
+#menu #mPlate #mTmLiv{gap:3px; white-space:nowrap}
+#mTmLiv svg{width:18px; height:18px}
+#mDots{display:flex; align-items:center; justify-content:center; gap:5px; width:126px; height:11px; border-radius:6px; background:rgba(14,15,19,.7); pointer-events:none}
+#mDots i{width:5px; height:5px; border-radius:3px; background:var(--c); opacity:.75; box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+#mDots i.on{width:16px; opacity:1; background:#fff}
+@container (max-width:319px){ #mPlate{grid-template-columns:34px minmax(0,1fr) 34px 1px 44px} #mTmLiv span{display:none} }
+#mTutTag{margin-left:8px; padding:2px 7px; border-radius:6px; background:#fff; color:#16171b; font-size:var(--fs-12); font-weight:var(--fw-bold); line-height:var(--lh-ui)}
+#mTutTag[hidden]{display:none}
+#menu #startBtn #startSub{display:block; margin-top:2px; font-size:var(--fs-12); font-weight:var(--fw-med); letter-spacing:var(--ls-text); color:#ffe1dd; white-space:nowrap}
+#startSub:empty{display:none}
 #menu #mMode{width:212px; margin:0; padding:3px; background:rgba(14,15,19,.78); box-shadow:inset 0 0 0 1px rgba(255,255,255,.1); border-radius:11px}
 #menu #mMode button{min-height:36px; font-size:13.5px; border-radius:8px}
 #mAct{display:flex; flex-direction:column; gap:8px; width:100%}
@@ -608,6 +637,7 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
   #mHomeL{padding-top:max(12px,var(--sat))} #mHomeL .lgE{font-size:27px} #menu .mItem{min-height:46px} .mItem .mTx span{font-size:15.5px} #menu #startBtn{min-height:54px} #mHomeR{padding-bottom:max(12px,var(--sab))}
 }
 @container (max-width:700px){ #mHomeL{flex-basis:50%} #mHomeR{flex-basis:290px} #menu #mMode{width:190px} }
+@container (max-width:700px){ #menu #startBtn{padding:0 38px 0 20px} }   /* 11-16 S4: 667 폭은 시작 버튼 안쪽 여백을 줄여 부제 한 줄(시안 2-9) */
 @container (min-height:560px){
   #mHomeL .lgE{font-size:52px} #mHomeL h1::after{transform:scale(1.3); transform-origin:left center} #mHomeL .lgK{font-size:14px}
   #menu .mItem{min-height:68px} .mItem .mTx b{font-size:13.5px} .mItem .mTx span{font-size:20px}
@@ -6895,15 +6925,26 @@ const MPAGES={track:[[null,[['chBox','대회','서킷을 이어 달리며 순위
 const MNAMES={track:'서킷',team:'내 팀',race:'레이스 설정',drive:'운전',set:'그래픽과 기타'};
 function mOpen(k){const side=k==='track'||k==='team';$('mHome').hidden=!!k&&!side;$('mPage').hidden=!k;$('mPage').toggleAttribute('data-side',side);for(const n in MPAGES){const on=n===k;$('mP_'+n).hidden=!on;if(on)$('mP_'+n).scrollTop=0;}if(k)$('mPgT').textContent=k==='track'&&mMode==='champ'?'대회와 서킷':MNAMES[k];}
 function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={easy:'AI 쉬움',normal:'AI 보통',hard:'AI 어려움'}[diff]||'',w=weather==='rain'?{light:'약한 비',heavy:'폭우'}[rainInt]||'비(랜덤)':{dry:'맑음',mixed:'변덕'}[weather]||'';
-  set('mV_team',TEAMS[teamSel].name);set('mV_race',gameMode==='practice'?['연습 주행',w].join(', '):[(gameMode==='quali'?'예선 후 ':'')+laps+'랩',d,w].join(', '));
+  set('mV_team',TEAMS[teamSel].name);set('mV_race',gameMode==='practice'?['연습 주행',w].join(', '):[(gameMode==='quali'?'예선+':'')+laps+'랩',d,w].join(', '));
+  /* 11-16 S4: 이름판 글자·번호(리버리 번호 먼저)·동료, 팀 색 --tp/--ts(도색 반영값), 넘김 점(아주 어두운 주색은 보조색), 「처음이면」(기록 0), 시작 부제 「서킷 · 예선+3랩 · AI 보통」 */
+  {const ti=teamSel,t=TEAMS[ti],m=$('menu'),dt=$('mDots'),tg=$('mTutTag'),tk=mMode!=='champ'?TRK:!CH?(chLen>=TRACKS.length?TRACKS[0]:TRK):CH.rd<CH.list.length?chTrk(CH.list[CH.rd]):null;
+   set('mTmName',t.name);set('mTmNo','#'+((LIVC[ti]&&LIVC[ti].num)||ti*2+2));set('mTmSub','나 · 동료 '+t.d[1][0]);m.style.setProperty('--tp',t.p);m.style.setProperty('--ts',t.s);
+   if(dt)dt.innerHTML=TEAMS.map((x,i)=>`<i${i===ti?' class="on"':''} style="--c:${lumOf(x.p)<0.12?x.s:x.p}"></i>`).join('');if(tg)tg.hidden=!noLapYet();
+   set('startSub',tk?[tk.name.replace(/\s*\(.*\)$/,''),gameMode==='practice'?'연습 주행':(gameMode==='quali'?'예선+':'')+laps+'랩',d].join(' · '):'');}
   set('mV_drive',[{tilt:'기울이기',drag:'드래그',buttons:'버튼'}[steerMode],autoGas?'자동 가속':'직접 가속'].join(', '));set('mV_set','그래픽 '+({high:'높음',medium:'보통',low:'부드럽게'}[quality]||''));}
 (function menuBuild(){const card=document.querySelector('#menu .card'),h1=card.querySelector('h1'),st=$('startBtn'),help=card.querySelector('.keys');help.id='mKeys';
   const mk=(tag,id,par,cl)=>{const e=document.createElement(tag);if(id)e.id=id;if(cl)e.className=cl;if(par)par.appendChild(e);return e;};
   const old=[...card.children],home=mk('div','mHome'),L=mk('div','mHomeL',home),R=mk('div','mHomeR',home),page=mk('div','mPage');page.hidden=true;
   L.appendChild(h1);const mm=mk('div','mMode',R,'seg');mm.innerHTML='<button type="button" data-v="normal">일반 모드</button><button type="button" data-v="champ">대회 모드</button>';
   const list=mk('div','mList',L);for(const k in MNAMES){const b=mk('button',null,list,'mItem');b.type='button';b.innerHTML=`<span class="mTx"><b id="mN_${k}">${MNAMES[k]}</b><span id="${k==='track'?'bestMenu':'mV_'+k}"></span></span><i></i>`;b.onclick=()=>mOpen(k);}
+  /* 11-16 S4: 모드 알약 아래 팀 이름판 - ‹ › = 옆 팀 칸 .click()(S3 대기 그대로), 가운데 = 팀 시트, 꾸미기 = livBtn .click()(leOpen/leClose 그대로). 아래 넘김 점. 글자·색은 menuSum */
+  {const pw=mk('div','mPlateW',R),pl=mk('div','mPlate',pw),nb=d=>{const b=$('teamSel').querySelector('[data-v="'+((teamSel+d+TEAMS.length)%TEAMS.length)+'"]');if(b)b.click();};
+   pl.innerHTML='<button type="button" class="pArr" aria-label="이전 팀"><i></i></button><button type="button" id="mTmMid"><span class="pName"><i class="pStp"></i><b id="mTmName"></b><span class="pNo" id="mTmNo"></span><i class="pDn"></i></span><span class="pSub" id="mTmSub"></span></button><button type="button" class="pArr r" aria-label="다음 팀"><i></i></button><i class="pV"></i><button type="button" id="mTmLiv" aria-label="내 팀 차 꾸미기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4.5l5 5L10 19H5v-5z"/><path d="M12.5 6.5l5 5"/></svg><span>꾸미기</span></button>';
+   const [pv,mid,nx,lv]=pl.querySelectorAll('button');pv.onclick=()=>nb(-1);nx.onclick=()=>nb(1);mid.onclick=()=>mOpen('team');lv.onclick=()=>$('livBtn').click();mk('div','mDots',pw).setAttribute('aria-hidden','true');}
   {const act=mk('div','mAct',R),sec=mk('div','mSec',act),b1=mk('button','mTut',sec),b2=mk('button','mGuide',sec);b1.type=b2.type='button';b1.textContent='튜토리얼';b2.textContent='규칙 가이드';
    b1.onclick=()=>tutStart();b2.onclick=()=>guideOpen();act.appendChild(st);}   /* 11-13: the tutorial and the rules guide from the home screen */
+  /* 11-16 S4: 튜토리얼 「처음이면」 꼬리표, 시작 부제는 글자 노드·(Enter) 뒤 - updStartBtn이 firstChild 글자만 바꿈 */
+  R.querySelector('#mTut').insertAdjacentHTML('beforeend','<span id="mTutTag" hidden>처음이면</span>');st.insertAdjacentHTML('beforeend','<small id="startSub"></small>');
   const hd=mk('div','mPgH',page),bk=mk('button','mBack',hd);bk.type='button';bk.setAttribute('aria-label','뒤로');bk.innerHTML='<i></i>';bk.onclick=()=>mOpen(null);mk('div','mPgT',hd);
   for(const k in MPAGES){const pg=mk('div','mP_'+k,page,'mPg');pg.hidden=true;
     for(const [grp,rows] of MPAGES[k]){if(grp)mk('p',null,pg,'mGrp').textContent=grp;
@@ -7010,7 +7051,7 @@ let leT=0;function leApply(){if(!LED)return;const {ti,L}=LED,painted=JSON.string
   LIVC[ti]=!painted?Object.assign(LED.C0?{L:LED.C0}:{},{num:LED.num,name:LED.name}):{L:{D:L.D,W:L.wt==='none'?null:L.W,wt:L.wt==='none'?null:L.wt,K:L.K,KC:L.KC?1:0,A:L.A,M:L.M,cut:L.cut,fin:L.fin,spine:+L.spine,flap:L.flap,endp:L.endp,rflap:L.rflap,art:L.art==='cobalt'?'cobalt':null},num:LED.num,name:LED.name};
   saveLS('lightsout3d-liv',JSON.stringify(LIVC));applyLivData(ti);
   clearTimeout(leT);leT=setTimeout(()=>{dropTeamMats(ti);if(state==='menu')setupRace();refreshTeamButtons();},120);}
-function refreshTeamButtons(){document.querySelectorAll('#teamSel button[data-v]').forEach(b=>{const t=TEAMS[+b.dataset.v],sw=b.querySelector('.sw'),n=b.querySelector('.tmN');if(sw)sw.style.background=`linear-gradient(${t.p} 0 50%,${t.s} 50%)`;if(n)n.textContent=teamNo(+b.dataset.v);});}
+function refreshTeamButtons(){document.querySelectorAll('#teamSel button[data-v]').forEach(b=>{const t=TEAMS[+b.dataset.v],sw=b.querySelector('.sw'),n=b.querySelector('.tmN');if(sw)sw.style.background=`linear-gradient(${t.p} 0 50%,${t.s} 50%)`;if(n)n.textContent=teamNo(+b.dataset.v);});menuSum();}
 document.querySelectorAll('#livEd .sws').forEach(d=>{const k=d.dataset.k;
   d.innerHTML=(k==='W'?'<button class="none" data-v="none" type="button">없음</button>':'')+LE_SW.map(c=>`<button type="button" data-v="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')+`<input type="color" aria-label="직접 고르기">`;
   d.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!LED)return;const v=b.dataset.v;if(k==='W'){if(v==='none'){LED.L.W=null;LED.L.wt='none';}else{LED.L.W=v;if(!LED.L.wt||LED.L.wt==='none')LED.L.wt='engine';}}else LED.L[k]=v;leSync();leApply();});
