@@ -665,6 +665,78 @@ body.inmenu:has(#mPage:not([hidden])) #gl{animation-play-state:paused}   /* a se
 #quitNote{font-size:13px; color:#ffb347; text-align:right}
 #pause #quitBtn{flex:none; min-width:0; min-height:44px; padding:0 8px; background:none; border:0; color:#ff8a80; font-size:14px; font-weight:600; text-decoration:underline; text-underline-offset:3px}
 #pause #quitBtn.arm{padding:0 16px; background:#d92d26; color:#fff; font-weight:700; text-decoration:none}
+/* ===== 11-16 일시정지 개편(UI 개편 조각 P — 설계 _백업\lo_home_1115\2차\시안\일시정지_설계.md · pause.css 1부, 레퍼런스\반영안.md C-2 ①②) =====
+   스크롤 없는 한 화면. 왼쪽 판 = 설정 탭(조작 · 보조 · 화면 · 내 랩 · 더 보기 — 홈 「설정」 시트와 같은 부품), 오른쪽 열 = 할 일(맨 위 그만두기, 아래에서부터 계속 달리기 · 처음부터 다시/조작법 · 상황 버튼).
+   「계속 달리기」는 오른쪽 아래 = 일시정지 버튼을 누른 엄지가 그대로 내려오는 자리(C-2 ①). 바로 위 옛 #pause 규칙과 우선순위가 같아 반드시 그 뒤. 모든 선택자가 #pause 안이라 다른 카드에 영향 없음 */
+#pause{padding:0; background:linear-gradient(270deg,rgba(8,9,12,.95) 0,rgba(8,9,12,.9) 34%,rgba(8,9,12,.72) 100%)}   /* 할 일 쪽(오른쪽)을 더 어둡게: 뒤 장면이 버튼 사이로 비치지 않게 */
+#pause .card{position:relative; width:min(100%,1040px); height:min(100%,560px); max-height:none; overflow:hidden; border:0; border-radius:0; background:none; box-shadow:none;
+  display:grid; grid-template-columns:minmax(0,1fr) clamp(200px,31%,260px); grid-template-rows:34px minmax(0,1fr); gap:10px 16px;
+  padding:14px max(20px,var(--sar)) max(14px,var(--sab)) max(20px,var(--sal))}   /* 폰은 화면 가득, 큰 PC 화면에선 가운데 판 */
+#pause .card::before{content:''; position:absolute; left:0; right:0; top:0; height:3px; background:repeating-linear-gradient(90deg,var(--kerb) 0 18px,#f2f2f2 18px 36px)}
+#pause .pHd{grid-column:1/-1; display:flex; flex-wrap:nowrap; align-items:baseline; gap:14px; min-width:0}
+#pause .pHd h1{flex:none; margin:0; font-family:inherit; font-style:normal; font-size:var(--fs-20); font-weight:var(--fw-bold); line-height:1; letter-spacing:var(--ls-title); color:#fff}
+#pause #pInfo{display:flex; align-items:baseline; min-width:0; overflow:hidden; white-space:nowrap; font-family:var(--ff-num); color:#c9cdd4}
+#pause #pInfo b{font-size:var(--fs-32); font-weight:var(--fw-hero); font-style:italic; line-height:1; color:#fff}   /* 내 순위가 먼저 읽히게: 「P8」 크게 + 「/22」 작게(C-2 ②) */
+#pause #pInfo small{margin-left:3px; font-size:var(--fs-15); font-weight:var(--fw-num); color:var(--dim)}
+#pause #pInfo span{margin-left:12px; font-size:var(--fs-17); font-weight:var(--fw-num)}
+#pause #pInfo span:first-child{margin-left:0}
+#pause #pBest{margin-left:auto; display:flex; align-items:baseline; gap:7px; font-size:var(--fs-13); color:#8d929c; white-space:nowrap}
+#pause #pBest b{margin-right:9px; font-family:var(--ff-num); font-size:var(--fs-20); font-weight:var(--fw-num); line-height:1; color:#fff}
+#pause #pBest b:last-child{margin-right:0}
+/* 오른쪽 할 일 열 */
+#pause .pDo{display:flex; flex-direction:column; gap:8px; min-height:0; min-width:0}
+#pause #resumeBtn{position:relative; width:auto; flex:none; height:62px; margin:0; padding:0 40px 0 26px; overflow:hidden; border:0; border-radius:12px; text-align:center; white-space:nowrap;
+  font-size:var(--fs-20); font-weight:var(--fw-bold); letter-spacing:var(--ls-title); line-height:1.15; color:#fff; background:linear-gradient(180deg,#ec3a30,#c0211a); box-shadow:0 6px 18px rgba(200,30,22,.38),inset 0 1px 0 rgba(255,255,255,.28)}
+#pause #resumeBtn small{display:block; margin-top:3px; font-size:var(--fs-12); font-weight:var(--fw-med); letter-spacing:var(--ls-0); color:#ffe1dd}
+#pause #resumeBtn::before{content:''; position:absolute; left:0; top:0; bottom:0; width:12px; background:repeating-conic-gradient(#fff 0 25%,#16171b 0 50%) 0 0/12px 12px}
+#pause #resumeBtn::after{content:''; position:absolute; right:20px; top:50%; width:11px; height:11px; margin-top:-7px; border:solid #fff; border-width:3px 3px 0 0; transform:rotate(45deg)}
+#pause .pPair{display:flex; gap:8px}
+#pause .pPair button,#pause #skipBtn{flex:1 1 0; min-width:0; min-height:58px; margin:0; padding:6px 8px; border:0; border-radius:12px; text-align:center; line-height:1.2; white-space:nowrap;
+  font-size:var(--fs-15); font-weight:var(--fw-bold); letter-spacing:var(--ls-text); color:#eef0f3; background:#26282e; box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)}
+#pause #skipBtn{flex:none}
+#pause .pDo button small{display:block; margin-top:2px; font-size:var(--fs-12); font-weight:var(--fw-med); letter-spacing:var(--ls-0); color:#8d929c}
+#pause .pPair button.arm,#pause #skipBtn.arm,#pause #pEasy.arm{background:#d92d26; box-shadow:none; color:#fff}
+#pause #quitNote{margin:0; min-height:16px; font-size:var(--fs-13); font-weight:var(--fw-med); line-height:1.25; color:#ffb347; text-align:left; word-break:keep-all}
+#pause #quitBtn{align-self:flex-end; flex:none; min-width:0; min-height:44px; margin:-8px -4px auto 0; padding:0 4px; border:0; background:none; box-shadow:none; white-space:nowrap;
+  color:#ff8a80; font-size:var(--fs-13); font-weight:var(--fw-med); text-decoration:underline; text-underline-offset:3px}   /* 맨 위: 「계속 달리기」에서 가장 먼 자리(잘못 누르기 방지, 두 번 누르기) */
+#pause #quitBtn.arm{margin-right:0; padding:0 16px; background:#d92d26; color:#fff; font-weight:var(--fw-bold); text-decoration:none}
+/* 왼쪽 설정 판: 세로 탭(.tabs) + 줄(.prow: 이름·설명 | 선택 막대 .seg 44px) */
+#pause .pSet{display:grid; grid-template-columns:auto minmax(0,1fr); align-items:start; min-height:0; border-radius:12px; background:rgba(22,23,27,.95); box-shadow:inset 0 0 0 1px rgba(255,255,255,.09)}
+#pause .tabs{align-self:stretch; display:flex; flex-direction:column; gap:4px; padding:12px 8px 12px 12px; border-right:1px solid rgba(255,255,255,.07)}
+#pause .tabs button{height:44px; min-height:0; margin:0; padding:0 14px; border:0; border-radius:10px; background:none; text-align:left; white-space:nowrap; font-size:var(--fs-15); font-weight:var(--fw-med); letter-spacing:var(--ls-text); color:#b3b7c0}
+#pause .tabs button[aria-pressed="true"]{background:#474b56; color:#fff; font-weight:var(--fw-bold)}
+#pause .tabs button[hidden]{display:none}
+#pause .pPane{display:grid; grid-template-columns:max-content minmax(150px,1fr); align-content:start; gap:10px 12px; min-width:0; padding:12px 16px}   /* 이름 칸 = 가장 긴 이름 폭, 줄마다 선택 막대가 같은 자리(줄은 subgrid) */
+#pause .pPane>*{grid-column:1/-1}
+#pause .pPane[hidden]{display:none}
+#pause .prow{display:grid; grid-template-columns:subgrid; align-items:center; margin:0}
+#pause .prow>b{font-size:var(--fs-13); font-weight:var(--fw-bold); line-height:1.25; color:#e6e8ec; white-space:nowrap}
+#pause .prow>b small{display:block; margin-top:2px; font-size:var(--fs-12); font-weight:var(--fw-reg); line-height:1.3; color:#8d929c}
+#pause .seg{display:flex; gap:2px; margin:0; padding:3px; border-radius:12px; background:#26282e}
+#pause .seg button{flex:1 1 0; min-width:0; min-height:44px; height:auto; margin:0; padding:4px; border:0; border-radius:9px; background:none; font-size:var(--fs-13); font-weight:var(--fw-med); color:#b3b7c0; white-space:nowrap}
+#pause .seg button[aria-pressed="true"]{background:#474b56; color:#fff; font-weight:var(--fw-bold)}
+/* 열려 있는 동안 HUD는 숨기고(자리 계산이 남도록 visibility) 멈춘 3D만 그늘 아래. 목록은 body.cine과 같고 튜토리얼 카드·테두리·피트 알림·예선 안내 카드를 더함. 「조작법」을 누르면 #pause가 hidden이라 HUD가 돌아옴 */
+body:has(#pause:not([hidden])) :is(.hud,#mini,#camTag,#flag,#touch,#mctl,#mirFrame,#tower,#pitT,#pitMsg,#tut,#tutMark,#qHint){visibility:hidden}
+body.sm-tilt #pause [data-row="ped"]{display:none}   /* 기울이기면 페달 위치는 효과가 없다 */
+#pause .pSk{display:flex; align-items:center; gap:12px; min-height:52px; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,.07)}
+#pause .pSk .skNote{flex:1; min-width:0; margin:0; font-size:var(--fs-12); line-height:1.4; color:#aab0b9}
+#pause #pAidNote b{display:block; font-size:var(--fs-13); font-weight:var(--fw-bold); color:#e6e8ec; white-space:nowrap}
+#pause #pAidNote small{display:block; margin-top:1px; font-size:var(--fs-12); color:#8d929c; white-space:nowrap}
+#pause #pSkNote{display:none}   /* skillUI가 null 검사 없이 쓰므로 남기고 숨김 — 문장은 #pAidNote(setSync) */
+#pause .pSk button,#pause #pGuide{flex:none; min-height:44px; margin:0; padding:0 16px; border:0; border-radius:10px; background:#26282e; box-shadow:inset 0 0 0 1px rgba(255,255,255,.12); font-size:var(--fs-13); font-weight:var(--fw-bold); color:#fff; white-space:nowrap}
+#pause.isEasy #pEasy{display:none}
+#pause .pLast{padding-top:6px; border-top:1px solid rgba(255,255,255,.07)}
+#pause #pGuide{justify-self:start}
+/* 「내 랩」 탭: 게임의 .laps 표 그대로, 옛 #pLaps 여백만 없앰 */
+#pause #pLaps{margin:0} #pause #pLaps details{margin:0} #pause #pLaps summary{padding:2px 0 6px; font-size:var(--fs-13)} #pause #pLaps table{margin:0; font-size:var(--fs-13)} #pause #pLaps td,#pause #pLaps th{padding:3px 6px}
+@container (max-width:700px){
+  #pause .card{grid-template-columns:minmax(0,1fr) 184px; gap:8px 12px}
+  #pause #resumeBtn{padding:0 34px 0 24px; font-size:var(--fs-17); letter-spacing:var(--ls-text)} #pause #resumeBtn small{display:none}
+  #pause .pPair button,#pause #skipBtn{font-size:var(--fs-13); padding:6px 4px}
+  #pause .tabs{padding:10px 6px 10px 8px} #pause .tabs button{width:72px; padding:0 8px; font-size:var(--fs-13); line-height:1.15; white-space:normal}
+  #pause .pPane{grid-template-columns:max-content minmax(0,1fr); column-gap:8px; padding:10px 12px}
+  #pause .prow>b small{display:none}}
+@media (prefers-reduced-motion:reduce){#pause *{transition:none !important}}
 #result .rHd{position:sticky; top:-22px; z-index:2; margin:-22px -24px 8px; padding:16px 24px 8px; background:#15171b}   /* (a sticky box in a scroller sticks to its content edge: top = minus the card's padding, or it sat 22 px low over the line under it) */
 body.touch #result .rHd{top:-14px; margin:-14px -16px 6px; padding:10px 16px 8px}
 #result .rHd h1{flex:1 1 auto; min-width:0; margin:0}
@@ -897,18 +969,18 @@ body.touch #flag.sa.pulse{animation-name:flagPulseSa}
       
     </div>
   </div>
-  <div class="overlay" id="pause" hidden><div class="card"><div class="pHd"><h1>일시정지</h1><span id="pInfo" class="num"></span></div>
-    <div class="row2 pAct"><button class="go" id="resumeBtn">계속 달리기</button><button id="ctlBtn" class="touchOnly" type="button">조작법</button><button id="skipBtn" hidden>건너뛰기</button></div>
-    <p class="pGrp">설정</p>
-    <div class="touchOnly"><p class="label">조향 방식</p><div class="seg" id="pSmSel"><button data-v="tilt">기울이기</button><button data-v="drag" aria-pressed="true">드래그</button><button data-v="buttons">버튼</button></div></div>
-    <div class="touchOnly"><p class="label">가속</p><div class="seg" id="pAgSel"><button data-v="auto" aria-pressed="true">자동 가속</button><button data-v="manual">직접 가속</button></div></div>
-    <div><p class="label">조향 감도 (1 가장 부드러움)</p><div class="seg" id="pSensSel"><button data-v="1">1</button><button data-v="2" aria-pressed="true">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button></div></div>
-    <div class="touchOnly"><p class="label">페달 위치</p><div class="seg" id="pPedSel"><button data-v="split" aria-pressed="true">양쪽 (브레이크 왼쪽)</button><button data-v="right">오른쪽에 모아서</button></div></div>
-    <div><p class="label">실력</p><div class="seg" id="pSkSel"><button data-v="easy">초보 (가장 쉽게)</button><button data-v="pro">직접 설정</button></div><p class="skNote" id="pSkNote"></p></div>
-    <p class="pGrp">화면</p>
-    <div class="row2 pScr"><button id="mirBtn">룸미러</button><button id="haloBtn">헤일로 블러</button><button id="fpsBtn">FPS 표시</button></div>
-    <div class="laps" id="pLaps"></div>
-    <div class="pQuit"><span id="quitNote"></span><button id="quitBtn" type="button">레이스 그만두기</button></div></div></div>
+  <div class="overlay" id="pause" hidden><div class="card">
+    <div class="pHd"><h1>일시정지</h1><span id="pInfo" class="num"></span><span id="pBest"></span></div>
+    <div class="pSet"><div class="tabs" id="pTabs"><button type="button" data-t="ctl">조작</button><button type="button" data-t="aid">보조</button><button type="button" data-t="scr">화면</button><button type="button" data-t="laps" hidden>내 랩</button><button type="button" data-t="more">더 보기</button></div>
+      <div class="pPane" data-t="ctl"></div>
+      <div class="pPane" data-t="aid" hidden><div class="pSk"><p class="skNote" id="pSkNote"></p><p class="skNote" id="pAidNote"></p><button id="pEasy" type="button">초보로 한 번에</button></div></div>
+      <div class="pPane" data-t="scr" hidden></div>
+      <div class="pPane" data-t="laps" hidden><div class="laps" id="pLaps"></div></div>
+      <div class="pPane" data-t="more" hidden><div class="prow pLast"><b>규칙 가이드<small>깃발 · 페널티 · 타이어</small></b><button id="pGuide" type="button">가이드 열기</button></div></div></div>
+    <div class="pDo"><button id="quitBtn" type="button">레이스 그만두기</button><p id="quitNote"></p><button id="skipBtn" type="button" hidden>건너뛰기</button>
+      <div class="pPair"><button id="restartBtn" type="button">처음부터 다시</button><button id="ctlBtn" class="touchOnly" type="button">조작법<small>버튼 위치</small></button></div>
+      <button class="go" id="resumeBtn" type="button">계속 달리기<small>멈춘 자리에서 바로 이어져요</small></button></div>
+  </div></div>
   <div class="overlay" id="sess" hidden><div class="card"><h1 id="sessTitle">Q1</h1><p class="sub num" id="sessSub"></p><div class="laps" id="sLaps"></div><table class="num" id="sessTable"></table><div class="row2"><button class="go" id="sessGo">다음</button><button id="sessMenu">메뉴로</button></div></div></div>
   <div class="overlay" id="result" hidden><div class="card"><div class="rHd"><h1 id="resTitle">P1</h1><div class="row2"><button class="go" id="againBtn">다시 달리기<span class="keyOnly"> (Enter)</span></button><button class="go" id="chBtn" hidden>대회 순위 보기<span class="keyOnly"> (Enter)</span></button><button id="menuBtn">메뉴로</button></div></div><p class="sub num" id="resSub"></p><p class="sub" id="resTip" hidden></p><p class="sub num" id="resFl" style="color:#c58bff;margin-top:-4px"></p><table class="num" id="resTable"></table><div class="laps" id="rLaps"></div></div></div>
   <div class="overlay" id="guide" hidden role="dialog" aria-label="레이스 가이드"><div class="gCard"><div class="gHd"><b id="gCnt"></b><span id="gTit"></span><button id="gX" type="button">닫기</button></div>
@@ -6327,7 +6399,7 @@ addEventListener('keydown',e=>{
   if(e.code==='KeyL'){rlMode=rlMode==='corners'?'full':rlMode==='full'?'off':'corners';saveLS('lightsout3d-rl',rlMode);applyRL();document.querySelectorAll('#rlSel button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===rlMode?'true':'false'));toast('레이싱 라인: '+({corners:'코너만',full:'전체',off:'끔'})[rlMode],'#fff');}
   if(e.code==='BracketLeft'||e.code==='BracketRight'){setSens(sens+(e.code==='BracketRight'?1:-1));toast('조향 감도 '+sens,'#fff');}
   if(e.code==='KeyP'||e.code==='Escape'){if(state==='race'||state==='countdown')setPause(true);else if(state==='paused')setPause(false);}
-  if(e.code==='KeyR'&&state!=='menu'&&state!=='loading')startRace(lastStart);
+  if(e.code==='KeyR'&&state!=='menu'&&state!=='loading'&&(TUT||!(race&&(race.sess||race.champ))))(TUT?tutStart(true):startRace(lastStart));
 });
 addEventListener('keyup',e=>{const k=MAP[e.code];if(k){key[k]=false;e.preventDefault();}});
 addEventListener('blur',()=>{for(const k in key)key[k]=false;});
@@ -6641,11 +6713,12 @@ function showSess(){const S=race.sess,p=race.player;if(!S)return;state='sessRes'
   else if(q<3){go.textContent='남은 예선 결과 보기';go.onclick=()=>{sessSimRest(race);showSess();};}
   else{const g=qualiGrid(race),gp=g.indexOf('YOU')+1;go.innerHTML='레이스 시작 · 그리드 P'+gp+'<span class="keyOnly"> (Enter)</span>';go.onclick=()=>startRace({mode:'race',gridOrder:g,skills:skillMap(race),champ:race.champ});}
   $('sLaps').innerHTML=lapTable(true);$('sess').hidden=false;pDraw=3;$('sess').querySelector('.card').scrollTop=0;go.focus({preventScroll:true});}
-function setPause(on){if(on){if(state==='paused')return;pausedFrom=state;state='paused';pDraw=3;$('pLaps').innerHTML=lapTable(false);$('pause').hidden=false;
-    const sk=$('skipBtn');sk.hidden=!canSkip();sk.textContent=race&&race.sess?'이 세션 건너뛰기':'건너뛰기 (빠르게 진행)';pauseLabels();quitArm(false);
-    {const S=race&&race.sess,p=race&&race.player;let t='';if(p&&S)t=S.kind==='practice'?(TUT?'튜토리얼':'연습 주행'):'Q'+S.q+' · P'+(sessClass(race).indexOf(p)+1);else if(p)t='랩 '+Math.max(1,Math.min(race.laps,Math.floor(p.prog/N)+1))+'/'+race.laps+' · P'+(ranking(race).indexOf(p)+1);$('pInfo').textContent=t;}
-    $('pause').querySelector('.card').scrollTop=0;$('resumeBtn').focus({preventScroll:true});if(AC)AC.suspend();}
-  else{state=pausedFrom||'race';$('pause').hidden=true;quitArm(false);if(PREV){PREV.stop();PREV=null;}if(AC)AC.resume();}}
+/* 11-16 UI 개편 조각 P(일시정지 한 화면 — _백업\lo_home_1115\2차\시안\일시정지_설계.md, pause_impl.js [A]). 머리는 내 순위를 먼저: 「P8」 크게 + 「/22」 작게 + 랩(반영안 C-2 ②). 닫을 때 튜토리얼 카드를 지금 조작으로 다시 씀 */
+function setPause(on){if(on){if(state==='paused')return;pausedFrom=state;state='paused';pDraw=3;$('pause').hidden=false;if(TUT)TUT.pz=1;quitArm(false);pLapsFill();pauseVis();pTabShow();
+    {const S=race&&race.sess,p=race&&race.player;let h='';if(p&&S&&S.kind==='practice')h='<span>'+(TUT?'튜토리얼':'연습 주행')+'</span>';else if(p){const rk=S?sessClass(race):ranking(race);h='<b>P'+(rk.indexOf(p)+1)+'</b><small>/'+rk.length+'</small><span>'+(S?'Q'+S.q+' · '+(S.chq?'체커기':'남은 '+fmtClock(S.len-S.t)):'랩 '+Math.max(1,Math.min(race.laps,Math.floor(p.prog/N)+1))+' / '+race.laps)+'</span>';}$('pInfo').innerHTML=h;
+     $('pBest').innerHTML=p&&p.best!=null?'<span>이번 최고</span><b>'+fmt(p.best)+'</b>'+(!S&&p.lastLap!=null?'<span>지난 랩</span><b>'+fmt(p.lastLap)+'</b>':''):'<span>아직 기록 없음</span>';}
+    if(!isTouch)$('resumeBtn').focus({preventScroll:true});if(AC)AC.suspend();}
+  else{state=pausedFrom||'race';$('pause').hidden=true;pDisarm();quitArm(false);if(TUT&&!TUT.ok)tutShow();if(PREV){PREV.stop();PREV=null;}if(AC)AC.resume();}}
 // 11-14 (UI 개편 P1): 「레이스 그만두기」 is a quiet text button under the settings, and the first tap only asks (a stray tap no longer ends the race)
 let quitT=0;function quitArm(on){clearTimeout(quitT);const b=$('quitBtn'),S=race&&race.sess;b.classList.toggle('arm',on);
   b.textContent=on?'한 번 더 누르면 그만둬요':S?(TUT?'튜토리얼 그만두기':'세션 그만두기'):'레이스 그만두기';$('quitNote').textContent=on?(S?'메뉴로 나가요':'이 레이스 결과는 남지 않아요'):'';if(on)quitT=setTimeout(()=>quitArm(false),4000);}
@@ -6774,7 +6847,7 @@ function applyMobileClasses(){$('mAero').style.display=aeroMode==='manual'?'':'n
 // v12j: the same controls sit in the pause card, so they can be changed without leaving the race. Both copies are kept in step.
 function segPick(ids,val){for(const id of ids){const el=$(id);if(!el)continue;el.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===String(val)?'true':'false'));}}
 function setSteerMode(v){steerMode=v;saveLS('lightsout3d-sm',v);applyMobileClasses();segPick(['smSel','pSmSel'],v);if(isTouch){layoutTouchHUD();if(v==='tilt')enableTilt();}skillUI();}   // (10-31: ask for the motion sensor on the tap itself - iOS needs a tap, and the pause menu switch had none)
-function setAutoGas(v){autoGas=v==='auto';saveLS('lightsout3d-ag',v);applyMobileClasses();segPick(['agSel','pAgSel'],v);skillUI();}
+function setAutoGas(v){autoGas=v==='auto';saveLS('lightsout3d-ag',v);applyMobileClasses();if(isTouch)layoutTouchHUD();segPick(['agSel','pAgSel'],v);skillUI();}
 segPick(['smSel','pSmSel'],steerMode);segPick(['agSel','pAgSel'],autoGas?'auto':'manual');
 seg('smSel',setSteerMode);seg('pSmSel',setSteerMode);
 function setPedPos(v){pedPos=v;saveLS('lightsout3d-ped',v);segPick(['pedSel','pPedSel'],v);layoutTouchHUD();}
@@ -7134,7 +7207,7 @@ holdBtn($('mAero'),()=>{key.sm=true;if(state==='race')key.smTap=true;},()=>key.s
 document.querySelectorAll('#btnSteer button').forEach(b=>holdBtn(b,()=>key[b.dataset.k]=true,()=>key[b.dataset.k]=false));
 const tap=(id,fn)=>$(id).addEventListener('pointerdown',e=>{e.preventDefault();fn();});
 tap('mPause',()=>{if(state==='race'||state==='countdown')setPause(true);});tap('mCam',cycleCam);tap('mCal',calibrateTilt);tap('mPit',togglePit);tap('mTyre',cycleNext);tap('mMap',cycleMini);
-$('podSkip').onclick=()=>podiumEnd(true);$('startBtn').onclick=menuStart;$('againBtn').onclick=()=>startRace(lastStart);$('menuBtn').onclick=toMenu;$('resumeBtn').onclick=()=>setPause(false);$('mirBtn').onclick=toggleMirror;$('haloBtn').onclick=toggleHalo;$('fpsBtn').onclick=toggleFps;$('quitBtn').onclick=()=>{if($('quitBtn').classList.contains('arm')){quitArm(false);toMenu();}else quitArm(true);};$('pause').addEventListener('click',()=>{pDraw=Math.max(pDraw,2);});
+$('podSkip').onclick=()=>podiumEnd(true);$('startBtn').onclick=menuStart;$('againBtn').onclick=()=>startRace(lastStart);$('menuBtn').onclick=toMenu;$('resumeBtn').onclick=()=>setPause(false);$('quitBtn').onclick=()=>{if($('quitBtn').classList.contains('arm')){quitArm(false);toMenu();}else quitArm(true);};$('pause').addEventListener('click',()=>{pDraw=Math.max(pDraw,2);});
 $('skipBtn').onclick=()=>{setPause(false);doSkip();};$('sessMenu').onclick=toMenu;
 function updStartBtn(){$('startBtn').firstChild.textContent=mMode==='champ'?(!CH?'대회 시작':CH.rd>=CH.list.length?'새 대회 고르기':'라운드 '+(CH.rd+1)+' 시작'):gameMode==='quali'?'예선 시작':gameMode==='practice'?'연습 주행 시작':'레이스 시작';}
 function menuStart(){if(mMode!=='champ')return startRace();if(CH&&CH.rd>=CH.list.length)return chEnd();if(!CH)chNew(chLen);chGo();}
@@ -8824,6 +8897,52 @@ function toggleFps(){FPSON=!FPSON;saveLS('lightsout3d-fps',FPSON?'1':'0');$('fps
 // v12i: the halo's central strut, soft in the cockpit view (on by default)
 let HALOGH=loadLS('lightsout3d-haloblur')!=='0';   // 10-29 윤택님: the halo (hoop + pillar) out of focus like the real onboard view - on by default, G / pause menu   // v15b: off by default - on the 3D car the faded pillar left jagged halo ends and a grey patch
 function toggleHalo(){HALOGH=!HALOGH;saveLS('lightsout3d-haloblur',HALOGH?'1':'0');toast(HALOGH?'헤일로 블러 켬 (콕핏 시점)':'헤일로 블러 끔','#fff');pauseLabels();}
+/* ===== 11-15 일시정지 개편: 설정 줄은 이 목록 하나에서 그린다(홈 「설정」 시트도 같은 목록을 쓰게 할 것).
+   t 이름 · sm 설명 · o 값:글자 · g() 지금 값 · s(v) 바꾸기 · h 홈 쪽 같은 줄 id(표시만 맞춤) · p 일시정지 탭 · touch 폰에서만
+   · id 선택 막대에 붙일 옛 일시정지 id(pSmSel·pAgSel·pSensSel·pPedSel — 이전결정 4번·최종설계 1장 「p*Sel 그대로」, 옛 segPick 목록도 그대로 맞음).
+   표시는 열 때와 누를 때마다 g()로 다시 읽는다(setSync) → setter마다 쌍둥이 id 목록을 더 적을 필요가 없다.
+   옛 seg('pSmSel'…)(6707~6711)는 로드 때 이 줄들이 아직 없어 건너뛴다 → 클릭 처리가 두 번 붙지 않는다. */
+const SETROWS={
+  sm:{t:'조향 방식',o:'tilt:기울이기|drag:드래그|buttons:버튼',g:()=>steerMode,s:setSteerMode,h:'smSel',p:'ctl',touch:1,id:'pSmSel'},
+  ag:{t:'가속',o:'auto:자동 가속|manual:직접 가속',g:()=>autoGas?'auto':'manual',s:setAutoGas,h:'agSel',p:'ctl',touch:1,id:'pAgSel'},
+  sens:{t:'조향 감도',sm:'1이 가장 부드러워요',o:'1:1|2:2|3:3|4:4|5:5',g:()=>sens,s:v=>setSens(+v),h:'sensSel',p:'ctl',id:'pSensSel'},
+  ped:{t:'페달 위치',sm:'양쪽: 브레이크는 왼쪽',o:'split:양쪽|right:오른쪽',g:()=>pedPos,s:setPedPos,h:'pedSel',p:'ctl',touch:1,id:'pPedSel'},
+  as:{t:'주행 보조',sm:'스핀·잠김을 잡아줘요',o:'high:높음|normal:보통|off:끔',g:()=>assistMode,s:v=>{assistMode=v;saveLS('lightsout3d-assist',v);if(race)race.assist=isTouch&&v==='off'?'offTouch':v;skillUI();},h:'asSel',p:'aid'},
+  bas:{t:'브레이크 보조',sm:'빠르면 대신 밟아요',o:'0:끔|1:약하게|2:강하게',g:()=>brakeAs,s:v=>setBrakeAs(+v),h:'basSel',p:'aid'},
+  rl:{t:'레이싱 라인',o:'corners:코너만|full:전체|off:끔',g:()=>rlMode,s:v=>{rlMode=v;saveLS('lightsout3d-rl',v);applyRL();},h:'rlSel',p:'aid'},
+  mir:{t:'룸미러',o:'1:켬|0:끔',g:()=>MIR&&MIR.on?'1':'0',s:v=>{if((v==='1')!==!!(MIR&&MIR.on))toggleMirror();},p:'scr'},
+  mini:{t:'미니맵',o:'L:크게|S:작게|off:끔',g:()=>miniMode,s:v=>{miniMode=v;saveLS('lightsout3d-mini',v);MM.qk='';},p:'scr'},
+  tower:{t:'순위표',o:'auto:전체|short:줄임|off:숨김',g:()=>towerMode,s:v=>{towerMode=v;saveLS('lightsout3d-tower',v);hc.tw=null;towerT=0;},p:'scr',touch:1},
+  halo:{t:'헤일로 블러',sm:'콕핏 시점에서만 보여요',o:'1:켬|0:끔',g:()=>HALOGH?'1':'0',s:v=>{if((v==='1')!==HALOGH)toggleHalo();},p:'scr'},
+  snd:{t:'소리',sm:'엔진 · 효과음 모두',o:'on:켬|off:끔',g:()=>muted?'off':'on',s:v=>{muted=v==='off';},p:'more'},
+  fps:{t:'FPS 표시',sm:'프레임 확인용',o:'1:켬|0:끔',g:()=>FPSON?'1':'0',s:v=>{if((v==='1')!==FPSON)toggleFps();},p:'more'}};
+function setRowHTML(k){const s=SETROWS[k];return `<div class="prow" data-row="${k}"><b>${s.t}${s.sm?'<small>'+s.sm+'</small>':''}</b><div class="seg"${s.id?` id="${s.id}"`:''} data-set="${k}">`+s.o.split('|').map(x=>{const [v,l]=x.split(':');return `<button type="button" data-v="${v}">${l}</button>`;}).join('')+'</div></div>';}
+for(const k in SETROWS){const s=SETROWS[k];if(!s.p||(s.touch&&!isTouch))continue;const pane=document.querySelector(`#pause .pPane[data-t="${s.p}"]`),end=pane.querySelector('.pLast');(end||pane).insertAdjacentHTML(end?'beforebegin':'beforeend',setRowHTML(k));}
+/* 표시 맞추기 + 「보조」 탭 머리 문장. #pSkNote는 skillUI(6723)가 null 검사 없이 쓰므로 지우지 않고 CSS로 숨긴다 — 그 문장이 일시정지에 없는 「초보」「직접 설정」 버튼을 가리켜서(검토 I7) */
+function setSync(){for(const k in SETROWS){const s=SETROWS[k],v=String(s.g());document.querySelectorAll(`[data-set="${k}"] button`+(s.h?`,#${s.h} button`:'')).forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v?'true':'false'));}
+  const ez=curSkill()==='easy';$('pause').classList.toggle('isEasy',ez);
+  $('pAidNote').innerHTML=ez?'<b>지금: 초보</b><small>보조를 모두 켰어요</small>':'<b>지금: 직접 설정</b><small>'+(isTouch?'버튼 하나로 초보 설정':'버튼 하나로 보조 모두 켜기')+'</small>';}   /* 11-15 글씨정리: 세 줄 접히던 한 문장을 「상태」+「버튼이 하는 일」 두 줄로 — 바뀌는 값 목록은 첫 누름 안내(quitNote)로 옮김 */
+/* 상황에 따라 보이는 버튼(열 때·줄을 누를 때마다, 두 번 누르기 대기는 풀고): 「처음부터 다시」는 일반 레이스와 튜토리얼만(예선은 「개러지로」가 대신, 대회는 결과 다시 굴리기 방지), 건너뛰기 글자는 무엇을 넘기는지 */
+function pauseVis(){pDisarm();const S=race&&race.sess,sk=$('skipBtn'),rs=$('restartBtn');
+  sk.hidden=!canSkip();sk.innerHTML=!S?(race&&race.form?'포메이션 랩 건너뛰기':'레드 플래그 건너뛰기'):S.chq?'결과 보기':'이 세션 남은 시간 넘기기<small>계산으로 끝내고 결과 보기</small>';
+  rs.hidden=!race||!(TUT||(!S&&!race.champ));rs.textContent=TUT?'1단계부터':'처음부터 다시';setSync();}
+/* 「내 랩」 탭(검토 I4): 연습 주행엔 결과 화면이 없어 일시정지가 유일한 랩 목록이다. 옛 #pLaps·lapTable 그대로, 스크롤 없게 최고 랩 + 최근 6랩만 남김(요약 줄에 전체 랩 수). 기록이 없으면 탭을 숨김 */
+function pLapsFill(){const el=$('pLaps');el.innerHTML=lapTable(true);[...el.querySelectorAll('tr')].slice(1,-6).forEach(r=>{if(!r.classList.contains('lb'))r.remove();});
+  $('pTabs').querySelector('[data-t="laps"]').hidden=!lapLog.length;if(!lapLog.length&&pTabNow==='laps')pTabNow='ctl';}
+let pTabNow='ctl';function pTabShow(){document.querySelectorAll('#pTabs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===pTabNow?'true':'false'));document.querySelectorAll('#pause .pPane').forEach(p=>p.hidden=p.dataset.t!==pTabNow);}
+$('pTabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b){pTabNow=b.dataset.t;pTabShow();}});
+$('pause').addEventListener('click',e=>{const b=e.target.closest('.seg[data-set] button');if(!b)return;SETROWS[b.parentElement.dataset.set].s(b.dataset.v);pauseVis();});
+/* 두 번 누르기(그만두기와 같은 방식): 첫 탭은 글자와 설명만 바꾸고 4초 뒤 되돌림. 한 번에 버튼 하나만 */
+let ARM=null;function pArm(b,msg,note,run){const a=ARM;pDisarm();if(a&&a.b===b){run();return;}ARM={b,h:b.innerHTML,t:setTimeout(pDisarm,4000)};b.classList.add('arm');b.textContent=msg;$('quitNote').textContent=note;}
+function pDisarm(){if(!ARM)return;clearTimeout(ARM.t);ARM.b.classList.remove('arm');ARM.b.innerHTML=ARM.h;ARM=null;$('quitNote').textContent='';}
+$('quitBtn').onclick=()=>pArm($('quitBtn'),'한 번 더 누르면 그만둬요',race&&race.sess?'메뉴로 나가요':'이 레이스 결과는 남지 않아요',toMenu);
+$('restartBtn').onclick=()=>pArm($('restartBtn'),'한 번 더',TUT?'한 번 더 누르면 튜토리얼 1단계부터':'한 번 더 누르면 다시 시작 · 결과는 남지 않아요',()=>{setPause(false);if(TUT)tutStart(true);else startRace(lastStart);});
+$('skipBtn').onclick=()=>{const S=race&&race.sess,p=race&&race.player,go=()=>{setPause(false);doSkip();};
+  if(S&&!S.chq&&p&&p.best==null)pArm($('skipBtn'),'한 번 더 누르면 넘겨요',S.q<3?'기록이 없어 Q'+S.q+'에서 탈락해요':'기록이 없어 Q3 맨 뒤에서 출발해요',go);else go();};
+/* 「초보로 한 번에」 = 지금 「초보」 버튼과 같은 applySkill('easy'). 폰에선 조향 방식·가속까지 바뀌므로(기울이기 → 드래그) 두 번 누르기로 확인(검토 I7) */
+$('pEasy').onclick=()=>pArm($('pEasy'),'한 번 더',isTouch?'한 번 더 누르면 드래그 · 자동 가속 · 감도 2 · 보조 모두 켬':'한 번 더 누르면 감도 2 · 보조 모두 켬',()=>{applySkill('easy');pauseVis();});
+$('pGuide').onclick=()=>guideOpen();   /* 목차(검토 I3-c). 옛 가이드 코드에선 guideOpen()이 1쪽 — 어느 쪽이 먼저 들어가도 오류 없음 */
+addEventListener('keyup',()=>{if(state==='paused')setSync();});   /* PC: 일시정지 중 L · [ ] · G · F · M 키로 바꾼 것도 표시에 반영 */
 function fpsTick(raw){if(!FPSON||!(raw>0)||raw>1)return;FPSM.a.push(raw);FPSM.t+=raw;if(FPSM.t<0.5)return;FPSM.t=0;if(FPSM.a.length>240)FPSM.a.splice(0,FPSM.a.length-240);
   const a=FPSM.a,s=a.slice().sort((x,y)=>x-y),avg=a.reduce((x,y)=>x+y,0)/a.length,p99=s[Math.min(s.length-1,Math.floor(s.length*0.99))],pr=renderer.getPixelRatio()/basePR();   // v14: % of this setting's full resolution
   $('fpsBox').textContent='FPS '+Math.round(1/avg)+' · 최저 '+Math.round(1/p99)+' · 화면 '+VS.hz+'Hz'+(PERF.lock60?' · 60 고정':'')+(pr<0.99?' · 해상도 '+Math.round(pr*100)+'%':'');}
