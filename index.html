@@ -651,6 +651,34 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
 .mGrp{margin:20px 0 2px; font-size:12px; font-weight:700; letter-spacing:1.2px; color:#ff6a5f}
 .mRow{border-bottom:1px solid rgba(255,255,255,.06)}
 .mRow:last-child{border-bottom:0}
+/* 11-16 S5: 모드 알약 옆 「설정」 + 오른쪽 설정 시트(왼쪽 260px · 667 폭 96px는 홈이 보임). 왼쪽 탭 4개 | 오른쪽 줄 「이름 | 선택 막대 212px」(시안 v2 sheet_gear) */
+#mTop{flex:none; display:flex; justify-content:flex-end; gap:8px; width:100%}
+#mTop #mMode{flex:0 1 212px; width:auto; min-width:0}
+#menu #mSet{flex:none; display:flex; align-items:center; gap:6px; min-height:44px; margin:0; padding:0 12px; background:rgba(14,15,19,.78); border:0; border-radius:11px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.1); color:#e9ebef; font-size:var(--fs-15); font-weight:var(--fw-bold); letter-spacing:var(--ls-text); line-height:var(--lh-ui); white-space:nowrap}
+#menu #mSet:active{background:rgba(40,42,49,.92)}
+#mSet svg{flex:none; width:18px; height:18px}
+#menu #mX,#mTabs{display:none}
+#mPage[data-gear]:not([hidden]){left:260px; z-index:3; display:grid; grid-template:auto minmax(0,1fr)/136px minmax(0,1fr); background:#16171b; box-shadow:-16px 0 40px rgba(0,0,0,.45)}
+#mPage[data-gear] #mPgH{grid-column:1/-1; padding:max(4px,var(--sat)) max(8px,var(--sar)) 0 20px}
+#mPage[data-gear] #mPgT{font-size:var(--fs-20); font-weight:var(--fw-bold); letter-spacing:var(--ls-title)}
+#menu #mPage[data-gear] #mBack{display:none}
+#menu #mPage[data-gear] #mX{display:block; position:relative; flex:none; width:44px; height:44px; min-height:0; margin:0 0 0 auto; padding:0; background:none; border:0; border-radius:10px}
+#menu #mPage[data-gear] #mX:active{background:var(--mfill)}
+#mX::before,#mX::after{content:''; position:absolute; left:12px; top:21px; width:20px; height:2.5px; border-radius:1px; background:#e9ebef; transform:rotate(45deg)}
+#mX::after{transform:rotate(-45deg)}
+#mPage[data-gear] #mTabs{display:flex; grid-column:1; grid-row:2; flex-direction:column; gap:4px; padding:10px 8px max(10px,var(--sab)); border-right:1px solid rgba(255,255,255,.07)}
+#menu #mTabs button{flex:none; min-height:44px; margin:0; padding:0 12px; background:none; border:0; border-radius:9px; box-shadow:none; text-align:left; color:#b3b7c0; font-size:var(--fs-15); font-weight:var(--fw-med); letter-spacing:var(--ls-text); line-height:var(--lh-ui); white-space:nowrap}
+#menu #mTabs button[aria-selected="true"]{background:var(--mpill); color:#fff; font-weight:var(--fw-bold)}
+#mPage[data-gear] .mPg{grid-column:2; grid-row:2; padding:4px max(16px,var(--sar)) 12px 18px}
+#mPage[data-gear] .mGrp{margin:12px 0 2px; font-size:var(--fs-12); font-weight:var(--fw-med); letter-spacing:var(--ls-0); color:var(--cap)}
+#mPage[data-gear] .mPg .mGrp:first-child{margin-top:6px}
+#mPage[data-gear] .mRow{gap:10px; min-height:52px}
+#mPage[data-gear] .mL{flex:1 1 0}
+#mPage[data-gear] .mL b{font-size:var(--fs-13); font-weight:var(--fw-bold); letter-spacing:var(--ls-text); line-height:1.3; color:#e6e8ec}
+#mPage[data-gear] .mL small{font-size:var(--fs-12); line-height:1.3; color:var(--cap)}
+#mPage[data-gear] .mC{flex:0 0 212px}
+#mPage[data-gear] #touchHelp{margin:0; font-size:var(--fs-13); line-height:var(--lh-body); color:var(--c-lab)}
+@container (max-width:700px){ #mPage[data-gear]:not([hidden]){left:96px; grid-template-columns:120px minmax(0,1fr)} #mPage[data-gear] .mC{flex-basis:190px} #menu #mSet{gap:4px; padding:0 9px} }
 /* 11-13 윤택님 「듀토리얼 더 상세하게」: the rules guide - one topic a page with a small picture, paged, from the home screen and the 운전 page */
 #guide{z-index:30; padding:max(10px,var(--sat)) max(14px,var(--sar)) max(10px,var(--sab)) max(14px,var(--sal)); background:rgba(6,7,10,.82)}
 :where(#tut,#guide,#bmap) button{border:0; padding:0; margin:0; min-height:0; background:none; font:inherit; color:inherit; line-height:1.25; text-align:inherit; cursor:pointer}   /* 151행 전역 button 뒤라야 이김(검토 I2), 특이도 0 */
@@ -801,7 +829,7 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
 @keyframes inTxt{from{opacity:0; transform:scale(.86)} to{opacity:1; transform:none}}
 @keyframes inFade{to{opacity:0}}
 #menu.mEnter #mHomeL h1{animation:mInL .55s cubic-bezier(.2,.8,.2,1) both}
-#menu.mEnter #mMode{animation:mInU .45s .06s cubic-bezier(.2,.8,.2,1) both}
+#menu.mEnter #mTop{animation:mInU .45s .06s cubic-bezier(.2,.8,.2,1) both}
 #menu.mEnter .mItem{animation:mInU .45s .1s cubic-bezier(.2,.8,.2,1) both}
 #menu.mEnter .mItem:nth-child(2){animation-delay:.14s} #menu.mEnter .mItem:nth-child(3){animation-delay:.18s} #menu.mEnter .mItem:nth-child(4){animation-delay:.22s} #menu.mEnter .mItem:nth-child(5){animation-delay:.26s}
 #menu.mEnter #startBtn{animation:mInR .55s .2s cubic-bezier(.2,.8,.2,1) both}
@@ -1065,7 +1093,7 @@ body.touch #flag.sa.pulse{animation-name:flagPulseSa}
   <div id="tutMark" hidden></div>
   <div id="tut" hidden role="status"><p class="th"><b id="tutN"></b><span id="tutH"></span></p><div class="tp" id="tutP"></div><p class="tt" id="tutT"></p><button id="tutMore" type="button" hidden>자세히</button><div class="tb"><button id="tutBack" type="button" hidden></button><button id="tutRace" type="button" hidden>첫 레이스 시작</button><button id="tutGuide" type="button" hidden>규칙 가이드</button><button id="tutSkip" type="button">튜토리얼 끝내기</button><button id="tutNext" type="button">다음 단계 ›</button></div></div>
   <div id="ctlHelp" hidden><div id="chMarks"></div></div>
-  <div class="overlay" id="skill" hidden><div class="card"><h2>처음이세요?</h2><p class="sub" id="skSub">가장 쉬운 조작으로 맞춰 뒀어요. 나중에 「운전」에서 바꿀 수 있어요.</p>
+  <div class="overlay" id="skill" hidden><div class="card"><h2>처음이세요?</h2><p class="sub" id="skSub">가장 쉬운 조작으로 맞춰 뒀어요. 나중에 「설정」의 「운전」에서 바꿀 수 있어요.</p>
     <div class="row2 skAct"><button class="go" id="skTut" type="button"><b>튜토리얼</b><span>직접 달리며 조작 익히기 · 약 3분</span></button><button id="skGo" type="button"><b>바로 레이스</b><span id="skGoS">서울 3랩 · AI 쉬움</span></button></div>
     <button id="skLater" type="button">메뉴 먼저 둘러보기</button></div></div>
   <div id="livEd" hidden><div class="lecard">
@@ -1130,7 +1158,7 @@ body.touch #flag.sa.pulse{animation-name:flagPulseSa}
         <div><p class="label">빗방울 (비 올 때 화면에 맺히는 물방울)</p><div class="seg" id="dropSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔</button></div></div>
         <div><p class="label">관중 표시 (관중석의 사람 그림 · 끄면 조금 가벼워질 수 있어요)</p><div class="seg" id="crowdSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔</button></div></div>
       </div>
-      <p class="sub touchOnly" id="touchHelp">왼쪽 아래로 조향, 브레이크는 조향 바로 오른쪽(페달 위치 「오른쪽」이면 오른쪽 아래, 기울이기면 왼쪽 아래 구석). 자동 가속이면 브레이크만 누르면 돼요. 직선 구간에서 「직선」 버튼을 누르면 날개가 열려요(자동이면 저절로). 위쪽 「맵」 버튼으로 미니맵 크기를 바꿔요. 버튼 자리는 「버튼 사용법」에서 그림으로 볼 수 있어요.</p>
+      <p class="sub touchOnly" id="touchHelp">조작 방식마다 버튼 자리가 달라요. 위에서 그림으로 봐요.</p>
       <div class="keys keyOnly">
         <span><kbd>↑</kbd> <kbd>W</kbd></span><span>가속</span>
         <span><kbd>Space</kbd> <kbd>↓</kbd> <kbd>S</kbd></span><span>브레이크 / 후진</span>
@@ -6919,11 +6947,18 @@ let mMode=loadLS('lightsout3d-mmode')||(CH?'champ':'normal'),chLen=+loadLS('ligh
 // 11-04: the menu: a short list at home, one topic per page. The controls keep their ids and handlers; they are only moved to their row.
 const MPAGES={track:[[null,[['chBox','대회','서킷을 이어 달리며 순위별 점수를 합산해요'],['chTrkNote'],['trkSel']]],['도로',[['wdSel','도로 폭']]]],
   team:[[null,[['teamSel'],['livBtn']]]],
-  race:[['레이스',[['modeSel','진행 방식'],['lapSel','랩 수'],['difSel','AI 난이도'],['scSel','스타트 타이어']]],['날씨와 시간',[['wxSel','날씨','변덕은 도중에 비가 와요'],['rainSel','비 강도','약한 비는 노면만 젖어 인터, 폭우는 풀웻'],['todSel','시간대']]],['규칙',[['fmlSel','포메이션 랩','출발 전에 한 바퀴 돌아요'],['incSel','사고와 세이프티카'],['dmgSel','차량 손상','보통: 내 차는 크게 부딪혀도 대부분 피트에서 고쳐요 · 리얼: 부러진 서스펜션·큰 충격·찢어진 사이드포드는 리타이어 · 끔: 손상 없음']]]],
-  drive:[[null,[['skSel','실력'],['skNote'],['ctlGuide'],['touchHelp'],['tutBtn'],['guideBtn']]],['조작',[['smSel','조향 방식'],['agSel','가속'],['sensSel','조향 감도','1이 가장 부드러워요'],['pedSel','페달 위치','양쪽은 브레이크가 왼쪽이에요'],['stSel','스타트','수동은 부정 출발을 판정해요'],['mKeys']]],['보조',[['asSel','주행 보조','잠김과 스핀을 잡아줘요'],['basSel','브레이크 보조','너무 빠르면 대신 밟아요. 늦게 밟고 싶으면 끄세요'],['rlSel','레이싱 라인'],['aeroSel','직선 모드 날개']]]],
-  set:[['그래픽',[['qSel','그래픽'],['aqSel','자동 화질 조절','프레임이 떨어지면 효과를 줄여요'],['dropSel','빗방울','비 올 때 화면에 맺히는 물방울'],['crowdSel','관중 표시','끄면 조금 가벼워져요']]],['소리',[['sndPrev','엔진 소리'],['sndTune','소리 튜닝','모드와 울림을 귀로 맞춰요'],['bgmSel','메뉴 음악','메뉴 화면에서 흐르는 음악']]]]};   // 11-14: the 도움말 rows moved to 운전 (조작법 보기)
-const MNAMES={track:'서킷',team:'내 팀',race:'레이스 설정',drive:'운전',set:'그래픽과 기타'};
-function mOpen(k){const side=k==='track'||k==='team';$('mHome').hidden=!!k&&!side;$('mPage').hidden=!k;$('mPage').toggleAttribute('data-side',side);for(const n in MPAGES){const on=n===k;$('mP_'+n).hidden=!on;if(on)$('mP_'+n).scrollTop=0;}if(k)$('mPgT').textContent=k==='track'&&mMode==='champ'?'대회와 서킷':MNAMES[k];}
+  race:[['레이스',[['modeSel','진행 방식'],['lapSel','랩 수'],['difSel','AI 난이도'],['scSel','스타트 타이어']]],['날씨와 시간',[['wxSel','날씨','변덕은 도중에 비가 와요'],['rainSel','비 강도','약한 비는 노면만 젖어 인터, 폭우는 풀웻'],['todSel','시간대']]]],
+  drive:[[null,[['skSel','실력'],['skNote']]],['조작',[['smSel','조향 방식'],['agSel','가속'],['sensSel','조향 감도','1이 가장 부드러워요'],['pedSel','페달 위치','양쪽: 브레이크는 왼쪽'],['stSel','스타트','수동은 부정 출발을 판정해요'],['mKeys']]],['보조',[['asSel','주행 보조','스핀·잠김을 잡아줘요'],['basSel','브레이크 보조','빠르면 대신 밟아요'],['rlSel','레이싱 라인'],['aeroSel','직선 모드 날개']]]],
+  rules:[[null,[['fmlSel','포메이션 랩','출발 전에 한 바퀴 돌아요'],['incSel','사고와 세이프티카'],['dmgSel','차량 손상','리얼: 크게 부서지면 리타이어']]]],
+  set:[['소리',[['bgmSel','메뉴 음악','메뉴 화면에서 흐르는 음악'],['sndPrev','엔진 소리'],['sndTune','소리 튜닝','모드와 울림을 귀로 맞춰요']]],['그래픽',[['qSel','그래픽'],['aqSel','자동 화질 조절','프레임이 떨어지면 효과를 줄여요'],['dropSel','빗방울','비 올 때 화면에 맺히는 물방울'],['crowdSel','관중 표시','끄면 조금 가벼워져요']]]],
+  help:[[null,[['ctlGuide'],['touchHelp'],['tutBtn'],['guideBtn']]]]};
+/* 11-16 S5: 홈 목록은 서킷 · 내 팀 · 레이스 설정 3줄. 레이스 「규칙」 묶음은 설정 「레이스 규칙」 탭으로, 도움말 줄은 「도움말」 탭으로, 소리(메뉴 음악 맨 위)를 그래픽보다 먼저(시안 v2 B3). 줄 설명은 일시정지와 같은 짧은 문장 */
+const MNAMES={track:'서킷',team:'내 팀',race:'레이스 설정',drive:'운전',rules:'레이스 규칙',set:'그래픽과 기타',help:'도움말'};
+/* 11-16 S5: 운전 · 레이스 규칙 · 그래픽과 기타 · 도움말은 오른쪽 「설정」 시트의 탭 - 홈은 왼쪽에 그대로 보이고 바깥을 누르면 닫힘, 같은 세션에선 마지막 탭(저장 안 함) */
+const MGEAR=['drive','rules','set','help'];let mGearK='drive';
+function mOpen(k){const side=k==='track'||k==='team',gear=MGEAR.includes(k);if(gear)mGearK=k;$('mHome').hidden=!!k&&!side&&!gear;$('mPage').hidden=!k;$('mPage').toggleAttribute('data-side',side);$('mPage').toggleAttribute('data-gear',gear);
+  for(const n in MPAGES){const on=n===k;$('mP_'+n).hidden=!on;if(on)$('mP_'+n).scrollTop=0;}document.querySelectorAll('#mTabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.k===k?'true':'false'));
+  if(k)$('mPgT').textContent=gear?'설정':k==='track'&&mMode==='champ'?'대회와 서킷':MNAMES[k];if(gear)setSync();}
 function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={easy:'AI 쉬움',normal:'AI 보통',hard:'AI 어려움'}[diff]||'',w=weather==='rain'?{light:'약한 비',heavy:'폭우'}[rainInt]||'비(랜덤)':{dry:'맑음',mixed:'변덕'}[weather]||'';
   set('mV_team',TEAMS[teamSel].name);set('mV_race',gameMode==='practice'?['연습 주행',w].join(', '):[(gameMode==='quali'?'예선+':'')+laps+'랩',d,w].join(', '));
   /* 11-16 S4: 이름판 글자·번호(리버리 번호 먼저)·동료, 팀 색 --tp/--ts(도색 반영값), 넘김 점(아주 어두운 주색은 보조색), 「처음이면」(기록 0), 시작 부제 「서킷 · 예선+3랩 · AI 보통」 */
@@ -6931,12 +6966,14 @@ function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={ea
    set('mTmName',t.name);set('mTmNo','#'+((LIVC[ti]&&LIVC[ti].num)||ti*2+2));set('mTmSub','나 · 동료 '+t.d[1][0]);m.style.setProperty('--tp',t.p);m.style.setProperty('--ts',t.s);
    if(dt)dt.innerHTML=TEAMS.map((x,i)=>`<i${i===ti?' class="on"':''} style="--c:${lumOf(x.p)<0.12?x.s:x.p}"></i>`).join('');if(tg)tg.hidden=!noLapYet();
    set('startSub',tk?[tk.name.replace(/\s*\(.*\)$/,''),gameMode==='practice'?'연습 주행':(gameMode==='quali'?'예선+':'')+laps+'랩',d].join(' · '):'');}
-  set('mV_drive',[{tilt:'기울이기',drag:'드래그',buttons:'버튼'}[steerMode],autoGas?'자동 가속':'직접 가속'].join(', '));set('mV_set','그래픽 '+({high:'높음',medium:'보통',low:'부드럽게'}[quality]||''));}
+  }
 (function menuBuild(){const card=document.querySelector('#menu .card'),h1=card.querySelector('h1'),st=$('startBtn'),help=card.querySelector('.keys');help.id='mKeys';
   const mk=(tag,id,par,cl)=>{const e=document.createElement(tag);if(id)e.id=id;if(cl)e.className=cl;if(par)par.appendChild(e);return e;};
   const old=[...card.children],home=mk('div','mHome'),L=mk('div','mHomeL',home),R=mk('div','mHomeR',home),page=mk('div','mPage');page.hidden=true;
-  L.appendChild(h1);const mm=mk('div','mMode',R,'seg');mm.innerHTML='<button type="button" data-v="normal">일반 모드</button><button type="button" data-v="champ">대회 모드</button>';
-  const list=mk('div','mList',L);for(const k in MNAMES){const b=mk('button',null,list,'mItem');b.type='button';b.innerHTML=`<span class="mTx"><b id="mN_${k}">${MNAMES[k]}</b><span id="${k==='track'?'bestMenu':'mV_'+k}"></span></span><i></i>`;b.onclick=()=>mOpen(k);}
+  L.appendChild(h1);const top=mk('div','mTop',R),mm=mk('div','mMode',top,'seg');mm.innerHTML='<button type="button" data-v="normal">일반 모드</button><button type="button" data-v="champ">대회 모드</button>';
+  /* 11-16 S5: 모드 알약 옆 「설정」 - 마지막에 본 탭으로 열림(처음엔 운전) */
+  {const g=mk('button','mSet',top);g.type='button';g.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg><span>설정</span>';g.onclick=()=>mOpen(mGearK);}
+  const list=mk('div','mList',L);for(const k of ['track','team','race']){const b=mk('button',null,list,'mItem');b.type='button';b.innerHTML=`<span class="mTx"><b id="mN_${k}">${MNAMES[k]}</b><span id="${k==='track'?'bestMenu':'mV_'+k}"></span></span><i></i>`;b.onclick=()=>mOpen(k);}
   /* 11-16 S4: 모드 알약 아래 팀 이름판 - ‹ › = 옆 팀 칸 .click()(S3 대기 그대로), 가운데 = 팀 시트, 꾸미기 = livBtn .click()(leOpen/leClose 그대로). 아래 넘김 점. 글자·색은 menuSum */
   {const pw=mk('div','mPlateW',R),pl=mk('div','mPlate',pw),nb=d=>{const b=$('teamSel').querySelector('[data-v="'+((teamSel+d+TEAMS.length)%TEAMS.length)+'"]');if(b)b.click();};
    pl.innerHTML='<button type="button" class="pArr" aria-label="이전 팀"><i></i></button><button type="button" id="mTmMid"><span class="pName"><i class="pStp"></i><b id="mTmName"></b><span class="pNo" id="mTmNo"></span><i class="pDn"></i></span><span class="pSub" id="mTmSub"></span></button><button type="button" class="pArr r" aria-label="다음 팀"><i></i></button><i class="pV"></i><button type="button" id="mTmLiv" aria-label="내 팀 차 꾸미기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4.5l5 5L10 19H5v-5z"/><path d="M12.5 6.5l5 5"/></svg><span>꾸미기</span></button>';
@@ -6946,6 +6983,9 @@ function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={ea
   /* 11-16 S4: 튜토리얼 「처음이면」 꼬리표, 시작 부제는 글자 노드·(Enter) 뒤 - updStartBtn이 firstChild 글자만 바꿈 */
   R.querySelector('#mTut').insertAdjacentHTML('beforeend','<span id="mTutTag" hidden>처음이면</span>');st.insertAdjacentHTML('beforeend','<small id="startSub"></small>');
   const hd=mk('div','mPgH',page),bk=mk('button','mBack',hd);bk.type='button';bk.setAttribute('aria-label','뒤로');bk.innerHTML='<i></i>';bk.onclick=()=>mOpen(null);mk('div','mPgT',hd);
+  /* 11-16 S5: 설정 시트 머리 오른쪽 닫기(×) + 왼쪽 탭 4개(운전 · 레이스 규칙 · 그래픽과 기타 · 도움말) - 다른 쪽에선 CSS로 숨김 */
+  {const x=mk('button','mX',hd);x.type='button';x.setAttribute('aria-label','닫기');x.onclick=()=>mOpen(null);const tb=mk('div','mTabs',page);tb.setAttribute('role','tablist');
+   for(const k of MGEAR){const b=mk('button',null,tb);b.type='button';b.setAttribute('role','tab');b.dataset.k=k;b.textContent=MNAMES[k];b.onclick=()=>mOpen(k);}}
   for(const k in MPAGES){const pg=mk('div','mP_'+k,page,'mPg');pg.hidden=true;
     for(const [grp,rows] of MPAGES[k]){if(grp)mk('p',null,pg,'mGrp').textContent=grp;
       for(const [id,lb,sm] of rows){const e=$(id);if(!e)continue;const w=e.closest('.touchOnly,.keyOnly'),box=e.parentElement.classList.contains('row2')?e.parentElement:e;
@@ -7007,7 +7047,7 @@ document.querySelectorAll('#modeSel button').forEach(b=>b.setAttribute('aria-pre
 seg('teamSel',v=>{teamSel=+v;saveLS('lightsout3d-team',v);teamWait();});seg('lapSel',v=>{laps=+v;saveLS('lightsout3d-laps',v);});seg('scSel',v=>{startComp=v;scAuto=false;saveLS('lightsout3d-sc',v);if(state==='menu')setupRace();});seg('difSel',v=>{diff=v;saveLS('lightsout3d-diff',v);});seg('sensSel',v=>setSens(+v));segPick(['lapSel'],laps);segPick(['scSel'],startComp);segPick(['difSel'],diff);
 /* 11-16 S3: 「내 팀 차 꾸미기」를 팀 칸 맨 끝(12번째 칸)으로 - seg('teamSel') 뒤라 팀 고르기 동작은 안 붙음. 시트는 바깥을 누르면 닫히고 그 탭은 그대로 전달 */
 {const lb=$('livBtn');lb.innerHTML='<b>내 팀 차 꾸미기</b><span class="tmS">색 · 무늬 · 번호</span>';$('teamSel').appendChild(lb);}
-document.addEventListener('pointerdown',e=>{const p=$('mPage');if(!p.hidden&&p.hasAttribute('data-side')&&!p.contains(e.target)&&$('menu').contains(e.target))mOpen(null);},true);
+document.addEventListener('pointerdown',e=>{const p=$('mPage');if(!p.hidden&&(p.hasAttribute('data-side')||p.hasAttribute('data-gear'))&&!p.contains(e.target)&&$('menu').contains(e.target))mOpen(null);},true);
 seg('trkSel',v=>{if(v!==TRK.id){saveLS('lightsout3d-track',v);$('loading').style.display='flex';$('loading').textContent='서킷을 불러오는 중';setTimeout(()=>location.reload(),30);}});
 document.querySelectorAll('#wdSel button').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.v==='wide')===ROAD_WIDE?'true':'false'));
 seg('wdSel',v=>{if((v==='wide')!==ROAD_WIDE){saveLS('lightsout3d-width',v);$('loading').style.display='flex';$('loading').textContent='서킷을 다시 만드는 중';setTimeout(()=>location.reload(),30);}});   // v12c: the road is built at load
@@ -7107,7 +7147,7 @@ $('skLater').addEventListener('click',skClose);$('skTut').addEventListener('clic
 // 11-14 (UI 개편 #1, 윤택님 「처음 하는 사용자가 했을 때도 이해하기 쉽게」): the first run starts on the easiest set-up (초보, AI 쉬움) - only when nothing is saved yet,
 // a player's own settings are never replaced. The card: 튜토리얼 / 바로 레이스 / 메뉴 먼저 둘러보기
 function firstRunSetup(){applySkill('easy');diff='easy';saveLS('lightsout3d-diff','easy');segPick(['difSel'],'easy');saveLS('lightsout3d-coach','0');menuSum();}
-function skCard(){$('skSub').textContent=FIRST_RUN?'가장 쉬운 조작으로 맞춰 뒀어요. 나중에 「운전」에서 바꿀 수 있어요.':'조작과 보조는 메뉴 「운전」에서 바꿀 수 있어요.';
+function skCard(){$('skSub').textContent=FIRST_RUN?'가장 쉬운 조작으로 맞춰 뒀어요. 나중에 「설정」의 「운전」에서 바꿀 수 있어요.':'조작과 보조는 「설정」의 「운전」에서 바꿀 수 있어요.';
   $('skGoS').textContent=TRK.name.replace(/\s*\(.*\)$/,'').split(' ')[0]+' '+laps+'랩 · '+({easy:'AI 쉬움',normal:'AI 보통',hard:'AI 어려움'}[diff]||'');}
 seg('skSel',applySkill);seg('pSkSel',applySkill);seg('basSel',v=>setBrakeAs(+v));
 skReady=true;skillUI();
@@ -7270,11 +7310,11 @@ const GUIDE=()=>{const T=isTouch,k=(t,kb)=>T?t:kb,ty=(c,l,n)=>`<span><i style="-
    t:['<b>기어는 자동</b>이에요. 계기판의 큰 숫자가 속도(km/h), 옆 숫자가 기어예요.',
       k('코너 앞 <b>직선에서 미리</b> 브레이크를 꾹 누르고, 꺾기 시작하면 떼요. 코너를 빠져나오며 다시 가속해요.','코너 앞 <b>직선에서 미리 세게</b> 밟고, 꺾으면서 조금씩 떼요. 코너를 빠져나오며 다시 가속해요.'),
       '너무 세게, 오래 밟으면 바퀴가 <em>잠겨</em> 연기가 나고 바깥으로 밀려요. 자주 잠기면 타이어에 납작한 곳(<b>플랫 스팟</b>)이 생겨 차가 떨려요.',
-      '어려우면 「운전」의 <b>브레이크 보조</b>(너무 빠르면 대신 밟아 줌)와 <b>주행 보조</b>를 켜요.']},
+      '어려우면 「설정 · 운전」의 <b>브레이크 보조</b>(너무 빠르면 대신 밟아 줌)와 <b>주행 보조</b>를 켜요.']},
   {h:'레이싱 라인',n:'레이싱 라인',v:'<svg viewBox="0 0 220 120"><path d="M14 108 L110 108 Q196 108 196 22" fill="none" stroke="#3a3d45" stroke-width="30"/><path d="M14 108 L84 108" stroke="#3ddc84" stroke-width="6" fill="none"/><path d="M84 108 L132 106" stroke="#ff3b30" stroke-width="6"/><path d="M132 106 Q176 98 186 58" stroke="#f5c518" stroke-width="6" fill="none"/><path d="M186 58 L190 22" stroke="#3ddc84" stroke-width="6"/></svg>',
    t:['바닥의 색 띠를 따라가요: <b style="color:#ff6a5f">빨강</b>에서 브레이크, <b style="color:#f5c518">노랑</b>에서 꺾고, <b style="color:#3ddc84">초록</b>에서 가속.',
       'AI 차들도 같은 라인을 달려요 (추월·방어할 땐 잠깐 벗어나요).',
-      k('「운전」에서 <b>코너만 · 전체 · 끔</b>을 골라요.','「운전」에서 <b>코너만 · 전체 · 끔</b>을 골라요 (L 키).')]},
+      k('「설정 · 운전」에서 <b>코너만 · 전체 · 끔</b>을 골라요.','「설정 · 운전」에서 <b>코너만 · 전체 · 끔</b>을 골라요 (L 키).')]},
   {h:'타이어',n:'타이어',v:'<div class="gTy">'+ty('#e10600','S','소프트')+ty('#f5c518','M','미디엄')+ty('#f2f2f2','H','하드')+ty('#3ddc84','I','인터')+ty('#3b82f6','W','풀 웻')+'</div>',
    t:['<b>소프트(S)</b>는 가장 빠르지만 빨리 닳고, <b>하드(H)</b>는 느리지만 오래 가요. <b>미디엄(M)</b>은 그 중간. 이 셋이 마른 노면용이에요.',
       '<b>인터(I)</b>는 약한 비·젖은 노면, <b>풀 웻(W)</b>은 폭우용이에요.',
@@ -9300,14 +9340,19 @@ const SETROWS={
   as:{t:'주행 보조',sm:'스핀·잠김을 잡아줘요',o:'high:높음|normal:보통|off:끔',g:()=>assistMode,s:v=>{assistMode=v;saveLS('lightsout3d-assist',v);if(race)race.assist=isTouch&&v==='off'?'offTouch':v;skillUI();},h:'asSel',p:'aid'},
   bas:{t:'브레이크 보조',sm:'빠르면 대신 밟아요',o:'0:끔|1:약하게|2:강하게',g:()=>brakeAs,s:v=>setBrakeAs(+v),h:'basSel',p:'aid'},
   rl:{t:'레이싱 라인',o:'corners:코너만|full:전체|off:끔',g:()=>rlMode,s:v=>{rlMode=v;saveLS('lightsout3d-rl',v);applyRL();},h:'rlSel',p:'aid'},
-  mir:{t:'룸미러',o:'1:켬|0:끔',g:()=>MIR&&MIR.on?'1':'0',s:v=>{if((v==='1')!==!!(MIR&&MIR.on))toggleMirror();},p:'scr'},
-  mini:{t:'미니맵',o:'L:크게|S:작게|off:끔',g:()=>miniMode,s:v=>{miniMode=v;saveLS('lightsout3d-mini',v);MM.qk='';},p:'scr'},
-  tower:{t:'순위표',o:'auto:전체|short:줄임|off:숨김',g:()=>towerMode,s:v=>{towerMode=v;saveLS('lightsout3d-tower',v);hc.tw=null;towerT=0;},p:'scr',touch:1},
-  halo:{t:'헤일로 블러',sm:'콕핏 시점에서만 보여요',o:'1:켬|0:끔',g:()=>HALOGH?'1':'0',s:v=>{if((v==='1')!==HALOGH)toggleHalo();},p:'scr'},
+  mir:{t:'룸미러',o:'1:켬|0:끔',g:()=>MIR&&MIR.on?'1':'0',s:v=>{if((v==='1')!==!!(MIR&&MIR.on))toggleMirror();},p:'scr',m:'set'},
+  mini:{t:'미니맵',o:'L:크게|S:작게|off:끔',g:()=>miniMode,s:v=>{miniMode=v;saveLS('lightsout3d-mini',v);MM.qk='';},p:'scr',m:'set'},
+  tower:{t:'순위표',o:'auto:전체|short:줄임|off:숨김',g:()=>towerMode,s:v=>{towerMode=v;saveLS('lightsout3d-tower',v);hc.tw=null;towerT=0;},p:'scr',m:'set',touch:1},
+  halo:{t:'헤일로 블러',sm:'콕핏 시점에서만 보여요',o:'1:켬|0:끔',g:()=>HALOGH?'1':'0',s:v=>{if((v==='1')!==HALOGH)toggleHalo();},p:'scr',m:'set'},
   snd:{t:'소리',sm:'엔진 · 효과음 모두',o:'on:켬|off:끔',g:()=>muted?'off':'on',s:v=>{muted=v==='off';},p:'more'},
   fps:{t:'FPS 표시',sm:'프레임 확인용',o:'1:켬|0:끔',g:()=>FPSON?'1':'0',s:v=>{if((v==='1')!==FPSON)toggleFps();},p:'more'}};
-function setRowHTML(k){const s=SETROWS[k];return `<div class="prow" data-row="${k}"><b>${s.t}${s.sm?'<small>'+s.sm+'</small>':''}</b><div class="seg"${s.id?` id="${s.id}"`:''} data-set="${k}">`+s.o.split('|').map(x=>{const [v,l]=x.split(':');return `<button type="button" data-v="${v}">${l}</button>`;}).join('')+'</div></div>';}
+function setSegHTML(k){const s=SETROWS[k];return `<div class="seg"${s.id?` id="${s.id}"`:''} data-set="${k}">`+s.o.split('|').map(x=>{const [v,l]=x.split(':');return `<button type="button" data-v="${v}">${l}</button>`;}).join('')+'</div>';}
+function setRowHTML(k){const s=SETROWS[k];return `<div class="prow" data-row="${k}"><b>${s.t}${s.sm?'<small>'+s.sm+'</small>':''}</b>`+setSegHTML(k)+'</div>';}
 for(const k in SETROWS){const s=SETROWS[k];if(!s.p||(s.touch&&!isTouch))continue;const pane=document.querySelector(`#pause .pPane[data-t="${s.p}"]`),end=pane.querySelector('.pLast');(end||pane).insertAdjacentHTML(end?'beforebegin':'beforeend',setRowHTML(k));}
+/* 11-16 S5(일시정지 결재 ④): 룸미러·미니맵·순위표·헤일로 블러를 홈 「설정 · 그래픽과 기타」 맨 아래 「화면」에도 - 같은 목록(m:'set')을 홈 줄 모양으로, 누르면 같은 setter + setSync(일시정지 줄도 같이 칠함) */
+{const pg=$('mP_set');pg.insertAdjacentHTML('beforeend','<p class="mGrp">화면</p>');
+ for(const k in SETROWS){const s=SETROWS[k];if(s.m!=='set'||(s.touch&&!isTouch))continue;pg.insertAdjacentHTML('beforeend',`<div class="mRow"><div class="mL"><b>${s.t}</b>${s.sm?'<small>'+s.sm+'</small>':''}</div><div class="mC">`+setSegHTML(k)+'</div></div>');}
+ pg.addEventListener('click',e=>{const b=e.target.closest('.seg[data-set] button');if(b){SETROWS[b.parentElement.dataset.set].s(b.dataset.v);setSync();}});}
 /* 표시 맞추기 + 「보조」 탭 머리 문장. #pSkNote는 skillUI(6723)가 null 검사 없이 쓰므로 지우지 않고 CSS로 숨긴다 — 그 문장이 일시정지에 없는 「초보」「직접 설정」 버튼을 가리켜서(검토 I7) */
 function setSync(){for(const k in SETROWS){const s=SETROWS[k],v=String(s.g());document.querySelectorAll(`[data-set="${k}"] button`+(s.h?`,#${s.h} button`:'')).forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v?'true':'false'));}
   const ez=curSkill()==='easy';$('pause').classList.toggle('isEasy',ez);
