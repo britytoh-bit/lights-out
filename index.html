@@ -516,6 +516,31 @@ body.touch .mRow.touchOnly{display:flex}
 #trkCnt{margin:0 max(0px,calc(var(--sar) - 20px)) 0 auto; font-size:var(--fs-12); color:var(--dim); white-space:nowrap}
 #trkCnt b{font-family:var(--ff-num); font-weight:var(--fw-num); font-variant-numeric:tabular-nums; color:var(--c-val)}
 #mPage:not(:has(#mP_track:not([hidden]))) #trkCnt,#mPage:has(#trkSel.chLock) #trkCnt{display:none}
+/* 11-16 S3: 서킷·내 팀은 왼쪽 반 시트(458px, 667 폭은 375px) - 홈은 그대로 보이고 오른쪽 차·튜토리얼·가이드·시작 버튼도 눌림. 바깥을 누르면 닫힘 */
+#mPage[data-side]{right:auto; z-index:3; width:458px; background:#16171b; box-shadow:16px 0 40px rgba(0,0,0,.45); animation-name:mInSL}
+@keyframes mInSL{from{transform:translateX(-28px); opacity:0}}
+@container (max-width:700px){ #mPage[data-side]{width:375px} }
+#mPage[data-side] .mPg{padding-right:16px; padding-bottom:8px}
+#mPage[data-side] .mRow{flex-direction:column; align-items:stretch; gap:8px}
+#mPage[data-side] .mL{flex:none}
+#menu #mPage[data-side] #trkSel{grid-template-columns:repeat(2,minmax(0,1fr))}
+#mPage[data-side] #trkCnt{margin-right:0}
+#tmNote{margin-left:8px; font-size:var(--fs-12); line-height:1.35; color:#aab0b9; white-space:nowrap}
+#mPage:not(:has(#mP_team:not([hidden]))) #tmNote{display:none}
+#menu #teamSel{grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px 8px}
+#menu #teamSel button{position:relative; flex-direction:column; align-items:flex-start; justify-content:center; gap:2px; min-height:46px; padding:0 30px 0 16px; border-radius:12px; overflow:hidden; text-align:left}
+#teamSel .sw{position:absolute; left:0; top:0; bottom:0; width:6px; height:auto; border-radius:0; box-shadow:none}
+#teamSel button>b,#teamSel .tmS{max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:var(--lh-ui)}
+#teamSel button>b{font-size:var(--fs-15); font-weight:var(--fw-bold); letter-spacing:var(--ls-text); color:#e6e8ec}
+#teamSel .tmS{font-size:var(--fs-12); font-weight:var(--fw-reg); color:var(--c-cap)}
+#teamSel .tmN{font-family:var(--ff-num); font-size:var(--fs-13); font-weight:var(--fw-num); font-style:italic; font-variant-numeric:tabular-nums; color:#c3c7ce}
+#teamSel button[aria-pressed="true"]>b{color:#fff} #teamSel button[aria-pressed="true"] .tmS{color:#d0d3d9}
+#teamSel button[data-v][aria-pressed="true"]::after{content:''; position:absolute; right:14px; top:50%; width:12px; height:7px; margin-top:-6px; border:solid #fff; border-width:0 0 2.5px 2.5px; transform:rotate(-45deg)}
+#menu #teamSel #livBtn{width:auto; margin:0; padding-left:14px; background:none; box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.mB:empty{display:none}
+#mHomeR #tmBusy{position:absolute; top:50%; right:max(18px,var(--sar)); display:flex; align-items:center; gap:8px; height:32px; padding:0 12px; border-radius:16px; background:rgba(12,13,15,.85); font-size:var(--fs-13); font-weight:var(--fw-med); color:#e6e8ec; white-space:nowrap; pointer-events:none}
+#tmBusy::before{content:''; width:36px; height:10px; background:radial-gradient(circle at 5px 5px,#ff3b30 0 3.6px,transparent 4px) 0 0/13px 10px repeat-x; filter:drop-shadow(0 0 3px rgba(255,45,30,.5))}
+#mHomeR #tmBusy[hidden]{display:none}
 .mPg,#mHomeL,.overlay:not(#menu)>.card,.lecard,#gBody{touch-action:none}   /* 11-14: #gBody (the rules guide) too - with the browser's own panning allowed it takes the finger (pointercancel) and the hand scroll stops; on a turned page that panning did not move at all (11-04) */
 /* 11-04: buttons on the cards: one look everywhere. Options sit in one grey bar, the chosen one is the lighter pill in bold white. Red only on the button that starts something. */
 .card button{background:var(--mfill,#26282e); border-color:transparent; border-radius:10px; line-height:1.25; word-break:keep-all; transition:background .12s,color .12s}
@@ -1041,7 +1066,7 @@ body.touch #flag.sa.pulse{animation-name:flagPulseSa}
       <button id="ctlGuide" type="button"><span class="touchOnly">버튼 사용법</span><span class="keyOnly">조작법 보기</span></button><button id="tutBtn" type="button">튜토리얼로 조작 익히기</button><button id="guideBtn" type="button">규칙 가이드 (깃발 · 페널티 · 타이어)</button>
       <p class="label" id="chLbl">대회 (서킷을 이어 달리며 순위별 점수 합산)</p>
       <div id="chBox"></div>
-      <p class="sub" id="chTrkNote" style="display:none;margin:0 0 12px"></p>
+      <p class="sub" id="chTrkNote" data-prose style="display:none;margin:0 0 12px"></p>
       <p class="label">서킷</p>
       <div class="teams" id="trkSel"></div>
       <p class="label">도로 폭 (실제 서킷)</p>
@@ -6868,7 +6893,7 @@ const MPAGES={track:[[null,[['chBox','대회','서킷을 이어 달리며 순위
   drive:[[null,[['skSel','실력'],['skNote'],['ctlGuide'],['touchHelp'],['tutBtn'],['guideBtn']]],['조작',[['smSel','조향 방식'],['agSel','가속'],['sensSel','조향 감도','1이 가장 부드러워요'],['pedSel','페달 위치','양쪽은 브레이크가 왼쪽이에요'],['stSel','스타트','수동은 부정 출발을 판정해요'],['mKeys']]],['보조',[['asSel','주행 보조','잠김과 스핀을 잡아줘요'],['basSel','브레이크 보조','너무 빠르면 대신 밟아요. 늦게 밟고 싶으면 끄세요'],['rlSel','레이싱 라인'],['aeroSel','직선 모드 날개']]]],
   set:[['그래픽',[['qSel','그래픽'],['aqSel','자동 화질 조절','프레임이 떨어지면 효과를 줄여요'],['dropSel','빗방울','비 올 때 화면에 맺히는 물방울'],['crowdSel','관중 표시','끄면 조금 가벼워져요']]],['소리',[['sndPrev','엔진 소리'],['sndTune','소리 튜닝','모드와 울림을 귀로 맞춰요'],['bgmSel','메뉴 음악','메뉴 화면에서 흐르는 음악']]]]};   // 11-14: the 도움말 rows moved to 운전 (조작법 보기)
 const MNAMES={track:'서킷',team:'내 팀',race:'레이스 설정',drive:'운전',set:'그래픽과 기타'};
-function mOpen(k){$('mHome').hidden=!!k;$('mPage').hidden=!k;for(const n in MPAGES){const on=n===k;$('mP_'+n).hidden=!on;if(on)$('mP_'+n).scrollTop=0;}if(k)$('mPgT').textContent=k==='track'&&mMode==='champ'?'대회와 서킷':MNAMES[k];}
+function mOpen(k){const side=k==='track'||k==='team';$('mHome').hidden=!!k&&!side;$('mPage').hidden=!k;$('mPage').toggleAttribute('data-side',side);for(const n in MPAGES){const on=n===k;$('mP_'+n).hidden=!on;if(on)$('mP_'+n).scrollTop=0;}if(k)$('mPgT').textContent=k==='track'&&mMode==='champ'?'대회와 서킷':MNAMES[k];}
 function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={easy:'AI 쉬움',normal:'AI 보통',hard:'AI 어려움'}[diff]||'',w=weather==='rain'?{light:'약한 비',heavy:'폭우'}[rainInt]||'비(랜덤)':{dry:'맑음',mixed:'변덕'}[weather]||'';
   set('mV_team',TEAMS[teamSel].name);set('mV_race',gameMode==='practice'?['연습 주행',w].join(', '):[(gameMode==='quali'?'예선 후 ':'')+laps+'랩',d,w].join(', '));
   set('mV_drive',[{tilt:'기울이기',drag:'드래그',buttons:'버튼'}[steerMode],autoGas?'자동 가속':'직접 가속'].join(', '));set('mV_set','그래픽 '+({high:'높음',medium:'보통',low:'부드럽게'}[quality]||''));}
@@ -6924,13 +6949,24 @@ function trkRec(){const box=$('trkSel');if(!box)return;let n=0;
  $('mPgH').insertAdjacentHTML('beforeend','<span id="trkCnt" hidden></span>');
  $('trkSel').innerHTML=hd('가상 서킷')+TRACKS.filter(t=>!t.real).map(btn).join('')+hd('실제 서킷 (실제 레이아웃·길이)')+TRACKS.filter(t=>t.real).map(btn).join('')+
   `<p style="grid-column:1/-1;margin:0;font-size:12px;line-height:1.4;color:var(--dim)">실제 서킷 형상과 스파의 방호벽·자갈밭·관중석 위치: © OpenStreetMap contributors(ODbL, 서킷 형상은 mvoof/F1TrackDownloader 경유) · TUM racetrack-database(LGPL-3.0) · bacinger/f1-circuits(MIT)를 가공. 높낮이·출발선·피트 레인 일부: 2025·2026 F1 위치 데이터(TracingInsights, Apache-2.0)를 가공 — 높낮이는 부드럽게 다듬어 실제보다 완만한 곳이 있어요. 차량 3D 모델: “F1 Generic 2022” © TheoDev(CC BY 4.0)를 가공 — 바퀴·날개·로고를 빼고 가볍게 줄였어요.</p>`;}
-$('teamSel').innerHTML=TEAMS.map((t,i)=>`<button data-v="${i}" aria-pressed="${i===teamSel}"><span class="sw" style="background:linear-gradient(90deg,${t.p} 0 60%,${t.s} 60%)"></span>${t.name}</button>`).join('');
+/* 11-16 S3: 팀 칸 = 색 막대(.sw, 위 주색·아래 보조색) / 이름 / 「#번호 · 동료 ○○」(번호는 그 팀을 고르면 내 번호 - 리버리에서 바꾼 번호 먼저). 머리에 「팀마다 차 성능은 같아요」(makeRace에서 AI 빠르기는 DIFF 범위 무작위, teamIdx는 내 자리만) */
+const teamNo=i=>'#'+((LIVC[i]&&LIVC[i].num)||i*2+2);
+$('teamSel').innerHTML=TEAMS.map((t,i)=>`<button data-v="${i}" aria-pressed="${i===teamSel}"><span class="sw" style="background:linear-gradient(${t.p} 0 50%,${t.s} 50%)"></span><b>${t.name}</b><span class="tmS"><i class="tmN">${teamNo(i)}</i> · 동료 ${t.d[1][0]}</span></button>`).join('');
+$('mPgH').insertAdjacentHTML('beforeend','<span id="tmNote">팀마다 차 성능은 같아요.<br>색 · 번호 · 동료만 달라요.</span>');
+$('mHomeR').insertAdjacentHTML('beforeend','<div id="tmBusy" hidden>차 바꾸는 중</div>');
+/* 11-16 S3: 팀을 고르면 저장·표시는 바로, 3D 차는 마지막 탭 뒤 0.45초 조용하면 한 번만 다시 만듦(연타해도 setupRace 1회). 시작·꾸미기는 기다리는 것을 먼저 처리(teamFlush) - 옛 팀 차로 출발하지 않게 */
+let teamT=0;
+function teamWait(){if(state!=='menu')return;clearTimeout(teamT);$('tmBusy').hidden=false;teamT=setTimeout(teamFlush,450);}
+function teamFlush(){if(!teamT)return;clearTimeout(teamT);teamT=0;$('tmBusy').hidden=true;if(state==='menu')setupRace();}
 function seg(id,cb){document.querySelectorAll('#'+id+' button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#'+id+' button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));cb(b.dataset.v);}));}
 seg('bgmSel',v=>{bgmOn=v==='on';saveLS('lightsout3d-bgm',v);});bgmOn=loadLS('lightsout3d-bgm')!=='off';document.querySelectorAll('#bgmSel button').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.v==='on')===bgmOn?'true':'false'));
 seg('mMode',v=>{mMode=v;saveLS('lightsout3d-mmode',v);mApply();});seg('modeSel',v=>{gameMode=v;saveLS('lightsout3d-mode',v);updStartBtn();});seg('fmlSel',v=>{formOn=v==='on';saveLS('lightsout3d-fml',v);});
 document.querySelectorAll('#modeSel button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===gameMode?'true':'false'));document.querySelectorAll('#fmlSel button').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.v==='on')===formOn?'true':'false'));updStartBtn();
 // 11-05: these four were not kept: every reload (each 대회 round goes through one, changing circuit too) put them back to the defaults
-seg('teamSel',v=>{teamSel=+v;saveLS('lightsout3d-team',v);if(state==='menu')setupRace();});seg('lapSel',v=>{laps=+v;saveLS('lightsout3d-laps',v);});seg('scSel',v=>{startComp=v;scAuto=false;saveLS('lightsout3d-sc',v);if(state==='menu')setupRace();});seg('difSel',v=>{diff=v;saveLS('lightsout3d-diff',v);});seg('sensSel',v=>setSens(+v));segPick(['lapSel'],laps);segPick(['scSel'],startComp);segPick(['difSel'],diff);
+seg('teamSel',v=>{teamSel=+v;saveLS('lightsout3d-team',v);teamWait();});seg('lapSel',v=>{laps=+v;saveLS('lightsout3d-laps',v);});seg('scSel',v=>{startComp=v;scAuto=false;saveLS('lightsout3d-sc',v);if(state==='menu')setupRace();});seg('difSel',v=>{diff=v;saveLS('lightsout3d-diff',v);});seg('sensSel',v=>setSens(+v));segPick(['lapSel'],laps);segPick(['scSel'],startComp);segPick(['difSel'],diff);
+/* 11-16 S3: 「내 팀 차 꾸미기」를 팀 칸 맨 끝(12번째 칸)으로 - seg('teamSel') 뒤라 팀 고르기 동작은 안 붙음. 시트는 바깥을 누르면 닫히고 그 탭은 그대로 전달 */
+{const lb=$('livBtn');lb.innerHTML='<b>내 팀 차 꾸미기</b><span class="tmS">색 · 무늬 · 번호</span>';$('teamSel').appendChild(lb);}
+document.addEventListener('pointerdown',e=>{const p=$('mPage');if(!p.hidden&&p.hasAttribute('data-side')&&!p.contains(e.target)&&$('menu').contains(e.target))mOpen(null);},true);
 seg('trkSel',v=>{if(v!==TRK.id){saveLS('lightsout3d-track',v);$('loading').style.display='flex';$('loading').textContent='서킷을 불러오는 중';setTimeout(()=>location.reload(),30);}});
 document.querySelectorAll('#wdSel button').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.v==='wide')===ROAD_WIDE?'true':'false'));
 seg('wdSel',v=>{if((v==='wide')!==ROAD_WIDE){saveLS('lightsout3d-width',v);$('loading').style.display='flex';$('loading').textContent='서킷을 다시 만드는 중';setTimeout(()=>location.reload(),30);}});   // v12c: the road is built at load
@@ -6958,7 +6994,7 @@ const LIV_PRESETS=[
  {name:'프리즘',L:{D:'#1b1c21',W:null,wt:null,K:'#0c0d10',KC:1,A:'#f4f4f6',M:'prism',cut:'split',fin:'matte',spine:1}}];    // matte black and carbon, a spectrum band
 let LED=null;   // {ti, L, num, name} while the editor is open
 function leCur(){return LED;}
-function leOpen(){const ti=teamSel,c=LIVC[ti];LED={ti,L:Object.assign({},LIV[ti],{spine:LIV[ti].spine?1:0,wt:LIV[ti].wt||'none'}),num:(c&&c.num)||ti*2+2,name:(c&&c.name)||''};LED.L0=JSON.stringify(LED.L);LED.C0=c&&c.L||null;   // 11-07: the paint as opened - a number or name change alone keeps it (the team art 'tbl' was saved as null: plain cars)
+function leOpen(){teamFlush();const ti=teamSel,c=LIVC[ti];LED={ti,L:Object.assign({},LIV[ti],{spine:LIV[ti].spine?1:0,wt:LIV[ti].wt||'none'}),num:(c&&c.num)||ti*2+2,name:(c&&c.name)||''};LED.L0=JSON.stringify(LED.L);LED.C0=c&&c.L||null;   // 11-07: the paint as opened - a number or name change alone keeps it (the team art 'tbl' was saved as null: plain cars)
   $('leTeam').textContent=TEAMS[ti].name;$('leNum').value=LED.num;$('leName').value=LED.name;$('leName').placeholder=TEAMS0[ti].short;leSync();$('menu').hidden=true;$('livEd').hidden=false;document.body.classList.add('lived');}
 function leClose(){mDraw=30;$('livEd').hidden=true;$('menu').hidden=false;document.body.classList.remove('lived');LED=null;if(camera.clearViewOffset)camera.clearViewOffset();}
 function leSync(){if(!LED)return;const L=LED.L;
@@ -6974,7 +7010,7 @@ let leT=0;function leApply(){if(!LED)return;const {ti,L}=LED,painted=JSON.string
   LIVC[ti]=!painted?Object.assign(LED.C0?{L:LED.C0}:{},{num:LED.num,name:LED.name}):{L:{D:L.D,W:L.wt==='none'?null:L.W,wt:L.wt==='none'?null:L.wt,K:L.K,KC:L.KC?1:0,A:L.A,M:L.M,cut:L.cut,fin:L.fin,spine:+L.spine,flap:L.flap,endp:L.endp,rflap:L.rflap,art:L.art==='cobalt'?'cobalt':null},num:LED.num,name:LED.name};
   saveLS('lightsout3d-liv',JSON.stringify(LIVC));applyLivData(ti);
   clearTimeout(leT);leT=setTimeout(()=>{dropTeamMats(ti);if(state==='menu')setupRace();refreshTeamButtons();},120);}
-function refreshTeamButtons(){document.querySelectorAll('#teamSel button').forEach(b=>{const t=TEAMS[+b.dataset.v],sw=b.querySelector('.sw');if(sw)sw.style.background=`linear-gradient(90deg,${t.p} 0 60%,${t.s} 60%)`;});}
+function refreshTeamButtons(){document.querySelectorAll('#teamSel button[data-v]').forEach(b=>{const t=TEAMS[+b.dataset.v],sw=b.querySelector('.sw'),n=b.querySelector('.tmN');if(sw)sw.style.background=`linear-gradient(${t.p} 0 50%,${t.s} 50%)`;if(n)n.textContent=teamNo(+b.dataset.v);});}
 document.querySelectorAll('#livEd .sws').forEach(d=>{const k=d.dataset.k;
   d.innerHTML=(k==='W'?'<button class="none" data-v="none" type="button">없음</button>':'')+LE_SW.map(c=>`<button type="button" data-v="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')+`<input type="color" aria-label="직접 고르기">`;
   d.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!LED)return;const v=b.dataset.v;if(k==='W'){if(v==='none'){LED.L.W=null;LED.L.wt='none';}else{LED.L.W=v;if(!LED.L.wt||LED.L.wt==='none')LED.L.wt='engine';}}else LED.L[k]=v;leSync();leApply();});
@@ -7509,7 +7545,7 @@ tap('mPause',()=>{if(state==='race'||state==='countdown')setPause(true);});tap('
 $('podSkip').onclick=()=>podiumEnd(true);$('startBtn').onclick=menuStart;$('againBtn').onclick=()=>startRace(lastStart);$('menuBtn').onclick=toMenu;$('resumeBtn').onclick=()=>setPause(false);$('quitBtn').onclick=()=>{if($('quitBtn').classList.contains('arm')){quitArm(false);toMenu();}else quitArm(true);};$('pause').addEventListener('click',()=>{pDraw=Math.max(pDraw,2);});
 $('skipBtn').onclick=()=>{setPause(false);doSkip();};$('sessMenu').onclick=toMenu;
 function updStartBtn(){$('startBtn').firstChild.textContent=mMode==='champ'?(!CH?'대회 시작':CH.rd>=CH.list.length?'새 대회 고르기':'라운드 '+(CH.rd+1)+' 시작'):gameMode==='quali'?'예선 시작':gameMode==='practice'?'연습 주행 시작':'레이스 시작';}
-function menuStart(){if(mMode!=='champ')return startRace();if(CH&&CH.rd>=CH.list.length)return chEnd();if(!CH)chNew(chLen);chGo();}
+function menuStart(){teamFlush();if(mMode!=='champ')return startRace();if(CH&&CH.rd>=CH.list.length)return chEnd();if(!CH)chNew(chLen);chGo();}
 function mApply(){const c=mMode==='champ',lock=c&&CH&&CH.rd<CH.list.length,n=$('chTrkNote');
   document.querySelectorAll('#mMode button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===mMode?'true':'false'));
   if(c&&gameMode==='practice'){gameMode='race';saveLS('lightsout3d-mode','race');document.querySelectorAll('#modeSel button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v==='race'?'true':'false'));}
