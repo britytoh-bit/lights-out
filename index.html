@@ -6507,7 +6507,7 @@ function warmUp(){if(!renderer||!scene)return;const prev=renderer.getRenderTarge
 function fmtClock(t){t=Math.max(0,Math.ceil(t));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');}
 // o: {mode, gridOrder, skills} - a race after qualifying keeps the grid and the drivers' pace from the sessions
 function startRace(o){if(THREE.GLTFLoader&&!window.__CARGLB){if(isTouch)prepMobile();initAudio();whenCar(()=>startRace(o));return;}   // 11-08: the car model first (the sound and the phone set-up still in the tap)
-  o=o||{mode:gameMode};const mode=o.mode||gameMode;lastStart=Object.assign({},o);delete lastStart.noForm;FF=false;PRE=null;coachHide();   // (「다시 달리기」 is a normal start)if(camera.clearViewOffset)camera.clearViewOffset();
+  o=o||{mode:gameMode};const mode=o.mode||gameMode;lastStart=Object.assign({},o);delete lastStart.noForm;FF=false;PRE=null;coachHide();if(camera.clearViewOffset)camera.clearViewOffset();   // (「다시 달리기」 is a normal start) 11-15: the clear had slid behind this comment, so the menu car's view offset stayed on in the race (every view off to the left)
   document.body.classList.remove('inmenu');document.body.classList.add('racing');if(isTouch)prepMobile();initAudio();if(PREV){PREV.stop();PREV=null;}if(SND.eng)EngineSound.reset(SND.eng);if(AC&&AC.state==='suspended')AC.resume();
   ['menu','result','pause','sess'].forEach(id=>$(id).hidden=true);
   setupRace(mode,o);warmUp();race.champ=!!o.champ;
