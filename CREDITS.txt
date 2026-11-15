@@ -5,6 +5,8 @@
 
 글꼴
 - Saira, Saira Condensed - SIL Open Font License 1.1 (LICENSE-Saira-OFL-1.1.txt, LICENSE-Saira-Condensed-OFL-1.1.txt)
+- Pretendard by Kil Hyung-jin (SIL OFL 1.1), subset renamed LO Sans KR - LICENSE-Pretendard-OFL-1.1.txt
+  (font-lo-sans-kr-*.woff2: 게임 화면에 쓰는 한글·기호만 남겨 줄인 판. 라이선스의 Reserved Font Name 조항 때문에 글꼴 이름을 바꿈)
 
 실제 서킷 데이터 (가공해서 사용)
 - 서킷 형상: (c) OpenStreetMap contributors - Open Database License (ODbL) 1.0

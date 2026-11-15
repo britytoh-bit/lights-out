@@ -6,7 +6,7 @@
 ## 파일
 - `index.html`: 게임 전체(HTML·CSS·JS 한 파일). 대부분의 수정은 여기서 합니다.
 - `lib-*.js`: three.js r128과 예제 스크립트(원본 그대로, 수정하지 않음).
-- `font-*.woff2`: Saira / Saira Condensed 글꼴(index.html 안의 @font-face가 불러옴).
+- `font-*.woff2`: Saira / Saira Condensed 글꼴, 한글 LO Sans KR(`font-lo-sans-kr-*`, Pretendard 서브셋 - 화면에 새 한글 문구를 넣으면 `_백업\lo_home_1115\타이포\서브셋.py`로 다시 만들어 빠진 글자가 없는지 확인)(index.html 안의 @font-face가 불러옴).
 - `car-f1.glb`: 차량 차체 3D 모델(CC BY 4.0, CREDITS.txt). 바퀴·날개·헬멧은 index.html의 코드로 만듭니다. 못 불러오면 코드로 만든 예전 차체가 나옵니다.
 - `engineSound.js`: 엔진 소리 재생과 튜닝 패널. T 키, 또는 그래픽과 기타 > 소리 > 소리 튜닝.
 - `engine-syn*.bin`: 기본으로 재생하는 엔진 소리 재료(파워유닛 5종). 측정값으로 코드가 새로 만든 것이고 녹음 파형은 들어 있지 않습니다. 만드는 도구는 저장소 밖 `_백업\lights-out_20261106_합성`.
