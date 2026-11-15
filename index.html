@@ -288,7 +288,6 @@ body.touch .seg{margin-bottom:10px} body.touch .seg button{padding:8px 4px; font
 body.touch .two{grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:0 12px}
 body.touch #menu .go{position:sticky; bottom:0; margin-top:6px; box-shadow:0 -10px 16px rgba(21,23,27,.95)}
 body.touch #menu .best{margin:8px 0 12px}
-body.touch #trkSel b{font-size:13px} body.touch #trkSel span{display:none}
 /* touch in-race HUD */
 body.touch .hud{padding:6px 9px; border-radius:6px}
 body.touch #hudTop{top:calc(8px + var(--sat)); left:calc(8px + var(--sal)); gap:10px}
@@ -501,6 +500,22 @@ body.touch .mRow.touchOnly{display:flex}
 #menu #teamSel button{justify-content:flex-start}
 .mB:has(>#chTrkNote[style*="none"]){display:none}
 #trkSel.chLock>button,#trkSel.chLock>p:not(:last-child){display:none}
+/* 11-16 S2: 서킷 카드 - 모양 / 이름 / 지역 / 「약 n km · 내 기록」, 긴 이름은 말줄임. 머리 오른쪽 「기록 있는 서킷 n / 28」은 서킷 쪽에서만 */
+#menu #trkSel{grid-template-columns:repeat(auto-fill,minmax(176px,1fr))}
+#menu #trkSel .trkC{display:grid; grid-template-columns:minmax(0,1fr); justify-items:start; align-content:start; min-height:0; padding:10px 12px; text-align:left; font-weight:var(--fw-reg)}
+#menu #trkSel .trkC[aria-pressed="true"]{box-shadow:inset 0 0 0 2px #f2f3f5}
+#menu #trkSel.chLock .trkC{display:none}
+.trkS{width:72px; height:40px; margin:0 0 6px; overflow:visible}
+.trkS path{fill:none; stroke:#f2f3f5; stroke-width:2.2px; stroke-linejoin:round; vector-effect:non-scaling-stroke}
+.trkS circle{fill:var(--mbg); stroke:#f2f3f5; stroke-width:1.6px; vector-effect:non-scaling-stroke}
+#trkSel .trkC b,#trkSel .trkC span{max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:var(--lh-ui)}
+#trkSel .trkC b{font-size:var(--fs-15); font-weight:var(--fw-bold); letter-spacing:var(--ls-text); color:#f2f3f5}
+#trkSel .trkC span{margin-top:2px; font-size:var(--fs-13); font-weight:var(--fw-reg); color:var(--c-cap)}
+#trkSel .trkC i{font-style:normal}
+#trkSel .trkC i.b{font-family:var(--ff-num); font-weight:var(--fw-num); font-variant-numeric:tabular-nums; color:var(--c-val)}
+#trkCnt{margin:0 max(0px,calc(var(--sar) - 20px)) 0 auto; font-size:var(--fs-12); color:var(--dim); white-space:nowrap}
+#trkCnt b{font-family:var(--ff-num); font-weight:var(--fw-num); font-variant-numeric:tabular-nums; color:var(--c-val)}
+#mPage:not(:has(#mP_track:not([hidden]))) #trkCnt,#mPage:has(#trkSel.chLock) #trkCnt{display:none}
 .mPg,#mHomeL,.overlay:not(#menu)>.card,.lecard,#gBody{touch-action:none}   /* 11-14: #gBody (the rules guide) too - with the browser's own panning allowed it takes the finger (pointercancel) and the hand scroll stops; on a turned page that panning did not move at all (11-04) */
 /* 11-04: buttons on the cards: one look everywhere. Options sit in one grey bar, the chosen one is the lighter pill in bold white. Red only on the button that starts something. */
 .card button{background:var(--mfill,#26282e); border-color:transparent; border-radius:10px; line-height:1.25; word-break:keep-all; transition:background .12s,color .12s}
@@ -6884,12 +6899,30 @@ function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={ea
  document.addEventListener('click',e=>{if(e.isTrusted&&(dragged||e.timeStamp<noClick)){dragged=false;e.preventDefault();e.stopPropagation();}},true);document.addEventListener('visibilitychange',()=>{mDraw=Math.max(mDraw,10);});}
 EngineSound.setup({preview:()=>previewEngine(),ctx:()=>AC,mayResume:()=>state!=='paused'&&!document.hidden});$('sndTune').addEventListener('click',()=>EngineSound.openPanel());   // the tuning panel (T key, or this button. 11-04: 5 taps on the words did not open it on an iPhone)
 function updateMenuBest(){menuSum();const ch=mMode==='champ',fin=CH&&CH.rd>=CH.list.length;$('mN_track').textContent=ch?'대회':'서킷';
+  trkRec();
   $('bestMenu').textContent=!ch?TRK.name+(bestLap?', 내 기록 '+fmt(bestLap):''):fin?'대회가 끝났어요':CH?'라운드 '+(CH.rd+1)+'/'+CH.list.length+', '+chTrk(CH.list[CH.rd]).name:chLen+'라운드, '+(chLen>=TRACKS.length?TRACKS[0]:TRK).name+'에서 시작';}
 
 // ---- menu ----
-{const btn=t=>`<button data-v="${t.id}" aria-pressed="${t.id===TRK.id}" style="flex-direction:column;align-items:flex-start;gap:2px"><b>${t.name}</b><span style="font-size:12px;opacity:.75;font-weight:400">${t.desc}</span></button>`,
+/* 11-16 S2: 서킷 모양 - TRACKS[i].cp·start를 읽고 crp만 호출(SIM은 읽기만). 미니맵처럼 x → 오른쪽, z → 아래. 약 90점, id별로 한 번만 만듦. 가상 서킷 길이도 여기서(cp × sc) */
+const TRK_SHP={};
+function trkShp(t){let o=TRK_SHP[t.id];if(o)return o;
+  const C=t.cp,n=C.length,st=Math.max(1,Math.floor(n/90)),sub=Math.max(1,Math.ceil(90/n)),P=[];
+  for(let i=0;i<n;i+=st)for(let s=0;s<sub;s++)P.push(crp(C[(i-1+n)%n],C[i],C[(i+1)%n],C[(i+2)%n],s/sub));
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9,L=0;
+  P.forEach((p,k)=>{x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1]);const q=P[(k+1)%P.length];L+=Math.hypot(q[0]-p[0],q[1]-p[1]);});
+  const W=Math.max(x1-x0,y1-y0)||1,f=(v,a)=>((v-a)/W*100).toFixed(1),S=t.start||C[0];
+  const svg=`<svg class="trkS" viewBox="-6 -6 ${((x1-x0)/W*100+12).toFixed(1)} ${((y1-y0)/W*100+12).toFixed(1)}" preserveAspectRatio="xMinYMid meet" aria-hidden="true"><path d="M${P.map(p=>f(p[0],x0)+' '+f(p[1],y0)).join('L')}Z"/><circle cx="${f(S[0],x0)}" cy="${f(S[1],y0)}" r="5"/></svg>`;
+  return TRK_SHP[t.id]={svg,km:(/약 ([\d.]+)km/.exec(t.desc)||[])[1]||(L*(t.sc||1)/1000).toFixed(1)};}
+function trkSvg(t){return trkShp(t).svg;}
+/* 11-16 S2: 카드의 내 기록(lightsout3d-best-<id>, 새 키 없음)과 머리 「기록 있는 서킷 n / 28」(0이면 숨김). updateMenuBest가 부름 */
+function trkRec(){const box=$('trkSel');if(!box)return;let n=0;
+  for(const t of TRACKS){const v=parseFloat(loadLS('lightsout3d-best-'+t.id)),e=box.querySelector('[data-best="'+t.id+'"]');if(v>0)n++;if(e){e.textContent=v>0?fmt(v):'기록 없음';e.className=v>0?'b':'';}}
+  const c=$('trkCnt');if(c){c.hidden=!n;c.innerHTML='기록 있는 서킷 <b>'+n+'</b> / '+TRACKS.length;}}
+{const btn=t=>{const m=/^(.*?)\s*\((.*)\)$/.exec(t.name),nm=m?m[1]:t.name,rg=t.real?(m?m[2]:t.name):'가상 서킷';
+    return `<button class="trkC" data-v="${t.id}" aria-pressed="${t.id===TRK.id}" title="${t.desc}">${trkSvg(t)}<b>${nm}</b><span>${rg}</span><span class="trkL">약 ${trkShp(t).km}km · <i data-best="${t.id}">기록 없음</i></span></button>`;},
   hd=x=>`<p style="grid-column:1/-1;margin:2px 0 0;font-size:12px;font-weight:700;color:var(--dim)">${x}</p>`;
- $('trkSel').innerHTML=hd('실제 서킷 (실제 레이아웃·길이)')+TRACKS.filter(t=>t.real).map(btn).join('')+hd('가상 서킷')+TRACKS.filter(t=>!t.real).map(btn).join('')+
+ $('mPgH').insertAdjacentHTML('beforeend','<span id="trkCnt" hidden></span>');
+ $('trkSel').innerHTML=hd('가상 서킷')+TRACKS.filter(t=>!t.real).map(btn).join('')+hd('실제 서킷 (실제 레이아웃·길이)')+TRACKS.filter(t=>t.real).map(btn).join('')+
   `<p style="grid-column:1/-1;margin:0;font-size:12px;line-height:1.4;color:var(--dim)">실제 서킷 형상과 스파의 방호벽·자갈밭·관중석 위치: © OpenStreetMap contributors(ODbL, 서킷 형상은 mvoof/F1TrackDownloader 경유) · TUM racetrack-database(LGPL-3.0) · bacinger/f1-circuits(MIT)를 가공. 높낮이·출발선·피트 레인 일부: 2025·2026 F1 위치 데이터(TracingInsights, Apache-2.0)를 가공 — 높낮이는 부드럽게 다듬어 실제보다 완만한 곳이 있어요. 차량 3D 모델: “F1 Generic 2022” © TheoDev(CC BY 4.0)를 가공 — 바퀴·날개·로고를 빼고 가볍게 줄였어요.</p>`;}
 $('teamSel').innerHTML=TEAMS.map((t,i)=>`<button data-v="${i}" aria-pressed="${i===teamSel}"><span class="sw" style="background:linear-gradient(90deg,${t.p} 0 60%,${t.s} 60%)"></span>${t.name}</button>`).join('');
 function seg(id,cb){document.querySelectorAll('#'+id+' button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#'+id+' button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));cb(b.dataset.v);}));}
