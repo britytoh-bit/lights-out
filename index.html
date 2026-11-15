@@ -49,6 +49,7 @@
   --c-val:#f4f4f2; --c-lab:#b9bdc5; --c-cap:#8d929c;
   --sh-hud:0 1px 2px rgba(0,0,0,.55); --sh-hero:0 2px 10px rgba(0,0,0,.5);
 }
+:root{--cap:#8d929c; --mbg:#16171b; --mfill:#26282e; --mpill:#474b56; --hair:inset 0 0 0 1px rgba(255,255,255,.12); --cond:var(--ff-num)}   /* 11-15 TG: 튜토리얼·가이드·버튼 사용법 토큰(홈 메뉴 값과 같음) */
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#0e1116; } }
 :root[data-theme="dark"]{ --bg:#0e1116; }
 html{height:100%; scroll-padding-top:var(--sat);
@@ -520,11 +521,6 @@ button.go:active,.card button.go:active{background:#b4211c}
 .seg button .rec{display:block; margin-top:1px; font-size:var(--fs-12); font-weight:500; color:var(--yellow)}   /* 10-31: 「중급 추천」 under an option */
 .seg button[aria-pressed="true"] .rec{color:#7a5800}
 .skNote{font-size:13px; color:var(--dim); margin:-8px 0 16px; line-height:1.4}
-#tut{position:absolute; z-index:4; top:120px; right:16px; width:320px; overflow:auto; background:rgba(9,11,15,.88); border:2px solid var(--yellow); border-radius:10px; padding:10px 12px; pointer-events:auto; box-shadow:0 6px 24px rgba(0,0,0,.45)}
-#tut[hidden]{display:none}
-#tut .th{margin:0 0 4px; font-size:15px; font-weight:800; color:var(--yellow)} #tut.ok{border-color:#3ddc84} #tut.ok .th{color:#3ddc84}
-#tut .tt{margin:0 0 10px; font-size:14px; line-height:1.45; color:var(--ink); word-break:keep-all}
-#tut .tb{display:flex; gap:8px} #tut .tb button{flex:1; min-height:40px; padding:6px 8px; font-size:14px}
 body.tutOn #hudTime{visibility:hidden}
 #errNote{position:absolute; left:calc(4px + var(--sal)); bottom:calc(2px + var(--sab)); z-index:120; max-width:55%; padding:1px 7px; border-radius:4px; background:rgba(150,20,20,.82); color:#fff; font:600 11px/1.35 system-ui,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:auto; cursor:pointer}   /* 11-14: errNote */
 body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake assist is braking */
@@ -587,47 +583,133 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
 .mRow:last-child{border-bottom:0}
 /* 11-13 윤택님 「듀토리얼 더 상세하게」: the rules guide - one topic a page with a small picture, paged, from the home screen and the 운전 page */
 #guide{z-index:30; padding:max(10px,var(--sat)) max(14px,var(--sar)) max(10px,var(--sab)) max(14px,var(--sal)); background:rgba(6,7,10,.82)}
-.gCard{display:flex; flex-direction:column; width:min(820px,100%); height:min(400px,100%); background:linear-gradient(180deg,#1b1c22,#131418); border-radius:16px; box-shadow:0 20px 50px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.07); overflow:hidden}
-.gHd{flex:none; display:flex; align-items:center; gap:10px; height:48px; padding:0 4px 0 18px; border-bottom:1px solid rgba(255,255,255,.07)}
-.gHd b{flex:none; font-family:"Saira Condensed","Arial Narrow",sans-serif; font-weight:700; font-size:15px; color:#ff6a5f; letter-spacing:.5px}
-.gHd span{flex:1; min-width:0; font-size:17px; font-weight:700; color:#f4f5f7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-#guide .gHd button{flex:none; min-height:44px; min-width:64px; padding:0 12px; background:none; border:0; color:#aeb3bc; font-size:14px}
-#gBody{flex:1; min-height:0; display:flex; gap:20px; align-items:center; padding:10px 22px; overflow-y:auto}
-.gV{flex:0 0 32%; display:flex; align-items:center; justify-content:center; min-height:110px}
-.gT{flex:1; min-width:0; margin:0; padding:0; list-style:none}
-.gT li{position:relative; margin:0 0 8px; padding-left:15px; font-size:14.5px; line-height:1.45; color:#e6e8ec; word-break:keep-all}
-.gT li::before{content:''; position:absolute; left:0; top:.6em; width:6px; height:6px; border-radius:50%; background:var(--kerb)}
+:where(#tut,#guide,#bmap) button{border:0; padding:0; margin:0; min-height:0; background:none; font:inherit; color:inherit; line-height:1.25; text-align:inherit; cursor:pointer}   /* 151행 전역 button 뒤라야 이김(검토 I2), 특이도 0 */
+#bmap{z-index:30; padding:0; background:rgba(6,7,10,.94)}
+/* ── 규칙 가이드 카드 (#guide) ── 쪽 번호 「3 / 15」, 머리에 「‹ 목차」, 아래에 「다음 · 쪽 이름」 (점 13개는 뺌) */
+.gCard{container-type:inline-size;display:flex;flex-direction:column;width:min(820px,100%);height:min(400px,100%);background:linear-gradient(180deg,#1b1c22,#131418);border-radius:16px;
+  box-shadow:0 20px 50px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.07);overflow:hidden}
+.gHd{flex:none;display:flex;align-items:center;gap:10px;height:48px;padding:0 4px 0 6px;border-bottom:1px solid rgba(255,255,255,.07)}
+#gToc{flex:none;height:44px;padding:0 12px 0 10px;border-radius:10px;display:flex;align-items:center;gap:7px;font-size:var(--fs-13);font-weight:var(--fw-med);color:#c9cdd4}
+#gToc i{width:8px;height:8px;border:solid currentColor;border-width:0 0 2px 2px;transform:rotate(45deg)}
+#gCnt{flex:none;font:var(--fw-num) var(--fs-15)/1 var(--cond);letter-spacing:.5px;color:var(--cap)}
+#gTit{flex:1;min-width:0;font-size:var(--fs-17);font-weight:var(--fw-bold);color:#f4f5f7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:var(--ls-text)}
+#gX{flex:none;min-width:64px;height:44px;font-size:var(--fs-13);color:#aeb3bc;text-align:center}
+#gBody{flex:1;min-height:0;display:flex;gap:20px;align-items:center;padding:10px 22px;overflow-y:auto}
+.gV{flex:0 0 32%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:110px}
+.gT{flex:1;min-width:0;margin:0;padding:0;list-style:none}
+.gT li{position:relative;margin:0 0 7px;padding-left:15px;font-size:var(--fs-13);line-height:1.45;color:#e6e8ec;word-break:keep-all}
+.gT li::before{content:'';position:absolute;left:0;top:.6em;width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.38)}
 .gT li:last-child{margin-bottom:0}
-.gT b{color:#fff} .gT em{font-style:normal; font-weight:700; color:#ffb347}
-.gNav{flex:none; display:flex; align-items:center; gap:10px; padding:7px 10px; border-top:1px solid rgba(255,255,255,.07)}
-#guide .gNav>button{flex:0 0 116px; min-height:44px; border-radius:10px; font-size:15px; font-weight:700}
-#guide #gPrev{background:#26282e; border:0; color:#e9ebef}
-#guide #gPrev:disabled{opacity:.35}
-#gDots{flex:1; display:flex; justify-content:center; flex-wrap:wrap; gap:0}
-#guide #gDots button{flex:none; width:22px; min-width:0; height:30px; min-height:0; padding:0; background:none; border:0}
-#gDots button::after{content:''; display:block; width:7px; height:7px; margin:auto; border-radius:4px; background:#4a4e58; transition:background .15s,width .15s}
-#gDots button[aria-current="true"]::after{width:16px; background:var(--kerb)}
-@container (max-height:380px){ #gBody{padding:8px 18px} .gT li{font-size:13.5px; margin-bottom:5px} .gHd{height:42px} }
-@container (max-width:700px){ .gV{flex-basis:28%} #guide .gNav>button{flex-basis:92px} #guide #gDots button{width:17px} }
-/* the pictures */
-.gPh{position:relative; flex:none; width:196px; height:100px; border-radius:14px; background:#2b2e36; box-shadow:inset 0 0 0 3px #3a3e48}
-.gPh i{position:absolute; display:flex; align-items:center; justify-content:center; font-style:normal; font-size:10px; font-weight:700; color:#fff; border-radius:7px; white-space:nowrap}
-.gPh .st{left:12px; bottom:10px; width:58px; height:40px; background:rgba(255,255,255,.13); border-radius:20px}
-.gPh .pb{right:58px; bottom:10px; width:38px; height:36px; background:#8a2a25} .gPh .pg{right:12px; bottom:10px; width:40px; height:42px; background:#1f7a46}
-.gPh .tp{left:50%; top:8px; transform:translateX(-50%); height:16px; padding:0 7px; background:rgba(255,255,255,.1); font-size:8.5px; font-weight:600; color:#cfd2d8}
-.gPh .mb{right:12px; top:29px; height:15px; padding:0 6px; background:rgba(255,255,255,.1); font-size:8px; font-weight:600; color:#cfd2d8}
-.gTy{display:flex; flex-wrap:wrap; gap:10px 6px; justify-content:center; max-width:220px}
-.gTy span{display:flex; flex-direction:column; align-items:center; gap:4px; width:64px; font-size:11.5px; color:#cfd2d8; text-align:center}
-.gTy i{display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:50%; background:#111; box-shadow:inset 0 0 0 5px var(--c),inset 0 0 0 9px #111,inset 0 0 0 10px #333; font-style:normal; font-family:"Saira Condensed",sans-serif; font-weight:800; font-size:17px; color:var(--c)}
-.gFl{display:flex; flex-wrap:wrap; gap:10px 12px; justify-content:center; max-width:230px}
-.gFl span{display:flex; flex-direction:column; align-items:center; gap:4px; font-size:11.5px; color:#cfd2d8}
-.gFl i{display:flex; align-items:center; justify-content:center; width:58px; height:38px; border-radius:3px; background:var(--c); font-style:normal; font-family:"Saira Condensed",sans-serif; font-weight:800; font-size:15px; color:#111; box-shadow:0 2px 0 rgba(0,0,0,.4)}
-.gLt{display:flex; gap:8px; padding:10px 12px; border-radius:12px; background:#121317; box-shadow:inset 0 0 0 2px #25272d}
-.gLt i{width:24px; height:24px; border-radius:50%; background:radial-gradient(circle at 40% 36%,#ff8f85 0,#ff3b30 45%,#c41d14 100%); box-shadow:0 0 12px 3px rgba(255,45,30,.45)}
-.gLt.off i{background:#2b1311; box-shadow:inset 0 0 0 3px #3b1b18}
-.gBd{display:flex; flex-direction:column; gap:8px; align-items:center}
-.gBd span{display:inline-flex; align-items:center; min-height:30px; padding:0 12px; border-radius:15px; font-family:"Saira Condensed","Saira",sans-serif; font-weight:700; font-size:15px; color:#fff; white-space:nowrap}
-.gV svg{width:100%; max-width:220px; height:auto}
+.gT b{color:#fff} .gT em{font-style:normal;font-weight:var(--fw-bold);color:#ffb347}
+.gNav{flex:none;display:flex;align-items:center;gap:10px;padding:7px 10px;border-top:1px solid rgba(255,255,255,.07)}
+#gPrev,#gNext{flex:0 0 116px;height:44px;border-radius:10px;font-size:var(--fs-15);font-weight:var(--fw-bold);text-align:center;letter-spacing:var(--ls-text)}
+#gPrev{box-shadow:var(--hair);color:#e9ebef} #gPrev:disabled{opacity:.35}
+#gNext{background:var(--mfill);box-shadow:var(--hair);color:#fff;font-weight:var(--fw-bold)}   /* 행동 버튼은 --mfill + 머리카락 테두리(S12) */
+#gNx{flex:1;min-width:0;text-align:center;font-size:var(--fs-13);color:var(--cap);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@container (max-height:380px){ #gBody{padding:8px 18px} .gT li{font-size:var(--fs-13);margin-bottom:5px} .gHd{height:42px} }
+#guide.toc #gToc,#guide.toc .gNav{display:none} #guide.toc .gHd{padding-left:18px} #guide.toc #gBody{display:block;padding:12px 18px}
+/* 목차 */
+.gBm{display:flex;align-items:center;gap:14px;width:100%;height:52px;padding:0 16px 0 8px;border-radius:12px;background:var(--mfill);box-shadow:var(--hair);text-align:left}
+.gBm .ic{flex:none;width:96px;height:44px;overflow:hidden;border-radius:7px}
+.gBm .ic .gPh2{box-shadow:none}
+.gBm b{display:block;font-size:var(--fs-15);font-weight:var(--fw-bold);color:#fff;letter-spacing:var(--ls-text)} .gBm small{display:block;margin-top:2px;font-size:var(--fs-12);color:var(--dim)}
+.gBm .chev{margin-left:auto;color:#c9cdd4}
+.gCols{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:10px}
+.gCol p{margin:0 0 6px;height:16px;font-size:var(--fs-12);font-weight:var(--fw-bold);color:var(--cap);white-space:nowrap}
+.gCol button{display:flex;align-items:center;gap:7px;width:100%;height:44px;margin-bottom:6px;padding:0 9px;border-radius:10px;background:var(--mfill);
+  font-size:var(--fs-13);font-weight:var(--fw-med);color:#e6e8ec;text-align:left;white-space:nowrap;overflow:hidden}
+.gCol button em{flex:none;min-width:15px;font:var(--fw-num) var(--fs-15)/1 var(--cond);font-style:normal;color:var(--cap)}
+.gCol button small{font-size:inherit}
+.gCol button i{flex:none;margin-left:auto;padding:1px 6px;border-radius:6px;background:#fff;color:#16171b;font-size:var(--fs-12);font-weight:var(--fw-bold);font-style:normal}
+/* 11-15 글씨정리: 아래 두 줄은 원래 .gCol 기본 규칙보다 앞(69~70행)에 있어 같은 우선순위에서 져서 667에서 안 먹었음 → 기본 규칙 뒤로 옮김 */
+@container (max-width:700px){ .gV{flex-basis:28%} #gPrev,#gNext{flex-basis:92px} .gCols{gap:4px} .gCol button{gap:4px;padding:0 5px;font-size:var(--fs-13)} .gCol button em{min-width:0;font-size:var(--fs-13)} .gCol button i{padding:1px 4px} .gCol button small{display:none} }   /* 11-15 글씨정리: 「15 화면 읽기 새」 배지 잘림 */
+@container (max-width:780px){ .gCol button small{display:none} }   /* 카드 폭 기준: 노치 가로(안전 여백 47·47)면 카드가 750이라 목차 칸 이름 뒷부분을 숨김(검토 I10). 높이 조건은 #wrap이 그대로 받음 */
+/* 1쪽 그림: 지금 설정대로 그린 작은 화면 */
+.gPh2{position:relative;flex:none;width:232px;height:107px;border-radius:10px;background:#2b2e36;box-shadow:inset 0 0 0 2px #3a3e48;overflow:hidden}
+.gPh2 i{position:absolute;display:block;border-radius:3px;background:rgba(255,255,255,.18)}
+.gPh2 .c{border-radius:50%;background:rgba(255,255,255,.26)} .gPh2 .tw,.gPh2 .mm{background:rgba(255,255,255,.08)}
+.gPh2 .st{border-radius:9px} .gPh2 .tg{background:#f5c518} .gPh2 .ds{background:rgba(9,11,15,.75);box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)}
+.gPh2 .pb{background:#a23028;border-radius:5px} .gPh2 .pg{background:#1f7a46;border-radius:5px}
+.gMap{height:44px;padding:0 14px;border-radius:10px;background:var(--mfill);box-shadow:var(--hair);font-size:var(--fs-13);font-weight:var(--fw-bold);color:#eef0f3;white-space:nowrap}
+/* 14쪽 예선 그림: 위쪽 띠가 상황마다 보여 주는 것 (#flag.f / #flag.chq / 타이밍 칸 첫 줄) */
+.gQs{display:flex;flex-direction:column;gap:7px;width:100%}
+.gQ{display:grid;grid-template-columns:56px 1fr;align-items:center;gap:8px}
+.gQ>span{font-size:var(--fs-12);font-weight:var(--fw-bold);color:var(--cap);text-align:right;white-space:nowrap}
+.gQ>i{justify-self:start;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 6px 0 12px;border-radius:4px;font-style:normal;font-size:var(--fs-12);font-weight:var(--fw-bold);white-space:nowrap}
+.gQ>i.f{background:rgba(12,14,18,.95);color:#fff;outline:2px solid #fff;outline-offset:-4px}
+.gQ>i.chq{background:#f4f4f4;color:#111;outline:2px dashed #111;outline-offset:-4px;padding:0 6px}
+.gQ>i.sa{height:34px;padding:3px 3px 3px 7px;border-radius:7px;background:rgba(12,14,18,.9);box-shadow:inset 3px 0 0 #ffb347,var(--hair)}
+.gQ>i.sa u{padding:5px 9px;font-size:var(--fs-13)}
+.gQ>i u{text-decoration:none;padding:2px 8px;border-radius:5px;background:#f4f5f7;color:#111}
+.gQ>i.chq u{background:#111;color:#fff}
+.gQ>i.tmr{gap:16px;padding:0 12px;line-height:1;overflow:visible;background:rgba(9,11,15,.9);box-shadow:var(--hair)} .gQ>i.tmr em{font-style:normal;color:var(--green)} .gQ>i.tmr b{font:var(--fw-num) var(--fs-15)/1 var(--cond);color:#fff}
+/* 15쪽 화면 읽기 그림 */
+.gRd{display:flex;flex-direction:column;align-items:center;gap:8px}
+.gRd .tw{width:156px;border-radius:6px;background:rgba(9,11,15,.9);overflow:hidden;box-shadow:var(--hair)}
+.gRd .tw p{display:flex;align-items:center;gap:6px;height:21px;margin:0;padding:0 8px;font:var(--fw-num) var(--fs-13)/1 var(--cond);color:#fff}
+.gRd .tw p:first-child{justify-content:space-between;background:linear-gradient(90deg,#f5c518 0 4px,rgba(255,255,255,.1) 4px)} .gRd .tw p:first-child b+b{color:#f5c518}
+.gRd .tw s{text-decoration:none;color:#aab0b9} .gRd .tw em{width:14px;font-style:normal;color:#cfd6df}
+.gRd .tw i{width:3px;height:11px;background:var(--c)} .gRd .tw u{margin-left:auto;text-decoration:none;color:#aeb7c2} .gRd .tw p:nth-child(2) u{color:#2fd06b}
+.gRd .tw p.me{background:#f5c518;color:#111} .gRd .tw p.me em,.gRd .tw p.me u{color:#111}
+.gRd .sc{display:flex;width:156px;border-radius:4px;overflow:hidden}
+.gRd .sc i{flex:1;height:20px;font:var(--fw-hero) var(--fs-13)/20px var(--cond);font-style:normal;text-align:center;color:#111}
+.gRd .ob{background:#a050ff;color:#fff!important} .gRd .pb{background:#2fd06b} .gRd .sl{background:#f5c518}
+.gRd .sl2{display:flex;flex-direction:column;gap:3px;width:156px}
+.gRd .sl2 span{font-size:var(--fs-12);color:#cfd2d8;background:none!important;padding-left:14px;position:relative}
+.gRd .sl2 span::before{content:'';position:absolute;left:0;top:4px;width:8px;height:8px;border-radius:2px}
+.gRd .sl2 .ob::before{background:#a050ff} .gRd .sl2 .pb::before{background:#2fd06b} .gRd .sl2 .sl::before{background:#f5c518}
+/* (기존 그림 클래스 — index.html 593~604행을 이 묶음으로 바꾼다(G9 범위 564~604). 원문과 다른 곳은 글자 11.5 → 12px 두 곳(.gTy span·.gFl span, 12px 미만 0 원칙)뿐) */
+.gTy{display:flex;flex-wrap:wrap;gap:10px 6px;justify-content:center;max-width:220px}
+.gTy span{display:flex;flex-direction:column;align-items:center;gap:4px;width:64px;font-size:var(--fs-12);color:#cfd2d8;text-align:center}
+.gTy i{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:#111;box-shadow:inset 0 0 0 5px var(--c),inset 0 0 0 9px #111,inset 0 0 0 10px #333;font-style:normal;font-family:var(--ff-num);font-weight:var(--fw-hero);font-size:var(--fs-17);color:var(--c)}
+.gFl{display:flex;flex-wrap:wrap;gap:10px 12px;justify-content:center;max-width:230px}
+.gFl span{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:var(--fs-12);color:#cfd2d8}
+.gFl i{display:flex;align-items:center;justify-content:center;width:58px;height:38px;border-radius:3px;background:var(--c);font-style:normal;font-family:var(--ff-num);font-weight:var(--fw-hero);font-size:var(--fs-15);color:#111;box-shadow:0 2px 0 rgba(0,0,0,.4)}
+.gLt{display:flex;gap:8px;padding:10px 12px;border-radius:12px;background:#121317;box-shadow:inset 0 0 0 2px #25272d}
+.gLt i{width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 40% 36%,#ff8f85 0,#ff3b30 45%,#c41d14 100%);box-shadow:0 0 12px 3px rgba(255,45,30,.45)}
+.gLt.off i{background:#2b1311;box-shadow:inset 0 0 0 3px #3b1b18}
+.gBd{display:flex;flex-direction:column;gap:8px;align-items:center}
+.gBd span{display:inline-flex;align-items:center;min-height:30px;padding:0 12px;border-radius:15px;font-family:var(--ff-num);font-weight:var(--fw-num);font-size:var(--fs-15);color:#fff;white-space:nowrap}
+.gV svg{width:100%;max-width:220px;height:auto}
+
+/* ── 버튼 사용법 (#bmap) ── 기준 화면 844×390을 화면 크기에 맞춰 scale. 테두리 = 누르는 곳(그 쪽 가이드), 글 조각 = 설명 */
+#bmIn{position:absolute;left:0;top:0;width:844px;height:390px;transform-origin:0 0}   /* 폭·높이는 bmapDraw가 실제 화면 크기로 덮어씀(11-15 글씨정리) */
+.bmG{position:absolute;border-radius:8px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.bmG.tw p{display:flex;justify-content:space-between;align-items:center;height:21px;margin:0;padding:0 7px;border-radius:6px 6px 0 0;font:var(--fw-num) var(--fs-13)/1 var(--cond);color:#d6d9df;background:rgba(255,255,255,.08)}
+.bmG.tw s{text-decoration:none} .bmG.tw i{display:block;height:5px;margin:8px 10px 0;border-radius:3px;background:rgba(255,255,255,.1)}
+.bmG.mm{border-radius:50%} .bmG.tg{border-radius:4px;background:rgba(245,197,24,.55)}
+.bmG.ds{border-radius:12px;display:flex;align-items:center;justify-content:center} .bmG.ds span{font-size:var(--fs-13);font-weight:var(--fw-med);color:#80858f}
+.bmG.c.off{border-radius:50%;background:none;box-shadow:none;border:2px dashed rgba(255,255,255,.28);display:grid;place-items:center;font-size:var(--fs-13);font-weight:var(--fw-bold);color:#6e747e}
+.bmF{position:absolute;display:grid;place-items:center;border-radius:12px;background:rgba(9,11,15,.6);box-shadow:inset 0 0 0 2px #fff;color:#fff;font-size:var(--fs-13);font-weight:var(--fw-bold);text-align:center}
+.bmF.c{border-radius:50%;font-size:var(--fs-12);letter-spacing:-.02em;white-space:nowrap}   /* 게임 HUD 위쪽 둥근 버튼과 같은 12px(index.html 662행) — 13.5px는 「뒤보기」가 원에 닿음 */ .bmF.big{font-size:var(--fs-20);letter-spacing:var(--ls-title)}
+.bmF.nx{align-content:center;row-gap:1px;line-height:1} .bmF.nx i{display:grid;place-items:center;width:19px;height:19px;border-radius:50%;border:2px solid #f2f2f2;font:var(--fw-hero) var(--fs-12)/1 var(--cond);font-style:normal}
+.bmF.pd{border-radius:16px;align-items:end;padding-bottom:10px;background:rgba(9,11,15,.55) repeating-linear-gradient(180deg,transparent 0 9px,rgba(255,255,255,.14) 9px 13px) 10px 12px/calc(100% - 20px) calc(100% - 40px) no-repeat}
+.bmF.brk{box-shadow:inset 0 0 0 2px #fff,inset 0 0 0 4px rgba(255,80,70,.75)} .bmF.gas{box-shadow:inset 0 0 0 2px #fff,inset 0 0 0 4px rgba(61,220,132,.7)}
+.bmF.st{border-radius:32px;justify-items:start;padding-left:106px} .bmF.st i{width:52px;height:52px;border-radius:50%;background:rgba(240,240,240,.85)}
+.bmF.thd{border-radius:6px;background:none} .bmF.thd::after,.bmF.pill::after{content:'';position:absolute;inset:-12px -4px}
+.bmF.pill{border-radius:7px;display:flex;align-items:center;justify-content:flex-end;padding:3px 3px 3px 7px;background:rgba(12,14,18,.9);box-shadow:inset 0 0 0 2px #fff,inset 5px 0 0 #ffb347;font-size:var(--fs-13)}
+.bmF.pill u{white-space:nowrap;text-decoration:none;padding:5px 9px;border-radius:5px;background:#f4f5f7;color:#111}
+.bmF.pit::before{content:'필수';position:absolute;white-space:nowrap;top:-15px;left:50%;transform:translateX(-50%);padding:1px 6px;border-radius:6px;background:#ff9a2e;color:#111;font-size:var(--fs-13);font-weight:var(--fw-bold);line-height:1.2}
+.bmC{position:absolute;padding:6px 10px;border-radius:10px;background:rgba(14,15,19,.93);box-shadow:var(--hair)}
+.bmR{display:flex;align-items:center;gap:8px;height:24px;white-space:nowrap}
+.bmR b{flex:none;min-width:30px;font-size:var(--fs-15);font-weight:var(--fw-bold);color:#fff;letter-spacing:var(--ls-text)}
+.bmR span{flex:1;min-width:0;font-size:var(--fs-13);color:#aab0b9;overflow:hidden;text-overflow:ellipsis}
+.bmC.bmTwo .bmR{flex-wrap:wrap;height:auto;row-gap:2px} .bmC.bmTwo .bmR b{width:100%}   /* 게임 전역 .two(격자)와 이름이 겹쳐 bmTwo로 */
+.bmR em{flex:none;font-style:normal;font-size:var(--fs-13);font-weight:var(--fw-bold);color:var(--cap)}
+.bmP{position:absolute;left:296px;top:84px;width:298px;padding:8px 10px;border-radius:12px;background:var(--mbg);box-shadow:0 14px 34px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.1)}
+.bmP p{margin:0 0 6px;display:flex;align-items:baseline;gap:8px;height:24px;white-space:nowrap}
+.bmP p b{font-size:var(--fs-15);font-weight:var(--fw-bold);letter-spacing:var(--ls-text)} .bmP p small{font-size:var(--fs-13);color:var(--cap);overflow:hidden;text-overflow:ellipsis}
+.bmT{display:flex;gap:6px}
+.bmS{flex:1;display:flex;gap:2px;padding:3px;border-radius:12px;background:var(--mfill)}
+.bmS button{position:relative;flex:1;height:44px;border-radius:9px;color:#b3b7c0;font-size:var(--fs-13);font-weight:var(--fw-med);text-align:center;white-space:nowrap}
+.bmS button[aria-pressed="true"]{background:var(--mpill);color:#fff;font-weight:var(--fw-bold)}
+.bmS button i{position:absolute;top:-9px;right:2px;padding:0 5px;border-radius:5px;background:#fff;color:#16171b;font-size:var(--fs-13);font-weight:var(--fw-bold);font-style:normal;line-height:16px}
+.bmL{position:absolute;border:dashed rgba(255,255,255,.5);border-width:0 0 2px 2px;border-radius:0 0 0 6px}
+.bmX{flex:none;width:60px;height:50px;border-radius:12px;background:var(--mfill);font-size:var(--fs-13);font-weight:var(--fw-bold);text-align:center;color:#e9ebef}
+
+/* 11-15 글씨정리: 좁은 화면 버튼 사용법 — 설명 줄 21px, 패널 안 설명 줄 */
+.bmC.n{padding:3px 10px}.bmC.n .bmR{height:21px}
+.bmPr{margin-top:6px}.bmPr .bmR{height:21px}
 /* 11-12 윤택님 「움직이는 애니메이션이었음 좋겠는데 처음 켰을 때 라이츠아웃 화면」: once a tab, at the start - the five start lights come on one by one and go out
    together (LIGHTS OUT), then the menu slides in; a tap skips it. Behind the menu the still 3D frame drifts slowly - a CSS zoom on the canvas: the scene is not drawn
    again, so the menu costs what it did (off on 부드럽게). Opacity and transform only (no repaint). None of it with reduced motion. */
@@ -803,13 +885,36 @@ body.touch #flag.sa.pulse{animation-name:flagPulseSa}
 #sessTitle .sLb{margin-right:8px; font:var(--fw-bold) var(--fs-20)/1 var(--ff-ui); font-style:normal; letter-spacing:var(--ls-title); color:var(--c-lab)}
 #sessTitle small{margin-left:4px; font:var(--fw-num) var(--fs-15)/1 var(--ff-num); font-style:normal; color:var(--dim)}
 #sess .row2 #sessGo{order:2}
-#tut{border-color:#fff} #tut .th{color:#fff}
-#tutMark{position:absolute; z-index:4; border:2px solid #fff; border-radius:14px; pointer-events:none; box-shadow:0 0 0 2000px rgba(4,6,10,.34); transition:box-shadow .6s}
-#tutMark.lite{box-shadow:0 0 0 2000px rgba(4,6,10,0)} #tutMark[hidden]{display:none}
-#tut #tutMore{display:block; margin:-6px 0 8px; padding:4px 0; min-height:0; background:none; border:0; color:#aab0b9; font-size:13px; text-decoration:underline; text-underline-offset:3px}
-#tut #tutMore[hidden]{display:none}
-#tut .tb{flex-wrap:wrap} #tut .tb #tutRace{flex:1 1 100%} #tut .tb #tutRace[hidden]{display:none}
 #ctlHelp.coach{background:rgba(6,8,12,.3)} #ctlHelp.coach #chMarks .box{border-color:#fff} #ctlHelp.coach #chMarks .chip{border-color:rgba(255,255,255,.7)} #ctlHelp.coach #chMarks .chip b{color:#fff}
+/* ── 튜토리얼 단계 카드 (#tut) ── 오른쪽 위 둥근 버튼 아래, 폭 280(끝 카드 300), 아래 끝은 PIT 묶음 위 */
+#tut{position:absolute;z-index:4;top:56px;right:8px;width:280px;max-height:213px;overflow:auto;padding:8px 12px;border-radius:12px;
+  background:rgba(14,15,19,.93);border:2px solid #fff;box-shadow:0 8px 26px rgba(0,0,0,.45);pointer-events:auto}
+#tut[hidden]{display:none}
+#tut .th{display:flex;align-items:center;gap:8px;margin:0;height:24px;line-height:24px;font-size:var(--fs-15);font-weight:var(--fw-bold);color:#fff;white-space:nowrap;overflow:hidden;letter-spacing:var(--ls-text)}
+#tut .th b{flex:none;font:var(--fw-num) var(--fs-15)/1 var(--cond);letter-spacing:.4px;color:var(--cap)}
+#tut .th b:empty{display:none}
+#tut .tp{display:flex;gap:3px;margin:5px 0 8px}
+#tut .tp i{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.16)}
+#tut .tp i.d{background:rgba(255,255,255,.7)} #tut .tp i.c{background:#fff}
+#tut .tt{margin:0;font-size:var(--fs-13);line-height:1.45;color:var(--ink);word-break:keep-all}
+#tut #tutMore{position:relative;display:block;height:28px;margin:0;padding:0;font-size:var(--fs-13);font-weight:var(--fw-med);color:var(--dim);text-decoration:underline;text-underline-offset:3px}
+#tut #tutMore::after{content:'';position:absolute;inset:-8px -14px}   /* 누르는 칸 44px */
+#tut #tutMore[hidden]{display:none}
+#tut .tb{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+#tut .tb button{flex:1;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:var(--fs-13);font-weight:var(--fw-bold);white-space:nowrap}
+#tut .tb button[hidden]{display:none}
+#tut #tutBack{color:#eef0f3}
+#tut #tutSkip{flex:0 0 auto;padding:0 12px;box-shadow:var(--hair);color:#c9cdd4;font-weight:var(--fw-med)}
+#tut #tutNext{background:var(--mfill);box-shadow:var(--hair);color:#fff;font-weight:var(--fw-bold)}   /* #474b56(--mpill)은 홈에서 「고른 것」 표시라 행동 버튼엔 안 씀(검토 S12) */
+#tut.end{width:300px} #tut.end .tp{display:none} #tut.end .tt{margin-top:6px}
+#tut.end .tb{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}   /* 끝 카드: 1줄 첫 레이스(일찍 끝냈으면 ‹ N단계로 + 첫 레이스) · 2줄 규칙 가이드 · 메뉴로 · 계속 연습 */
+#tut.end #tutRace{grid-column:1/-1;color:#fff;font-size:var(--fs-15);font-weight:var(--fw-bold);background:linear-gradient(180deg,#ec3a30,#c0211a);box-shadow:inset 0 1px 0 rgba(255,255,255,.25);letter-spacing:var(--ls-text)}
+#tut.end #tutBack:not([hidden])~#tutRace{grid-column:2/-1}
+#tut.end .tb button{padding:0 6px;font-size:var(--fs-13)}
+#tut.end #tutGuide,#tut.end #tutSkip,#tut.end #tutNext,#tut.end #tutBack{box-shadow:none;background:var(--mfill);color:#eef0f3;font-weight:var(--fw-bold)}
+#tut.ok{border-color:var(--green)} #tut.ok .th,#tut.ok .th b{color:var(--green)}
+#tutMark{position:absolute;z-index:4;border:2px solid #fff;border-radius:14px;pointer-events:none;box-shadow:0 0 0 2000px rgba(4,6,10,.34);transition:box-shadow .6s}
+#tutMark.lite{box-shadow:0 0 0 2000px rgba(4,6,10,0)} #tutMark[hidden]{display:none}
 @media (prefers-reduced-motion:reduce){#tutMark{transition:none}}
 </style>
 <script>
@@ -888,7 +993,7 @@ body.touch #flag.sa.pulse{animation-name:flagPulseSa}
     <div id="pedals"><button class="pedal brk" data-k="brake" aria-label="브레이크">브레이크</button><button class="pedal gas" data-k="gas" aria-label="가속">가속</button></div>
   </div>
   <div id="tutMark" hidden></div>
-  <div id="tut" hidden role="status"><p class="th" id="tutH"></p><p class="tt" id="tutT"></p><button id="tutMore" type="button" hidden>자세히</button><div class="tb"><button id="tutRace" type="button" class="go" hidden>첫 레이스 시작</button><button id="tutSkip" type="button">건너뛰기</button><button id="tutNext" type="button" class="go">다음</button></div></div>
+  <div id="tut" hidden role="status"><p class="th"><b id="tutN"></b><span id="tutH"></span></p><div class="tp" id="tutP"></div><p class="tt" id="tutT"></p><button id="tutMore" type="button" hidden>자세히</button><div class="tb"><button id="tutBack" type="button" hidden></button><button id="tutRace" type="button" hidden>첫 레이스 시작</button><button id="tutGuide" type="button" hidden>규칙 가이드</button><button id="tutSkip" type="button">튜토리얼 끝내기</button><button id="tutNext" type="button">다음 단계 ›</button></div></div>
   <div id="ctlHelp" hidden><div id="chMarks"></div></div>
   <div class="overlay" id="skill" hidden><div class="card"><h2>처음이세요?</h2><p class="sub" id="skSub">가장 쉬운 조작으로 맞춰 뒀어요. 나중에 「운전」에서 바꿀 수 있어요.</p>
     <div class="row2 skAct"><button class="go" id="skTut" type="button"><b>튜토리얼</b><span>직접 달리며 조작 익히기 · 약 3분</span></button><button id="skGo" type="button"><b>바로 레이스</b><span id="skGoS">서울 3랩 · AI 쉬움</span></button></div>
@@ -918,7 +1023,7 @@ body.touch #flag.sa.pulse{animation-name:flagPulseSa}
       <div class="seg" id="modeSel"><button data-v="race" aria-pressed="true">레이스</button><button data-v="quali" aria-pressed="false">예선 → 레이스</button><button data-v="practice" aria-pressed="false">연습 주행</button></div>
       <p class="label">실력</p>
       <div class="seg" id="skSel"><button data-v="easy">초보</button><button data-v="pro">직접 설정</button></div><p class="skNote" id="skNote"></p>
-      <button id="ctlGuide" type="button">조작법 보기</button><button id="tutBtn" type="button">튜토리얼로 조작 익히기</button><button id="guideBtn" type="button">규칙 가이드 (깃발 · 페널티 · 타이어)</button>
+      <button id="ctlGuide" type="button"><span class="touchOnly">버튼 사용법</span><span class="keyOnly">조작법 보기</span></button><button id="tutBtn" type="button">튜토리얼로 조작 익히기</button><button id="guideBtn" type="button">규칙 가이드 (깃발 · 페널티 · 타이어)</button>
       <p class="label" id="chLbl">대회 (서킷을 이어 달리며 순위별 점수 합산)</p>
       <div id="chBox"></div>
       <p class="sub" id="chTrkNote" style="display:none;margin:0 0 12px"></p>
@@ -955,7 +1060,7 @@ body.touch #flag.sa.pulse{animation-name:flagPulseSa}
         <div><p class="label">빗방울 (비 올 때 화면에 맺히는 물방울)</p><div class="seg" id="dropSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔</button></div></div>
         <div><p class="label">관중 표시 (관중석의 사람 그림 · 끄면 조금 가벼워질 수 있어요)</p><div class="seg" id="crowdSel"><button data-v="on" aria-pressed="true">켬</button><button data-v="off" aria-pressed="false">끔</button></div></div>
       </div>
-      <p class="sub touchOnly" id="touchHelp">왼쪽 아래로 조향, 오른쪽 아래 페달로 가속·브레이크. 자동 가속이면 브레이크만 누르면 돼요. 직선 구간에서 「직선」 버튼을 누르면 날개가 열려요(자동이면 저절로). 위쪽 「맵」 버튼으로 미니맵 크기를 바꿔요.</p>
+      <p class="sub touchOnly" id="touchHelp">왼쪽 아래로 조향, 브레이크는 조향 바로 오른쪽(페달 위치 「오른쪽」이면 오른쪽 아래, 기울이기면 왼쪽 아래 구석). 자동 가속이면 브레이크만 누르면 돼요. 직선 구간에서 「직선」 버튼을 누르면 날개가 열려요(자동이면 저절로). 위쪽 「맵」 버튼으로 미니맵 크기를 바꿔요. 버튼 자리는 「버튼 사용법」에서 그림으로 볼 수 있어요.</p>
       <div class="keys keyOnly">
         <span><kbd>↑</kbd> <kbd>W</kbd></span><span>가속</span>
         <span><kbd>Space</kbd> <kbd>↓</kbd> <kbd>S</kbd></span><span>브레이크 / 후진</span>
@@ -971,7 +1076,7 @@ body.touch #flag.sa.pulse{animation-name:flagPulseSa}
         <span><kbd>레드 플래그</kbd></span><span>경기 중단: 천천히 피트 레인으로 → 순위대로 정렬, 타이어 교체·수리 → 세이프티카 따라 그리드로 → 스탠딩 재출발 · <kbd>Enter</kbd> 건너뛰기</span>
         <span><kbd>코스 밖 추월</kbd></span><span>네 바퀴가 모두 흰 선 밖으로 나간 채 자리를 얻으면 15초 안에 그 차를 다시 앞으로 보내야 해요 · 안 돌려주면 +10초 (첫 랩은 +5초) · AI도 똑같이 돌려줘요</span>
         <span><kbd>예선</kbd></span><span>Q1 6:00 → Q2 5:00 → Q3 4:00 (실제 18·15·12분의 1/3) · Q1·Q2에서 하위 6명 탈락 · 체커기 전에 시작한 랩까지 인정 · 아웃랩·인랩엔 뒤에 오는 플라잉 랩 차량에 길 비켜 주기</span>
-        <span><kbd>C</kbd> · <kbd>V</kbd> · <kbd>H</kbd> · <kbd>N</kbd></span><span>시점 전환 (콕핏 → T캠 → 추격 → 원거리) · 누르는 동안 뒤 보기 · 룸미러 켜기/끄기 · 미니맵 크게 → 작게 → 끄기 (노란 구간 = 다음 코너)</span>
+        <span><kbd>C</kbd> · <kbd>V</kbd> · <kbd>H</kbd> · <kbd>N</kbd></span><span>시점 전환 (콕핏 → T캠 → 추격 → 원거리 추격 → TV 중계) · 누르는 동안 뒤 보기 · 룸미러 켜기/끄기 · 미니맵 크게 → 작게 → 끄기 (노란 구간 = 다음 코너)</span>
         <span><kbd>[</kbd> <kbd>]</kbd></span><span>레이스 중 조향 감도 조절</span>
         <span><kbd>M</kbd> · <kbd>P</kbd> · <kbd>R</kbd></span><span>사운드 · 일시정지 · 재시작</span>
         <span><kbd>F</kbd></span><span>FPS(초당 화면 수) 표시 켜기/끄기 · 버벅임 확인용 (최저 = 가장 느린 1% 화면 기준)</span>
@@ -995,8 +1100,9 @@ body.touch #flag.sa.pulse{animation-name:flagPulseSa}
   </div></div>
   <div class="overlay" id="sess" hidden><div class="card"><h1 id="sessTitle">Q1</h1><p class="sub num" id="sessSub"></p><div class="laps" id="sLaps"></div><table class="num" id="sessTable"></table><div class="row2"><button class="go" id="sessGo">다음</button><button id="sessMenu">메뉴로</button></div></div></div>
   <div class="overlay" id="result" hidden><div class="card"><div class="rHd"><h1 id="resTitle">P1</h1><div class="row2"><button class="go" id="againBtn">다시 달리기<span class="keyOnly"> (Enter)</span></button><button class="go" id="chBtn" hidden>대회 순위 보기<span class="keyOnly"> (Enter)</span></button><button id="menuBtn">메뉴로</button></div></div><p class="sub num" id="resSub"></p><p class="sub" id="resTip" hidden></p><p class="sub num" id="resFl" style="color:#c58bff;margin-top:-4px"></p><table class="num" id="resTable"></table><div class="laps" id="rLaps"></div></div></div>
-  <div class="overlay" id="guide" hidden role="dialog" aria-label="레이스 가이드"><div class="gCard"><div class="gHd"><b id="gCnt"></b><span id="gTit"></span><button id="gX" type="button">닫기</button></div>
-    <div id="gBody"></div><div class="gNav"><button id="gPrev" type="button">이전</button><div id="gDots"></div><button id="gNext" type="button" class="go">다음</button></div></div></div>
+  <div class="overlay" id="guide" hidden role="dialog" aria-label="규칙 가이드"><div class="gCard"><div class="gHd"><button id="gToc" type="button"><i></i>목차</button><b id="gCnt"></b><span id="gTit"></span><button id="gX" type="button">닫기</button></div>
+    <div id="gBody"></div><div class="gNav"><button id="gPrev" type="button">‹ 이전</button><span id="gNx"></span><button id="gNext" type="button">다음 ›</button></div></div></div>
+  <div class="overlay" id="bmap" hidden role="dialog" aria-label="버튼 사용법"><div id="bmIn"></div></div>
   <div id="intro" hidden aria-hidden="true"><div class="inL"><i></i><i></i><i></i><i></i><i></i></div><b class="inT">LIGHTS OUT</b></div>
   <div id="loading">서킷을 준비하는 중</div>
   <div id="err"><p>3D 그래픽(WebGL)을 불러오지 못했어요. 최신 Chrome, Edge, Safari에서 다시 열어주세요.</p></div>
@@ -6757,7 +6863,7 @@ function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={ea
   L.appendChild(h1);const mm=mk('div','mMode',R,'seg');mm.innerHTML='<button type="button" data-v="normal">일반 모드</button><button type="button" data-v="champ">대회 모드</button>';
   const list=mk('div','mList',L);for(const k in MNAMES){const b=mk('button',null,list,'mItem');b.type='button';b.innerHTML=`<span class="mTx"><b id="mN_${k}">${MNAMES[k]}</b><span id="${k==='track'?'bestMenu':'mV_'+k}"></span></span><i></i>`;b.onclick=()=>mOpen(k);}
   {const act=mk('div','mAct',R),sec=mk('div','mSec',act),b1=mk('button','mTut',sec),b2=mk('button','mGuide',sec);b1.type=b2.type='button';b1.textContent='튜토리얼';b2.textContent='규칙 가이드';
-   b1.onclick=()=>tutStart();b2.onclick=()=>guideOpen(0);act.appendChild(st);}   /* 11-13: the tutorial and the rules guide from the home screen */
+   b1.onclick=()=>tutStart();b2.onclick=()=>guideOpen();act.appendChild(st);}   /* 11-13: the tutorial and the rules guide from the home screen */
   const hd=mk('div','mPgH',page),bk=mk('button','mBack',hd);bk.type='button';bk.setAttribute('aria-label','뒤로');bk.innerHTML='<i></i>';bk.onclick=()=>mOpen(null);mk('div','mPgT',hd);
   for(const k in MPAGES){const pg=mk('div','mP_'+k,page,'mPg');pg.hidden=true;
     for(const [grp,rows] of MPAGES[k]){if(grp)mk('p',null,pg,'mGrp').textContent=grp;
@@ -6898,21 +7004,62 @@ skReady=true;skillUI();
 // ===== 10-31: tutorial - a short guided practice alone on the default circuit, one card at a time in the timing panel's place
 // (top right, under the round buttons: clear of the controls and of the road ahead). Each card waits for the action or 「다음」. =====
 const TUT_TRK='seoul';let TUT=null;
-// 11-14 (UI 개편 #5): each card says it in two lines (s) - 「자세히」 shows the full text (t); the control it talks about gets a white frame (TUT_MARK: the first shown)
-const TUT_MARK=[['#steerPad','#btnSteer','#tiltGauge'],['.pedal.gas','#hudSpeed'],['.pedal.brk'],[],['#mCam'],['#mTyre'],['#mPit'],['#mAero'],['#mErs'],[]];
+/* 11-15 UI 개편 TG(튜토리얼가이드_설계.md 2·3장): 9단계 재설계 — 조향 → 가속 → 브레이크 → 코너 → 직선 → ERS → 타이어 → 피트 → 일시정지 + 끝 카드 */
+/* ===== ① 단계 =====
+   9단계: 조향 → 가속 → 브레이크 → 코너·레이싱 라인 → 직선 모드 → ERS → 타이어 → 피트 → 일시정지(시점 단계 자리) + 끝 카드
+   h 제목 · m 흰 테두리 대상(보이는 첫 번째, 함수도 됨) · line 레이싱 라인을 꺼 둬도 보이는 단계 · s 두 줄 · t 「자세히」 · done 통과
+   문장은 tk(폰 문장, PC 문장)으로 문장째 고른다(조각을 붙이면 「E 키으로」 같은 조사 오류가 난다). */
 const tk=(t,k)=>isTouch?t:k;
 const TUT_STEPS=[
-  {h:'조향',s:()=>tk({tilt:'폰을 핸들처럼 좌우로 기울여 보세요',buttons:'왼쪽 아래 ◀ ▶ 를 눌러 보세요'}[steerMode]||'왼쪽 아래 패드를 좌우로 끌어 보세요','← → 키로 좌우로 꺾어 보세요'),t:()=>tk({tilt:'폰을 핸들처럼 좌우로 기울이면 꺾여요. 똑바로 둬도 한쪽으로 가면 위쪽 「영점」을 눌러 지금 각도를 가운데로 맞춰요.',buttons:'왼쪽 아래 ◀ ▶ 버튼을 누르는 동안 꺾여요.'}[steerMode]||'왼쪽 아래 패드를 손가락으로 좌우로 끌면 핸들이 돌아요. 놓으면 가운데로 돌아와요.','← → 키(또는 A D)로 꺾어요. 길게 누를수록 더 꺾여요.')+' 왼쪽, 오른쪽으로 한 번씩 꺾어 보세요.',
-   done:(p,T)=>{if(key.left||key.axis<-0.25)T.sl=1;if(key.right||key.axis>0.25)T.sr=1;return !!(T.sl&&T.sr);}},   // 11-13 윤택님 「듀토리얼 더 상세하게」
-  {h:'가속',s:()=>tk(autoGas?'가속은 자동이에요. 시속 100km까지 달려 보세요':'오른쪽 아래 「가속」을 눌러 시속 100km까지','↑ 키로 시속 100km까지 달려 보세요'),t:()=>(race&&race.player.pit?'피트 레인을 나가는 동안은 차가 알아서 달려요. ':'')+tk(autoGas?'자동 가속이라 손대지 않아도 앞으로 나가요. 시속 100km까지 달려 보세요.':'오른쪽 아래 「가속」을 누르고 있으면 나가요. 시속 100km까지 달려 보세요.','↑ 키(또는 W)를 누르고 있으면 나가요. 시속 100km까지 달려 보세요.'),done:p=>!p.pit&&p.spd*3.6>=100},
-  {h:'브레이크',s:()=>tk('「브레이크」를 꾹 눌러 속도를 줄여 보세요','Space 키로 브레이크를 밟아 보세요'),t:()=>tk('「브레이크」를 꾹 누르면 속도가 줄어요.','Space(또는 ↓) 키가 브레이크예요.')+' 코너 앞에서 미리 밟아 보세요.'+(brakeAs?' 너무 빠르면 브레이크 보조가 대신 밟아 줘요.':''),done:p=>key.brake&&p.spd>8},
-  {h:'코너 · 레이싱 라인',s:()=>'바닥 색 띠를 따라 코너 하나를 지나 보세요',t:()=>'바닥의 색 띠를 따라가세요. 빨강에서 브레이크, 노랑에서 꺾고, 초록에서 다시 가속해요. 코너 하나를 지나 보세요.',done:(p,T)=>{const k=Math.abs(TR.K[p.idx]);if(k>0.012)T.cs=1;return !!T.cs&&k<0.003;}},
-  {h:'시점',s:()=>tk('위쪽 「시점」을 눌러 보세요','C 키로 시점을 바꿔 보세요'),t:()=>tk('위쪽 「시점」','C 키')+'로 보는 위치가 바뀌어요: 콕핏 → T캠 → 추격 → 원거리. '+tk('「뒤보기」를 누르는 동안','V 키를 누르는 동안')+' 뒤를 봐요. 시점을 한 번 바꿔 보세요.',done:(p,T)=>{if(T.cm==null)T.cm=camMode;return camMode!==T.cm;}},
-  {h:'타이어',s:()=>tk('「다음」 버튼으로 다음 타이어를 바꿔 보세요','1~5 키로 다음 타이어를 바꿔 보세요'),t:()=>'마른 노면 레이스에선 두 종류의 타이어를 꼭 한 번씩 써야 해서, 피트스톱이 한 번은 필요해요. '+tk('「다음」 버튼으로','1~5 키로')+' 다음에 끼울 타이어를 바꿔 보세요.',done:(p,T)=>{const c=p.nextComp||p.ty.comp;if(T.c0==null)T.c0=c;return c!==T.c0;}},
-  {h:'피트',s:()=>tk('「PIT」를 눌러 보세요. 이번 랩 끝에 피트로 들어가요','B 키를 눌러 보세요. 이번 랩 끝에 피트로 들어가요'),t:()=>tk('「PIT」','B 키')+'를 누르면 이번 랩 끝에 피트 레인으로 들어가 고른 타이어로 바꿔요. 피트 레인에선 차가 알아서 달려요. 눌러 보세요.',done:(p,T)=>!!T.pitTap},   // 11-14 (T3): passed by pressing PIT in this step (in the pit lane alone it passed by itself)
-  {h:'직선 모드',s:()=>aeroMode==='auto'?'긴 직선에서 날개가 저절로 열려요. 다음 직선까지 달려 보세요':tk('긴 직선에서 「직선」을 눌러 날개를 열어 보세요','긴 직선에서 E 키로 날개를 열어 보세요'),t:()=>'서킷마다 정해진 긴 직선(3초 넘게 전속력)에서만 날개를 열 수 있어요. 열면 공기 저항이 줄어 더 빨라져요. '+(aeroMode==='auto'?'지금은 자동이라 구간에 들어가면 저절로 열려요.':tk('「직선」 버튼','E 키')+'으로 열고, 브레이크를 밟거나 가속을 떼면 닫혀요.')+' 다음 긴 직선에서 열어 보세요.',done:p=>!!p.aeroOpen},
-  {h:'ERS 부스트',s:()=>tk('직선에서 「ERS」를 눌러 보세요','직선에서 Shift 키를 눌러 보세요'),t:()=>'직선에서 '+tk('「ERS」','Shift 키')+'를 누르면 배터리 힘으로 더 빨라져요. 배터리는 가속을 떼거나 브레이크를 밟을 때 다시 차요. ERS를 한 번 써 보세요.',done:p=>p.boost},
-  {h:'끝!',s:()=>'잘했어요! 이제 첫 레이스를 달려 볼까요?',t:()=>'잘했어요. 깃발·페널티·타이어 규칙은 메뉴의 「규칙 가이드」에 그림과 함께 자세히 있어요. 여기서 계속 연습해도 돼요.'}];
+  {h:'조향',m:['#steerPad','#btnSteer','#tiltGauge'],line:1,
+   s:()=>tk({tilt:'폰을 핸들처럼 좌우로 기울여 보세요',buttons:'왼쪽 아래 ◀ ▶를 눌러 보세요'}[steerMode]||'왼쪽 아래 패드를 좌우로 끌어 보세요','← → 키로 좌우로 꺾어 보세요'),
+   t:()=>tk({tilt:'폰을 핸들처럼 기울이면 꺾여요. 계기판 아래 막대의 노란 표시가 기울기예요. 똑바로 들어도 한쪽으로 가면 위쪽 「영점」을 눌러요. 왼쪽, 오른쪽으로 한 번씩 꺾어 보세요.',
+             buttons:'왼쪽 아래 ◀ ▶를 누르는 동안 그쪽으로 꺾여요. 왼쪽, 오른쪽으로 한 번씩 꺾어 보세요.'}[steerMode]
+            ||'왼쪽 아래 패드를 좌우로 끌면 핸들이 돌고, 놓으면 가운데로 돌아와요. 왼쪽, 오른쪽으로 한 번씩 꺾어 보세요.',
+            '← → 키(또는 A D)로 꺾어요. 길게 누를수록 더 꺾여요. 왼쪽, 오른쪽으로 한 번씩 꺾어 보세요.'),
+   done:(p,T)=>{if(key.left||key.axis<-0.25)T.sl=1;if(key.right||key.axis>0.25)T.sr=1;return !!(T.sl&&T.sr);}},   /* 11-13 윤택님 「듀토리얼 더 상세하게」 */
+  {h:'가속',m:['.pedal.gas','#spd'],line:1,
+   s:()=>tk(autoGas?'가속은 자동이에요. 그대로 시속 100km까지 달려 보세요':gasAt()+' 「가속」을 누른 채 100km까지 달려 보세요','↑ 키를 누른 채 시속 100km까지 달려 보세요'),
+   t:()=>tk(autoGas?'자동 가속이라 손대지 않아도 앞으로 나가요. 계기판의 큰 숫자가 속도(km/h)예요. 시속 100km까지 달려 보세요.'
+                   :gasAt()+' 「가속」을 누르고 있는 동안 나가요. 계기판의 큰 숫자가 속도(km/h)예요. 시속 100km까지 달려 보세요.',
+            '↑ 키(또는 W)를 누르고 있는 동안 나가요. 계기판의 큰 숫자가 속도(km/h)예요. 시속 100km까지 달려 보세요.'),
+   done:p=>!p.pit&&p.spd*3.6>=100},
+  {h:'브레이크',m:['.pedal.brk'],line:1,
+   s:()=>tk(brkAt()+' 「브레이크」를 꾹 눌러 보세요','Space 키로 브레이크를 밟아 보세요'),
+   t:()=>tk(brkAt()+' 「브레이크」를 누르고 있는 동안 속도가 줄어요.','Space(또는 ↓, S) 키를 누르고 있는 동안 속도가 줄어요.')+' 코너 앞 직선에서 미리 밟아 두는 게 요령이에요.'+(brakeAs?' 너무 빠르면 브레이크 보조가 대신 밟아 줘요.':''),
+   done:p=>key.brake&&p.spd>8},
+  {h:'코너 · 레이싱 라인',m:[],line:1,
+   s:()=>'바닥의 색 띠를 따라 코너 하나를 지나 보세요',
+   t:()=>'바닥의 색 띠가 레이싱 라인이에요. 빨강에서 브레이크, 노랑에서 꺾고, 초록에서 다시 가속해요.'+(rlMode==='off'?' 지금은 꺼 둔 설정이라 이 단계까지만 보여요.':'')+' 코너 하나를 지나 보세요.',
+   done:(p,T)=>{const k=Math.abs(TR.K[p.idx]);if(k>0.012)T.cs=1;return !!T.cs&&k<0.003;}},
+  {h:'직선 모드',m:['#mAero','#bSM','#hudSpeed'],
+   s:()=>aeroMode==='auto'?'다음 긴 직선까지 달려 보세요. 날개가 저절로 열려요':tk('긴 직선에서 「직선」을 눌러 날개를 열어 보세요','긴 직선에서 E 키로 날개를 열어 보세요'),
+   t:()=>'서킷마다 정해진 긴 직선에서만 날개가 열려 더 빨라져요. '+tk('계기판 「직선 2/4」는 몇 번째 구간인지예요. ','계기판 「직선 모드 2/4」는 몇 번째 구간인지예요. ')
+         +(aeroMode==='auto'?'지금은 자동이라 구간에 들어가면 저절로 열리고 「직선 열림」이 떠요.':tk('「직선」을 누르면 열리고(버튼이 노랗게), 브레이크를 밟으면 닫혀요.','E 키로 열고, 브레이크를 밟거나 가속을 떼면 닫혀요.')),
+   done:p=>!!p.aeroOpen},
+  {h:'ERS 부스트',m:()=>!isTouch||autoGas?['#mErs']:['#ersBox','#hudSpeed'],
+   s:()=>!isTouch?'직선에서 Shift 키를 누르고 있어 보세요':autoGas?'직선에서 「ERS」를 꾹 누르고 있어 보세요':'가속을 누른 채 직선을 달려 보세요. ERS가 저절로 켜져요',
+   t:()=>!isTouch?'직선에서 Shift 키를 누르고 있는 동안 배터리 힘으로 더 빨라져요. 계기판 배터리 막대가 줄고, 가속을 떼거나 브레이크를 밟으면 다시 차요.'
+      :autoGas?'「ERS」를 누르고 있는 동안 배터리 힘으로 더 빨라져요. 계기판 배터리 막대가 줄고, 브레이크를 밟으면 다시 차요. 직선에서 한 번 써 보세요.'
+      :'직접 가속이면 직선에서 가속을 누르고 있을 때 ERS(배터리 부스트)가 저절로 켜져요. 「ERS」를 직접 눌러도 돼요. 배터리 막대가 줄었다가 브레이크를 밟으면 다시 차요.',
+   done:p=>p.boost},   /* 직접 가속의 저절로 켜짐(autoErs)도 통과 — 이제 문구가 그렇게 말한다 */
+  {h:'타이어',m:['#mTyre'],
+   s:()=>tk('타이어 고리가 있는 「다음」 버튼을 눌러 보세요','1~5 키로 다음 타이어를 골라 보세요'),
+   t:()=>tk('「다음」은 다음 피트 스톱에 끼울 타이어예요. 누를 때마다 S → M → H → I → W.','1~5 키(1 소프트 · 2 미디엄 · 3 하드 · 4 인터 · 5 풀 웻)로 다음 피트 스톱 때 끼울 타이어를 골라요.')
+         +' 마른 노면 레이스에선 두 종류를 꼭 써야 해서 피트 스톱이 한 번은 필요해요.',
+   done:(p,T)=>{const c=p.nextComp||p.ty.comp;if(T.c0==null)T.c0=c;return c!==T.c0;}},
+  {h:'피트',m:['#mPit'],
+   s:()=>tk('「PIT」를 눌러 보세요. 이번 랩 끝에 피트로 들어가요','B 키를 눌러 보세요. 이번 랩 끝에 피트로 들어가요'),
+   t:()=>tk('「PIT」를 누르면','B 키를 누르면')+' 이번 랩 끝에 피트 레인으로 들어가 고른 타이어로 바꿔요. 한 번 더 누르면 취소예요. 피트 레인에선 차가 알아서 달리니 손을 떼고 기다리면 돼요.',
+   done:(p,T)=>!!T.pitTap},   /* 누르면 통과(af52cd1 그대로). 피트 레인 자동 주행 중에도 다음 9단계(II)는 할 수 있다 — 직선·ERS를 피트 앞으로 옮긴 이유 */
+  {h:'일시정지',m:['#mPause'],
+   s:()=>tk('「II」 버튼으로 멈췄다가 「계속 달리기」로 돌아와 보세요','P 키로 멈췄다가 다시 P 키로 돌아와 보세요'),
+   t:()=>tk('「II」 버튼을 누르면 멈추고, 설정과 「조작법」(버튼 위치) 화면이 있어요. 옆 「시점」은 카메라를 콕핏 → T캠 → 추격 → 원거리 추격 → TV 중계로 바꿔요.',
+            'P(또는 Esc) 키로 멈추면 조향 감도 같은 설정이 있어요. C 키는 카메라를 콕핏 → T캠 → 추격 → 원거리 추격 → TV 중계로 바꿔요.'),
+   done:(p,T)=>!!T.pz},   /* 일시정지 setPause(true)가 TUT.pz=1(일시정지 [A]에 들어 있음), tutGo가 단계마다 0으로 — 열었다 닫으면 통과. 앱 전환 자동 일시정지도 통과로 친다(ponytail: 막으려면 mPause·P 키에서만 표시) */
+  {h:'끝!',m:[],
+   t:()=>TUT&&TUT.back!=null?(TUT.back+1)+'단계에서 멈췄어요. 이어 하려면 「'+(TUT.back+1)+'단계로」, 혼자 달리려면 「계속 연습」을 눌러요.'
+        :'깃발·페널티·예선은 「규칙 가이드」에 있어요. 「계속 연습」을 누르면 혼자 자유롭게 달려요.'}];   /* 상황 버튼은 예선에서만(d3d9327) — 연습엔 띠 버튼이 없어서 문장을 바꿈 */
 // a race started right after the page loads (tutorial, the performance test) waits up to 10 s for the 3D car model -
 // a race in progress keeps the cars it started with, so without this it ran in the old procedural car
 function whenCar(fn,n=0){if(THREE.GLTFLoader&&!window.__CARGLB&&n<300){$('loading').style.display='flex';$('loading').textContent='차량을 불러오는 중'+(n>=25?' · '+Math.round(n/5)+'초':'');setTimeout(()=>whenCar(fn,n+1),200);return;}
@@ -6922,126 +7069,233 @@ function tutStart(force){if(TRK.id!==TUT_TRK){saveLS('lightsout3d-tutgo','1');sa
     $('loading').style.display='flex';$('loading').textContent='튜토리얼 서킷을 불러오는 중';setTimeout(()=>location.reload(),30);return;}
   if(force!==true){whenCar(()=>tutStart(true));return;}
   const wx=weather;weather='dry';TUT={i:0,ok:0,wait:true};startRace({mode:'practice'});weather=wx;document.body.classList.add('tutOn');tutShow();}
+/* ===== ② 카드 ===== */
 const tutTxt=s=>TUT&&TUT.more||!s.s?s.t():s.s();
-function tutShow(){if(TUT.wait){$('tut').hidden=true;tutMark(null);return;}   // 11-14 (T1): no card while the car is still leaving the pit lane (the strip says so)
-  const s=TUT_STEPS[TUT.i],n=TUT_STEPS.length-1,last=TUT.i===n;$('tutH').textContent=(last?'튜토리얼':'튜토리얼 '+(TUT.i+1)+'/'+n)+' · '+s.h;
-  $('tutT').textContent=tutTxt(s);$('tutMore').hidden=!!TUT.more||!s.s;$('tutNext').textContent=last?'계속 연습':'다음';$('tutNext').classList.toggle('go',!last);$('tutSkip').textContent=last?'메뉴로':'건너뛰기';$('tutRace').hidden=!last;
+function tutShow(){if(TUT.wait){$('tut').hidden=true;tutMark(null);return;}   /* 11-14 (T1): no card while the car is still leaving the pit lane (the strip says so) */
+  const s=TUT_STEPS[TUT.i],n=TUT_STEPS.length-1,last=TUT.i===n,bk=last&&TUT.back!=null;
+  $('tutN').textContent=last?'':(TUT.i+1)+' / '+n;$('tutH').textContent=last?(bk?'튜토리얼을 여기서 끝낼까요?':'튜토리얼 끝!'):s.h;
+  $('tutP').innerHTML=TUT_STEPS.slice(0,n).map((x,j)=>'<i'+(j<TUT.i||last&&!bk?' class="d"':j===TUT.i?' class="c"':'')+'></i>').join('');
+  $('tutT').textContent=tutTxt(s);$('tutMore').hidden=!!TUT.more||!s.s;
+  $('tutNext').textContent=last?'계속 연습':'다음 단계 ›';$('tutSkip').textContent=last?'메뉴로':'튜토리얼 끝내기';
+  $('tutBack').hidden=!bk;if(bk)$('tutBack').textContent='‹ '+(TUT.back+1)+'단계로';
+  $('tutRace').hidden=$('tutGuide').hidden=!last;$('tut').classList.toggle('end',last);
   $('tut').classList.remove('ok');$('tut').hidden=false;
-  if(WORLD&&WORLD.rlCorn&&rlMode==='off')WORLD.rlCorn.visible=TUT.i<=2;   // the line shows for the first steps even when it is switched off
-  tutPlace();tutMark(TUT_MARK[TUT.i]);}
+  if(WORLD&&WORLD.rlCorn&&rlMode==='off')WORLD.rlCorn.visible=!!s.line;   /* 2차: 단계 번호(TUT.i<=2)가 아니라 단계 표시로 — 4단계에서 띠가 사라지던 것 */
+  tutPlace();tutMark(typeof s.m==='function'?s.m():s.m);}
 let tutMarkT=0;function tutMark(sels){const m=$('tutMark');clearTimeout(tutMarkT);let el=null;
   if(isTouch&&sels)for(const q of sels){const e=document.querySelector(q);if(e&&e.offsetWidth>0&&getComputedStyle(e).display!=='none'){el=e;break;}}
-  m._el=el;if(!el){m.hidden=true;return;}m.hidden=false;m.classList.remove('lite');tutMarkPos();tutMarkT=setTimeout(()=>m.classList.add('lite'),1800);}   // the rest of the screen dimmed for a moment, the frame stays
+  m._el=el;if(!el){m.hidden=true;return;}m.hidden=false;m.classList.remove('lite');tutMarkPos();tutMarkT=setTimeout(()=>m.classList.add('lite'),1800);}   /* the rest of the screen dimmed for a moment, the frame stays */
 function tutMarkPos(){const m=$('tutMark'),el=m._el;if(!el||m.hidden)return;const r=bcr(el);Object.assign(m.style,{left:Math.round(r.left-5)+'px',top:Math.round(r.top-5)+'px',width:Math.round(r.width+10)+'px',height:Math.round(r.height+10)+'px'});}
-function tutGo(){TUT.i=Math.min(TUT_STEPS.length-1,TUT.i+1);TUT.cs=0;TUT.more=false;TUT.pitTap=0;const p=race&&race.player;TUT.c0=p?p.nextComp||p.ty.comp:null;tutShow();}   // c0: the tyre chosen when the step opens
+function tutGo(){TUT.i=Math.min(TUT_STEPS.length-1,TUT.i+1);TUT.cs=0;TUT.more=false;TUT.pitTap=0;TUT.pz=0;const p=race&&race.player;TUT.c0=p?p.nextComp||p.ty.comp:null;tutShow();}   /* c0: the tyre chosen when the step opens */
 function tutEnd(){if(!TUT)return;TUT=null;$('tut').hidden=true;tutMark(null);document.body.classList.remove('tutOn');applyRL();}
 function tutTick(dt){if(!TUT||state!=='race'||TUT.i>=TUT_STEPS.length-1)return;const p=race.player,s=TUT_STEPS[TUT.i];
-  if(TUT.wait){if(!p.pit){TUT.wait=false;tutShow();}return;}   // on the track: step 1
+  if(TUT.wait){if(!p.pit){TUT.wait=false;tutShow();}return;}   /* on the track: step 1 */
   if(TUT.ok){if((TUT.ok-=dt)<=0){TUT.ok=0;tutGo();}return;}
-  const pl=!!p.pit;if(pl!==TUT.pl){TUT.pl=pl;$('tutT').textContent=tutTxt(s);}
-  if(s.done(p,TUT)){TUT.ok=1.1;$('tut').classList.add('ok');$('tutH').textContent='✓ 잘했어요 · '+s.h;}}
-function tutPlace(){const el=$('tut');if(el.hidden)return;const W=VW(),H=VH();let top,right,w,bot=H-16;
-  if(isTouch){const tb=bcr($('topBtns'));top=tb.bottom+6;right=W-tb.right;w=Math.min(260,Math.max(200,W*0.3));
+  if(s.done(p,TUT)){TUT.ok=1.1;$('tut').classList.add('ok');$('tutN').textContent='✓';$('tutH').textContent='잘했어요 · '+s.h;}}
+/* 카드 자리: 폰은 오른쪽 위 둥근 버튼 아래(폭 280), 아래 끝은 PIT 묶음 위. 끝 카드는 버튼이 두 줄이라 조금 넓게(300) */
+function tutPlace(){const el=$('tut');if(el.hidden)return;const W=VW(),H=VH(),end=el.classList.contains('end');let top,right,w,bot=H-16;
+  if(isTouch){const tb=bcr($('topBtns'));top=tb.bottom+6;right=W-tb.right;w=end?Math.min(300,Math.max(240,W*0.36)):Math.min(280,Math.max(220,W*0.33));
     const mb=bcr($('miniBtns'));if(mb.width&&mb.top>top+120)bot=mb.top-8;}
   else{const ht=bcr($('hudTime'));top=ht.width?ht.top:14;right=ht.width?W-ht.right:14;w=320;}
   Object.assign(el.style,{top:Math.round(top)+'px',right:Math.round(right)+'px',width:Math.round(w)+'px',maxHeight:Math.round(bot-top)+'px'});tutMarkPos();}
 addEventListener('resize',()=>setTimeout(tutPlace,150));
-// pointerdown, not click: on an iPhone a tap makes no click while another finger is down (holding the pedal or steering) - like the race buttons.
-// A tap on the card's text is 「다음」 too
-const tutNext=()=>{if(!TUT)return;TUT.wait=false;if(TUT.i===TUT_STEPS.length-1)tutEnd();else{TUT.ok=0;tutGo();}};
-const tutRace=()=>{if(!TUT)return;tutEnd();startRace({mode:'race',noForm:true});};   // 11-14 (T5): from the last card straight into a first race (on the grid, no formation lap)
-const tutSkip=()=>{if(TUT&&TUT.i===TUT_STEPS.length-1)toMenu();else tutEnd();};
-$('tut').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(e.target.closest('#tutSkip'))tutSkip();else if(e.target.closest('#tutMore')){TUT.more=true;tutShow();}else if(e.target.closest('#tutRace'))tutRace();else tutNext();});
-$('tutNext').addEventListener('click',e=>{if(e.detail===0)tutNext();});$('tutSkip').addEventListener('click',e=>{if(e.detail===0)tutSkip();});$('tutRace').addEventListener('click',e=>{if(e.detail===0)tutRace();});   // keyboard (Enter/Space) only
+/* 「다음 단계」 = 이 단계만 건너뜀(끝 카드에선 「계속 연습」 = 튜토리얼을 끝내고 혼자 연습).
+   「튜토리얼 끝내기」 = 바로 나가지 않고 끝 카드로(TUT.back에 단계를 기억 → 끝 카드 「‹ N단계로」로 돌아감) */
+const tutNext=()=>{if(!TUT)return;TUT.wait=false;if(TUT.i<TUT_STEPS.length-1){TUT.ok=0;tutGo();}else tutEnd();};
+const tutBack=()=>{if(!TUT||TUT.back==null)return;TUT.i=TUT.back-1;TUT.back=null;TUT.ok=0;tutGo();};
+const tutSkip=()=>{if(!TUT)return;const n=TUT_STEPS.length-1;if(TUT.i===n){toMenu();return;}TUT.back=TUT.i;TUT.i=n;TUT.ok=0;TUT.more=false;tutShow();};
+const tutRace=()=>{if(!TUT)return;tutEnd();startRace({mode:'race',noForm:true});};   /* 11-14 (T5): from the last card straight into a first race (on the grid, no formation lap) */
+const tutGuide=()=>{setPause(true);guideOpen();};   /* 끝 카드 「규칙 가이드」: 멈춘 뒤 목차로(닫으면 일시정지 카드 → 「계속 달리기」) */
+/* pointerdown, not click: on an iPhone a tap makes no click while another finger is down (holding the pedal or steering) - like the race buttons.
+   2차: 카드 글자를 눌러도 아무 일도 없다(전엔 「다음」 — 페달을 누르던 엄지가 카드에 닿으면 단계가 넘어갔다). 버튼만 반응. */
+$('tut').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();const b=e.target.closest('button');if(!b)return;
+  if(b.id==='tutMore'){TUT.more=true;tutShow();}else ({tutSkip,tutRace,tutGuide,tutNext,tutBack})[b.id]?.();});
+$('tut').addEventListener('touchstart',e=>{if(e.cancelable)e.preventDefault();},{passive:false});   /* 카드는 pointerdown으로 다 처리 — 손을 뗄 때 오는 click이 막 연 가이드(끝 카드 「규칙 가이드」)의 목차 칸·배경에 떨어지지 않게 */
+for(const [id,f] of [['tutNext',tutNext],['tutSkip',tutSkip],['tutRace',tutRace],['tutGuide',tutGuide],['tutBack',tutBack]])$(id).addEventListener('click',e=>{if(e.detail===0)f();});   /* keyboard (Enter/Space) only */
 $('tutBtn').addEventListener('click',tutStart);
-// ===== 11-13 윤택님 「듀토리얼 더 상세하게」: the rules guide - controls, tyres, pit stops, flags, penalties, straight mode, rain, the start. One topic a page,
-// a small picture beside three or four short lines, paged (이전 / 다음 / the dots), closed any time. The numbers are the game's own (CUT_GB, VSC_GB, BLUE_W,
-// BLUE_P, the track-limit count in tlStrike), not new rules. Opened from the home screen, the 운전 page and the tutorial's last card.
-const GUIDE=()=>{const T=isTouch,k=(t,kb)=>T?t:kb,ty=(c,l,n)=>`<span><i style="--c:${c}">${l}</i>${n}</span>`,fl=(c,l,n,fc)=>`<span><i style="--c:${c}${fc?';color:'+fc:''}">${l}</i>${n}</span>`,
-  sm={tilt:'기울이기',drag:'드래그',buttons:'버튼'}[steerMode]||'드래그';
+/* 11-15 UI 개편 TG(튜토리얼가이드_설계.md 4~6장): 규칙 가이드 목차 + 15쪽, 「버튼 사용법」 그림 화면. 목차 = guideShow(-1), 쪽 0~12 순서는 그대로(guideOpen(4)·(6)·(11)) */
+/* ── 폰 가로 844×390(안전 여백 0) 기준 HUD 자리 [x,y,w,h] — CSS 243~372행 + layoutTouchHUD(7224~)의 계산을 옮긴 것.
+   HUD 자리를 고치면 이 함수도 같이 고칠 것(layoutTouchHUD 옆에 「hudLay도 같이」 주석을 남긴다).
+   ponytail: 실제 화면을 재지 않고 기준 화면으로 그린다(설명 그림이라 모양만 맞으면 됨). 레이스 중 실제 자리는 일시정지 「조작법」(ctlHelp)이 잰다. */
+function hudLay(sm,ag,ped,W=844,H=390){const tilt=sm==='tilt',L={};   /* 11-15 글씨정리: 기준 화면 844×390 고정 → 실제 화면(안전 여백 안) 크기 — 줄여 그리면 667에서 글자가 10.7px */
+  L.top=['II','시점',...(tilt?['영점']:[]),'뒤보기','맵'].map((n,i,a)=>[n,[W-52-(a.length-1-i)*51,6,44,44]]);
+  L.tower=[6,6,128,200];L.mm=[142,6,112,112];L.time=[W-194,56,186,55];L.pill=[Math.round(W/2-76),6,152,34];
+  if(sm==='drag')L.steer=[8,312,268,64];else if(sm==='buttons')L.steer=[14,302,160,74];
+  const pw=tilt?98:86,ph=tilt?110:120,y=H-14-ph,sr=L.steer?L.steer[0]+L.steer[2]:0;
+  if(tilt){L.brk=[30,y,pw,ph];if(!ag)L.gas=[W-30-pw,y,pw,ph];}
+  else if(ped==='split'){L.brk=[sr+12,y,pw,ph];if(!ag)L.gas=[W-14-pw,y,pw,ph];}
+  else if(ag)L.brk=[W-14-pw,y,pw,ph];else{L.gas=[W-14-pw,y,pw,ph];L.brk=[W-26-2*pw,y,pw,ph];}
+  const ps=[L.brk,L.gas].filter(Boolean),rp=ps.filter(b=>b[0]+b[2]/2>W/2),lp=ps.filter(b=>b[0]+b[2]/2<=W/2);
+  L.btns=[W-(rp.length?W-Math.min(...rp.map(b=>b[0]))+10:14)-101,H-113,101,101];   /* PIT·다음 / ERS·직선 (46px 2×2, 간격 9) */
+  const gl=Math.max(sr||8,...lp.map(b=>b[0]+b[2]))+10,gr=L.btns[0]-10,dw=Math.min(264,gr-gl);
+  L.dash=[Math.round((gl+gr)/2-dw/2),tilt?H-94:H-80,dw,70];if(tilt)L.gauge=[L.dash[0],H-16,dw,8];
+  return L;}
+const brkAt=()=>steerMode==='tilt'?'왼쪽 아래 구석':pedPos==='split'?'조향 바로 오른쪽':'오른쪽 아래';
+const gasAt=()=>steerMode==='tilt'?'오른쪽 아래 구석':'오른쪽 아래';
+
+/* 가이드 1쪽 그림: 지금 설정대로 그린 작은 화면(글자 없음 — 12px 미만 글자를 안 쓰려고) + 「버튼 사용법」 크게 보기 */
+function gPh(w=232,btn=true){const L=hudLay(steerMode,autoGas,pedPos),s=w/844,f=v=>(v*s).toFixed(1)+'px',
+    b=(r,c,x='')=>`<i class="${c}" style="left:${f(r[0])};top:${f(r[1])};width:${f(r[2])};height:${f(r[3])}">${x}</i>`,B=L.btns;
+  const st=steerMode==='drag'?b(L.steer,'st'):steerMode==='buttons'?b([14,302,74,74],'c')+b([100,302,74,74],'c'):b(L.gauge,'tg');
+  return `<div class="gPh2" aria-hidden="true" style="width:${w}px;height:${f(390)}">`+b(L.tower,'tw')+b(L.mm,'c mm')+L.top.map(t=>b(t[1],'c')).join('')+st+b(L.dash,'ds')+b(L.brk,'pb')+(L.gas?b(L.gas,'pg'):'')
+    +[[0,0],[55,0],[0,55],[55,55]].map(([x,y],j)=>j===3&&aeroMode==='auto'?'':b([B[0]+x,B[1]+y,46,46],'c'+(j===0?' pit':''))).join('')
+    +'</div>'+(btn?'<button class="gMap" type="button" data-bmap>버튼 사용법 크게 보기 ›</button>':'');}
+
+/* 예선 쪽 그림: 위쪽 띠가 상황마다 무엇을 보여 주나 — 예선_설계.md와 같은 모양(폰 sa = 버튼 하나 + 왼쪽 주황 줄, chq = 흰 점선 띠 + 검정 버튼, PC f = 글자 + Enter) */
+const gQp=(cap,cls,txt,btn)=>`<div class="gQ"><span>${cap}</span><i class="${cls}">${txt}${btn?'<u>'+btn+'</u>':''}</i></div>`;
+
+const GUIDE=()=>{const T=isTouch,k=(t,kb)=>T?t:kb,ty=(c,l,n)=>`<span><i style="--c:${c}">${l}</i>${n}</span>`,fl=(c,l,n,fc)=>`<span><i style="--c:${c}${fc?';color:'+fc:''}">${l}</i>${n}</span>`;
   return [
-  {h:'조작',v:T?'<div class="gPh"><i class="tp">II · 시점 · 영점 · 뒤보기 · 맵</i><i class="mb">PIT · 다음 · ERS · 직선</i><i class="st">조향</i><i class="pb">브레이크</i><i class="pg">가속</i></div>'
-     :'<div class="gBd"><span style="background:#2b2e36">↑ W 가속</span><span style="background:#2b2e36">Space ↓ 브레이크</span><span style="background:#2b2e36">← → 조향</span></div>',
-   t:T?[`<b>왼쪽 아래 = 조향</b> (지금: ${sm}). 드래그는 패드를 좌우로 끌고, 버튼은 ◀ ▶, 기울이기는 폰을 핸들처럼 기울여요.`,
-        '기울이기가 한쪽으로 쏠리면 위쪽 <b>「영점」</b>을 눌러 지금 각도를 가운데로 맞춰요.',
-        '화면은 늘 가로로 그려져요. 아이폰은 <b>화면 세로 고정(회전 잠금)</b>을 켜 두면 크게 기울여도 화면이 돌지 않아요.',
-        '<b>오른쪽 아래 = 페달.</b> 자동 가속이면 브레이크만 누르면 돼요.',
-        '위쪽 <b>II</b> 일시정지 · <b>시점</b> 바꾸기 · <b>뒤보기</b> 누르는 동안 뒤 보기 · <b>맵</b> 미니맵 크기. 조향 방식은 메뉴 「운전」에서 바꿔요.']
+  {h:'조작',n:'조작',v:T?gPh():'<div class="gBd"><span style="background:#2b2e36">↑ W 가속</span><span style="background:#2b2e36">Space ↓ 브레이크</span><span style="background:#2b2e36">← → 조향</span></div>',
+   t:T?['<b>조향</b> — '+({tilt:'폰을 핸들처럼 기울여요. 똑바로 들어도 쏠리면 위쪽 「영점」을 눌러요.',buttons:'왼쪽 아래 ◀ ▶를 누르는 동안 그쪽으로 꺾여요.'}[steerMode]||'왼쪽 아래 패드를 좌우로 끌어요. 놓으면 가운데로 돌아와요.'),
+        '<b>브레이크</b> — '+brkAt()+'. <b>가속</b> — '+(autoGas?'자동이라 페달이 없어요.':gasAt()+' 「가속」을 누르고 있어요.'),
+        '오른쪽 아래 둥근 버튼: <b>PIT</b> 피트인 · <b>다음</b> 다음 타이어 · <b>ERS</b> 배터리 부스트'+(aeroMode==='auto'?'.':' · <b>직선</b> 날개 열기.'),
+        '오른쪽 위: <b>II</b> 일시정지·설정(조향 방식·가속도 여기서) · <b>시점</b> 카메라 5가지 · <b>뒤보기</b> 누르는 동안 뒤 · <b>맵</b> 미니맵 크게·작게·끔.',
+        ...(steerMode==='tilt'?['아이폰은 <b>화면 세로 고정</b>을 켜 두면 크게 기울여도 화면이 돌지 않아요.']:[])]
      :['<b>↑ / W</b> 가속 · <b>Space / ↓ / S</b> 브레이크 · <b>← → / A D</b> 조향 (길게 누를수록 더 꺾여요).',
-       '<b>C</b> 시점 · <b>V</b> 누르는 동안 뒤 보기 · <b>N</b> 미니맵 · <b>H</b> 룸미러 · <b>P</b> 일시정지 · <b>R</b> 재시작.',
-       '<b>[ ]</b> 레이스 중 조향 감도 · <b>F</b> FPS 표시 · <b>M</b> 소리.']},
-  {h:'가속 · 브레이크 · 기어',v:'<div class="gBd"><span style="background:#2b2e36;font-size:22px;min-height:44px">7 · 287 km/h</span><span style="background:#8a2a25">브레이크는 직선에서</span></div>',
-   t:['<b>기어는 자동</b>으로 바뀌어요. 계기판에 기어와 속도가 보여요.',
-      '코너 앞 <b>직선에서 미리 세게</b> 밟고, 꺾으면서 조금씩 떼요. 코너를 빠져나오며 다시 가속해요.',
-      '너무 세게 밟으면 바퀴가 <em>잠겨</em> 연기가 나고 바깥으로 밀려요. 오래 잠기면 <b>플랫 스팟</b>(타이어 떨림)이 생겨요.',
-      '어려우면 메뉴 「운전」의 <b>주행 보조 · 브레이크 보조</b>를 켜요.']},
-  {h:'레이싱 라인',v:'<svg viewBox="0 0 220 120"><path d="M14 108 L110 108 Q196 108 196 22" fill="none" stroke="#3a3d45" stroke-width="30"/><path d="M14 108 L84 108" stroke="#3ddc84" stroke-width="6" fill="none"/><path d="M84 108 L132 106" stroke="#ff3b30" stroke-width="6"/><path d="M132 106 Q176 98 186 58" stroke="#f5c518" stroke-width="6" fill="none"/><path d="M186 58 L190 22" stroke="#3ddc84" stroke-width="6"/></svg>',
+       '<b>E</b> 직선 모드 날개 · <b>Shift</b> ERS · <b>B</b> 피트인 · <b>1~5</b> 다음 타이어 · <b>L</b> 레이싱 라인.',
+       '<b>C</b> 시점 5가지 · <b>V</b> 누르는 동안 뒤 보기 · <b>N</b> 미니맵 · <b>H</b> 룸미러 · <b>P / Esc</b> 일시정지 · <b>R</b> 처음부터.',
+       '<b>[ ]</b> 조향 감도 · <b>F</b> FPS 표시 · <b>G</b> 헤일로 블러 · <b>M</b> 소리 켬·끔 · <b>Enter</b> 위쪽 띠 버튼(건너뛰기 등).']},
+  {h:'가속 · 브레이크 · 기어',n:'가속<small> · 브레이크</small>',v:'<div class="gBd"><span style="background:#2b2e36;font-size:22px;min-height:44px">7 · 287 km/h</span><span style="background:#8a2a25">브레이크는 직선에서</span></div>',
+   t:['<b>기어는 자동</b>이에요. 계기판의 큰 숫자가 속도(km/h), 옆 숫자가 기어예요.',
+      k('코너 앞 <b>직선에서 미리</b> 브레이크를 꾹 누르고, 꺾기 시작하면 떼요. 코너를 빠져나오며 다시 가속해요.','코너 앞 <b>직선에서 미리 세게</b> 밟고, 꺾으면서 조금씩 떼요. 코너를 빠져나오며 다시 가속해요.'),
+      '너무 세게, 오래 밟으면 바퀴가 <em>잠겨</em> 연기가 나고 바깥으로 밀려요. 자주 잠기면 타이어에 납작한 곳(<b>플랫 스팟</b>)이 생겨 차가 떨려요.',
+      '어려우면 「운전」의 <b>브레이크 보조</b>(너무 빠르면 대신 밟아 줌)와 <b>주행 보조</b>를 켜요.']},
+  {h:'레이싱 라인',n:'레이싱 라인',v:'<svg viewBox="0 0 220 120"><path d="M14 108 L110 108 Q196 108 196 22" fill="none" stroke="#3a3d45" stroke-width="30"/><path d="M14 108 L84 108" stroke="#3ddc84" stroke-width="6" fill="none"/><path d="M84 108 L132 106" stroke="#ff3b30" stroke-width="6"/><path d="M132 106 Q176 98 186 58" stroke="#f5c518" stroke-width="6" fill="none"/><path d="M186 58 L190 22" stroke="#3ddc84" stroke-width="6"/></svg>',
    t:['바닥의 색 띠를 따라가요: <b style="color:#ff6a5f">빨강</b>에서 브레이크, <b style="color:#f5c518">노랑</b>에서 꺾고, <b style="color:#3ddc84">초록</b>에서 가속.',
       'AI 차들도 같은 라인을 달려요 (추월·방어할 땐 잠깐 벗어나요).',
-      '메뉴 「운전」에서 <b>코너만 · 전체 · 끔</b>을 골라요'+k('.',' (L 키).')]},
-  {h:'타이어',v:'<div class="gTy">'+ty('#e10600','S','소프트')+ty('#f5c518','M','미디엄')+ty('#f2f2f2','H','하드')+ty('#3ddc84','I','인터')+ty('#3b82f6','W','풀 웻')+'</div>',
-   t:['<b>소프트</b>는 가장 빠르지만 빨리 닳고, <b>하드</b>는 느리지만 오래 가요. <b>미디엄</b>은 그 중간.',
-      '<b>인터</b>는 약한 비·젖은 노면, <b>풀 웻</b>은 폭우용이에요.',
-      '새 타이어는 차가워서 처음 몇 코너는 덜 붙어요. 타이어 표시의 <b>%</b>는 남은 고무, <b>°</b>는 온도예요.',
+      k('「운전」에서 <b>코너만 · 전체 · 끔</b>을 골라요.','「운전」에서 <b>코너만 · 전체 · 끔</b>을 골라요 (L 키).')]},
+  {h:'타이어',n:'타이어',v:'<div class="gTy">'+ty('#e10600','S','소프트')+ty('#f5c518','M','미디엄')+ty('#f2f2f2','H','하드')+ty('#3ddc84','I','인터')+ty('#3b82f6','W','풀 웻')+'</div>',
+   t:['<b>소프트(S)</b>는 가장 빠르지만 빨리 닳고, <b>하드(H)</b>는 느리지만 오래 가요. <b>미디엄(M)</b>은 그 중간. 이 셋이 마른 노면용이에요.',
+      '<b>인터(I)</b>는 약한 비·젖은 노면, <b>풀 웻(W)</b>은 폭우용이에요.',
+      k('새 타이어는 차가워서 처음 몇 코너는 덜 붙어요. 계기판 왼쪽 <b>타이어 고리</b>의 <b>°</b>는 온도, <b>%</b>는 가장 닳은 바퀴의 남은 고무예요.','새 타이어는 차가워서 처음 몇 코너는 덜 붙어요. 타이어 표시의 <b>%</b>는 남은 고무, <b>°</b>는 온도예요.'),
       '많이 닳으면 갑자기 확 느려져요. 그 전에 피트로!']},
-  {h:'타이어 규칙: 두 가지 컴파운드',v:'<div class="gTy">'+ty('#e10600','S','첫 타이어')+'<span style="width:auto;justify-content:center;font-size:22px;color:#cfd2d8">+</span>'+ty('#f2f2f2','H','두 번째')+'</div>',
-   t:['비가 안 오는 레이스에선 <b>소프트·미디엄·하드 중 두 가지</b>를 꼭 써야 해요. 그래서 <b>피트 스톱이 최소 한 번</b> 필요해요.',
+  {h:'타이어 규칙: 두 종류 쓰기',n:'타이어 규칙',v:'<div class="gTy">'+ty('#e10600','S','첫 타이어')+'<span style="width:auto;justify-content:center;font-size:22px;color:#cfd2d8">+</span>'+ty('#f2f2f2','H','두 번째')+'</div>',
+   t:['비가 안 오는 레이스에선 <b>소프트·미디엄·하드 중 두 종류</b>를 꼭 써야 해요. 그래서 <b>피트 스톱이 최소 한 번</b> 필요해요.',
+      k('아직 안 썼으면 「PIT」 위에 주황 <b>「필수」</b>가 붙어 있어요.','안 쓴 채 마지막 랩이 되면 경고가 떠요.'),
       '인터나 풀 웻을 한 번이라도 쓰면 이 규칙은 면제예요.',
-      '안 쓴 채 마지막 랩이 되면 경고가 떠요. 끝까지 안 지키면 <em>실격</em>이에요.']},
-  {h:'피트 스톱',v:'<div class="gBd"><span style="background:#2b2e36">① '+k('「다음」','1~5 키')+'로 고르기</span><span style="background:#2b2e36">② '+k('「PIT」','B 키')+' 누르기</span><span style="background:#1f7a46">③ 차가 알아서 들어가요</span></div>',
-   t:['<b>'+k('「다음」 버튼','1~5 키')+'</b>로 다음에 끼울 타이어를 골라요'+k('.',' (1 소프트 · 2 미디엄 · 3 하드 · 4 인터 · 5 풀 웻).'),
-      '<b>'+k('「PIT」','B 키')+'</b>를 누르면 이번 랩 끝에 피트 레인으로 들어가요.',
-      '피트 레인에선 <b>속도 제한(리미터)</b>이 걸리고 차가 알아서 달려요. 손을 떼고 기다리면 돼요.',
-      '타이어 교체와 함께 부서진 노즈·리어 윙·서스펜션과 펑처도 고쳐요.']},
-  {h:'깃발 ①  옐로 · 그린 · 블루',v:'<div class="gFl">'+fl('#f5c518','','옐로')+fl('#2fbf62','','그린')+fl('#2f6fe0','','블루')+'</div>',
-   t:['<b style="color:#f5c518">옐로</b>: 앞에 사고가 났어요. 그 구간에선 속도를 줄이고 <b>추월 금지</b>. 추월하면 <em>+5초</em>.',
+      '끝까지 안 지키면 <em>실격</em>이에요.']},
+  {h:'피트 스톱',n:'피트 스톱',v:'<div class="gBd"><span style="background:#2b2e36">① '+k('「다음」으로 고르기','1~5 키로 고르기')+'</span><span style="background:#2b2e36">② '+k('「PIT」 누르기','B 키 누르기')+'</span><span style="background:#1f7a46">③ 차가 알아서 들어가요</span></div>',
+   t:[k('<b>「다음」</b> 버튼(타이어 고리)으로 다음에 끼울 타이어를 골라요. 누를 때마다 S → M → H → I → W.','<b>1~5 키</b>로 다음에 끼울 타이어를 골라요 (1 소프트 · 2 미디엄 · 3 하드 · 4 인터 · 5 풀 웻).'),
+      k('<b>「PIT」</b>를 누르면 이번 랩 끝에 피트 레인으로 들어가요. <b>한 번 더 누르면 취소</b>예요.','<b>B 키</b>를 누르면 이번 랩 끝에 피트 레인으로 들어가요. <b>한 번 더 누르면 취소</b>예요.'),
+      '피트 레인에선 <b>속도 제한</b>이 걸리고 차가 알아서 달려요. 같은 팀 차가 먼저 서 있으면 잠깐 기다려요.',
+      '타이어를 바꾸면서 부서진 노즈·리어 윙·서스펜션과 펑크도 고쳐요.']},
+  {h:'깃발 ①  옐로 · 그린 · 블루',n:'깃발 ①<small> 옐로·블루</small>',v:'<div class="gFl">'+fl('#f5c518','','옐로')+fl('#2fbf62','','그린')+fl('#2f6fe0','','블루')+'</div>',
+   t:['<b style="color:#f5c518">옐로</b>: 앞에 사고가 났어요. 그 구간에선 속도를 줄이고 <b>추월 금지</b>(어기면 <em>+5초</em>). 위쪽 띠에 「옐로 300m 앞」처럼 미리 떠요. <b>더블 옐로</b>도 똑같이 추월 금지예요.',
       '<b style="color:#3ddc84">그린</b>: 위험이 끝났어요. 다시 달려요.',
       '<b style="color:#6aa7ff">블루</b>: 한 바퀴 앞선 차가 바로 뒤에 왔어요. 길을 비켜 주세요.',
-      '블루가 <b>'+BLUE_W+'초</b> 계속되면 경고, 그 뒤 <b>'+BLUE_P+'초</b> 안에 안 비키면 <em>+5초</em>.']},
-  {h:'깃발 ②  세이프티카 · VSC · 레드',v:'<div class="gFl">'+fl('#f5c518','SC','세이프티카')+fl('#f5c518','VSC','버추얼 SC')+fl('#e3261d','','레드')+'</div>',
+      '블루가 <b>'+BLUE_W+'초</b> 계속되면 경고, 그 뒤 <b>'+BLUE_P+'초</b> 안에 안 비키면 <em>+5초</em>. 예선의 블루는 14쪽.']},
+  {h:'깃발 ②  세이프티카 · VSC · 레드',n:'깃발 ②<small> SC·레드</small>',v:'<div class="gFl">'+fl('#f5c518','SC','세이프티카')+fl('#f5c518','VSC','가상 SC')+fl('#e3261d','','레드')+'</div>',
    t:['<b>세이프티카(SC)</b>: 앞차를 따라 한 줄로, <b>추월 금지</b>(어기면 <em>+5초</em>). 세이프티카가 들어가면 선두가 가속할 때 재시작, 결승선을 지나기 전엔 추월 금지.',
-      '<b>VSC</b>: 모두 정해진 속도 아래로. VSC 표시의 숫자가 <b style="color:#3ddc84">+(초록)</b>면 괜찮고 <b style="color:#ff6a5f">-(빨강)</b>면 너무 빨라요(계속 빠르면 <em>+5초</em>).',
+      '<b>VSC</b>(가상 세이프티카): 모두 정해진 속도 아래로. 띠의 숫자가 <b style="color:#3ddc84">+(초록)</b>면 괜찮고 <b style="color:#ff6a5f">-(빨강)</b>면 너무 빨라요(계속 빠르면 <em>+5초</em>).',
       'VSC 중 추월했다면 <b>'+VSC_GB+'초</b> 안에 자리를 돌려줘요. 첫 번째는 경고, 다음부터 <em>+5초</em>.',
       '<b style="color:#ff6a5f">레드</b>: 경기 중단. 천천히 피트 레인으로 → 순위대로 정렬·타이어 교체·수리 → 세이프티카를 따라 그리드로 → 다시 출발.']},
-  {h:'트랙 리밋',v:'<svg viewBox="0 0 220 120"><rect x="0" y="0" width="220" height="120" fill="#2e5e2a"/><rect x="0" y="0" width="140" height="120" fill="#3a3d45"/><rect x="136" y="0" width="5" height="120" fill="#f2f2f2"/><g transform="translate(150 30)"><rect x="10" y="4" width="22" height="58" rx="6" fill="#d92d26"/><rect x="0" y="8" width="10" height="16" rx="3" fill="#111"/><rect x="32" y="8" width="10" height="16" rx="3" fill="#111"/><rect x="0" y="42" width="10" height="18" rx="3" fill="#111"/><rect x="32" y="42" width="10" height="18" rx="3" fill="#111"/></g><text x="70" y="66" fill="#ffb347" font-size="14" font-weight="700" text-anchor="middle">네 바퀴 모두</text><text x="70" y="84" fill="#ffb347" font-size="14" font-weight="700" text-anchor="middle">흰 선 밖 = 위반</text></svg>',
+  {h:'트랙 리밋',n:'트랙 리밋',v:'<svg viewBox="0 0 220 120"><rect x="0" y="0" width="220" height="120" fill="#2e5e2a"/><rect x="0" y="0" width="140" height="120" fill="#3a3d45"/><rect x="136" y="0" width="5" height="120" fill="#f2f2f2"/><g transform="translate(150 30)"><rect x="10" y="4" width="22" height="58" rx="6" fill="#d92d26"/><rect x="0" y="8" width="10" height="16" rx="3" fill="#111"/><rect x="32" y="8" width="10" height="16" rx="3" fill="#111"/><rect x="0" y="42" width="10" height="18" rx="3" fill="#111"/><rect x="32" y="42" width="10" height="18" rx="3" fill="#111"/></g><text x="70" y="66" fill="#ffb347" font-size="14" font-weight="700" text-anchor="middle">네 바퀴 모두</text><text x="70" y="84" fill="#ffb347" font-size="14" font-weight="700" text-anchor="middle">흰 선 밖 = 위반</text></svg>',
    t:['<b>네 바퀴가 모두 흰 선 밖</b>으로 나가면 트랙 리밋 위반이에요.',
       '<b>1·2회</b>: 경고, 그 랩 기록 삭제. <b>3회</b>: 흑백기(마지막 경고).',
-      '<b>4회째부터</b>는 넘을 때마다 <em>+5초</em>.']},
-  {h:'코스 밖 이득은 돌려주기',v:'<div class="gBd"><span style="background:#8a5a12">이득 0.8초 · 돌려주세요</span><span style="background:#2b2e36">속도를 줄여서 반납</span><span style="background:#1f7a46">페널티 없음</span></div>',
-   t:['코스 밖으로 질러 <b>0.5초 넘게</b> 빨라지면 「속도를 줄여 돌려주세요」가 떠요.',
-      '<b>'+CUT_GB+'초</b> 안에 천천히 달려 그만큼 돌려주면 페널티 없음. 안 하면 <em>+5초</em>.',
-      '코스 밖에서 <b>다른 차를 추월</b>했다면 15초 안에 그 차를 다시 앞으로 보내요. 안 보내면 <em>+10초</em> (첫 랩은 +5초).',
+      '<b>4회째부터</b>는 넘을 때마다 <em>+5초</em>.',
+      k('예선에선 그 랩이 「랩 삭제」가 되고, 위쪽 띠 「다시 시도」로 바로 다시 달릴 수 있어요.','예선에선 그 랩이 「랩 삭제」가 되고, Enter 키로 바로 다시 달릴 수 있어요.')]},
+  {h:'코스 밖 이득은 돌려주기',n:'코스 밖 이득',v:'<div class="gBd"><span style="background:#f5c518;color:#111">이득 0.8초 반납 · '+CUT_GB+'초</span><span style="background:#2b2e36">속도를 줄여서 반납</span><span style="background:#1f7a46">페널티 없음</span></div>',
+   t:['코스 밖으로 질러 <b>0.5초 넘게</b> 빨라지면 「코스 밖 이득 0.8초 · 감속해 반납」 알림이 뜨고, 위쪽 띠에 「이득 0.8초 반납 · '+CUT_GB+'초」가 남아요.',
+      '띠의 초가 끝나기 전에 천천히 달려 그만큼 돌려주면 페널티 없음. 안 하면 <em>+5초</em>.',
+      '코스 밖에서 <b>다른 차를 추월</b>했다면 15초 안에 그 차를 다시 앞으로 보내요(띠에 「○○ 자리 반납」). 안 보내면 <em>+10초</em> (첫 랩은 +5초).',
       'AI도 똑같이 자리를 돌려줘요.']},
-  {h:'직선 모드 · ERS · 추월 모드',v:'<div class="gBd"><span style="background:#1f7a46">직선 2/4</span><span style="background:#7a3fd1">추월 0.8</span><span style="background:#b8860b">ERS 부스트</span></div>',
-   t:['<b>직선 모드</b>: 서킷마다 정해진 직선 구간(3초 넘게 전속력으로 달리는 직선)에서만 날개가 열려요. 앞차 간격과 상관없이 모두 써요. '+k('「직선」 버튼','E 키')+'(자동도 가능), 브레이크를 밟거나 가속을 떼면 닫혀요. 「직선 2/4」는 몇 번째 구간인지예요.',
-      '<b>ERS</b>: '+k('「ERS」','Shift')+'를 누르면 배터리 힘으로 더 빨라져요. 가속을 떼거나 브레이크를 밟으면 다시 차요.',
-      '<b>추월 모드</b>: 결승선에서 앞차와 <b>1초 이내</b>면 다음 한 바퀴 동안 337 km/h까지 최대 출력 + 배터리 0.5MJ. 600 m 전부터 「추월 0.8」처럼 간격이 보여요.',
-      '세이프티카가 나오면 추월 모드는 꺼지고, 비가 오면 없어요.']},
-  {h:'비',v:'<div class="gTy">'+ty('#3ddc84','I','약한 비')+ty('#3b82f6','W','폭우')+'</div>',
+  {h:'직선 모드 · ERS · 추월 모드',n:'직선 · ERS<small> · 추월</small>',v:'<div class="gBd"><span style="background:#1f7a46">'+k('직선 2/4','직선 모드 2/4')+'</span><span style="background:#7a3fd1">'+k('추월 0.8','추월 판정 0.8초')+'</span><span style="background:#2b2e36">슬립스트림</span></div>',
+   t:['<b>직선 모드</b>: 서킷마다 정해진 직선 구간에서만 날개가 열려 빨라져요. 계기판 '+k('「직선 2/4」','「직선 모드 2/4」')+'는 몇 번째 구간인지예요. '+(aeroMode==='auto'?'지금은 자동이라 저절로 열려요.':k('「직선」 버튼으로 열고, 브레이크를 밟으면 닫혀요.','E 키로 열고, 브레이크를 밟거나 가속을 떼면 닫혀요.')),
+      T&&!autoGas?'<b>ERS</b>: 직접 가속이면 직선에서 가속을 누르고 있을 때 <b>저절로</b> 켜져요(버튼도 돼요). 배터리는 브레이크를 밟을 때 다시 차요.'
+        :k('<b>ERS</b>: 「ERS」를 누르고 있는 동안 배터리 힘으로 빨라져요. 배터리는 브레이크를 밟을 때 다시 차요.','<b>ERS</b>: Shift 키를 누르고 있는 동안 배터리 힘으로 빨라져요. 배터리는 가속을 떼거나 브레이크를 밟을 때 다시 차요.'),
+      '<b>추월 모드</b>: 결승선에서 앞차와 <b>1초 이내</b>면 다음 한 바퀴 동안 힘이 더 세져요. 600 m 전부터 '+k('「추월 0.8」','「추월 판정 0.8초」')+'처럼 간격이 보여요. 세이프티카 때와 비 올 때는 없어요.',
+      '앞차 바로 뒤 직선에선 <b>슬립스트림</b>(공기 저항이 줄어 빨라짐), 코너에선 <b>난기류</b>(덜 붙음)가 계기판에 떠요.']},
+  {h:'비',n:'비',v:'<div class="gTy">'+ty('#3ddc84','I','약한 비')+ty('#3b82f6','W','폭우')+'</div>',
    t:['날씨가 <b>「변덕」</b>이면 레이스 도중 비가 와요. 오기 전에 무전으로 알려줘요.',
-      '젖은 노면에서 소프트·미디엄·하드는 미끄러워요. <b>약한 비는 인터, 폭우는 풀 웻</b>으로 바꿔요.',
-      '비가 그치면 노면이 마르면서 다시 드라이 타이어가 빨라져요.',
+      '젖은 노면에서 소프트·미디엄·하드는 미끄러워요. <b>약한 비는 인터, 폭우는 풀 웻</b>으로 바꿔요.',
+      '비가 그치면 노면이 마르면서 다시 소프트·미디엄·하드가 빨라져요.',
       '비가 오면 직선 모드는 <b>앞날개만</b> 열리고, 추월 모드는 없어요.']},
-  {h:'출발',v:'<div class="gLt"><i></i><i></i><i></i><i></i><i></i></div>',
+  {h:'출발',n:'출발',v:'<div class="gLt"><i></i><i></i><i></i><i></i><i></i></div>',
    t:['빨간 불 5개가 하나씩 켜지고 <b>한꺼번에 꺼지면 출발!</b>',
-      T?'자동 가속이면 불이 꺼질 때 저절로 나가요. 직접 가속이면 그때 「가속」을 눌러요.':'<b>수동 스타트</b>: 브레이크(Space)를 밟은 채 회전수를 올리고 대기 → 불이 꺼지면 떼요.',
-      '불이 꺼지기 전에 움직이면 <em>부정 출발 +5초</em>'+k(' (수동 스타트일 때).','.'),
-      '<b>포메이션 랩</b>을 켜면 출발 전에 한 바퀴 돌아요. 추월 금지, 좌우로 흔들어 타이어를 데워요.']}];};
+      k('자동 가속이면 불이 꺼질 때 저절로 나가요. 직접 가속이면 그때 「가속」을 눌러요. 폰은 불이 꺼질 때까지 차가 서 있어서 <b>부정 출발이 없어요</b>.',
+        '<b>수동 스타트</b>: Space+↑로 회전수를 올리고 기다렸다가, 불이 꺼지면 Space를 떼요. 불이 꺼지기 전에 움직이면 <em>부정 출발 +5초</em>.'),
+      '<b>포메이션 랩</b>을 켜면 출발 전에 한 바퀴 돌아요(추월 금지). '+k(autoGas?'차가 알아서 달리고, 위쪽 띠 「건너뛰기 ▸▸」로 넘길 수 있어요.':'직접 가속이라 손으로 달려요. 위쪽 띠 「건너뛰기 ▸▸」로 넘길 수 있어요.','직접 달려요. Enter 키로 넘길 수 있어요.'),   /* 6516: 자동 주행은 폰 + 자동 가속일 때만 */
+      '랩 기록이 하나도 없으면 첫 레이스는 포메이션 없이 바로 출발해요. 출발 전 그리드를 훑는 화면은 누르면 넘어가요.']},
+  {h:'예선',n:'예선',nw:1,v:'<div class="gQs">'+(T?gQp('아웃랩','sa','','플라잉 랩으로 ▸▸')+'<div class="gQ"><span>플라잉 랩</span><i class="tmr"><em>플라잉 랩</em><b>1:12.418</b></i></div>'
+        +gQp('인랩','sa','','개러지로 ▸▸')+gQp('랩 삭제','sa','','다시 시도 ▸▸')+gQp('시간 끝','chq','','결과 보기 ▸▸')
+        :gQp('아웃랩','f','아웃랩 · Enter 플라잉 랩으로')+'<div class="gQ"><span>플라잉 랩</span><i class="tmr"><em>플라잉 랩</em><b>1:12.418</b></i></div>'
+        +gQp('인랩','f','인랩 · Enter 개러지로')+gQp('랩 삭제','f','랩 삭제 · Enter 다시 시도')+gQp('시간 끝','chq','세션 종료 · Enter 결과 보기'))+'</div>',
+   t:['<b>Q1 '+QLEN[0]/60+'분 → Q2 '+QLEN[1]/60+'분 → Q3 '+QLEN[2]/60+'분.</b> 가장 빠른 한 바퀴로 순위를 정하고, Q1·Q2 뒤에 <b>뒤의 6명씩 탈락</b>해요.',
+      '개러지에서 나온 <b>아웃랩</b>, 피트로 가는 <b>인랩</b>은 기록이 안 돼요(오른쪽 위 기록 칸에 「기록 안 됨」). 출발선을 지나면 <b style="color:#3ddc84">플라잉 랩</b>(기록되는 랩)이에요.',
+      k('위쪽 띠 버튼: <b>「플라잉 랩으로」</b> 출발선 몇 초 앞으로 · <b>「개러지로」</b> 새 타이어로 다시 · <b>「다시 시도」</b> 삭제된 랩 대신. 시계는 그대로 가요.',
+        '위쪽 띠에 뜨는 대로 <b>Enter</b>: 아웃랩은 출발선 몇 초 앞으로, 인랩은 개러지에서 새 타이어로, 삭제된 랩은 다시 시도. 시계는 그대로 가요.'),
+      '체커기 전에 <b>시작한 랩까지</b> 인정돼요. '+k('지금 못 누르면 버튼이 흐려지고 왼쪽에 이유(「남은 시간 부족」 등)가 떠요.','지금 못 쓰면 Enter 대신 이유(「남은 시간 부족」 등)가 떠요.'),
+      '아웃랩·인랩엔 뒤에 오는 <b>플라잉 랩 차</b>에 길을 비켜 주세요. 경고·강등은 없어요.']},   /* d3d9327: 예선 블루는 알림만(강등 없음) */
+  {h:'화면 읽기',n:'화면 읽기',nw:1,v:'<div class="gRd"><div class="tw"><p><b>랩 2/3</b><b>P2/22</b><s>▾</s></p><p><em>1</em><i style="--c:#d4121f"></i>COS<u>리더</u></p><p class="me"><em>2</em><i style="--c:#2450c4"></i>YOU<u>+0.4</u></p><p><em>3</em><i style="--c:#0b7a73"></i>ASH<u>+0.2</u></p></div>'
+        +'<div class="sc"><i class="ob">S1</i><i class="pb">S2</i><i class="sl">S3</i></div><div class="sl2"><span class="ob">보라 전체 최고</span><span class="pb">초록 내 최고</span><span class="sl">노랑 더 느림</span></div></div>',
+   t:[k('<b>순위표</b>(왼쪽 위): 노란 줄이 나, 숫자는 앞차와 간격(초). 머리 ▾를 누르면 <b>전체 → 줄임 → 숨김</b>. 예선에선 초록 점이 플라잉 랩 중인 차예요.',
+        '<b>순위표</b>(왼쪽 위): 노란 줄이 나, 숫자는 앞차와 간격(초). 예선에선 초록 점이 플라잉 랩 중인 차예요.'),
+      '<b>타이밍 칸</b>(오른쪽 위): 현재 · 지난 랩 · 내 기록 · 레이스 최고(예선은 세션 최고) · 내 기록 대비. S1 S2 S3 색은 <b style="color:#b16cff">보라</b> 전체 최고 · <b style="color:#3ddc84">초록</b> 내 최고 · <b style="color:#f5c518">노랑</b> 더 느림.',
+      k('<b>계기판</b>(아래 가운데): 타이어 고리 · 속도 · 기어 · 배터리 막대, 그 아래 「직선」「추월」「슬립스트림」 꼬리표.','<b>계기판</b>(오른쪽 아래): 속도 · 기어 · 배터리 막대와 「직선 모드」「추월 판정」「슬립스트림」 꼬리표.'),
+      k('<b>미니맵</b>: 노란 화살표가 나예요. <b>위쪽 띠</b>는 깃발과 경기 상황 — 버튼이 붙어 있으면 지금 누를 수 있다는 뜻이에요.','<b>미니맵</b>(N 키): 노란 화살표가 나예요. <b>위쪽 띠</b>는 깃발과 경기 상황 — 「Enter」가 붙어 있으면 지금 누를 수 있어요.')]}];};
+/* n: 목차 칸 이름(<small>은 좁은 폰에서 숨김). 목차 묶음(쪽 번호 0부터): 운전 / 타이어와 피트 / 깃발과 페널티 / 레이스 / 예선과 화면 */
+const GUIDE_TOC=[['운전',[0,1,2]],['타이어와 피트',[3,4,5]],['깃발과 페널티',[6,7,8,9]],['레이스',[10,11,12]],['예선과 화면',[13,14]]];
+
 let GI=0,GP=null;
-function guideShow(i){GP=GP||GUIDE();GI=Math.max(0,Math.min(GP.length-1,i));const g=GP[GI],last=GI===GP.length-1;
-  $('gCnt').textContent=(GI+1)+'/'+GP.length;$('gTit').textContent=g.h;
+function guideToc(){return '<div class="gTo">'+(isTouch?'<button class="gBm" type="button" data-bmap><span class="ic">'+gPh(96,false)+'</span><span><b>버튼 사용법</b><small>지금 설정 그대로 화면 버튼 자리와 하는 일</small></span><i class="chev"></i></button>':'')
+  +'<div class="gCols">'+GUIDE_TOC.map(([h,ix])=>'<div class="gCol"><p>'+h+'</p>'+ix.map(j=>`<button type="button" data-g="${j}"><em>${j+1}</em>${GP[j].n}${GP[j].nw?'<i>새</i>':''}</button>`).join('')+'</div>').join('')+'</div></div>';}
+function guideShow(i){GP=GP||GUIDE();const toc=i==null||i<0;$('guide').classList.toggle('toc',toc);
+  if(toc){GI=-1;$('gCnt').textContent='목차';$('gTit').textContent='규칙 가이드';$('gBody').innerHTML=guideToc();$('gBody').scrollTop=0;return;}
+  GI=Math.max(0,Math.min(GP.length-1,i));const g=GP[GI],last=GI===GP.length-1;
+  $('gCnt').textContent=(GI+1)+' / '+GP.length;$('gTit').textContent=g.h;
   $('gBody').innerHTML='<div class="gV">'+g.v+'</div><ul class="gT">'+g.t.map(x=>'<li>'+x+'</li>').join('')+'</ul>';$('gBody').scrollTop=0;
-  $('gPrev').disabled=GI===0;$('gNext').textContent=last?'닫기':'다음';
-  $('gDots').querySelectorAll('button').forEach((b,j)=>b.setAttribute('aria-current',j===GI?'true':'false'));}
-function guideOpen(i){GP=GUIDE();$('gDots').innerHTML=GP.map((g,j)=>`<button type="button" aria-label="${j+1}. ${g.h}"></button>`).join('');
-  $('gDots').querySelectorAll('button').forEach((b,j)=>b.onclick=()=>guideShow(j));$('guide').hidden=false;guideShow(i||0);}
+  $('gPrev').disabled=GI===0;$('gNext').textContent=last?'닫기':'다음 ›';$('gNx').textContent=last?'':'다음 · '+GP[GI+1].n.replace(/<[^>]+>/g,'');}
+function guideOpen(i){GP=GUIDE();$('guide').hidden=false;guideShow(i);}   /* i 없음 = 목차 */
+
+/* ── 「버튼 사용법」: 기준 화면(844×390) 위에 HUD를 그대로 그리고 버튼마다 테두리(누르면 그 쪽 가이드) + 이름·하는 일 한 줄 */
+/* 테두리(.bmF)가 누르는 곳(모두 44px 이상), 글 조각(.bmC)은 설명만. 조향 3가지는 위 탭으로 바꿔 보고, 가속·페달 위치는 지금 설정을 따른다. */
+function bmapDraw(root,sm,W=844,H=390){const L=hudLay(sm,autoGas,pedPos,W,H),T={II:['일시정지 · 설정',1],'시점':['카메라 5가지',1],'영점':['기울기 똑바로',1],'뒤보기':['누르는 동안 뒤',1],'맵':['미니맵 크기·끔',15]};
+  const px=r=>`left:${r[0]}px;top:${r[1]}px;width:${r[2]}px;height:${r[3]}px`,g=(r,c,x='')=>`<div class="bmG ${c}" style="${px(r)}">${x}</div>`;
+  const F=(r,p,lab,c='',x='')=>`<button type="button" class="bmF ${c}" data-p="${p}" aria-label="${lab} · ${p}쪽" style="${px(r)}">${x}</button>`;
+  const N=W<760,RH=N?21:24;   /* 11-15 글씨정리: 좁은 화면(667 · 노치 가로 844)은 설명을 오른쪽 한 상자로 모으고 줄 높이 21 — 줄여 그리지 않으려고 */
+  const R=(n,d,p)=>`<div class="bmR"><b>${n}</b><span>${d}</span><em>${p}쪽</em></div>`,C=(x,y,w,rows,c='')=>`<div class="bmC ${c}${N?' n':''}" style="left:${x}px;top:${y}px;width:${w}px">${rows.join('')}</div>`;
+  const B=L.btns,bt=[['PIT',6,'이번 랩 끝 피트인'],['다음',6,'다음에 끼울 타이어'],['ERS',11,autoGas?'누르는 동안 부스트':'직선에서 저절로'],['직선',11,aeroMode==='auto'?'자동이라 숨김':'직선에서 날개 열기']];
+  let h=g(L.tower,'tw','<p><b>랩 1/3</b><b>P12/22</b><s>▾</s></p>'+'<i></i>'.repeat(9))+g(L.mm,'mm')+g(L.time,'tme')
+    +F([L.tower[0],L.tower[1],L.tower[2],21],15,'순위표 머리','thd')
+    +F(L.pill,14,'위쪽 띠 버튼','pill','<u>플라잉 랩으로 ▸▸</u>')
+    +L.top.map(([n,r])=>F(r,T[n][1],n,'c',n)).join('')
+    +g(L.dash,'ds','<span>계기판 · 15쪽</span>')+(L.gauge?g(L.gauge,'tg'):'')
+    +(sm==='drag'?F(L.steer,1,'조향 패드','st','<i></i>'):sm==='buttons'?F([14,302,74,74],1,'왼쪽','c big','◀')+F([100,302,74,74],1,'오른쪽','c big','▶'):'')
+    +F(L.brk,2,'브레이크','pd brk','브레이크')+(L.gas?F(L.gas,2,'가속','pd gas','가속'):'')
+    +bt.map(([n,p],j)=>{const r=[B[0]+(j%2)*55,B[1]+(j>1?55:0),46,46];return j===3&&aeroMode==='auto'?g(r,'c off',n):F(r,p,n,'c'+(j===0?' pit':j===1?' nx':''),j===1?'다음<i>H</i>':n);}).join('');
+  const steerRow={drag:R('조향','좌우로 끌기',1),buttons:R('◀ ▶','누르면 꺾기',1),tilt:R('조향','기울이기',1)}[sm],bR=R('브레이크','꾹 누르는 동안',2),gR=R('가속','누르는 동안',2);
+  const by=Math.min(L.dash[1],B[1]+101)-8-4*24-12,cx=(x,w)=>Math.max(6,Math.min(x,W-6-w));   /* 둥근 버튼 설명: 묶음 왼쪽 위, 계기판에 안 닿게 / 화면 안으로 */
+  const tw=R('순위표 머리 ▾','전체·줄임·숨김',15),pl=R('위쪽 띠','예선 상황 버튼',14),gR2=N&&sm==='tilt'&&L.gas?[gR]:[];
+  if(N)h+=C(W-244,56,236,L.top.map(([n])=>R(n,...T[n])).concat(bt.map(([n,p,d])=>R(n,d,p))));   /* 위 둥근 버튼 + 오른쪽 아래 묶음 */
+  else h+=C(W-244,56,236,L.top.map(([n])=>R(n,...T[n])))
+    +C(140,124,152,[tw],'bmTwo')+C(Math.round(W/2-118),46,236,[pl])
+    +(N?'':B[0]-391>=200?C(B[0]-7-Math.min(232,B[0]-391),by,Math.min(232,B[0]-391),bt.map(([n,p,d])=>R(n,d,p))):C(cx(B[0]+101-226,226),by,226,bt.map(([n,p,d])=>R(n,d,p))));   /* 11-15 글씨정리: 왼쪽 자리가 200px 안 되면(667 폭) 묶음 바로 위 오른쪽 맞춤 — 설명이 말줄임으로 잘리던 것 */   /* 폭: 기울이기 직접 가속(B[0]=605)이면 왼쪽 조향 설명(222~378)과 안 겹치게 214 */
+  if(sm==='tilt')h+=C(6,214,210,[bR])+C(222,214,156,[steerRow])+`<i class="bmL" style="left:226px;top:250px;width:8px;height:${L.gauge[1]+4-250}px"></i>`;   /* 기울이기: 설명에서 계기판 아래 노란 막대(기울기)까지 선 */
+  else{const w=L.brk[0]>L.steer[0]?Math.min(220,L.brk[0]-L.steer[0]-8):220;h+=C(L.steer[0],L.steer[1]-44,w,[steerRow]);}
+  if(sm!=='tilt'&&pedPos!=='split'){const x=Math.min(L.brk[0],L.gas?L.gas[0]:1e9),rows=L.gas?[bR,gR]:[bR];h+=C(cx(x-6,210),L.brk[1]-8-12-rows.length*24,210,rows);}   /* 페달 둘 다 오른쪽: 한 조각 */
+  else{if(sm!=='tilt')h+=C(N?Math.max(6,L.brk[0]+L.brk[2]-210):cx(L.brk[0]-6,210),L.brk[1]-44,210,[bR]);if(L.gas&&!gR2.length)h+=C(W-8-172,L.gas[1]-44,172,[gR]);}
+  h+=`<div class="bmP" style="${N?`left:140px;top:46px;width:${W-244-6-140}px`:`left:${Math.round(W/2-126)}px`}"><p><b>버튼 사용법</b><small>테두리를 누르면 설명 쪽으로</small></p><div class="bmT"><div class="bmS">`
+    +[['drag','드래그'],['buttons','버튼'],['tilt','기울이기']].map(([v,n])=>`<button type="button" data-v="${v}" aria-pressed="${v===sm}">${n}${v===steerMode?'<i>지금</i>':''}</button>`).join('')+'</div><button class="bmX" type="button">닫기</button></div>'+(N?'<div class="bmPr">'+[pl,tw,...gR2].join('')+'</div>':'')+'</div>';
+  root.style.width=W+'px';root.style.height=H+'px';root.innerHTML=h;}
+let BMB=null,BMV=null;   /* BMV: 지금 그린 배치(창 크기가 바뀌면 다시 그림). BMB: 「버튼 사용법」을 연 가이드 자리(-1 목차, 0 1쪽) — 닫으면 그리로 돌아감. 설정에서 열었으면 null */
+function bmapOpen(v,back){BMB=back==null?null:back;BMV=v||steerMode;const r=$('bmIn'),sa=safeInsets(),W=Math.round(VW()-sa.l-sa.r),H=Math.round(VH()-sa.t-sa.b);$('bmap').hidden=false;bmapDraw(r,v||steerMode,W,H);
+  r.style.transform=`translate(${Math.round(sa.l)}px,${Math.round(sa.t)}px)`;}   /* 11-15 글씨정리: 줄이지 않고 안전 여백 안 실제 크기로 그림(글자 크기 그대로) */
+addEventListener('resize',()=>setTimeout(()=>{if(!$('bmap').hidden)bmapOpen(BMV,BMB);},150));   /* 창 크기·안전 여백이 바뀌면 그 크기로 다시 그림 */
+/* 연결(로드 때 한 번) — G3: index.html 6882~6883행(gX·gPrev·gNext 연결 / #guide 배경 탭)을 지우고, G5: 6887행 줄 전체를 `guideWire();` 한 줄로 바꾼다.
+   G2: 6881 guideClose와 G4: 6884~6886 키보드 처리는 그대로 둔다(guideClose를 지우면 아래 첫 줄에서 ReferenceError). */
+function guideWire(){
+  $('gX').onclick=guideClose;$('gPrev').onclick=()=>guideShow(GI-1);$('gNext').onclick=()=>{if(GI>=GP.length-1)guideClose();else guideShow(GI+1);};$('gToc').onclick=()=>guideShow(-1);
+  $('guide').addEventListener('click',e=>{if(e.target.id==='guide'){guideClose();return;}const b=e.target.closest('[data-g],[data-bmap]');if(!b)return;   /* 카드 옆을 누르면 닫힘 / 목차 칸·「버튼 사용법」 */
+    if(b.dataset.g!=null)guideShow(+b.dataset.g);else{const g=GI;guideClose();bmapOpen(undefined,g);}});
+  $('bmap').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    if(b.classList.contains('bmX')){$('bmap').hidden=true;if(BMB!=null)guideOpen(BMB);}else if(b.dataset.v)bmapOpen(b.dataset.v,BMB);else if(b.dataset.p){$('bmap').hidden=true;guideOpen(+b.dataset.p-1);}});
+  $('guideBtn').addEventListener('click',()=>guideOpen());$('ctlGuide').addEventListener('click',()=>isTouch?bmapOpen():guideOpen(0));}   /* 설정 도움말 ctlGuide(폰 글자 「버튼 사용법」, PC 「조작법 보기」 — M3): 폰은 버튼 사용법, PC는 1쪽 */
 function guideClose(){$('guide').hidden=true;}
-$('gX').onclick=guideClose;$('gPrev').onclick=()=>guideShow(GI-1);$('gNext').onclick=()=>{if(GI>=GP.length-1)guideClose();else guideShow(GI+1);};
-$('guide').addEventListener('click',e=>{if(e.target.id==='guide')guideClose();});   // a tap beside the card closes it
 addEventListener('keydown',e=>{if($('guide').hidden)return;   // while the guide is open the keys page it (and do not start a race behind it)
   if(e.key==='ArrowRight'||e.key==='Enter'||e.key===' ')$('gNext').click();else if(e.key==='ArrowLeft'&&GI>0)guideShow(GI-1);else if(e.key==='Escape')guideClose();else return;
   e.preventDefault();e.stopImmediatePropagation();},true);
-$('guideBtn').addEventListener('click',()=>guideOpen(0));$('ctlGuide').addEventListener('click',()=>guideOpen(0));   // 11-14: 운전 > 조작법 보기 - the guide's first page (the controls)
+guideWire();
 // ===== 10-31: 조작법 (pause): every on-screen control outlined where it really is, with a short label next to it =====
 function ctlHelp(coach){const M=$('chMarks'),W=VW(),H=VH(),sa=safeInsets(),placed=[],tg=[];M.innerHTML='';
   const vis=e=>!!e&&e.offsetWidth>0&&getComputedStyle(e).display!=='none';
