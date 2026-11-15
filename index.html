@@ -210,6 +210,7 @@ body.touch #pitT{top:calc(92px + var(--sat)); font-size:12px} body.touch #pitT b
 #flag.r{background:#d3121b; color:#fff} #flag.f{background:rgba(12,14,18,.88); color:#fff; outline:2px solid #fff; outline-offset:-5px}
 #flag.chq{background:#f4f4f4; color:#111; outline:3px dashed #111; outline-offset:-5px}
 #sessTable tr.out td{color:#ff8a8a} #sessTable tr.cut td{border-top:2px solid #ff5a4f} #sessTable td.tm{text-align:right; white-space:nowrap}
+#sess .card{padding-bottom:0} #sess .row2{position:sticky; bottom:0; z-index:1; padding:10px 0 14px; background:#15171b; box-shadow:0 -10px 16px rgba(21,23,27,.95)}   /* 11-15 S1: 다음 / 메뉴로 stay on screen under a long table (results and the championship standings) */
 #tower .r .q{margin-left:auto; font-size:13px; color:var(--dim)} #tower .cutl{height:2px; background:#ff5a4f; margin:1px 10px}
 #wxI{color:#8ecae6}
 td.pts{width:4ch; color:var(--yellow)}
@@ -466,6 +467,7 @@ body.inmenu #fpsBox{display:none}
 #mBack i{display:block; width:12px; height:12px; margin:0 0 0 17px; border:solid #f2f3f5; border-width:0 0 2.5px 2.5px; transform:rotate(45deg)}
 #mPgT{font-size:20px; font-weight:700; color:#f2f3f5}
 .mPg{flex:1; min-height:0; overflow-y:auto; padding:2px max(20px,var(--sar)) max(20px,var(--sab)) max(24px,var(--sal))}
+.mPg{margin-bottom:var(--sab); padding-bottom:20px}   /* 11-15 S1: on a notched phone the settings list ends above the home bar, so no row or button rests under it (0 elsewhere) */
 .mPg[hidden]{display:none}
 .mGrp{margin:16px 0 2px; font-size:13px; font-weight:600; color:var(--msub)}
 .mPg .mGrp:first-child{margin-top:4px}
@@ -494,7 +496,7 @@ body.touch .mRow.touchOnly{display:flex}
 .card button{background:var(--mfill,#26282e); border-color:transparent; border-radius:10px; line-height:1.25; word-break:keep-all; transition:background .12s,color .12s}
 .card button:active{background:#33363e}
 .card .seg,.lecard .seg{gap:2px; padding:3px; background:#26282e; border:0; border-radius:12px}
-.card .seg button,.lecard .seg button{min-height:38px; background:none; border-color:transparent; border-radius:9px; color:#b3b7c0; font-weight:500}
+.card .seg button,.lecard .seg button{min-height:44px; background:none; border-color:transparent; border-radius:9px; color:#b3b7c0; font-weight:500}
 .card .seg button:active,.lecard .seg button:active{background:#33363e}
 .card button[aria-pressed="true"],.card .seg button[aria-pressed="true"],.lecard .seg button[aria-pressed="true"]{background:#474b56; color:#fff; font-weight:700; border-color:transparent; box-shadow:none}
 .card .seg button[aria-pressed="true"] .rec{color:var(--yellow)}
