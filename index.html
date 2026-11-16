@@ -747,6 +747,51 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
 @container (max-width:700px){ #mHomeL{flex:1 1 0; min-width:0} #mHomeR{flex:0 0 290px} #mTbShp{flex-basis:110px} .tbBody{gap:14px} #mChips{gap:5px} #menu .mChip{padding:10px 10px 0} #menu #difSel button small{display:none} #menu #difSel button{min-height:44px} }
 @container (max-height:380px){ #menu #mTrkB{min-height:140px} #mDiff{margin-top:6px} #mChips{margin-top:12px} }
 @container (min-height:420px){ #mTbShp{flex-basis:160px} #mN_track{font-size:var(--fs-24)} #mDiff{margin-top:10px} }
+/* 11-17 S7: 홈 대회 블록 #mChB - 서킷 블록과 같은 자리·크기(대회 모드면 서로 바뀜). 라운드 칸(서킷 모양 + 내 순위, 38px · 667 36px - 844 노치에서도 블록 안), 진행 막대, 큰 P순위 + 작은 「/22」, 위 3명, 점수 차. 대회 전엔 길이 3칸 + 첫 서킷 */
+#menu #mTrkB[hidden],#mChB[hidden],#menu #mChB button[hidden]{display:none}
+#mChB{flex:1 1 auto; display:flex; flex-direction:column; min-height:150px; max-height:214px; margin:4px -8px 0; padding:6px 8px 8px; color:#fff; line-height:var(--lh-ui)}
+#mChB .tbCap{position:relative; z-index:1}
+.cbCap{min-width:0; font-size:var(--fs-12); font-weight:var(--fw-med); color:var(--c-cap); white-space:nowrap}
+.cbCap em{font-style:normal; font-weight:var(--fw-bold); color:#fff}
+#menu #mChB .cbMore{flex:none; display:flex; align-items:center; gap:7px; min-height:44px; margin:-13px -4px -13px 0; padding:0 4px; background:none; border:0; border-radius:8px; box-shadow:none; font-size:var(--fs-12); font-weight:var(--fw-med); color:#c9cdd4; white-space:nowrap}
+#mChB .cbMore i{width:7px; height:7px; margin-right:3px; border:solid #c9cdd4; border-width:2px 2px 0 0; transform:rotate(45deg)}
+#menu #mChB .cbBody{flex:1 1 auto; min-height:0; display:flex; flex-direction:column; margin:4px 0 0; padding:0; background:none; border:0; border-radius:10px; box-shadow:none; text-align:left; color:#fff; font-weight:var(--fw-reg); line-height:var(--lh-ui)}
+#menu #mChB .cbBody:active{background:rgba(255,255,255,.04)}
+.cbTiles{display:grid; grid-template-columns:repeat(var(--n),minmax(0,1fr)); gap:4px}
+.cbT{height:38px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; border-radius:9px; background:rgba(255,255,255,.06)}
+.cbT .trkS{width:24px; height:18px; margin:0}
+.cbT .trkS path{stroke-width:1.6px} .cbT .trkS circle{display:none}
+.cbT>span{font:var(--fw-num) var(--fs-13)/1 var(--ff-num); letter-spacing:.2px; color:#fff; white-space:nowrap}
+.cbT.fut{background:rgba(255,255,255,.03)} .cbT.fut .trkS path{stroke:#5b6069} .cbT.fut>span{color:#80858f}
+.cbT.now{background:var(--mpill); box-shadow:inset 0 0 0 1.5px #fff}
+.cbT.now>span{font:var(--fw-bold) var(--fs-12)/1 var(--ff-ui)}
+.cbBar{position:relative; flex:none; height:3px; margin-top:4px; border-radius:2px; background:rgba(255,255,255,.12)}
+.cbBar i{position:absolute; top:0; bottom:0; left:0; border-radius:2px; background:#f4f4f2} .cbBar i.now{background:var(--tp,#e10600)}
+.cbStand{flex:1 1 auto; min-height:0; display:flex; gap:14px; margin-top:5px}
+.cbPos{flex:0 0 auto; min-width:92px; display:flex; flex-direction:column}
+.cbPos .P{font:italic var(--fw-hero) var(--fs-hero)/.86 var(--ff-num); color:#fff; white-space:nowrap}
+.cbPos .P small{margin-left:2px; font:normal var(--fw-num) var(--fs-15)/1 var(--ff-num); color:var(--dim)}
+.cbPos .pts{margin-top:2px; font-size:var(--fs-15); line-height:1.15; font-weight:var(--fw-bold); letter-spacing:var(--ls-text); white-space:nowrap}
+.cbPos .gain{font-size:var(--fs-12); line-height:1.15; font-weight:var(--fw-bold); color:var(--green); white-space:nowrap} .cbPos .gain.z{color:var(--c-cap)}
+.cbTop{flex:1 1 0; min-width:0; display:flex; flex-direction:column}
+.cbR{display:grid; grid-template-columns:16px 5px minmax(0,1fr) auto; gap:8px; align-items:center; height:21px; padding:0 8px 0 4px; border-radius:6px; font-size:var(--fs-13); color:#aab0b9}
+.cbR .n{font:var(--fw-num) var(--fs-13)/1 var(--ff-num); color:#80858f; text-align:right}
+.cbR .st{height:13px; border-radius:1px; background:linear-gradient(var(--p) 0 50%,var(--s) 50%)}
+.cbR .nm{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.cbR .nm i{margin-left:6px; font-style:normal; font-size:var(--fs-12); color:#80858f}
+.cbR .pt{font:var(--fw-num) var(--fs-13)/1 var(--ff-num)}
+.cbR.me{background:rgba(255,255,255,.10); color:#fff; font-weight:var(--fw-bold)} .cbR.me .n{color:#fff}
+.cbGap{margin-top:3px; padding-left:4px; font-size:var(--fs-12); color:var(--c-cap); white-space:nowrap}
+.cbGap b{color:#d6d9df; font-weight:var(--fw-bold)}
+.cbLen{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin-top:8px}
+#menu #mChB .cbLen button{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; min-width:0; min-height:52px; margin:0; padding:0 4px; border:0; border-radius:10px; background:var(--mfill); box-shadow:none; color:#c9cdd4; font-weight:var(--fw-med); line-height:var(--lh-ui)}
+#menu #mChB .cbLen button[aria-pressed="true"]{background:var(--mpill); color:#fff; box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.65)}
+.cbLen b{font-size:var(--fs-15); font-weight:var(--fw-bold); letter-spacing:var(--ls-text); white-space:nowrap} .cbLen small{font-size:var(--fs-12); color:var(--c-cap); white-space:nowrap}
+#menu #mChB .cbFirst{flex:1 1 auto; min-height:0; display:flex; align-items:center; gap:14px; margin:8px 0 0; padding:4px 0; background:none; border:0; border-radius:10px; box-shadow:none; text-align:left; color:#fff; font-weight:var(--fw-reg); line-height:var(--lh-ui)}
+.cbFirst .cbShp{flex:0 0 72px; align-self:stretch; display:flex; min-height:0} .cbFirst .trkS{width:100%; height:100%; margin:0}
+.cbFi{display:flex; flex-direction:column; gap:3px; min-width:0}
+.cbFi small{font-size:var(--fs-12); color:var(--c-cap); white-space:nowrap} .cbFi b{font-size:var(--fs-17); font-weight:var(--fw-bold); letter-spacing:var(--ls-title); white-space:nowrap} .cbFi .cbFn{font-size:var(--fs-12); color:#aab0b9; white-space:nowrap}
+@container (max-width:700px){ .cbT{height:36px} .cbR .nm i{display:none} .cbPos{min-width:76px} .cbStand{gap:10px} #mChB .cbNx{display:none} }
 /* 11-13 윤택님 「듀토리얼 더 상세하게」: the rules guide - one topic a page with a small picture, paged, from the home screen and the 운전 page */
 #guide{z-index:30; padding:max(10px,var(--sat)) max(14px,var(--sar)) max(10px,var(--sab)) max(14px,var(--sal)); background:rgba(6,7,10,.82)}
 :where(#tut,#guide,#bmap) button{border:0; padding:0; margin:0; min-height:0; background:none; font:inherit; color:inherit; line-height:1.25; text-align:inherit; cursor:pointer}   /* 151행 전역 button 뒤라야 이김(검토 I2), 특이도 0 */
@@ -900,6 +945,7 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
 #menu.mEnter #mTop{animation:mInU .45s .06s cubic-bezier(.2,.8,.2,1) both}
 #menu.mEnter #mTrkB,#menu.mEnter #mDiff,#menu.mEnter #mChips{animation:mInU .45s .1s cubic-bezier(.2,.8,.2,1) both}
 #menu.mEnter #mDiff{animation-delay:.14s} #menu.mEnter #mChips{animation-delay:.18s}   /* 11-16 S6: 서킷 블록 → 난이도 → 칩 순서(움직임 줄이기는 아래 #menu.mEnter *) */
+#menu.mEnter #mChB{animation:mInU .45s .1s cubic-bezier(.2,.8,.2,1) both}   /* 11-17 S7: 대회 블록도 서킷 블록과 같이 */
 #menu.mEnter #startBtn{animation:mInR .55s .2s cubic-bezier(.2,.8,.2,1) both}
 @keyframes mInL{from{opacity:0; transform:translateX(-28px)}} @keyframes mInU{from{opacity:0; transform:translateY(12px)}} @keyframes mInR{from{opacity:0; transform:translateX(36px)}}
 body.inmenu:not(.lived):not(.q-low) #gl{animation:mDrift 26s ease-in-out 2 alternate; transform-origin:70% 58%}   /* in and back out once (52 s), then still: an idle menu costs nothing */
@@ -7065,6 +7111,7 @@ function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={ea
   {const g=mk('button','mSet',top);g.type='button';g.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg><span>설정</span>';g.onclick=()=>mOpen(mGearK);}
   /* 11-16 S6: 홈 왼쪽 = 서킷 블록(블록 전체가 버튼 → 서킷 시트, mN_track·bestMenu id 유지) + 난이도 3칸(difSel 원래 버튼을 옮겨 옴 - 상대 AI만, 1탭) + 칩 3개(누르면 위로 작은 창, 같은 칩을 다시 누르면 닫힘). 글자는 menuSum·updateMenuBest */
   {const tb=mk('button','mTrkB',L);tb.type='button';tb.innerHTML='<span class="tbCap"><b id="mTbCap">이번 레이스</b><span class="tbMore"><span id="mTbMore">서킷 바꾸기</span><i></i></span></span><span class="tbBody"><span id="mTbShp"></span><span class="tbInfo"><span class="tbEvt" id="mTbEvt"></span><b id="mN_track"></b><span class="tbMeta" id="mTbMeta"></span><span class="tbDesc" id="mTbDesc"></span><span class="tbBest" id="bestMenu"></span></span></span>';tb.onclick=()=>mOpen('track');
+   mk('div','mChB',L).hidden=true;
    const df=mk('div','mDiff',L),ds=$('difSel');df.innerHTML='<span class="dLab"><b>난이도</b><span>상대 AI</span></span>';df.appendChild(ds);
    for(const [v,n,s,l] of [['easy','쉬움','AI가 느려요',1],['normal','보통','AI가 꽤 빨라요',2],['hard','어려움','AI가 최고 속도',3]]){const b=ds.querySelector('[data-v="'+v+'"]');if(b)b.innerHTML=`<b><span class="mtr l${l}" aria-hidden="true"><i></i><i></i><i></i></span>${n}</b><small>${s}</small>`;}
    const cs=mk('div','mChips',L);for(const [k,c,v,ic] of [['q_race','레이스','mV_race',MCI.flag],['q_wx','날씨와 시간','mV_wx',''],['q_sk','실력','mV_sk',MCI.wheel]]){const b=mk('button',null,cs,'mChip');b.type='button';b.dataset.k=k;b.setAttribute('aria-expanded','false');b.innerHTML=`<span class="cc">${c}</span><span class="cv"><i class="ci" aria-hidden="true">${ic}</i><span id="${v}"></span></span>`;b.onclick=()=>mOpen(mCurK===k?null:k);}
@@ -7740,7 +7787,7 @@ function mApply(){const c=mMode==='champ',lock=c&&CH&&CH.rd<CH.list.length,n=$('
   if(c&&gameMode==='practice'){gameMode='race';saveLS('lightsout3d-mode','race');document.querySelectorAll('#modeSel button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v==='race'?'true':'false'));}
   $('modeSel').querySelector('[data-v="practice"]').style.display=c?'none':'';$('chBox').closest('.mRow').style.display=c?'':'none';
   n.style.display=c?'':'none';n.textContent=lock?'대회 중에는 서킷이 정해져 있어요. 이번 라운드는 '+chTrk(CH.list[CH.rd]).name+'. 다른 서킷을 달리려면 일반 모드로 바꾸세요(대회 점수는 그대로 남아요).':(chLen>=TRACKS.length?'정규 일정 순서대로 달려요. 1라운드는 '+TRACKS[0].name+', 마지막에 자체 서킷 4곳을 달려요.':'지금 고른 서킷이 1라운드예요. 나머지 라운드는 무작위로 정해져요.');
-  $('trkSel').classList.toggle('chLock',!!lock);updStartBtn();updateMenuBest();}
+  $('trkSel').classList.toggle('chLock',!!lock);updStartBtn();updateMenuBest();chHome();}
 // Changing circuit reloads the page (the track is built at load), so the next round starts from the menu after the reload.
 function chSave(){saveLS('lightsout3d-champ',CH?JSON.stringify(CH):'');}
 function chEnd(){CH=null;chSave();chMenu();}
@@ -7752,7 +7799,10 @@ function chRows(){return Object.keys(CH.pts).sort((a,b)=>CH.pts[b]-CH.pts[a]);}
 function chGo(){const id=CH.list[CH.rd];if(!chHere(id)){saveLS('lightsout3d-track',id);$('loading').style.display='flex';$('loading').textContent='다음 서킷을 불러오는 중';setTimeout(()=>location.reload(),30);return;}
   startRace({mode:gameMode==='quali'?'quali':'race',champ:true});}
 function chScore(r,pts){const id=CH.list[CH.rd];if(race.chDone||id==null||!chHere(id))return;race.chDone=true;CH.last={};   // once per round, and only on that round's circuit
-  for(const c of r){const g=pts(c);CH.nm[c.code]=[c.name,c.team];CH.pts[c.code]=(CH.pts[c.code]||0)+g;CH.last[c.code]=g;}CH.rd++;chSave();chMenu();}
+  for(const c of r){const g=pts(c);CH.nm[c.code]=[c.name,c.team];CH.pts[c.code]=(CH.pts[c.code]||0)+g;CH.last[c.code]=g;}
+  /* 11-17 S7: 이번 라운드 내 순위를 CH.hist[라운드]에(P숫자, 리타이어·실격은 글자). 옛 저장값엔 없음 → 홈 칸은 ✓ */
+  {const p=r.find(c=>c.isP);if(p)(CH.hist||(CH.hist=[]))[CH.rd]=p.dsq?'DSQ':p.dnf?'DNF':r.indexOf(p)+1;}
+  CH.rd++;chSave();chMenu();}
 function chTable(){if(!CH)return toMenu();['result','menu'].forEach(id=>$(id).hidden=true);state='sessRes';
   const N=CH.list.length,fin=CH.rd>=N,ks=chRows(),me=ks.indexOf('YOU'),top=ks.slice(0,10);if(me>=10)top.push('YOU');
   $('sessTitle').textContent=fin?(me===0?'대회 우승!':'대회 종료'):'대회 순위';
@@ -7769,6 +7819,26 @@ function chMenu(){const b=$('chBox');
   b.innerHTML=`<p class="sub">${fin?'대회 종료, 챔피언 '+CH.nm[ks[0]][0]:'라운드 '+(CH.rd+1)+'/'+N+', '+chTrk(CH.list[CH.rd]).name}${me>=0?', 나 P'+(me+1)+', '+CH.pts.YOU+'점':''}</p><div class="row2" style="margin-bottom:12px">`+
     (CH.rd?'<button id="chTbl" type="button">순위표</button>':'')+(fin?'':'<button id="chQuit" type="button">대회 그만두기</button>')+'</div>';
   if(CH.rd)$('chTbl').onclick=chTable;if(!fin)$('chQuit').onclick=()=>{if(confirm('대회를 그만둘까요? 지금까지의 점수가 지워져요.'))chEnd();};mApply();}
+/* 11-17 S7: 홈 대회 블록(대회 모드면 서킷 블록 자리). 라운드 칸(4·8칸, 28이면 이번 라운드 둘레 8칸) · 진행 막대 · 큰 P순위 · 위 3명(4위 밖이면 1·2위 + 나) · 점수 차 · 다음 서킷.
+   대회 전엔 길이 3칸(chBox 안 원래 버튼 .click()) + 첫 서킷, 끝나면 최종 순위. 블록을 누르면 대회와 서킷 시트, 「순위표 전체」는 chTable. mApply가 부름 */
+function chHome(){const B=$('mChB'),T=$('mTrkB');if(!B||!T)return;const c=mMode==='champ';T.hidden=c;B.hidden=!c;if(!c)return;
+  const sn=t=>t.name.replace(/\s*\(.*\)$/,''),N=CH?CH.list.length:chLen;
+  if(!CH){const f=chLen>=TRACKS.length?TRACKS[0]:TRK;
+    B.innerHTML='<div class="tbCap"><b class="cbCap">대회 · <em>시작 전</em> · 길이를 고르세요</b></div><div class="cbLen">'+[[4,'짧게'],[8,'보통'],[TRACKS.length,'모든 서킷']].map(([n,t])=>`<button type="button" data-n="${n}" aria-pressed="${n===chLen}"><b>${n}라운드</b><small>${t}</small></button>`).join('')+
+      `</div><button type="button" class="cbFirst"><span class="cbShp">${trkSvg(f)}</span><span class="cbFi"><small>첫 서킷</small><b>${sn(f)}</b><span class="cbFn">${chLen>=TRACKS.length?'정규 일정 순서 · 마지막은 자체 서킷':'나머지 라운드는 무작위'}</span></span></button>`;
+    B.querySelectorAll('.cbLen button').forEach(x=>x.onclick=()=>{const o=$('chBox').querySelector('[data-n="'+x.dataset.n+'"]');if(o)o.click();});B.querySelector('.cbFirst').onclick=()=>mOpen('track');return;}
+  const fin=CH.rd>=N,ks=chRows(),me=ks.indexOf('YOU'),H=CH.hist||[],w=N>8?Math.max(0,Math.min(N-8,CH.rd-3)):0,
+    tile=i=>{const t=chTrk(CH.list[i]),h=H[i],done=i<CH.rd,now=i===CH.rd;
+      return `<span class="cbT${done?'':now?' now':' fut'}">${trkSvg(t)}<span>${done?(h==null?'✓':typeof h==='number'?'P'+h:h):now?'이번':'R'+(i+1)}</span></span>`;},
+    row=k=>{const [nm,ti]=CH.nm[k]||['?',0],t=TEAMS[ti]||TEAMS[0];return `<span class="cbR${k==='YOU'?' me':''}"><span class="n">${ks.indexOf(k)+1}</span><i class="st" style="--p:${t.p};--s:${t.s}"></i><span class="nm">${nm}<i>${t.name}</i></span><span class="pt">${CH.pts[k]}</span></span>`;};
+  let st;
+  if(me<0)st='<span class="cbPos"><b class="P">P–<small>/'+TEAMS.length*2+'</small></b><span class="pts">0점</span></span><span class="cbTop"><span class="cbGap">아직 점수가 없어요 · 1라운드부터 모아요</span></span>';
+  else{const g=CH.last.YOU||0,nx=!fin&&CH.rd+1<N?sn(chTrk(CH.list[CH.rd+1])):'',d=k=>Math.abs(CH.pts.YOU-CH.pts[k]),
+    gp=fin?(me?'챔피언 <b>'+CH.nm[ks[0]][0]+'</b>':'<b>대회 우승!</b>'):me?'선두와 <b>'+d(ks[0])+'점</b>'+(me+1<ks.length?' · '+(me+2)+'위와 <b>'+d(ks[me+1])+'점</b>':'')+' 차':'2위와 <b>'+d(ks[1])+'점</b> 차';
+    st=`<span class="cbPos"><b class="P">P${me+1}<small>/${ks.length}</small></b><span class="pts">${CH.pts.YOU}점</span><span class="gain${fin||!g?' z':''}">${fin?'최종 순위':'지난 라운드 +'+g}</span></span><span class="cbTop">${(me<3?ks.slice(0,3):[ks[0],ks[1],'YOU']).map(row).join('')}<span class="cbGap">${gp}${nx?'<span class="cbNx"> · 다음 <b>'+nx+'</b></span>':''}</span></span>`;}
+  B.innerHTML=`<div class="tbCap"><b class="cbCap">대회 · <em>${fin?'끝':'라운드 '+(CH.rd+1)+' / '+N}</em> · ${fin?N+'라운드':sn(chTrk(CH.list[CH.rd]))}</b><button type="button" class="cbMore"${CH.rd?'':' hidden'}>순위표 전체<i></i></button></div>`+
+    `<button type="button" class="cbBody"><span class="cbTiles" style="--n:${Math.min(N,8)}">${Array.from({length:Math.min(N,8)},(_,i)=>tile(i+w)).join('')}</span><span class="cbBar"><i style="width:${CH.rd/N*100}%"></i>${fin?'':`<i class="now" style="left:${CH.rd/N*100}%;width:${100/N}%"></i>`}</span><span class="cbStand">${st}</span></button>`;
+  B.querySelector('.cbBody').onclick=()=>mOpen('track');B.querySelector('.cbMore').onclick=chTable;}
 $('chBtn').onclick=chTable;chMenu();
 
 // ---- minimap: the whole circuit, north-up. Outlined track, start/finish line, direction arrows, turn numbers (large size),
