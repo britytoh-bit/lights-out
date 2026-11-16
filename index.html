@@ -433,6 +433,7 @@ body.touch #tower .hd.ps span{margin-left:auto; font-weight:var(--fw-num); color
 body.touch #tower .r .tk{flex:none; margin-left:4px; font-size:var(--fs-12); font-weight:var(--fw-hero); line-height:1}
 body.touch #tower .r.me .tk{padding:1px 2px; border-radius:2px; background:#15171c}
 body.touch #tower .cutl{display:flex; justify-content:flex-end; align-items:center; height:13px; margin:0; padding:0 5px; background:linear-gradient(#ff5a4f,#ff5a4f) 0 50%/100% 2px no-repeat}
+body.touch #tower .gap,body.touch #tower .cutl{background-color:#0b0d11}   /* 11-17 S9: 두 줄 바탕이 비어 광고판이 비쳤음 */
 body.touch #tower .cutl span{padding-left:4px; background:#0b0d11; font-size:var(--fs-12); font-weight:var(--fw-med); line-height:13px; color:var(--dim); white-space:nowrap}
 /* smaller controls on short screens (a phone inside an app, small phones) */
 body.touch.ph-small #steerPad{width:214px; height:56px; border-radius:28px} body.touch.ph-small #steerKnob{width:48px; height:48px; margin:-24px 0 0 -24px}
@@ -795,7 +796,7 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
 /* 11-13 윤택님 「듀토리얼 더 상세하게」: the rules guide - one topic a page with a small picture, paged, from the home screen and the 운전 page */
 #guide{z-index:30; padding:max(10px,var(--sat)) max(14px,var(--sar)) max(10px,var(--sab)) max(14px,var(--sal)); background:rgba(6,7,10,.82)}
 :where(#tut,#guide,#bmap) button{border:0; padding:0; margin:0; min-height:0; background:none; font:inherit; color:inherit; line-height:1.25; text-align:inherit; cursor:pointer}   /* 151행 전역 button 뒤라야 이김(검토 I2), 특이도 0 */
-#bmap{z-index:30; padding:0; background:rgba(6,7,10,.94)}
+#bmap{z-index:30; padding:0; background:#06070a}   /* 11-17 S9: .94 → 불투명(홈에서 열면 뒤 메뉴 글자가 비쳤음) */
 /* ── 규칙 가이드 카드 (#guide) ── 쪽 번호 「3 / 15」, 머리에 「‹ 목차」, 아래에 「다음 · 쪽 이름」 (점 13개는 뺌) */
 .gCard{container-type:inline-size;display:flex;flex-direction:column;width:min(820px,100%);height:min(400px,100%);background:linear-gradient(180deg,#1b1c22,#131418);border-radius:16px;
   box-shadow:0 20px 50px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.07);overflow:hidden}
@@ -858,7 +859,7 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
 .gRd{display:flex;flex-direction:column;align-items:center;gap:8px}
 .gRd .tw{width:156px;border-radius:6px;background:rgba(9,11,15,.9);overflow:hidden;box-shadow:var(--hair)}
 .gRd .tw p{display:flex;align-items:center;gap:6px;height:21px;margin:0;padding:0 8px;font:var(--fw-num) var(--fs-13)/1 var(--cond);color:#fff}
-.gRd .tw p:first-child{justify-content:space-between;background:linear-gradient(90deg,#f5c518 0 4px,rgba(255,255,255,.1) 4px)} .gRd .tw p:first-child b+b{color:#f5c518}
+.gRd .tw p:first-child{justify-content:space-between;background:linear-gradient(90deg,#f5c518 0 4px,rgba(255,255,255,.1) 4px)} .gRd .tw p:first-child>b{color:#f5c518;font-style:italic} .gRd .tw p:first-child>b small{font-size:var(--fs-12);font-style:normal;color:#aab0b9} .gRd .tw p:first-child>span{margin-left:auto}
 .gRd .tw s{text-decoration:none;color:#aab0b9} .gRd .tw em{width:14px;font-style:normal;color:#cfd6df}
 .gRd .tw i{width:3px;height:11px;background:var(--c)} .gRd .tw u{margin-left:auto;text-decoration:none;color:#aeb7c2} .gRd .tw p:nth-child(2) u{color:#2fd06b}
 .gRd .tw p.me{background:#f5c518;color:#111} .gRd .tw p.me em,.gRd .tw p.me u{color:#111}
@@ -887,7 +888,7 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
 #bmIn{position:absolute;left:0;top:0;width:844px;height:390px;transform-origin:0 0}   /* 폭·높이는 bmapDraw가 실제 화면 크기로 덮어씀(11-15 글씨정리) */
 .bmG{position:absolute;border-radius:8px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
 .bmG.tw p{display:flex;justify-content:space-between;align-items:center;height:21px;margin:0;padding:0 7px;border-radius:6px 6px 0 0;font:var(--fw-num) var(--fs-13)/1 var(--cond);color:#d6d9df;background:rgba(255,255,255,.08)}
-.bmG.tw s{text-decoration:none} .bmG.tw i{display:block;height:5px;margin:8px 10px 0;border-radius:3px;background:rgba(255,255,255,.1)}
+.bmG.tw s{text-decoration:none} .bmG.tw p>b small{font-size:var(--fs-12)} .bmG.tw p>span{margin:0 6px 0 auto} .bmG.tw i{display:block;height:5px;margin:8px 10px 0;border-radius:3px;background:rgba(255,255,255,.1)}
 .bmG.mm{border-radius:50%} .bmG.tg{border-radius:4px;background:rgba(245,197,24,.55)}
 .bmG.ds{border-radius:12px;display:flex;align-items:center;justify-content:center} .bmG.ds span{font-size:var(--fs-13);font-weight:var(--fw-med);color:#80858f}
 .bmG.c.off{border-radius:50%;background:none;box-shadow:none;border:2px dashed rgba(255,255,255,.28);display:grid;place-items:center;font-size:var(--fs-13);font-weight:var(--fw-bold);color:#6e747e}
@@ -7542,7 +7543,7 @@ const GUIDE=()=>{const T=isTouch,k=(t,kb)=>T?t:kb,ty=(c,l,n)=>`<span><i style="-
         '위쪽 띠에 뜨는 대로 <b>Enter</b>: 아웃랩은 출발선 몇 초 앞으로, 인랩은 개러지에서 새 타이어로, 삭제된 랩은 다시 시도. 시계는 그대로 가요.'),
       '체커기 전에 <b>시작한 랩까지</b> 인정돼요. '+k('지금 못 누르면 버튼이 흐려지고 왼쪽에 이유(「남은 시간 부족」 등)가 떠요.','지금 못 쓰면 Enter 대신 이유(「남은 시간 부족」 등)가 떠요.'),
       '아웃랩·인랩엔 뒤에 오는 <b>플라잉 랩 차</b>에 길을 비켜 주세요. 경고·강등은 없어요.']},   /* d3d9327: 예선 블루는 알림만(강등 없음) */
-  {h:'화면 읽기',n:'화면 읽기',nw:1,v:'<div class="gRd"><div class="tw"><p><b>랩 2/3</b><b>P2/22</b><s>▾</s></p><p><em>1</em><i style="--c:#d4121f"></i>COS<u>리더</u></p><p class="me"><em>2</em><i style="--c:#2450c4"></i>YOU<u>+0.4</u></p><p><em>3</em><i style="--c:#0b7a73"></i>ASH<u>+0.2</u></p></div>'
+  {h:'화면 읽기',n:'화면 읽기',nw:1,v:'<div class="gRd"><div class="tw"><p><b>P2<small>/22</small></b><span>랩 2/3</span><s>▾</s></p><p><em>1</em><i style="--c:#d4121f"></i>COS<u>리더</u></p><p class="me"><em>2</em><i style="--c:#2450c4"></i>YOU<u>+0.4</u></p><p><em>3</em><i style="--c:#0b7a73"></i>ASH<u>+0.2</u></p></div>'
         +'<div class="sc"><i class="ob">S1</i><i class="pb">S2</i><i class="sl">S3</i></div><div class="sl2"><span class="ob">보라 전체 최고</span><span class="pb">초록 내 최고</span><span class="sl">노랑 더 느림</span></div></div>',
    t:[k('<b>순위표</b>(왼쪽 위): 노란 줄이 나, 숫자는 앞차와 간격(초). 머리 ▾를 누르면 <b>전체 → 줄임 → 숨김</b>. 예선에선 초록 점이 플라잉 랩 중인 차예요.',
         '<b>순위표</b>(왼쪽 위): 노란 줄이 나, 숫자는 앞차와 간격(초). 예선에선 초록 점이 플라잉 랩 중인 차예요.'),
@@ -7571,7 +7572,7 @@ function bmapDraw(root,sm,W=844,H=390){const L=hudLay(sm,autoGas,pedPos,W,H),T={
   const N=W<760,RH=N?21:24;   /* 11-15 글씨정리: 좁은 화면(667 · 노치 가로 844)은 설명을 오른쪽 한 상자로 모으고 줄 높이 21 — 줄여 그리지 않으려고 */
   const R=(n,d,p)=>`<div class="bmR"><b>${n}</b><span>${d}</span><em>${p}쪽</em></div>`,C=(x,y,w,rows,c='')=>`<div class="bmC ${c}${N?' n':''}" style="left:${x}px;top:${y}px;width:${w}px">${rows.join('')}</div>`;
   const B=L.btns,bt=[['PIT',6,'이번 랩 끝 피트인'],['다음',6,'다음에 끼울 타이어'],['ERS',11,autoGas?'누르는 동안 부스트':'직선에서 저절로'],['직선',11,aeroMode==='auto'?'자동이라 숨김':'직선에서 날개 열기']];
-  let h=g(L.tower,'tw','<p><b>랩 1/3</b><b>P12/22</b><s>▾</s></p>'+'<i></i>'.repeat(9))+g(L.mm,'mm')+g(L.time,'tme')
+  let h=g(L.tower,'tw','<p><b>P12<small>/22</small></b><span>랩 1/3</span><s>▾</s></p>'+'<i></i>'.repeat(9))+g(L.mm,'mm')+g(L.time,'tme')
     +F([L.tower[0],L.tower[1],L.tower[2],21],15,'순위표 머리','thd')
     +F(L.pill,14,'위쪽 띠 버튼','pill','<u>플라잉 랩으로 ▸▸</u>')
     +L.top.map(([n,r])=>F(r,T[n][1],n,'c',n)).join('')
@@ -8017,7 +8018,7 @@ function layoutTouchHUD(){if(!isTouch)return;
     set($('flag'),{left:cx+'px',top:y0,maxWidth:Math.max(120,hw(L,Rf)),whiteSpace:'normal'});
     set($('pitMsg'),{left:cx+'px',top:y0+36,bottom:null,maxWidth:Math.max(120,hw(L,Rm))});
     set($('toast'),{left:cx+'px',top:y0+36,maxWidth:Math.max(140,hw(L,Rm))});
-    set($('pitT'),{top:y0+64});set($('qHint'),{top:y0+70});}
+    set($('pitT'),{top:y0+64});set($('qHint'),{top:y0+86});}
   else{const L=sa.l+12,R2=W-sa.r-12,yB=Math.max(mr?mr.bottom:tTop+TOWER_H,hsr.bottom)+10;
     set($('flag'),{left:C(L,R2),top:sa.t+4,maxWidth:R2-L,whiteSpace:'normal'});
     set($('toast'),{left:C(L,R2),top:sa.t+4,maxWidth:R2-L});
@@ -8129,7 +8130,8 @@ function drawHUD(dt){
   else{setT('pos','P'+pp);setT('posN','/'+race.cars.length);setT('lapL',race.form?'':'랩 ');
     setT('pen',(pl.pen?'+'+pl.pen+'초':'')+(pl.strikes?(pl.pen?' · ':'')+'경고 '+Math.min(3,pl.strikes)+'/3':''));
     setT('lap',race.form?(race.form.kind==='start'?'포메이션 랩':'레드 플래그 재개'):Math.max(1,Math.min(race.laps,Math.floor(pl.prog/N)+1))+'/'+race.laps);}
-  setT('tCur',fmt(state==='race'&&!race.form&&pl.fin==null&&pl.prog>=0&&!(pl.pit&&(pl.pit.state==='garage'||pl.pit.state==='red'))&&!(S&&pl.crossT<0)?race.t-pl.lapStart:0));setT('tLast',fmt(pl.lastLap));setT('tBest',fmt(bestLap));
+  if(hc.ll!==pl.lastLap){hc.ll=pl.lastLap;hc.llBad=pl.lastLap!=null&&$('tCurL').parentElement._k==='nt';}   /* 11-17 S9: 방금 끝난 랩이 기록 안 되는 랩(바로 전 화면 「nt」)이면 지난 랩 「—」 */
+  setT('tCur',fmt(state==='race'&&!race.form&&pl.fin==null&&pl.prog>=0&&!(pl.pit&&(pl.pit.state==='garage'||pl.pit.state==='red'))&&!(S&&pl.crossT<0)?race.t-pl.lapStart:0));setT('tLast',hc.llBad?'—':fmt(pl.lastLap));setT('tBest',fmt(bestLap));
   {const lk=lapKind(pl),k=lk?lk[1]:'',cr=$('tCurL').parentElement;let lt=lk?lk[0]:'현재';
    /* 11-16 윤택님 「랩타임 기록을 언제재야하는질 모르겠네」: the last 300 m to the line on an out-lap / deleted lap count down; the crossing that starts a timed lap shows a bigger, longer note; the first in-lap says why it is one */
    if(k==='nt'&&!pl.pit&&!lt.startsWith('인랩')){const m=wrap(-pl.idx)*STEP;if(m<=300)lt='기록 시작까지 '+Math.max(10,Math.ceil(m/10)*10)+'m';}
