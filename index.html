@@ -1070,6 +1070,14 @@ body.touch.ph-small #mTyre small{font-size:var(--fs-12)} body.touch.ph-small #mT
 #skill .skAct button{display:flex; flex-direction:column; align-items:flex-start; gap:3px; min-height:72px; padding:12px 16px; text-align:left}
 #skill .skAct b{font-size:19px; font-weight:800} #skill .skAct span{font-size:13px; font-weight:500; opacity:.85}
 #skill #skLater{display:block; width:100%; min-height:44px; margin:2px 0 0; background:none; border:0; color:#aab0b9; font-size:15px; font-weight:600; text-decoration:underline; text-underline-offset:3px}
+/* 11-17 S8: 첫 실행 카드 아래 줄 = 「AI 상대」 3칸(skDif → difSel 같은 값 .click(), 수치는 그대로) + 「메뉴 먼저 둘러보기」 오른쪽 */
+#skill .skBot{display:flex; align-items:center; gap:12px; margin-top:6px}
+#skill .skDL{width:auto}
+#skill #skDif{flex:0 1 420px; min-width:0; margin:0}
+#skill #skDif button{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; min-width:0; min-height:52px; padding:0 4px; font-size:var(--fs-15); letter-spacing:var(--ls-text); line-height:var(--lh-ui); white-space:nowrap}
+#skill #skDif small{font-size:var(--fs-12); font-weight:var(--fw-reg); letter-spacing:var(--ls-0); color:#80858f}
+#skill #skDif [aria-pressed="true"] small{color:#d4d7dd}
+#skill .skBot #skLater{flex:none; width:auto; margin:0 0 0 auto; padding:0 4px}
 #fmSkip{position:relative; margin-left:10px; padding:2px 10px; min-height:0; border:0; border-radius:5px; background:#f4f5f7; color:#111; font:var(--fw-bold) var(--fs-12)/1.35 var(--ff-ui); pointer-events:auto; vertical-align:1px}
 #fmSkip::after{content:''; position:absolute; inset:-15px -8px}
 #fmSkip[hidden]{display:none}
@@ -1209,7 +1217,8 @@ body.touch #flag.sa.pulse{animation-name:flagPulseSa}
   <div id="ctlHelp" hidden><div id="chMarks"></div></div>
   <div class="overlay" id="skill" hidden><div class="card"><h2>처음이세요?</h2><p class="sub" id="skSub">가장 쉬운 조작으로 맞춰 뒀어요. 나중에 「설정」의 「운전」에서 바꿀 수 있어요.</p>
     <div class="row2 skAct"><button class="go" id="skTut" type="button"><b>튜토리얼</b><span>직접 달리며 조작 익히기 · 약 3분</span></button><button id="skGo" type="button"><b>바로 레이스</b><span id="skGoS">서울 3랩 · AI 쉬움</span></button></div>
-    <button id="skLater" type="button">메뉴 먼저 둘러보기</button></div></div>
+    <div class="skBot"><span class="dLab skDL"><b>AI 상대</b><span>바로 레이스에 적용</span></span><div class="seg" id="skDif"><button data-v="easy" type="button" aria-pressed="true">쉬움<small>AI가 느려요</small></button><button data-v="normal" type="button" aria-pressed="false">보통<small>AI가 꽤 빨라요</small></button><button data-v="hard" type="button" aria-pressed="false">어려움<small>AI가 최고 속도</small></button></div>
+    <button id="skLater" type="button">메뉴 먼저 둘러보기</button></div></div></div>
   <div id="livEd" hidden><div class="lecard">
     <div class="lehead"><button id="leHome" type="button" aria-label="저장하고 홈으로"><i></i>홈</button><b>리버리 꾸미기</b><span id="leTeam"></span></div>
     <p class="lenote">실제 팀의 디자인·로고는 쓸 수 없어서, 색과 모양을 직접 골라 내 차를 칠하는 방식이에요. 바꾸면 뒤의 차에 바로 보여요.</p>
@@ -7302,9 +7311,10 @@ $('skLater').addEventListener('click',skClose);$('skTut').addEventListener('clic
 // 11-14 (UI 개편 #1, 윤택님 「처음 하는 사용자가 했을 때도 이해하기 쉽게」): the first run starts on the easiest set-up (초보, AI 쉬움) - only when nothing is saved yet,
 // a player's own settings are never replaced. The card: 튜토리얼 / 바로 레이스 / 메뉴 먼저 둘러보기
 function firstRunSetup(){applySkill('easy');diff='easy';saveLS('lightsout3d-diff','easy');segPick(['difSel'],'easy');saveLS('lightsout3d-coach','0');menuSum();}
-function skCard(){$('skSub').textContent=FIRST_RUN?'가장 쉬운 조작으로 맞춰 뒀어요. 나중에 「설정」의 「운전」에서 바꿀 수 있어요.':'조작과 보조는 「설정」의 「운전」에서 바꿀 수 있어요.';
+function skCard(){$('skSub').textContent=FIRST_RUN?'가장 쉬운 조작으로 맞춰 뒀어요. 나중에 홈의 「실력」에서 바꿀 수 있어요.':'조작과 보조는 홈의 「실력」에서 바꿀 수 있어요.';segPick(['skDif'],diff);
   $('skGoS').textContent=TRK.name.replace(/\s*\(.*\)$/,'').split(' ')[0]+' '+laps+'랩 · '+({easy:'AI 쉬움',normal:'AI 보통',hard:'AI 어려움'}[diff]||'');}
 seg('skSel',applySkill);seg('pSkSel',applySkill);seg('basSel',v=>setBrakeAs(+v));
+seg('skDif',v=>{const b=$('difSel').querySelector('[data-v="'+v+'"]');if(b)b.click();skCard();});   /* 11-17 S8: 카드의 AI 3칸 = 홈 difSel 같은 값 버튼(diff·저장 키 그대로), 「바로 레이스」 부제도 고른 값으로 */
 skReady=true;skillUI();
 // ===== 10-31: tutorial - a short guided practice alone on the default circuit, one card at a time in the timing panel's place
 // (top right, under the round buttons: clear of the controls and of the road ahead). Each card waits for the action or 「다음」. =====
