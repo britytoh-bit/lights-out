@@ -160,7 +160,11 @@ kbd{font-family:"Saira Condensed",sans-serif; font-weight:700; background:#2b2f3
 #livEd[hidden]{display:none}
 #livEd .lecard{pointer-events:auto; position:absolute; left:calc(16px + var(--sal)); top:calc(16px + var(--sat)); bottom:calc(16px + var(--sab)); width:min(400px,calc(100% - 32px)); overflow:auto; background:rgba(21,23,27,.94); border-radius:8px; padding:16px 18px; box-shadow:0 20px 60px rgba(0,0,0,.5)}
 @container (max-aspect-ratio:1/1){#livEd .lecard{top:auto; left:8px; right:8px; bottom:calc(8px + var(--sab)); width:auto; height:56%}}
-#livEd .lehead{display:flex; justify-content:space-between; align-items:baseline; font-size:18px; margin-bottom:6px} #livEd .lehead span{font-size:14px; color:var(--dim)}
+/* 11-17: 머리를 카드 위에 붙여 둠(sticky) + 왼쪽 「‹ 홈」 = 지금 색 그대로 저장하고 홈으로 (윤택님 「아래로 계속내려야 홈갈수있음」) */
+#livEd .lehead{position:sticky; top:-16px; z-index:2; display:flex; align-items:center; gap:8px; margin:-16px -18px 8px; padding:6px 14px 6px 6px; background:#15171b; border-bottom:1px solid rgba(255,255,255,.07); font-size:18px}
+#livEd .lehead b{flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis} #livEd .lehead span{flex:none; font-size:14px; color:var(--dim)}
+#leHome{flex:none; min-width:64px; height:44px; padding:0 12px 0 10px; display:flex; align-items:center; gap:7px; background:#26282e; border:0; border-radius:10px; font-size:var(--fs-15); font-weight:var(--fw-med); color:#e6e8ec}
+#leHome i{width:8px; height:8px; border:solid currentColor; border-width:0 0 2px 2px; transform:rotate(45deg)}
 #livEd .lenote{font-size:13px; color:var(--dim); margin:0 0 12px; line-height:1.4} #livEd #leMsg{color:#ffb347; min-height:0}
 #livEd .sws{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; align-items:center}
 #livEd .sws button{width:28px; height:28px; padding:0; border-radius:6px; border:2px solid rgba(255,255,255,.25)} #livEd .sws button[aria-pressed="true"]{border:3px solid #fff; box-shadow:0 0 0 2px #15171b inset}
@@ -1097,7 +1101,7 @@ body.touch #flag.sa.pulse{animation-name:flagPulseSa}
     <div class="row2 skAct"><button class="go" id="skTut" type="button"><b>튜토리얼</b><span>직접 달리며 조작 익히기 · 약 3분</span></button><button id="skGo" type="button"><b>바로 레이스</b><span id="skGoS">서울 3랩 · AI 쉬움</span></button></div>
     <button id="skLater" type="button">메뉴 먼저 둘러보기</button></div></div>
   <div id="livEd" hidden><div class="lecard">
-    <div class="lehead"><b>리버리 꾸미기</b><span id="leTeam"></span></div>
+    <div class="lehead"><button id="leHome" type="button" aria-label="저장하고 홈으로"><i></i>홈</button><b>리버리 꾸미기</b><span id="leTeam"></span></div>
     <p class="lenote">실제 팀의 디자인·로고는 쓸 수 없어서, 색과 모양을 직접 골라 내 차를 칠하는 방식이에요. 바꾸면 뒤의 차에 바로 보여요.</p>
     <p class="label">새 시안 (누르면 한 번에 바뀌어요)</p><div class="lpre" id="lePre"></div>
     <p class="label">메인 색</p><div class="sws" data-k="D"></div>
@@ -7102,6 +7106,7 @@ $('leNum').addEventListener('change',leApply);$('leName').addEventListener('chan
 $('lePre').innerHTML=LIV_PRESETS.map((p,i)=>`<button type="button" data-p="${i}"><span class="chip" style="background:linear-gradient(90deg,${p.L.D} 0 56%,${p.L.KC?'#2a2c31':p.L.K} 56% 80%,${p.L.A} 80%)"></span>${p.name}</button>`).join('');
 $('lePre').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!LED)return;const P=LIV_PRESETS[+b.dataset.p].L;Object.assign(LED.L,P,{W:P.W,wt:P.W?P.wt:'none',art:P.art||null});leSync();leApply();});
 $('livBtn').addEventListener('click',leOpen);$('leDone').addEventListener('click',leClose);
+$('leHome').addEventListener('click',()=>{leApply();leClose();});
 $('leReset').addEventListener('click',()=>{if(!LED)return;const ti=LED.ti;delete LIVC[ti];saveLS('lightsout3d-liv',JSON.stringify(LIVC));applyLivData(ti);dropTeamMats(ti);if(state==='menu')setupRace();refreshTeamButtons();leOpen();});
 $('leRand').addEventListener('click',()=>{if(!LED)return;const pick=a=>a[Math.floor(Math.random()*a.length)],L=LED.L;
   L.D=pick(LE_SW);do{L.A=pick(LE_SW);}while(L.A===L.D);L.W=Math.random()<0.45?pick(['#ffffff','#e9edf1','#131417',pick(LE_SW)]):null;L.wt=L.W?pick(['engine','nose','cockpit']):'none';
