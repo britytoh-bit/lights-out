@@ -440,6 +440,8 @@ body.touch.ph-small #steerPad{width:214px; height:56px; border-radius:28px} body
 body.touch.ph-small .rbtn{width:62px; height:62px; font-size:22px}
 body.touch.ph-small .pedal{width:76px; height:106px; font-size:var(--fs-12)} body.touch.ph-small .pedal.gas{height:106px}
 body.touch.ph-small #miniBtns{grid-template-columns:repeat(2,40px); gap:7px} body.touch.ph-small #miniBtns button{width:40px; height:40px; font-size:var(--fs-12)}
+body.touch.ck-cam #miniBtns{grid-template-columns:none; grid-auto-flow:column; grid-auto-columns:46px} body.touch.ph-small.ck-cam #miniBtns{grid-auto-columns:40px}   /* 11-17 CK1: cockpit - one row above the right pedals, off the wheel */
+body.touch.ph-land.ck-cam #hudSpeed #spd, body.touch.ph-land.ck-cam #hudSpeed #gear{font-size:22px}   /* 11-17 CK1: cockpit - the dashboard smaller (not hidden) */
 body.touch.ph-small #topBtns button{width:32px; height:32px; font-size:11px}
 body.touch.ph-small #hudTime{width:164px}
 /* portrait: panels along the top, controls along the bottom, a narrower steering pad */
@@ -6717,7 +6719,7 @@ function pauseLabels(){const m=$('mirBtn'),h=$('haloBtn');
   if(h)h.textContent='헤일로 블러: '+(typeof HALOGH!=='undefined'&&HALOGH?'켬':'끔');
   const f=$('fpsBtn');if(f)f.textContent='FPS 표시: '+(FPSON?'켬':'끔');}
 function toggleMirror(){if(!MIR){toast('룸미러를 쓸 수 없어요','#fff');return;}MIR.on=!MIR.on;saveLS('lightsout3d-mirror',MIR.on?'1':'0');if(isTouch)layoutTouchHUD();toast(MIR.on?'룸미러 켬':'룸미러 끔','#fff');pauseLabels();}
-function cycleCam(){camMode=(camMode+1)%CAMS.length;saveLS('lightsout3d-cam',CAMS[camMode]);toast(CAMNAME[CAMS[camMode]]+' 시점 ('+(camMode+1)+'/'+CAMS.length+')','#fff');}
+function cycleCam(){camMode=(camMode+1)%CAMS.length;saveLS('lightsout3d-cam',CAMS[camMode]);if(isTouch)layoutTouchHUD();toast(CAMNAME[CAMS[camMode]]+' 시점 ('+(camMode+1)+'/'+CAMS.length+')','#fff');}
 function setSens(v){sens=Math.max(1,Math.min(5,v));saveLS('lightsout3d-sens',sens);if(race)race.sens=sens;skillUI();document.querySelectorAll('#sensSel button, #pSensSel button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.v===sens?'true':'false'));}   // v12j: the pause copy too
 addEventListener('keydown',e=>{
   if(LED){if(e.code==='Enter'||e.code==='Escape'){e.preventDefault();if(e.target&&e.target.blur)e.target.blur();leApply();leClose();}return;}   // the livery editor is open
@@ -7986,14 +7988,17 @@ function layoutTouchHUD(){if(!isTouch)return;
    if(sp){let sc=null;for(const id of['steerPad','btnSteer']){const e=$(id);if(vis(e)){sc=R(e);break;}}document.body.style.setProperty('--brkL',Math.round((sc?sc.right:sa.l+8)+12)+'px');}}
   const peds=[...document.querySelectorAll('#pedals .pedal')].filter(vis).map(R),rP=peds.filter(b=>b.left+b.width/2>W/2),lP=peds.filter(b=>b.left+b.width/2<=W/2);
   let lc=null;for(const id of['steerPad','btnSteer']){const e=$(id);if(vis(e)){lc=R(e);break;}}if(!lc&&lP.length)lc=lP[0];
+  /* 11-17 CK1(윤택님 11-16 승인 ②): 가로 폰 콕핏 시점 - PIT·다음·ERS·직선을 운전대 밖, 오른쪽 페달 위 한 줄로. 속도·기어 패널은 작게(dk1·dk2) 왼쪽 조향 위. 다른 시점은 원래 자리 */
+  const ck=!port&&CAMS[camMode]==='cockpit';if(BC.contains('ck-cam')!==ck)BC.toggle('ck-cam',ck);
   const lcR=Math.max(lc?lc.right:sa.l+8,...lP.map(b=>b.right)),lcT=lc?lc.top:H-sa.b-8,rpL=rP.length?Math.min(...rP.map(b=>b.left)):null,rpH=rP.length?Math.max(...rP.map(b=>b.height)):0;
   const mbRt=port?sa.r+14:rpL!=null?W-rpL+10:sa.r+14,mbW=mb.offsetWidth||96,mbH=mb.offsetHeight||96;
-  set(mb,{left:null,top:null,right:mbRt,bottom:port?sa.b+12+rpH+10:sa.b+12});
+  set(mb,{left:null,top:null,right:ck&&rP.length?W-Math.max(...rP.map(b=>b.right)):mbRt,bottom:port||ck?sa.b+12+rpH+10:sa.b+12});
   const mbr=R(mb);
   if(!port){   // the dashboard strip
     hs.classList.remove('dk1','dk2');const tilt=steerMode==='tilt',gl=lcR+10,gr=mbr.left-10,bot=sa.b+(tilt?24:10);let w=hs.offsetWidth;
     if(w>gr-gl){hs.classList.add('dk1');w=hs.offsetWidth;}if(w>gr-gl){hs.classList.add('dk2');w=hs.offsetWidth;}
-    if(w<=gr-gl){set(hs,{left:(gl+gr)/2-w/2,right:null,top:null,bottom:bot});hc.dashUp=0;}
+    if(ck)hs.classList.add('dk1','dk2');
+    if(w<=gr-gl&&!ck){set(hs,{left:(gl+gr)/2-w/2,right:null,top:null,bottom:bot});hc.dashUp=0;}
     else{set(hs,{left:sa.l+14,right:null,top:null,bottom:H-lcT+8});hc.dashUp=hs.offsetHeight+8;}   // no room between the controls: just above the steering control
     if(tilt){const r=R(hs);set($('tiltGauge'),{left:r.left,width:r.width,right:null,top:null,bottom:sa.b+8,transform:'none'});}}
   else{hs.classList.remove('dk1','dk2');set(hs,{left:null,right:sa.r+8,top:R(ht).bottom+6,bottom:null});
