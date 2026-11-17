@@ -329,7 +329,7 @@ body.touch #flag{font-size:12px; padding:3px 8px}
 /* ===== v12f: phone HUD v2 - a timing tower down the left with a round heading-up map beside it, round icon buttons, the timing
    panel and the car panel on the right, round action buttons, pedals in the corners (layout after the player's reference screenshot;
    own design: no logos, icons or colours copied). Positions that depend on each other are set by layoutTouchHUD() ===== */
-#hudTime .row.cur.nt b{opacity:.42} #hudTime .row.cur.nt span{color:#ffb347} #hudTime .row.cur.fly span{color:#3ddc84; font-weight:800} #tower .r .n .fq{color:#3ddc84; font-style:normal; margin-left:3px; font-size:max(.7em,var(--fs-12))}   /* 11-15: lap kind in a session */ #hudTime .row.fast b{color:#b16cff} #hudTime .row.dlt b.neg{color:#2fd06b} #hudTime .row.dlt b.pos{color:#ff5a4f}
+#hudTime .row.cur.nt b{opacity:.42} #hudTime .row.cur.nt span{color:#ffb347} #hudTime .row.cur.fly span{color:#3ddc84; font-weight:800} #hudTime .row.cur span{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0} #hudTime .row.cur b{flex:none; min-width:3.5em; text-align:right}   /* 11-18 윤택님 「랩타임이 깜빡깜빡 오류난것처럼」: Saira 숫자는 글자마다 폭이 달라(tabular-nums가 안 먹음, 「1:11.111」 34px ~ 「8:88.888」 48px) 시간이 바뀔 때마다 긴 시계 이름이 한 줄↔두 줄을 오가며 칸 높이가 55↔71px로 매 프레임 뛰었다 - 숫자 칸 폭을 가장 넓은 시간만큼 고정, 이름은 한 줄 */#tower .r .n .fq{color:#3ddc84; font-style:normal; margin-left:3px; font-size:max(.7em,var(--fs-12))}   /* 11-15: lap kind in a session */ #hudTime .row.fast b{color:#b16cff} #hudTime .row.dlt b.neg{color:#2fd06b} #hudTime .row.dlt b.pos{color:#ff5a4f}
 #hudTime .secs i span{display:none} #tyMini{display:none}
 body.touch #hudTop{display:none}
 body.touch #tower{display:block; top:calc(6px + var(--sat)); left:calc(6px + var(--sal)); min-width:0; width:128px; padding:0 0 2px; border-radius:6px; background:rgba(9,11,15,.74); overflow:hidden; pointer-events:none; box-shadow:0 2px 10px rgba(0,0,0,.35)}
@@ -1092,18 +1092,13 @@ body.touch #flag.sa{padding:3px 3px 3px 7px; border-radius:7px; background:rgba(
 #flag.sa #fmSkip:active{background:#c9ccd3}
 #fmSkip.no{background:rgba(244,245,247,.38); color:rgba(17,17,17,.75)} #flag.sa #fmSkip.no:active{background:rgba(244,245,247,.5)}   /* 11-16: the button cannot be used now - the reason sits on its left */
 #flag.sa #flagT{font-size:var(--fs-12); font-weight:var(--fw-bold); color:#ffb347; white-space:nowrap}
-#toast.big{font-size:40px} body.touch #toast.big{font-size:var(--fs-20); padding:6px 16px}
+#toast.big{font-size:40px}
 @keyframes flagPulseSa{50%{filter:brightness(1.25); box-shadow:inset 3px 0 0 #ffb347,0 0 0 3px rgba(255,255,255,.8),0 4px 18px rgba(0,0,0,.35)}}
 body.touch #flag.sa.pulse{animation-name:flagPulseSa}
-#qHint{position:absolute; left:50%; transform:translateX(-50%); top:76px; width:330px; max-width:calc(100% - 24px); z-index:4; padding:12px 14px; border-radius:12px; background:rgba(14,15,19,.92); box-shadow:inset 0 0 0 1px rgba(255,255,255,.14),0 12px 30px rgba(0,0,0,.45); color:var(--c-val); pointer-events:auto}
+#qHint{position:absolute; left:50%; transform:translateX(-50%); top:76px; width:max-content; max-width:calc(100% - 24px); min-height:44px; z-index:4; padding:6px 10px 7px; border-radius:8px; background:rgba(14,15,19,.88); box-shadow:inset 0 0 0 1px rgba(255,255,255,.14); color:var(--c-val); pointer-events:auto; cursor:pointer}   /* 11-18 윤택님 「팝업 너무커서 시야 다 가림」: 330px 카드(667에서 트랙 가운데 띠의 62%) → 알림 줄 폭의 세 줄 메모, 아무 데나 누르면 닫힘 */
 #qHint[hidden],body.inmenu #qHint,body.cine #qHint{display:none}
-#qHint .qh{margin:0; font-size:var(--fs-15); font-weight:var(--fw-bold); line-height:1.3; letter-spacing:var(--ls-text)}
-#qHint .qt{margin:5px 0 0; font-size:var(--fs-13); line-height:1.5; color:#d6d9df}
-#qHint .qk{display:inline-block; padding:0 7px; border-radius:4px; background:#f4f5f7; color:#111; font:var(--fw-bold) var(--fs-12)/1.5 var(--ff-ui); box-shadow:inset 3px 0 0 #ffb347; white-space:nowrap}
-#qHint .qf{display:flex; align-items:center; gap:10px; margin-top:10px}
-#qHint .qf small{flex:1; font-size:var(--fs-12); line-height:1.4; color:var(--c-cap)}
-#qHintOk{flex:none; width:96px; min-height:44px; padding:0; border:0; border-radius:10px; background:#26282e; box-shadow:inset 0 0 0 1px rgba(255,255,255,.12); color:#fff; font-size:var(--fs-13); font-weight:var(--fw-bold); white-space:nowrap}
-#qHintOk:active{background:#33363e}
+#qHint .qh{margin:0; font-size:var(--fs-13); font-weight:var(--fw-bold); line-height:1.3; letter-spacing:var(--ls-text)}
+#qHint .qt{margin:2px 0 0; font-size:var(--fs-12); line-height:1.35; color:#d6d9df}
 /* 11-15 반영안 C-1 ④: the final grid's title is my start place (「출발」 label, 「/22」 small); the main action 「다음」 on the right of the bottom row */
 #sessTitle .sLb{margin-right:8px; font:var(--fw-bold) var(--fs-20)/1 var(--ff-ui); font-style:normal; letter-spacing:var(--ls-title); color:var(--c-lab)}
 #sessTitle small{margin-left:4px; font:var(--fw-num) var(--fs-15)/1 var(--ff-num); font-style:normal; color:var(--dim)}
@@ -1163,7 +1158,7 @@ body.touch #flag.sa.pulse{animation-name:flagPulseSa}
   <canvas id="gl"></canvas><div id="vig"></div><div id="hitfx"></div>
   <div class="hud num" id="hudTop"><div><span id="pos">P12</span><span class="small" id="posN">/22</span></div><div><span class="small" id="lapL">랩 </span><span id="lap">1/3</span></div><div id="pen" class="small" style="color:#ffb347"></div><div id="wxI" class="small"></div></div>
   <div id="flag" class="num"><span id="flagT"></span><b id="flagD"></b><span id="flagS"></span><button id="fmSkip" type="button" hidden>건너뛰기 ▸▸</button></div>
-  <div id="qHint" hidden role="status"><p class="qh">아웃랩은 기록되지 않아요</p><p class="qt">위쪽 <span class="qk">플라잉 랩으로 ▸▸</span> 를 누르면 아웃랩을 건너뛰어요. 기록은 출발선부터예요.</p><div class="qf"><small data-prose>인랩엔 「개러지로」, 삭제된 랩엔 「다시&nbsp;시도」가 같은 자리에 나와요</small><button id="qHintOk" type="button">알겠어요</button></div></div>
+  <div id="qHint" hidden role="status"><p class="qh">아웃랩은 기록 안 돼요</p><p class="qt">위 버튼으로 건너뛰어요</p><p class="qt">기록은 출발선부터예요</p></div>
   <div id="pitT" class="num"><span id="pitTl">피트 스톱</span><b id="pitTv">0.0</b></div>
   <div id="pitMsg" class="num"></div>
   <div id="fpsBox" class="num" hidden></div>
@@ -6963,7 +6958,7 @@ function cycleNext(){const p=race&&race.player;if(!p)return;const o=['S','M','H'
 let toastHold=0;
 // 11-11 윤택님 「패널티·타이어 변경 팝업이 너무 오래 시야를 가림」: every note at most TOAST_MAX s (penalties were 2.6, damage 2.4, instructions 3.6), and on a phone
 // it sits in the top band (layoutTouchHUD: the row under the race-control pill; the mirror's row is only kept free while the mirror is on)
-function flyNote(){toast('플라잉 랩 시작 · 기록\u00a0측정','#3ddc84',2,1000);$('toast').classList.add('big');toastT=2.6;}   /* 11-16 윤택님: bigger and 2.6 s (other notes stay at 2 s or less) */
+function flyNote(){toast('플라잉 랩 · 기록\u00a0시작','#3ddc84',2,1000);if(!isTouch){$('toast').classList.add('big');toastT=2.6;}}   /* 11-16 윤택님: bigger and 2.6 s. 11-18 윤택님 「플라잉랩 시작 팝업 너무커서 시야 다 가림」: phones - the usual one-line note in the strip (20px two lines at 667 → 13px one line, 2 s) */
 const TOAST_MAX=2;function toast(m,c,d,hold){d=Math.min(d||1.5,TOAST_MAX);if(hold)hold=Math.min(hold,1000);   /* 11-13 윤택님 「팝업 화면에 뜨는 시간이 너무 길어」: 보통 1.5초, 중요 2초, 다른 알림 막는 시간 1초 */if(!hold&&performance.now()<toastHold)return;if(hold)toastHold=performance.now()+hold;const t=$('toast'),rd=m.startsWith('무전: ');   /* 11-14 (현장감 디테일 #4): 「무전: …」 is a radio card */
   if(rd){t.textContent='';const b=document.createElement('b');b.textContent='무전';t.append(b,m.slice(4));}else t.textContent=m;t.classList.remove('big');if(t._rd!==rd){t._rd=rd;t.classList.toggle('radio',rd);}t.style.color=c||'#fff';t.style.opacity=1;toastT=d||1.8;if(rd)sfx('radio');}
 function setupRace(mode,o){o=o||{};mDraw=40;podiumEnd(false);meshes.forEach(m=>scene.remove(m.root));resetSkids();if(WORLD&&WORLD.crew)WORLD.crew.ready=false;clearDebris();
@@ -7032,7 +7027,7 @@ function ffStep(){const t0=performance.now();let n=0;
     else if(race.rc.flag==='red'){const p=race.player;stepRace(race,1/30,p.pit||p.dnf?{}:pilot(race,p));}
     else{FF=false;return;}}}
 $('fmSkip').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();{const a=race&&race.sess&&!race.form?sessAct():null;if(a)a.go();else if(!(race&&race.sess))doSkip();}});   // (pointerdown: a finger on a pedal does not block it)
-$('qHintOk').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();qHintOff();});
+$('qHint').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();qHintOff();});   // 11-18: the whole note closes it (no 「알겠어요」 button)
 function canSkip(){return !!race&&(!!race.form||race.rc.flag==='red'||(!!race.sess&&race.sess.kind==='quali'&&!race.sess.over));}
 function doSkip(){if(!canSkip())return;if(race.sess){sessSimFinish(race);showSess();return;}if(!FF){FF=true;toast('빠르게 진행하는 중…','#fff',1.4);}}
 function skillMap(r){const m={};for(const c of r.cars)if(!c.isP)m[c.code]=c.skill;return m;}
@@ -8023,7 +8018,7 @@ function layoutTouchHUD(){if(!isTouch)return;
     set($('flag'),{left:cx+'px',top:y0,maxWidth:Math.max(120,hw(L,Rf)),whiteSpace:'normal'});
     set($('pitMsg'),{left:cx+'px',top:y0+36,bottom:null,maxWidth:Math.max(120,hw(L,Rm))});
     set($('toast'),{left:cx+'px',top:y0+36,maxWidth:Math.max(140,hw(L,Rm))});
-    set($('pitT'),{top:y0+64});set($('qHint'),{top:y0+86});}
+    set($('pitT'),{top:y0+64});set($('qHint'),{top:y0+86,maxWidth:Math.max(140,hw(L,Rm))});}   // 11-18: the first out-lap note no wider than the note row
   else{const L=sa.l+12,R2=W-sa.r-12,yB=Math.max(mr?mr.bottom:tTop+TOWER_H,hsr.bottom)+10;
     set($('flag'),{left:C(L,R2),top:sa.t+4,maxWidth:R2-L,whiteSpace:'normal'});
     set($('toast'),{left:C(L,R2),top:sa.t+4,maxWidth:R2-L});
@@ -8044,10 +8039,10 @@ function towerMv(c){const o=!race.sess&&TPOS&&TPOS.r===race&&TPOS.m[c.id];return
 const LK={r:null,o:false,x:0};
 function lapKind(p){const S=race.sess;if(!S||state!=='race'||!p.isP&&p!==race.player)return null;if(LK.r!==race){LK.r=race;LK.o=false;}const ps=p.pit&&p.pit.state;
   if(ps==='garage'||ps==='red')return null;
-  if(ps==='out'||ps==='join'){LK.o=true;LK.x=p.crossT;return ['아웃랩 · 출발선부터\u00a0기록','nt'];}
+  if(ps==='out'||ps==='join'){LK.o=true;LK.x=p.crossT;return ['아웃랩 · 출발선부터','nt'];}
   if(ps||p.sessDone||p.pitReq)return ['인랩 · 기록 안 됨','nt'];
   if(LK.o&&p.crossT!==LK.x)LK.o=false;   /* 11-16 윤택님 「한바퀴돌고 했는데도 기록 재는거 시작안되더라」: the out-lap ends at the line - it waited for a lap event, and the first crossing out of a garage past the line sends none, so the first timed lap showed 「아웃랩」 */
-  if(p.crossT<0||LK.o||p.lapPit&&p.lapInv)return ['아웃랩 · 출발선부터\u00a0기록','nt'];   /* (lapPit: this lap began in the pit lane - the SIM's own flag, so an out-lap reads as one even when the HUD did not see the pit lane) */
+  if(p.crossT<0||LK.o||p.lapPit&&p.lapInv)return ['아웃랩 · 출발선부터','nt'];   /* 11-18: 「…출발선부터 기록」 did not fit beside the time on a phone (it wrapped) (lapPit: this lap began in the pit lane - the SIM's own flag, so an out-lap reads as one even when the HUD did not see the pit lane) */
   return p.lapInv?['랩 삭제 · 기록 안 됨','nt']:['플라잉 랩','fly'];}
 const onFly=c=>c.isP?(lapKind(c)||[])[1]==='fly':!!(c.run&&c.run.ph==='push'&&!c.pit);   // the tower's green dot: a car on a timed lap
 /* 11-15 윤택님 예선 버튼: the one session button in the race-control pill (#fmSkip) - out-lap / deleted lap 「플라잉 랩으로」「다시 시도」, in-lap 「개러지로」, after the flag 「결과 보기」.
@@ -8074,14 +8069,14 @@ function sessAct(){const S=race&&race.sess,p=race&&race.player;if(!S||S.kind!=='
 /* the cut: chase camera and skid trails start fresh; the 3D picture (not the HUD) comes back from black in 0.35 s - off under reduced motion */
 function sessCut(){const p=race.player;chaseInit=false;camYaw=p.a;if(SKID)SKID.last=[null,null,null,null];
   try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches)$('gl').animate([{filter:'brightness(0)'},{filter:'brightness(1)'}],{duration:350,easing:'ease-in'});}catch(e){}}
-function sessRunUpUI(){if(!sessRunUp(race,race.player)){toast('트래픽이 지나가는 중 · 잠시 후 다시','#fff',1.5,1000);return;}LK.r=race;LK.o=true;LK.x=race.player.crossT;sessRuAt=performance.now();sessCut();qHintOff();toast('플라잉 랩 준비 · 출발선부터 기록','#3ddc84',2,1000);}
+function sessRunUpUI(){if(!sessRunUp(race,race.player)){toast('트래픽이 지나가는 중 · 잠시 후 다시','#fff',1.5,1000);return;}LK.r=race;LK.o=true;LK.x=race.player.crossT;sessRuAt=performance.now();sessCut();qHintOff();toast('출발선부터 기록\u00a0시작','#3ddc84',2,1000);}
 function sessGarageUI(){sessToGarage(race,race.player,3);sessCut();toast('개러지 · 잠시 뒤 새\u00a0타이어로 출발','#8ecae6',2,1000);}
 /* 11-15: the first time the button shows while the pit lane still drives the car (~20 s), a small card under the strip says what it does - once (lightsout3d-qhint), phones only.
    S2: the stored flag is read once (not every frame); it is saved when closed by a tap, or when it hides by itself after showing for more than 2 s */
 let qHintOn=0,qHintSeen=null;
 function qHintOff(auto){if(!qHintOn)return;if(!auto||performance.now()-qHintOn>2000){saveLS('lightsout3d-qhint',1);qHintSeen=true;}qHintOn=0;$('qHint').hidden=true;}
 function qHintUpd(sa){const want=isTouch&&!!sa&&sa.go===sessRunUpUI&&!!race.player.pit;if(qHintSeen==null)qHintSeen=!!loadLS('lightsout3d-qhint');
-  if(want&&!qHintOn&&!qHintSeen){qHintOn=performance.now();$('qHint').hidden=false;flagPulse=2.2;}else if(!want)qHintOff(true);}
+  if(want&&!qHintOn&&!qHintSeen){qHintOn=performance.now();$('qHint').hidden=false;flagPulse=2.2;}else if(!want||qHintOn&&performance.now()-qHintOn>6000)qHintOff(true);}   /* 11-18: up 6 s at most (it stayed the whole pit lane) */
 function towerTouch(r,pp){towerMvUpd(r);const pl=race.player,S=race.sess,rowH=VH()<=370?15:16,act=S?r.filter(c=>!c.gone):r,wt=wxTxt();let maxR=Math.max(4,Math.floor((TOWER_H-(S?25:32)-18)/rowH)-(wt?1:0));if(towerMode==='short')maxR=Math.min(maxR,8);   // v12g: tap the header for all rows / fewer / header only
   /* 11-16 UI 개편 조각 H(반영안 C-1 ③): Q1·Q2는 탈락선과 「탈락권」 한 줄(그 자리만큼 한 줄 덜 보임), 레이스 머리는 「P12」 크게 + 「/22」 작게(C-4 ②, 머리 21→28px) */
   const cut=S&&S.kind!=='practice'&&S.q<3?QCUT[S.q-1]:-1;let cd=0;if(cut>0&&act.length>cut)maxR=Math.max(4,maxR-1);
