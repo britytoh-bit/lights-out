@@ -952,7 +952,7 @@ body.touch .pedal.brk.as{background-color:rgba(255,80,70,.5)}   /* the brake ass
 #menu.mEnter #startBtn{animation:mInR .55s .2s cubic-bezier(.2,.8,.2,1) both}
 @keyframes mInL{from{opacity:0; transform:translateX(-28px)}} @keyframes mInU{from{opacity:0; transform:translateY(12px)}} @keyframes mInR{from{opacity:0; transform:translateX(36px)}}
 body.inmenu:not(.lived):not(.q-low) #gl{animation:mDrift 26s ease-in-out 2 alternate; transform-origin:70% 58%}   /* in and back out once (52 s), then still: an idle menu costs nothing */
-body.inmenu:has(#mPage:not([hidden])) #gl{animation-play-state:paused}   /* a settings page covers it */
+body.inmenu.mpOn #gl{animation-play-state:paused}   /* a settings page covers it. 11-18 잔렉: body:has(#mPage:not([hidden])) 대신 클래스(mpOn, menuBuild에서 #mPage hidden을 따라 바꿈) - body에 :has가 걸리면 레이스 중 매 프레임 스타일을 다시 계산했다 */
 @keyframes mDrift{from{transform:none} to{transform:scale(1.06) translate(1%,.5%)}}   /* (grows round the car and eases right: the nose stays clear of the menu panel) */
 #menu #mTrkB,#menu .mChip,#menu #startBtn{transition:transform .12s ease,background .12s}
 #menu #mTrkB:active{transform:scale(.985)} #menu .mChip:active{transform:scale(.97)} #menu #startBtn:active{transform:scale(.97)}
@@ -1022,7 +1022,8 @@ body.inmenu:has(#mPage:not([hidden])) #gl{animation-play-state:paused}   /* a se
 #pause .seg button{flex:1 1 0; min-width:0; min-height:44px; height:auto; margin:0; padding:4px; border:0; border-radius:9px; background:none; font-size:var(--fs-13); font-weight:var(--fw-med); color:#b3b7c0; white-space:nowrap}
 #pause .seg button[aria-pressed="true"]{background:#474b56; color:#fff; font-weight:var(--fw-bold)}
 /* 열려 있는 동안 HUD는 숨기고(자리 계산이 남도록 visibility) 멈춘 3D만 그늘 아래. 목록은 body.cine과 같고 튜토리얼 카드·테두리·피트 알림·예선 안내 카드를 더함. 「조작법」을 누르면 #pause가 hidden이라 HUD가 돌아옴 */
-body:has(#pause:not([hidden])) :is(.hud,#mini,#camTag,#flag,#touch,#mctl,#mirFrame,#tower,#pitT,#pitMsg,#tut,#tutMark,#qHint){visibility:hidden}
+/* 11-18 윤택님 「잔렉」: 예전 「body:has(#pause:not([hidden]))」는 레이스 중 HUD 글자·클래스가 바뀔 때마다(매 프레임) 아래 HUD 상자 17개의 스타일을 통째로 다시 계산했다(개편 전보다 스타일 계산 4~6배, 크롬 :has 무효화는 :has 규칙 전부를 한 묶음으로 다시 따짐). 같은 뜻을 클래스로 - pzOn은 #pause의 hidden을 따라감(setPause 아래 MutationObserver, 어디서 바꾸든) */
+body.pzOn :is(.hud,#mini,#camTag,#flag,#touch,#mctl,#mirFrame,#tower,#pitT,#pitMsg,#tut,#tutMark,#qHint){visibility:hidden}
 body.sm-tilt #pause [data-row="ped"]{display:none}   /* 기울이기면 페달 위치는 효과가 없다 */
 #pause .pSk{display:flex; align-items:center; gap:12px; min-height:52px; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,.07)}
 #pause .pSk .skNote{flex:1; min-width:0; margin:0; font-size:var(--fs-12); line-height:1.4; color:#aab0b9}
@@ -7056,6 +7057,8 @@ function setPause(on){if(on){if(state==='paused')return;pausedFrom=state;state='
      $('pBest').innerHTML=p&&p.best!=null?'<span>이번 최고</span><b>'+fmt(p.best)+'</b>'+(!S&&p.lastLap!=null?'<span>지난 랩</span><b>'+fmt(p.lastLap)+'</b>':''):'<span>아직 기록 없음</span>';}
     if(!isTouch)$('resumeBtn').focus({preventScroll:true});if(AC)AC.suspend();}
   else{state=pausedFrom||'race';$('pause').hidden=true;pDisarm();quitArm(false);if(TUT&&!TUT.ok)tutShow();if(PREV){PREV.stop();PREV=null;}if(AC)AC.resume();}}
+/* 11-18 잔렉: 「일시정지가 보이면 HUD 숨김」(CSS body.pzOn)은 #pause의 hidden을 그대로 따라감 - 바꾸는 곳이 여럿(시작·세션 결과·메뉴·조작법)이라 한 곳에서. 마이크로태스크라 다음 그리기 전에 맞춰짐 */
+new MutationObserver(()=>document.body.classList.toggle('pzOn',!$('pause').hidden)).observe($('pause'),{attributes:true,attributeFilter:['hidden']});
 // 11-14 (UI 개편 P1): 「레이스 그만두기」 is a quiet text button under the settings, and the first tap only asks (a stray tap no longer ends the race)
 let quitT=0;function quitArm(on){clearTimeout(quitT);const b=$('quitBtn'),S=race&&race.sess;b.classList.toggle('arm',on);
   b.textContent=on?'한 번 더 누르면 그만둬요':S?(TUT?'튜토리얼 그만두기':'세션 그만두기'):'레이스 그만두기';$('quitNote').textContent=on?(S?'메뉴로 나가요':'이 레이스 결과는 남지 않아요'):'';if(on)quitT=setTimeout(()=>quitArm(false),4000);}
@@ -7111,6 +7114,7 @@ function menuSum(){const set=(id,t)=>{const e=$(id);if(e)e.textContent=t;},d={ea
 (function menuBuild(){const card=document.querySelector('#menu .card'),h1=card.querySelector('h1'),st=$('startBtn'),help=card.querySelector('.keys');help.id='mKeys';
   const mk=(tag,id,par,cl)=>{const e=document.createElement(tag);if(id)e.id=id;if(cl)e.className=cl;if(par)par.appendChild(e);return e;};
   const old=[...card.children],home=mk('div','mHome'),L=mk('div','mHomeL',home),R=mk('div','mHomeR',home),page=mk('div','mPage');page.hidden=true;
+  new MutationObserver(()=>document.body.classList.toggle('mpOn',!page.hidden)).observe(page,{attributes:true,attributeFilter:['hidden']});   /* 11-18 잔렉: CSS body.inmenu.mpOn #gl(예전 body:has) */
   L.appendChild(h1);const top=mk('div','mTop',R),mm=mk('div','mMode',top,'seg');
   /* 11-16 S6: 모드 알약 부제(「한 경기씩」 「점수 모아 순위」, 대회 중이면 「라운드 n / N」 - menuSum) */
   mm.innerHTML='<button type="button" data-v="normal"><b>일반 모드</b><small>한 경기씩</small></button><button type="button" data-v="champ"><b>대회 모드</b><small id="mModeSub">점수 모아 순위</small></button>';
