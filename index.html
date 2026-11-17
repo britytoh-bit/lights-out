@@ -8004,7 +8004,7 @@ function layoutTouchHUD(){if(!isTouch)return;
     if(steerMode==='tilt')set($('tiltGauge'),{left:W/2-60,width:120,right:null,top:null,bottom:sa.b+8,transform:'none'});}
   // the tower: down the left as far as the steering control (portrait: a short one, the map goes under it)
   const tTop=sa.t+6+MSGL;set(tw,{left:sa.l+6,top:tTop});
-  TOWER_H=port?Math.min(28+8*16+22,Math.max(60,lcT-10-tTop)):Math.max(60,lcT-10-(hc.dashUp||0)-tTop);hc.tw=null;   // (v12j: portrait 163 - still 8 rows, 11 px less kept free above the map)
+  TOWER_H=port?Math.min(28+8*16+22,Math.max(60,lcT-10-tTop)):Math.max(60,lcT-10-(hc.dashUp||0)-tTop);hc.tw=null;towerT=0;   /* 11-18: 순위표도 바로 다음 프레임에 새 높이로(전엔 0.3초 타이머를 기다려 노치 여백이 바뀐 뒤 최대 0.3초 옛 줄 수 그대로) */   // (v12j: portrait 163 - still 8 rows, 11 px less kept free above the map)
   if(MM.radar&&mini.style.display!=='none'){const D=MM.W;if(port)set(mini,{left:sa.l+6,top:tTop+TOWER_H+8,right:null,bottom:null});else set(mini,{left:sa.l+6+128+8,top:tTop,right:null,bottom:null});}
   // messages (v12j: never over the road ahead). Landscape: the race-control pill along the top edge, under it one row for a short
   // note or the pit / strategy line (the note takes the row for a moment). Portrait: a message line above the panels (the race-control
@@ -8511,7 +8511,7 @@ const FLAG_EV=new Set(['sc','vsc','vscEnding','scIn','restart','scGo','red','red
 const MSG={fl:e=>[(e.me?'':e.name+' ')+'패스티스트 랩 '+fmt(e.t),e.me?'#c58bff':'#a87be0'],colPen:e=>[e.me?'충돌 유발 +'+e.s+'초':e.name+' 충돌 유발 +'+e.s+'초',e.me?'#ff8a8a':'#f5c518'],pitRet:()=>['수리 불가 · 리타이어','#ff3b30'],pitRetAI:e=>[e.name+' 리타이어','#ff8a8a'],wall:()=>[race.dmg==='off'?'월 히트 · 타이어 손상':'월 히트!','#ff8a8a'],crash:e=>[e.name+' 크래시','#ff8a8a'],wreck:()=>['크래시 · 리타이어','#ff3b30'],pitIn:()=>['피트 레인 · 리미터 80','#f5c518'],pitStop:e=>e.pen?['페널티 '+e.pen+'초 소화','#fff']:null,   // the stop timer shows a normal stop
   pitGo:e=>['GO! '+(e.mis?'피트 실수 · ':'')+(e.rep?'수리 + ':'')+COMP[e.comp].name+' '+e.t.toFixed(1)+'초'+(e.best?' · 최고':''),e.rep?'#ffb347':e.mis||e.t>3.5?'#ff8a8a':'#3ddc84'],
   aiPit:e=>e.mis?[e.name+' 피트 실수 '+e.t.toFixed(1)+'초','#ffb347']:[e.name+' 최고 피트 '+e.t.toFixed(1)+'초','#3ddc84'],
-  aiStart:e=>['출발 실수 · '+e.l.map(x=>x.name).join(' · '),'#ffb347'],flat:()=>['타이어 펑크 · 피트로!','#ff3b30'],pitOut:()=>{const p=race.player,C=COMP[p.ty.comp],T=(p.ty.temp[0]+p.ty.temp[1]+p.ty.temp[2]+p.ty.temp[3])/4;return T<C.win[0]-8?['피트 아웃 · 타이어 차가움','#8ecae6']:['피트 아웃','#fff'];},
+  aiStart:e=>['출발 실수 · '+e.l.map(x=>x.name).join(' · '),'#ffb347'],flat:()=>['타이어 펑크 · 피트로!','#ff3b30'],pitOut:()=>{const p=race.player,C=COMP[p.ty.comp],T=(p.ty.temp[0]+p.ty.temp[1]+p.ty.temp[2]+p.ty.temp[3])/4;return T<C.win[0]-8?['피트 아웃 · 찬 타이어','#8ecae6']:['피트 아웃','#fff'];},   /* 11-18: 667 알림 줄(안쪽 122px)에 한 줄로 - 「타이어 차가움」은 125px라 「차가움」만 다음 줄로 내려갔음 */
   tl:e=>['트랙 리밋 '+e.n+'회 · 랩 삭제','#ffb347'],bw:e=>['흑백기 · 다음부터 +5초','#ffb347'],tlpen:e=>['트랙 리밋 '+e.n+'회 · +'+e.s+'초','#ff5a4f'],
   cut:e=>['코스 밖 이득 · +'+e.s+'초','#ff5a4f'],cutGB:e=>['코스 밖 이득 '+e.gt.toFixed(1)+'초 · 감속해 반납','#ffb347'],lastChance:()=>['마지막 랩 · 지금 PIT 안 하면 실격','#ffb347'],
   jump:e=>['부정 출발 +'+e.s+'초','#ff5a4f'],jumpWarn:()=>['부정 출발!','#ff5a4f'],ovt:()=>['추월 모드','#b16cff'],
